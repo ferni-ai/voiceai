@@ -1,1 +1,370 @@
-"use strict";(function(){"use strict";const o={enabled:!0,masterVolume:.06,mobileEnabled:!1,respectsReducedMotion:!0};o.respectsReducedMotion&&window.matchMedia("(prefers-reduced-motion: reduce)").matches&&(o.enabled=!1),/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)&&!o.mobileEnabled&&(o.enabled=!1);let T=null,A=!1;function m(){return T||(T=new(window.AudioContext||window.webkitAudioContext)),T}function y(){if(A)return;const t=m();t.state==="suspended"&&t.resume(),A=!0}["click","touchstart","keydown"].forEach(t=>{document.addEventListener(t,y,{once:!0,passive:!0})});const c={touch(){if(!o.enabled)return;const t=m(),e=t.currentTime,n=t.createOscillator(),a=t.createGain(),i=t.createBiquadFilter();n.connect(i),i.connect(a),a.connect(t.destination),n.type="sine",n.frequency.setValueAtTime(110,e),n.frequency.exponentialRampToValueAtTime(65,e+.08),i.type="lowpass",i.frequency.setValueAtTime(200,e),i.Q.setValueAtTime(1,e),a.gain.setValueAtTime(0,e),a.gain.linearRampToValueAtTime(o.masterVolume*.4,e+.01),a.gain.exponentialRampToValueAtTime(.001,e+.12),n.start(e),n.stop(e+.12)},breath(){if(!o.enabled)return;const t=m(),e=t.currentTime,n=t.sampleRate*.15,a=t.createBuffer(1,n,t.sampleRate),i=a.getChannelData(0);let s=0,r=0,l=0;for(let V=0;V<n;V++){const p=Math.random()*2-1;s=.99765*s+p*.099046,r=.963*r+p*.2965164,l=.57*l+p*1.0526913,i[V]=(s+r+l+p*.1848)*.11}const u=t.createBufferSource();u.buffer=a;const d=t.createBiquadFilter();d.type="bandpass",d.frequency.setValueAtTime(400,e),d.Q.setValueAtTime(.5,e);const f=t.createGain();u.connect(d),d.connect(f),f.connect(t.destination),f.gain.setValueAtTime(0,e),f.gain.linearRampToValueAtTime(o.masterVolume*.25,e+.04),f.gain.linearRampToValueAtTime(o.masterVolume*.15,e+.08),f.gain.exponentialRampToValueAtTime(.001,e+.15),u.start(e),u.stop(e+.15)},warmth(){if(!o.enabled)return;const t=m(),e=t.currentTime;[174,261].forEach((a,i)=>{const s=t.createOscillator(),r=t.createGain(),l=t.createBiquadFilter();s.connect(l),l.connect(r),r.connect(t.destination),s.type="sine",s.frequency.setValueAtTime(a,e),l.type="lowpass",l.frequency.setValueAtTime(a*2,e),l.Q.setValueAtTime(.5,e);const u=i*.02,d=o.masterVolume*(i===0?.35:.2);r.gain.setValueAtTime(0,e+u),r.gain.linearRampToValueAtTime(d,e+u+.06),r.gain.exponentialRampToValueAtTime(.001,e+u+.25),s.start(e+u),s.stop(e+u+.25)})},settle(){if(!o.enabled)return;const t=m(),e=t.currentTime,n=t.createOscillator(),a=t.createGain(),i=t.createBiquadFilter();n.connect(i),i.connect(a),a.connect(t.destination),n.type="triangle",n.frequency.setValueAtTime(220,e),n.frequency.exponentialRampToValueAtTime(110,e+.15),i.type="lowpass",i.frequency.setValueAtTime(300,e),i.frequency.exponentialRampToValueAtTime(100,e+.15),a.gain.setValueAtTime(o.masterVolume*.25,e),a.gain.exponentialRampToValueAtTime(.001,e+.15),n.start(e),n.stop(e+.15)},presence(){if(!o.enabled)return;const t=m(),e=t.currentTime,n=82.4;[1,2,3].forEach((a,i)=>{const s=t.createOscillator(),r=t.createGain(),l=t.createBiquadFilter();s.connect(l),l.connect(r),r.connect(t.destination),s.type="sine",s.frequency.setValueAtTime(n*a,e),l.type="lowpass",l.frequency.setValueAtTime(n*a*1.5,e);const u=o.masterVolume*(.4/(i+1));r.gain.setValueAtTime(0,e),r.gain.linearRampToValueAtTime(u,e+.1),r.gain.exponentialRampToValueAtTime(.001,e+.5),s.start(e),s.stop(e+.5)})},acknowledge(){if(!o.enabled)return;const t=m(),e=t.currentTime,n=t.createOscillator(),a=t.createGain(),i=t.createBiquadFilter();n.connect(i),i.connect(a),a.connect(t.destination),n.type="sine",n.frequency.setValueAtTime(150,e),n.frequency.exponentialRampToValueAtTime(60,e+.04),i.type="lowpass",i.frequency.setValueAtTime(180,e),a.gain.setValueAtTime(o.masterVolume*.5,e),a.gain.exponentialRampToValueAtTime(.001,e+.06),n.start(e),n.stop(e+.06)}};c.tap=c.touch,c.hover=c.breath,c.success=c.warmth,c.whoosh=c.settle,c.thinking=c.acknowledge;function b(){document.querySelectorAll(".btn, button").forEach(e=>{e.addEventListener("mouseenter",c.touch,{passive:!0})}),document.querySelectorAll(".team-card, .persona-card, .connect-option, .garden__card").forEach(e=>{e.addEventListener("mouseenter",c.breath,{passive:!0})});const t=document.querySelector(".ferni-demo-trigger");t&&t.addEventListener("click",c.settle,{passive:!0}),document.querySelectorAll(".faq-item summary, .faq-item__question").forEach(e=>{e.addEventListener("click",c.acknowledge,{passive:!0})}),document.addEventListener("ferni:awakened",c.presence),document.addEventListener("ferni:form-success",c.warmth)}function g(){b(),window.FerniSounds={play:c,setEnabled:t=>{o.enabled=t},setVolume:t=>{o.masterVolume=Math.max(0,Math.min(.15,t))},isEnabled:()=>o.enabled}}document.readyState==="loading"?document.addEventListener("DOMContentLoaded",g):g()})();
+/**
+ * Ferni Sounds - On-Brand Audio Presence
+ * ═══════════════════════════════════════════════════════════════════════════
+ *
+ * PHILOSOPHY: Sounds should feel like sitting with a wise friend.
+ *
+ * Ferni's brand is warm, grounded, human, present. Our sounds reflect this:
+ * - Earthy, wooden textures (not metallic or electronic)
+ * - Breath-like movements (not beeps or chimes)
+ * - Low, warm frequencies (like a cozy room)
+ * - Natural decay (like sound in a forest)
+ *
+ * These aren't UI sounds. They're moments of presence.
+ *
+ * @module ferni-sounds
+ */
+
+(function () {
+  'use strict';
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // CONFIGURATION
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  const CONFIG = {
+    enabled: true,
+    masterVolume: 0.06, // Barely perceptible - felt more than heard
+    mobileEnabled: false, // Off by default on mobile
+    respectsReducedMotion: true,
+  };
+
+  // Respect user preferences
+  if (
+    CONFIG.respectsReducedMotion &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  ) {
+    CONFIG.enabled = false;
+  }
+
+  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  if (isMobile && !CONFIG.mobileEnabled) {
+    CONFIG.enabled = false;
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // AUDIO CONTEXT
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  let audioContext = null;
+  let isInitialized = false;
+
+  function getAudioContext() {
+    if (!audioContext) {
+      audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    return audioContext;
+  }
+
+  function initAudio() {
+    if (isInitialized) return;
+    const ctx = getAudioContext();
+    if (ctx.state === 'suspended') ctx.resume();
+    isInitialized = true;
+  }
+
+  ['click', 'touchstart', 'keydown'].forEach((event) => {
+    document.addEventListener(event, initAudio, { once: true, passive: true });
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // ORGANIC SOUND GENERATORS
+  // Designed to feel natural, warm, and human
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  const Sounds = {
+    /**
+     * Soft touch - like a hand resting on warm wood
+     * A gentle, grounding moment of acknowledgment
+     */
+    touch() {
+      if (!CONFIG.enabled) return;
+
+      const ctx = getAudioContext();
+      const t = ctx.currentTime;
+
+      // Base: deep, warm resonance (like a wooden table)
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const filter = ctx.createBiquadFilter();
+
+      osc.connect(filter);
+      filter.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(110, t); // Low A - grounding
+      osc.frequency.exponentialRampToValueAtTime(65, t + 0.08); // Settle lower
+
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(200, t);
+      filter.Q.setValueAtTime(1, t);
+
+      // Natural decay like wood absorbing sound
+      gain.gain.setValueAtTime(0, t);
+      gain.gain.linearRampToValueAtTime(CONFIG.masterVolume * 0.4, t + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
+
+      osc.start(t);
+      osc.stop(t + 0.12);
+    },
+
+    /**
+     * Breath - someone sitting down beside you
+     * A soft exhale, presence arriving
+     */
+    breath() {
+      if (!CONFIG.enabled) return;
+
+      const ctx = getAudioContext();
+      const t = ctx.currentTime;
+
+      // Filtered noise for breath texture
+      const bufferSize = ctx.sampleRate * 0.15;
+      const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+
+      // Pink-ish noise (warmer than white)
+      let b0 = 0, b1 = 0, b2 = 0;
+      for (let i = 0; i < bufferSize; i++) {
+        const white = Math.random() * 2 - 1;
+        b0 = 0.99765 * b0 + white * 0.0990460;
+        b1 = 0.96300 * b1 + white * 0.2965164;
+        b2 = 0.57000 * b2 + white * 1.0526913;
+        data[i] = (b0 + b1 + b2 + white * 0.1848) * 0.11;
+      }
+
+      const source = ctx.createBufferSource();
+      source.buffer = buffer;
+
+      const filter = ctx.createBiquadFilter();
+      filter.type = 'bandpass';
+      filter.frequency.setValueAtTime(400, t);
+      filter.Q.setValueAtTime(0.5, t);
+
+      const gain = ctx.createGain();
+
+      source.connect(filter);
+      filter.connect(gain);
+      gain.connect(ctx.destination);
+
+      // Gentle swell and release like an exhale
+      gain.gain.setValueAtTime(0, t);
+      gain.gain.linearRampToValueAtTime(CONFIG.masterVolume * 0.25, t + 0.04);
+      gain.gain.linearRampToValueAtTime(CONFIG.masterVolume * 0.15, t + 0.08);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
+
+      source.start(t);
+      source.stop(t + 0.15);
+    },
+
+    /**
+     * Warmth - a moment of connection
+     * Like sunlight touching your face through a window
+     */
+    warmth() {
+      if (!CONFIG.enabled) return;
+
+      const ctx = getAudioContext();
+      const t = ctx.currentTime;
+
+      // Layered warm tones (like a singing bowl, very gentle)
+      const frequencies = [174, 261]; // F3 and C4 - warm interval
+
+      frequencies.forEach((freq, i) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        const filter = ctx.createBiquadFilter();
+
+        osc.connect(filter);
+        filter.connect(gain);
+        gain.connect(ctx.destination);
+
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, t);
+
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(freq * 2, t);
+        filter.Q.setValueAtTime(0.5, t);
+
+        const startOffset = i * 0.02;
+        const vol = CONFIG.masterVolume * (i === 0 ? 0.35 : 0.2);
+
+        gain.gain.setValueAtTime(0, t + startOffset);
+        gain.gain.linearRampToValueAtTime(vol, t + startOffset + 0.06);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + startOffset + 0.25);
+
+        osc.start(t + startOffset);
+        osc.stop(t + startOffset + 0.25);
+      });
+    },
+
+    /**
+     * Settle - coming to rest
+     * Like leaves settling after a gentle breeze
+     */
+    settle() {
+      if (!CONFIG.enabled) return;
+
+      const ctx = getAudioContext();
+      const t = ctx.currentTime;
+
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const filter = ctx.createBiquadFilter();
+
+      osc.connect(filter);
+      filter.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(220, t);
+      osc.frequency.exponentialRampToValueAtTime(110, t + 0.15);
+
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(300, t);
+      filter.frequency.exponentialRampToValueAtTime(100, t + 0.15);
+
+      gain.gain.setValueAtTime(CONFIG.masterVolume * 0.25, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
+
+      osc.start(t);
+      osc.stop(t + 0.15);
+    },
+
+    /**
+     * Presence - Ferni is here
+     * A deep, grounding tone like a Tibetan bowl from another room
+     */
+    presence() {
+      if (!CONFIG.enabled) return;
+
+      const ctx = getAudioContext();
+      const t = ctx.currentTime;
+
+      // Deep fundamental with gentle harmonics
+      const fundamental = 82.4; // Low E - very grounding
+
+      [1, 2, 3].forEach((harmonic, i) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        const filter = ctx.createBiquadFilter();
+
+        osc.connect(filter);
+        filter.connect(gain);
+        gain.connect(ctx.destination);
+
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(fundamental * harmonic, t);
+
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(fundamental * harmonic * 1.5, t);
+
+        // Higher harmonics quieter
+        const vol = CONFIG.masterVolume * (0.4 / (i + 1));
+
+        gain.gain.setValueAtTime(0, t);
+        gain.gain.linearRampToValueAtTime(vol, t + 0.1);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
+
+        osc.start(t);
+        osc.stop(t + 0.5);
+      });
+    },
+
+    /**
+     * Acknowledge - I hear you
+     * A gentle wooden knock, like knuckles on oak
+     */
+    acknowledge() {
+      if (!CONFIG.enabled) return;
+
+      const ctx = getAudioContext();
+      const t = ctx.currentTime;
+
+      // Short, woody thud
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const filter = ctx.createBiquadFilter();
+
+      osc.connect(filter);
+      filter.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(150, t);
+      osc.frequency.exponentialRampToValueAtTime(60, t + 0.04);
+
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(180, t);
+
+      gain.gain.setValueAtTime(CONFIG.masterVolume * 0.5, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.06);
+
+      osc.start(t);
+      osc.stop(t + 0.06);
+    },
+  };
+
+  // Backwards compatibility aliases
+  Sounds.tap = Sounds.touch;
+  Sounds.hover = Sounds.breath;
+  Sounds.success = Sounds.warmth;
+  Sounds.whoosh = Sounds.settle;
+  Sounds.thinking = Sounds.acknowledge;
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // AUTO-ATTACH TO ELEMENTS
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  function attachSounds() {
+    // Buttons get gentle touch on hover
+    document.querySelectorAll('.btn, button').forEach((btn) => {
+      btn.addEventListener('mouseenter', Sounds.touch, { passive: true });
+    });
+
+    // Cards get breath sound - someone noticing
+    document.querySelectorAll('.team-card, .persona-card, .connect-option, .garden__card').forEach((card) => {
+      card.addEventListener('mouseenter', Sounds.breath, { passive: true });
+    });
+
+    // Interactive panels get settle sound
+    const demoTrigger = document.querySelector('.ferni-demo-trigger');
+    if (demoTrigger) {
+      demoTrigger.addEventListener('click', Sounds.settle, { passive: true });
+    }
+
+    // FAQ accordion gets acknowledge
+    document.querySelectorAll('.faq-item summary, .faq-item__question').forEach((q) => {
+      q.addEventListener('click', Sounds.acknowledge, { passive: true });
+    });
+
+    // Ferni awakening - full presence
+    document.addEventListener('ferni:awakened', Sounds.presence);
+
+    // Form success - warmth
+    document.addEventListener('ferni:form-success', Sounds.warmth);
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // INITIALIZATION
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  function init() {
+    attachSounds();
+
+    // Expose for manual triggering
+    window.FerniSounds = {
+      play: Sounds,
+      setEnabled: (enabled) => { CONFIG.enabled = enabled; },
+      setVolume: (volume) => { CONFIG.masterVolume = Math.max(0, Math.min(0.15, volume)); },
+      isEnabled: () => CONFIG.enabled,
+    };
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();

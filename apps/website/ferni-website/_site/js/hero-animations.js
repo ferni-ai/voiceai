@@ -1,60 +1,325 @@
-"use strict";(function(){"use strict";function y(){const t=document.querySelector("[data-hero-orb]");if(!t)return;const o=15;let e,n;const c=(i,s)=>{e||(e=t.getBoundingClientRect());const a=e.left+e.width/2,d=e.top+e.height/2,r=i-a,l=s-d,m=Math.sqrt(r*r+l*l),u=Math.max(window.innerWidth,window.innerHeight)*.5,p=Math.max(0,1-m/u),f=r/u*o*p,Y=-(l/u)*o*p;t.style.transform=`
+/**
+ * Hero Animations - Ferni Landing Page
+ * =====================================
+ * Apple-level hero section with 3D orb, particles, and ambient effects
+ */
+
+(function() {
+  'use strict';
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 3D ORB WITH MOUSE TRACKING
+  // The central orb responds to cursor position with perspective tilt
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  function init3DOrb() {
+    const orb = document.querySelector('[data-hero-orb]');
+    if (!orb) return;
+
+    const maxRotation = 15; // degrees
+    let bounds;
+    let animationFrame;
+
+    const updateOrb = (clientX, clientY) => {
+      if (!bounds) bounds = orb.getBoundingClientRect();
+
+      const centerX = bounds.left + bounds.width / 2;
+      const centerY = bounds.top + bounds.height / 2;
+
+      // Calculate distance from center
+      const deltaX = clientX - centerX;
+      const deltaY = clientY - centerY;
+      const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+
+      // Only affect within a radius
+      const maxDistance = Math.max(window.innerWidth, window.innerHeight) * 0.5;
+      const strength = Math.max(0, 1 - distance / maxDistance);
+
+      // Calculate rotation
+      const rotateY = (deltaX / maxDistance) * maxRotation * strength;
+      const rotateX = -(deltaY / maxDistance) * maxRotation * strength;
+
+      // Apply transform with smooth transition
+      orb.style.transform = `
         perspective(1000px)
-        rotateX(${Y}deg)
-        rotateY(${f}deg)
-        scale(${1+p*.02})
-      `};document.addEventListener("mousemove",i=>{n&&cancelAnimationFrame(n),n=requestAnimationFrame(()=>c(i.clientX,i.clientY))}),window.addEventListener("scroll",()=>{e=null},{passive:!0}),document.addEventListener("mouseleave",()=>{t.style.transition="transform 0.8s cubic-bezier(0.34, 1.56, 0.64, 1)",t.style.transform="perspective(1000px) rotateX(0) rotateY(0) scale(1)",setTimeout(()=>{t.style.transition=""},800)})}function g(){const t=document.querySelector("[data-particles]");if(!t)return;const o=30,e=[];for(let s=0;s<o;s++){const a=document.createElement("div");a.className="hero-particle";const d=Math.random()*6+2,r=Math.random()*100,l=Math.random()*100,m=Math.random()*10+10,u=Math.random()*-20,p=Math.random()*.5+.1;a.style.cssText=`
+        rotateX(${rotateX}deg)
+        rotateY(${rotateY}deg)
+        scale(${1 + strength * 0.02})
+      `;
+    };
+
+    document.addEventListener('mousemove', (e) => {
+      if (animationFrame) cancelAnimationFrame(animationFrame);
+      animationFrame = requestAnimationFrame(() => updateOrb(e.clientX, e.clientY));
+    });
+
+    window.addEventListener('scroll', () => {
+      bounds = null; // Recalculate on scroll
+    }, { passive: true });
+
+    // Reset on mouse leave
+    document.addEventListener('mouseleave', () => {
+      orb.style.transition = 'transform 0.8s cubic-bezier(0.34, 1.56, 0.64, 1)';
+      orb.style.transform = 'perspective(1000px) rotateX(0) rotateY(0) scale(1)';
+      setTimeout(() => {
+        orb.style.transition = '';
+      }, 800);
+    });
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // PARTICLE SYSTEM
+  // Floating particles around the orb that respond to movement
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  function initParticles() {
+    const container = document.querySelector('[data-particles]');
+    if (!container) return;
+
+    const particleCount = 30;
+    const particles = [];
+
+    // Create particles
+    for (let i = 0; i < particleCount; i++) {
+      const particle = document.createElement('div');
+      particle.className = 'hero-particle';
+      
+      const size = Math.random() * 6 + 2;
+      const x = Math.random() * 100;
+      const y = Math.random() * 100;
+      const duration = Math.random() * 10 + 10;
+      const delay = Math.random() * -20;
+      const opacity = Math.random() * 0.5 + 0.1;
+
+      particle.style.cssText = `
         position: absolute;
-        width: ${d}px;
-        height: ${d}px;
-        background: radial-gradient(circle, rgba(74, 103, 65, ${p}) 0%, transparent 70%);
+        width: ${size}px;
+        height: ${size}px;
+        background: radial-gradient(circle, rgba(74, 103, 65, ${opacity}) 0%, transparent 70%);
         border-radius: 50%;
-        left: ${r}%;
-        top: ${l}%;
-        animation: particleFloat ${m}s ease-in-out ${u}s infinite;
+        left: ${x}%;
+        top: ${y}%;
+        animation: particleFloat ${duration}s ease-in-out ${delay}s infinite;
         pointer-events: none;
-      `,t.appendChild(a),e.push({el:a,baseX:r,baseY:l})}let n=0,c=0;document.addEventListener("mousemove",s=>{const a=t.getBoundingClientRect();n=(s.clientX-a.left)/a.width*100,c=(s.clientY-a.top)/a.height*100});function i(){e.forEach(s=>{const a=s.baseX-n,d=s.baseY-c,r=Math.sqrt(a*a+d*d),l=30;if(r<l){const m=(1-r/l)*15,u=Math.atan2(d,a),p=Math.cos(u)*m,f=Math.sin(u)*m;s.el.style.transform=`translate(${p}px, ${f}px)`}else s.el.style.transform=""}),requestAnimationFrame(i)}i()}function b(){const t=document.querySelector("[data-orb-glow]");if(!t)return;const o=3;for(let e=0;e<o;e++){const n=document.createElement("div");n.className="glow-layer",n.style.cssText=`
+      `;
+
+      container.appendChild(particle);
+      particles.push({ el: particle, baseX: x, baseY: y });
+    }
+
+    // Mouse interaction - particles drift away
+    let mouseX = 0, mouseY = 0;
+    document.addEventListener('mousemove', (e) => {
+      const rect = container.getBoundingClientRect();
+      mouseX = ((e.clientX - rect.left) / rect.width) * 100;
+      mouseY = ((e.clientY - rect.top) / rect.height) * 100;
+    });
+
+    // Animate particles away from cursor
+    function updateParticles() {
+      particles.forEach(p => {
+        const dx = p.baseX - mouseX;
+        const dy = p.baseY - mouseY;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        const maxDistance = 30;
+
+        if (distance < maxDistance) {
+          const force = (1 - distance / maxDistance) * 15;
+          const angle = Math.atan2(dy, dx);
+          const offsetX = Math.cos(angle) * force;
+          const offsetY = Math.sin(angle) * force;
+          p.el.style.transform = `translate(${offsetX}px, ${offsetY}px)`;
+        } else {
+          p.el.style.transform = '';
+        }
+      });
+      requestAnimationFrame(updateParticles);
+    }
+    updateParticles();
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // AMBIENT GLOW PULSE
+  // The orb's glow pulses with a breathing rhythm
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  function initAmbientGlow() {
+    const glow = document.querySelector('[data-orb-glow]');
+    if (!glow) return;
+
+    // Create multiple glow layers
+    const layers = 3;
+    for (let i = 0; i < layers; i++) {
+      const layer = document.createElement('div');
+      layer.className = 'glow-layer';
+      layer.style.cssText = `
         position: absolute;
-        inset: ${-20-e*15}px;
+        inset: ${-20 - i * 15}px;
         border-radius: 50%;
         background: radial-gradient(circle, 
-          rgba(74, 103, 65, ${.15-e*.04}) 0%, 
+          rgba(74, 103, 65, ${0.15 - i * 0.04}) 0%, 
           transparent 70%
         );
-        animation: glowPulse ${4+e*.5}s ease-in-out infinite;
-        animation-delay: ${e*.3}s;
+        animation: glowPulse ${4 + i * 0.5}s ease-in-out infinite;
+        animation-delay: ${i * 0.3}s;
         pointer-events: none;
-      `,t.appendChild(n)}}function x(){const t=document.querySelectorAll("[data-persona-orbit]");t.length&&t.forEach((o,e)=>{const n=e/t.length*Math.PI*2,c=120;let i=n,s=5e-4+Math.random()*3e-4;function a(){i+=s;const d=Math.sin(i*3)*5,r=c+d,l=Math.cos(i)*r,m=Math.sin(i)*r;o.style.transform=`translate(${l}px, ${m}px)`,requestAnimationFrame(a)}a()})}function w(){const t=document.querySelector("[data-waveform]");if(!t)return;const o=7;t.innerHTML="";for(let e=0;e<o;e++){const n=document.createElement("div");n.className="waveform-bar",n.style.cssText=`
+      `;
+      glow.appendChild(layer);
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // PERSONA ORBIT WITH PHYSICS
+  // Team member avatars orbit with subtle gravitational effects
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  function initPersonaOrbit() {
+    const personas = document.querySelectorAll('[data-persona-orbit]');
+    if (!personas.length) return;
+
+    personas.forEach((persona, index) => {
+      const angle = (index / personas.length) * Math.PI * 2;
+      const baseRadius = 120;
+      let currentAngle = angle;
+      let velocity = 0.0005 + Math.random() * 0.0003;
+
+      function animate() {
+        currentAngle += velocity;
+        
+        // Add slight wobble
+        const wobble = Math.sin(currentAngle * 3) * 5;
+        const radius = baseRadius + wobble;
+        
+        const x = Math.cos(currentAngle) * radius;
+        const y = Math.sin(currentAngle) * radius;
+        
+        persona.style.transform = `translate(${x}px, ${y}px)`;
+        
+        requestAnimationFrame(animate);
+      }
+      animate();
+    });
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // WAVEFORM VISUALIZATION
+  // Animated audio waveform effect
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  function initWaveform() {
+    const container = document.querySelector('[data-waveform]');
+    if (!container) return;
+
+    const barCount = 7;
+    container.innerHTML = '';
+
+    for (let i = 0; i < barCount; i++) {
+      const bar = document.createElement('div');
+      bar.className = 'waveform-bar';
+      bar.style.cssText = `
         width: 3px;
         height: 20px;
         background: currentColor;
         border-radius: 2px;
         animation: waveformPulse 1s ease-in-out infinite;
-        animation-delay: ${e*.1}s;
-      `,t.appendChild(n)}}function M(){const t=document.querySelector("[data-night-sky]");if(!t)return;const o=50,e=document.createElement("div");e.className="star-field",e.style.cssText=`
+        animation-delay: ${i * 0.1}s;
+      `;
+      container.appendChild(bar);
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 2AM SECTION - NIGHT SKY WITH STARS
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  function initNightSky() {
+    const nightSection = document.querySelector('[data-night-sky]');
+    if (!nightSection) return;
+
+    // Create star field
+    const starCount = 50;
+    const starContainer = document.createElement('div');
+    starContainer.className = 'star-field';
+    starContainer.style.cssText = `
       position: absolute;
       inset: 0;
       overflow: hidden;
       pointer-events: none;
-    `;for(let n=0;n<o;n++){const c=document.createElement("div"),i=Math.random()*2+1;c.style.cssText=`
+    `;
+
+    for (let i = 0; i < starCount; i++) {
+      const star = document.createElement('div');
+      const size = Math.random() * 2 + 1;
+      star.style.cssText = `
         position: absolute;
-        width: ${i}px;
-        height: ${i}px;
+        width: ${size}px;
+        height: ${size}px;
         background: white;
         border-radius: 50%;
-        left: ${Math.random()*100}%;
-        top: ${Math.random()*100}%;
-        opacity: ${Math.random()*.7+.3};
-        animation: twinkle ${2+Math.random()*3}s ease-in-out infinite;
-        animation-delay: ${Math.random()*2}s;
-      `,e.appendChild(c)}t.insertBefore(e,t.firstChild)}function k(){const t=document.querySelector("[data-clock]");if(!t)return;function o(){const e=new Date;let n=e.getHours();const c=e.getMinutes().toString().padStart(2,"0"),i=n>=12?"AM":"PM";t.innerHTML=`
-        <span class="clock-time">2:${c}</span>
-        <span class="clock-ampm">${i}</span>
-      `}o(),setInterval(o,1e3),t.classList.add("clock-ticking")}function $(){document.querySelectorAll("[data-typing-indicator]").forEach(o=>{o.innerHTML=`
+        left: ${Math.random() * 100}%;
+        top: ${Math.random() * 100}%;
+        opacity: ${Math.random() * 0.7 + 0.3};
+        animation: twinkle ${2 + Math.random() * 3}s ease-in-out infinite;
+        animation-delay: ${Math.random() * 2}s;
+      `;
+      starContainer.appendChild(star);
+    }
+
+    nightSection.insertBefore(starContainer, nightSection.firstChild);
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 2AM SECTION - TICKING CLOCK
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  function initClock() {
+    const clock = document.querySelector('[data-clock]');
+    if (!clock) return;
+
+    function updateClock() {
+      const now = new Date();
+      let hours = now.getHours();
+      const minutes = now.getMinutes().toString().padStart(2, '0');
+      const ampm = hours >= 12 ? 'AM' : 'PM';
+      
+      // For demo, always show 2:XX AM
+      clock.innerHTML = `
+        <span class="clock-time">2:${minutes}</span>
+        <span class="clock-ampm">${ampm}</span>
+      `;
+    }
+
+    updateClock();
+    setInterval(updateClock, 1000);
+
+    // Add ticking effect
+    clock.classList.add('clock-ticking');
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // TYPING INDICATOR
+  // The "..." typing animation
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  function initTypingIndicator() {
+    const indicators = document.querySelectorAll('[data-typing-indicator]');
+    
+    indicators.forEach(indicator => {
+      indicator.innerHTML = `
         <span class="typing-dot"></span>
         <span class="typing-dot"></span>
         <span class="typing-dot"></span>
-      `})}function v(){const t=document.createElement("style");t.textContent=`
+      `;
+    });
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // ADD REQUIRED CSS KEYFRAMES
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  function injectStyles() {
+    const style = document.createElement('style');
+    style.textContent = `
       @keyframes particleFloat {
         0%, 100% { 
           transform: translateY(0) translateX(0); 
@@ -132,4 +397,40 @@
       .glow-layer {
         will-change: transform, opacity;
       }
-    `,document.head.appendChild(t)}function h(){const t=window.matchMedia("(prefers-reduced-motion: reduce)").matches;v(),t||(y(),g(),b(),x(),w(),M(),$()),k(),console.log("%c\u{1F31F} Hero animations loaded","color: #4a6741; font-weight: bold;")}document.readyState==="loading"?document.addEventListener("DOMContentLoaded",h):h()})();
+    `;
+    document.head.appendChild(style);
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // INITIALIZE
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  function init() {
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    
+    injectStyles();
+    
+    if (!prefersReducedMotion) {
+      init3DOrb();
+      initParticles();
+      initAmbientGlow();
+      initPersonaOrbit();
+      initWaveform();
+      initNightSky();
+      initTypingIndicator();
+    }
+    
+    // Clock always runs
+    initClock();
+    
+    console.log('%c🌟 Hero animations loaded', 'color: #4a6741; font-weight: bold;');
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+
+})();
+

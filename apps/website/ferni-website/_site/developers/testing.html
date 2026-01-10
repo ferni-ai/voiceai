@@ -1,4 +1,19 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Testing Guide | Ferni Developers</title><meta name="description" content="How to test your AI voice agents. Unit testing, integration testing, and conversation testing strategies."><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"><link rel="icon" type="image/svg+xml" href="../images/favicon.svg"> <style>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Testing Guide | Ferni Developers</title>
+  <meta name="description" content="How to test your AI voice agents. Unit testing, integration testing, and conversation testing strategies.">
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  
+  <link rel="icon" type="image/svg+xml" href="../images/favicon.svg">
+  
+  <style>
     :root {
       --color-bg-primary: #F5F1E8;
       --color-bg-secondary: #E8E0D5;
@@ -301,7 +316,59 @@
       font-weight: 600;
       margin-top: var(--space-xs);
     }
-  </style> </head><body><header class="header"><div class="header-inner"><a href="./" class="logo"><div class="logo-icon"><svg class="ferni-eyes-svg" viewBox="0 0 100 100"><ellipse cx="36" cy="50" rx="10" ry="12" fill="white"/><circle cx="33" cy="45" r="2.5" fill="white" opacity="0.9"/><ellipse cx="64" cy="50" rx="10" ry="12" fill="white"/><circle cx="61" cy="45" r="2.5" fill="white" opacity="0.9"/></svg></div><span>Ferni Developers</span></a><nav class="nav"><a href="getting-started.html">Getting Started</a><a href="api.html">API</a><a href="testing.html" class="active">Testing</a><a href="../"> Ferni.ai</a></nav></div></header><div class="container"><div class="doc-header"><h1>Testing Guide</h1><p>Strategies for testing your AI voice agents</p></div><div class="doc-content"><p>Testing AI agents is different from traditional software testing. This guide covers the testing pyramid for voice agents, from unit tests to full conversation testing.</p><h2>Testing Pyramid</h2><div class="test-types"><div class="test-type"><div class="test-type-icon"></div><h4>Unit Tests</h4><p>Test individual functions, utilities, and content parsing logic.</p></div><div class="test-type"><div class="test-type-icon"></div><h4>Integration Tests</h4><p>Test bundle loading, handoffs, and API endpoints.</p></div><div class="test-type"><div class="test-type-icon"></div><h4>Conversation Tests</h4><p>Test full conversation flows and personality consistency.</p></div></div><h2>Running Tests</h2><div class="code-block"> <pre><span class="comment"># Run all tests</span>
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header class="header">
+    <div class="header-inner">
+      <a href="./" class="logo">
+        <div class="logo-icon"><svg class="ferni-eyes-svg" viewBox="0 0 100 100"><ellipse cx="36" cy="50" rx="10" ry="12" fill="white"/><circle cx="33" cy="45" r="2.5" fill="white" opacity="0.9"/><ellipse cx="64" cy="50" rx="10" ry="12" fill="white"/><circle cx="61" cy="45" r="2.5" fill="white" opacity="0.9"/></svg></div>
+        <span>Ferni Developers</span>
+      </a>
+      <nav class="nav">
+        <a href="getting-started.html">Getting Started</a>
+        <a href="api.html">API</a>
+        <a href="testing.html" class="active">Testing</a>
+        <a href="../"> Ferni.ai</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Doc Header -->
+  <div class="container">
+    <div class="doc-header">
+      <h1>Testing Guide</h1>
+      <p>Strategies for testing your AI voice agents</p>
+    </div>
+
+    <div class="doc-content">
+      <p>Testing AI agents is different from traditional software testing. This guide covers the testing pyramid for voice agents, from unit tests to full conversation testing.</p>
+
+      <h2>Testing Pyramid</h2>
+
+      <div class="test-types">
+        <div class="test-type">
+          <div class="test-type-icon"></div>
+          <h4>Unit Tests</h4>
+          <p>Test individual functions, utilities, and content parsing logic.</p>
+        </div>
+        <div class="test-type">
+          <div class="test-type-icon"></div>
+          <h4>Integration Tests</h4>
+          <p>Test bundle loading, handoffs, and API endpoints.</p>
+        </div>
+        <div class="test-type">
+          <div class="test-type-icon"></div>
+          <h4>Conversation Tests</h4>
+          <p>Test full conversation flows and personality consistency.</p>
+        </div>
+      </div>
+
+      <h2>Running Tests</h2>
+
+      <div class="code-block">
+        <pre><span class="comment"># Run all tests</span>
 <span class="keyword">npm test</span>
 
 <span class="comment"># Run tests in watch mode</span>
@@ -311,7 +378,15 @@
 <span class="keyword">npm test</span> -- agents.test.ts
 
 <span class="comment"># Run with coverage</span>
-<span class="keyword">npm test</span> -- --coverage</pre> </div><h2>Unit Testing</h2><h3>Testing Bundle Validation</h3><div class="code-block"> <pre><span class="comment">// tests/bundle-validator.test.ts</span>
+<span class="keyword">npm test</span> -- --coverage</pre>
+      </div>
+
+      <h2>Unit Testing</h2>
+
+      <h3>Testing Bundle Validation</h3>
+
+      <div class="code-block">
+        <pre><span class="comment">// tests/bundle-validator.test.ts</span>
 <span class="keyword">import</span> { describe, it, expect } <span class="keyword">from</span> <span class="string">'vitest'</span>;
 <span class="keyword">import</span> { validateBundle } <span class="keyword">from</span> <span class="string">'../src/personas/bundle-validator'</span>;
 
@@ -338,7 +413,13 @@ describe(<span class="string">'Bundle Validator'</span>, () => {
     expect(result.valid).toBe(<span class="keyword">true</span>);
     expect(result.warnings).toContain(<span class="string">'No stories defined'</span>);
   });
-});</pre> </div><h3>Testing Content Loaders</h3><div class="code-block"> <pre><span class="comment">// tests/content-loader.test.ts</span>
+});</pre>
+      </div>
+
+      <h3>Testing Content Loaders</h3>
+
+      <div class="code-block">
+        <pre><span class="comment">// tests/content-loader.test.ts</span>
 <span class="keyword">import</span> { describe, it, expect } <span class="keyword">from</span> <span class="string">'vitest'</span>;
 <span class="keyword">import</span> { loadGreetings, loadStories } <span class="keyword">from</span> <span class="string">'../src/personas/content-loader'</span>;
 
@@ -360,7 +441,15 @@ describe(<span class="string">'Content Loader'</span>, () => {
       expect(story).toHaveProperty(<span class="string">'content'</span>);
     });
   });
-});</pre> </div><h2>Integration Testing</h2><h3>Testing Handoff Logic</h3><div class="code-block"> <pre><span class="comment">// tests/handoff.test.ts</span>
+});</pre>
+      </div>
+
+      <h2>Integration Testing</h2>
+
+      <h3>Testing Handoff Logic</h3>
+
+      <div class="code-block">
+        <pre><span class="comment">// tests/handoff.test.ts</span>
 <span class="keyword">import</span> { describe, it, expect } <span class="keyword">from</span> <span class="string">'vitest'</span>;
 <span class="keyword">import</span> { findHandoffTarget } <span class="keyword">from</span> <span class="string">'../src/team/handoff-router'</span>;
 
@@ -388,7 +477,13 @@ describe(<span class="string">'Handoff Router'</span>, () => {
     
     expect(target).toBeNull();
   });
-});</pre> </div><h3>Testing API Endpoints</h3><div class="code-block"> <pre><span class="comment">// tests/api.test.ts</span>
+});</pre>
+      </div>
+
+      <h3>Testing API Endpoints</h3>
+
+      <div class="code-block">
+        <pre><span class="comment">// tests/api.test.ts</span>
 <span class="keyword">import</span> { describe, it, expect, beforeAll, afterAll } <span class="keyword">from</span> <span class="string">'vitest'</span>;
 <span class="keyword">import</span> { createServer } <span class="keyword">from</span> <span class="string">'../src/server'</span>;
 
@@ -428,7 +523,22 @@ describe(<span class="string">'API Endpoints'</span>, () => {
     
     expect(response.status).toBe(<span class="number">404</span>);
   });
-});</pre> </div><h2>Conversation Testing</h2><p>Conversation tests verify that your agent responds appropriately across multi-turn dialogues. These are essential for ensuring personality consistency and proper handoff behavior.</p><div class="callout callout-info"><div class="callout-title"> Pro Tip</div><p>Use recorded conversation logs from real sessions as test fixtures. This ensures you're testing realistic interaction patterns.</p></div><h3>Conversation Test Format</h3><div class="code-block"> <pre><span class="comment">// tests/conversations/career-advice.test.ts</span>
+});</pre>
+      </div>
+
+      <h2>Conversation Testing</h2>
+
+      <p>Conversation tests verify that your agent responds appropriately across multi-turn dialogues. These are essential for ensuring personality consistency and proper handoff behavior.</p>
+
+      <div class="callout callout-info">
+        <div class="callout-title"> Pro Tip</div>
+        <p>Use recorded conversation logs from real sessions as test fixtures. This ensures you're testing realistic interaction patterns.</p>
+      </div>
+
+      <h3>Conversation Test Format</h3>
+
+      <div class="code-block">
+        <pre><span class="comment">// tests/conversations/career-advice.test.ts</span>
 <span class="keyword">import</span> { describe, it, expect } <span class="keyword">from</span> <span class="string">'vitest'</span>;
 <span class="keyword">import</span> { ConversationTester } <span class="keyword">from</span> <span class="string">'../utils/conversation-tester'</span>;
 
@@ -461,7 +571,13 @@ describe(<span class="string">'Career Advice Conversation'</span>, () => {
     expect(result.handoffSuggested).toBe(<span class="keyword">true</span>);
     expect(result.handoffTarget).toBe(<span class="string">'jack'</span>);
   });
-});</pre> </div><h3>Testing Personality Consistency</h3><div class="code-block"> <pre><span class="comment">// tests/personality.test.ts</span>
+});</pre>
+      </div>
+
+      <h3>Testing Personality Consistency</h3>
+
+      <div class="code-block">
+        <pre><span class="comment">// tests/personality.test.ts</span>
 <span class="keyword">import</span> { describe, it, expect } <span class="keyword">from</span> <span class="string">'vitest'</span>;
 <span class="keyword">import</span> { analyzeResponse } <span class="keyword">from</span> <span class="string">'../utils/personality-analyzer'</span>;
 <span class="keyword">import</span> { generateResponse } <span class="keyword">from</span> <span class="string">'../src/agents/response-generator'</span>;
@@ -493,7 +609,15 @@ describe(<span class="string">'Personality Consistency'</span>, () => {
       expect(analysis.thoughtfulness).toBeGreaterThan(<span class="number">0.8</span>);
     }
   });
-});</pre> </div><h2>Dev Panel Testing</h2><p>The Ferni dev panel provides interactive testing tools. Enable it with:</p><div class="code-block"> <pre><span class="comment"># Add ?dev to any URL</span>
+});</pre>
+      </div>
+
+      <h2>Dev Panel Testing</h2>
+
+      <p>The Ferni dev panel provides interactive testing tools. Enable it with:</p>
+
+      <div class="code-block">
+        <pre><span class="comment"># Add ?dev to any URL</span>
 http://localhost:3000?dev
 
 <span class="comment"># Or via localStorage</span>
@@ -502,7 +626,48 @@ localStorage.setItem(<span class="string">'ferni_dev_mode'</span>, <span class="
 <span class="comment"># Keyboard shortcuts</span>
 Cmd/Ctrl + Shift + D  <span class="comment"> Toggle dev panel</span>
 Cmd/Ctrl + Shift + U  <span class="comment"> Quick unlock all agents</span>
-Cmd/Ctrl + Shift + R  <span class="comment"> Reset to free tier</span></pre> </div><h3>Dev Panel Features</h3><table><thead><tr><th>Feature</th><th>Description</th></tr></thead><tbody><tr><td><strong>Agent Switcher</strong></td><td>Instantly switch between agents to test handoffs</td></tr><tr><td><strong>Expression Tester</strong></td><td>Trigger avatar expressions (happy, curious, thinking)</td></tr><tr><td><strong>Tier Simulator</strong></td><td>Test free/premium tier behavior</td></tr><tr><td><strong>Connection Status</strong></td><td>Monitor WebSocket connection state</td></tr><tr><td><strong>Transcript Log</strong></td><td>View real-time conversation transcript</td></tr></tbody></table><h2>CI/CD Integration</h2><p>Add testing to your CI pipeline:</p><div class="code-block"> <pre><span class="comment"># .github/workflows/test.yml</span>
+Cmd/Ctrl + Shift + R  <span class="comment"> Reset to free tier</span></pre>
+      </div>
+
+      <h3>Dev Panel Features</h3>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Feature</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Agent Switcher</strong></td>
+            <td>Instantly switch between agents to test handoffs</td>
+          </tr>
+          <tr>
+            <td><strong>Expression Tester</strong></td>
+            <td>Trigger avatar expressions (happy, curious, thinking)</td>
+          </tr>
+          <tr>
+            <td><strong>Tier Simulator</strong></td>
+            <td>Test free/premium tier behavior</td>
+          </tr>
+          <tr>
+            <td><strong>Connection Status</strong></td>
+            <td>Monitor WebSocket connection state</td>
+          </tr>
+          <tr>
+            <td><strong>Transcript Log</strong></td>
+            <td>View real-time conversation transcript</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>CI/CD Integration</h2>
+
+      <p>Add testing to your CI pipeline:</p>
+
+      <div class="code-block">
+        <pre><span class="comment"># .github/workflows/test.yml</span>
 <span class="property">name</span>: Tests
 
 <span class="property">on</span>: [push, pull_request]
@@ -532,4 +697,52 @@ Cmd/Ctrl + Shift + R  <span class="comment"> Reset to free tier</span></pre> </d
       - name: Run integration tests
         run: npm run test:integration
         env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}</pre> </div><h2>Testing Checklist</h2><div class="callout callout-success"><div class="callout-title"> Before deploying a new agent</div><ul style="margin-top: var(--space-sm); margin-bottom: 0;"><li>Bundle validation passes (<code>npm run agents validate</code>)</li><li>Greetings and catchphrases are defined</li><li>Handoff triggers are tested</li><li>Personality is consistent across 10+ prompts</li><li>Dev panel features work (expression triggers, handoffs)</li><li>API endpoints return correct data</li></ul></div><div class="doc-nav-buttons"><a href="api.html" class="doc-nav-btn"><span class="doc-nav-label"> Previous</span><span class="doc-nav-title">API Reference</span></a><a href="./" class="doc-nav-btn next"><span class="doc-nav-label">Next </span><span class="doc-nav-title">Documentation Home</span></a></div></div></div><footer class="footer"><div class="footer-inner"><a href="../" class="logo" style="color: var(--color-text-inverse);"><div class="logo-icon"><svg class="ferni-eyes-svg" viewBox="0 0 100 100"><ellipse cx="36" cy="50" rx="10" ry="12" fill="white"/><circle cx="33" cy="45" r="2.5" fill="white" opacity="0.9"/><ellipse cx="64" cy="50" rx="10" ry="12" fill="white"/><circle cx="61" cy="45" r="2.5" fill="white" opacity="0.9"/></svg></div><span>Ferni</span></a><div class="footer-links"><a href="./">Documentation</a><a href="getting-started.html">Getting Started</a><a href="https://github.com/ferni-ai/ferni-agents">GitHub</a><a href="../">Ferni.ai</a></div></div></footer></body></html> 
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}</pre>
+      </div>
+
+      <h2>Testing Checklist</h2>
+
+      <div class="callout callout-success">
+        <div class="callout-title"> Before deploying a new agent</div>
+        <ul style="margin-top: var(--space-sm); margin-bottom: 0;">
+          <li>Bundle validation passes (<code>npm run agents validate</code>)</li>
+          <li>Greetings and catchphrases are defined</li>
+          <li>Handoff triggers are tested</li>
+          <li>Personality is consistent across 10+ prompts</li>
+          <li>Dev panel features work (expression triggers, handoffs)</li>
+          <li>API endpoints return correct data</li>
+        </ul>
+      </div>
+
+      <!-- Nav buttons -->
+      <div class="doc-nav-buttons">
+        <a href="api.html" class="doc-nav-btn">
+          <span class="doc-nav-label"> Previous</span>
+          <span class="doc-nav-title">API Reference</span>
+        </a>
+        <a href="./" class="doc-nav-btn next">
+          <span class="doc-nav-label">Next </span>
+          <span class="doc-nav-title">Documentation Home</span>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="footer-inner">
+      <a href="../" class="logo" style="color: var(--color-text-inverse);">
+        <div class="logo-icon"><svg class="ferni-eyes-svg" viewBox="0 0 100 100"><ellipse cx="36" cy="50" rx="10" ry="12" fill="white"/><circle cx="33" cy="45" r="2.5" fill="white" opacity="0.9"/><ellipse cx="64" cy="50" rx="10" ry="12" fill="white"/><circle cx="61" cy="45" r="2.5" fill="white" opacity="0.9"/></svg></div>
+        <span>Ferni</span>
+      </a>
+      <div class="footer-links">
+        <a href="./">Documentation</a>
+        <a href="getting-started.html">Getting Started</a>
+        <a href="https://github.com/ferni-ai/ferni-agents">GitHub</a>
+        <a href="../">Ferni.ai</a>
+      </div>
+    </div>
+  </footer>
+</body>
+</html>
+

@@ -1,1 +1,93 @@
-<h1>Voice Sample Audio Files</h1><p>Pre-recorded audio samples for the landing page &quot;Six voices. One conversation.&quot; demo.</p><h2>Quick Start</h2><p>Generate all voice samples using the Ferni CLI:</p> <pre class="language-bash"><code class="language-bash">ferni voices generate-samples</code></pre> <p>This uses:</p><ul><li><strong>Persona voice registry</strong> - Same voice IDs as the production app</li><li><strong>Cartesia sonic-3</strong> - Same TTS model as PersonaAwareTTS</li><li><strong>Persona-specific voices</strong> - Ferni, Maya, Peter, Alex, Jordan, Nayan</li></ul><h2>Samples Generated</h2><table><thead><tr><th>File</th><th>Persona</th><th>Topic</th></tr></thead><tbody><tr><td><code>stress.mp3</code></td><td>Ferni (Life Coach)</td><td>Overwhelm</td></tr><tr><td><code>habits.mp3</code></td><td>Maya (Habit Architect)</td><td>Building habits</td></tr><tr><td><code>relationship.mp3</code></td><td>Alex (Communications Coach)</td><td>Hard conversations</td></tr><tr><td><code>decision.mp3</code></td><td>Peter (Research Guide)</td><td>Decision making</td></tr><tr><td><code>meaning.mp3</code></td><td>Nayan (Wisdom Guide)</td><td>Finding meaning</td></tr><tr><td><code>celebration.mp3</code></td><td>Jordan (Celebration Catalyst)</td><td>Celebrating wins</td></tr><tr><td><code>career-advice.mp3</code></td><td>Ferni</td><td>Career change fears</td></tr><tr><td><code>sleep.mp3</code></td><td>Ferni</td><td>3am thoughts</td></tr></tbody></table><h2>Requirements</h2><ul><li><code>CARTESIA_API_KEY</code> in your <code>.env</code> file</li><li>Voice IDs configured in <code>src/config/voice-ids.ts</code></li></ul><h2>Audio Format</h2><ul><li><strong>Format:</strong> MP3</li><li><strong>Sample rate:</strong> 44.1kHz</li><li><strong>Model:</strong> Cartesia sonic-3 (same as production)</li></ul><h2>Deployment</h2><p>After generating samples:</p> <pre class="language-bash"><code class="language-bash"><span class="token function">npm</span> run deploy:landing</code></pre> <p>The samples are served from <code>/audio/samples/</code> on the landing page.</p><h2>How It Works</h2><p>The <code>voice-samples.js</code> module on the landing page:</p><ol><li>Tries to load pre-recorded MP3 files first</li><li>Falls back to browser TTS if files aren't found</li><li>Shows persona name, role, and color for each sample</li></ol><h2>Updating Samples</h2><p>To update the voice samples:</p><ol><li>Edit responses in <code>scripts/ferni.ts</code> → <code>handleVoices</code> → <code>generate-samples</code></li><li>Regenerate: <code>ferni voices generate-samples</code></li><li>Deploy: <code>npm run deploy:landing</code></li></ol><p>The sample text should match <code>apps/website/ferni-website/src/js/voice-samples.js</code>.</p> 
+<h1>Voice Sample Audio Files</h1>
+<p>Pre-recorded audio samples for the landing page &quot;Six voices. One conversation.&quot; demo.</p>
+<h2>Quick Start</h2>
+<p>Generate all voice samples using the Ferni CLI:</p>
+<pre class="language-bash"><code class="language-bash">ferni voices generate-samples</code></pre>
+<p>This uses:</p>
+<ul>
+<li><strong>Persona voice registry</strong> - Same voice IDs as the production app</li>
+<li><strong>Cartesia sonic-3</strong> - Same TTS model as PersonaAwareTTS</li>
+<li><strong>Persona-specific voices</strong> - Ferni, Maya, Peter, Alex, Jordan, Nayan</li>
+</ul>
+<h2>Samples Generated</h2>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>Persona</th>
+<th>Topic</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>stress.mp3</code></td>
+<td>Ferni (Life Coach)</td>
+<td>Overwhelm</td>
+</tr>
+<tr>
+<td><code>habits.mp3</code></td>
+<td>Maya (Habit Architect)</td>
+<td>Building habits</td>
+</tr>
+<tr>
+<td><code>relationship.mp3</code></td>
+<td>Alex (Communications Coach)</td>
+<td>Hard conversations</td>
+</tr>
+<tr>
+<td><code>decision.mp3</code></td>
+<td>Peter (Research Guide)</td>
+<td>Decision making</td>
+</tr>
+<tr>
+<td><code>meaning.mp3</code></td>
+<td>Nayan (Wisdom Guide)</td>
+<td>Finding meaning</td>
+</tr>
+<tr>
+<td><code>celebration.mp3</code></td>
+<td>Jordan (Celebration Catalyst)</td>
+<td>Celebrating wins</td>
+</tr>
+<tr>
+<td><code>career-advice.mp3</code></td>
+<td>Ferni</td>
+<td>Career change fears</td>
+</tr>
+<tr>
+<td><code>sleep.mp3</code></td>
+<td>Ferni</td>
+<td>3am thoughts</td>
+</tr>
+</tbody>
+</table>
+<h2>Requirements</h2>
+<ul>
+<li><code>CARTESIA_API_KEY</code> in your <code>.env</code> file</li>
+<li>Voice IDs configured in <code>src/config/voice-ids.ts</code></li>
+</ul>
+<h2>Audio Format</h2>
+<ul>
+<li><strong>Format:</strong> MP3</li>
+<li><strong>Sample rate:</strong> 44.1kHz</li>
+<li><strong>Model:</strong> Cartesia sonic-3 (same as production)</li>
+</ul>
+<h2>Deployment</h2>
+<p>After generating samples:</p>
+<pre class="language-bash"><code class="language-bash"><span class="token function">npm</span> run deploy:landing</code></pre>
+<p>The samples are served from <code>/audio/samples/</code> on the landing page.</p>
+<h2>How It Works</h2>
+<p>The <code>voice-samples.js</code> module on the landing page:</p>
+<ol>
+<li>Tries to load pre-recorded MP3 files first</li>
+<li>Falls back to browser TTS if files aren't found</li>
+<li>Shows persona name, role, and color for each sample</li>
+</ol>
+<h2>Updating Samples</h2>
+<p>To update the voice samples:</p>
+<ol>
+<li>Edit responses in <code>scripts/ferni.ts</code> → <code>handleVoices</code> → <code>generate-samples</code></li>
+<li>Regenerate: <code>ferni voices generate-samples</code></li>
+<li>Deploy: <code>npm run deploy:landing</code></li>
+</ol>
+<p>The sample text should match <code>apps/website/ferni-website/src/js/voice-samples.js</code>.</p>

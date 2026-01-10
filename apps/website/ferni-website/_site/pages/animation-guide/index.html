@@ -1,4 +1,11 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Ferni Animation Guide — Motion Design System</title><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet"> <style>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ferni Animation Guide — Motion Design System</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
     /* ========================================
        DESIGN SYSTEM TOKENS
        ======================================== */
@@ -741,7 +748,391 @@
     .code-string { color: #c9a07a; }
     .code-number { color: #a5c48a; }
     .code-function { color: #d4c9a0; }
-  </style> </head><body><header><p class="eyebrow">Motion Design System</p><h1>Ferni Animation Guide</h1><p>The Cyclops eye design — inspired by Luxo Jr. and Mike Wazowski — creates maximum expressiveness with a single, incredibly emotive eye.</p></header><nav><ul><li><a href="#eye">Eye</a></li><li><a href="#mouth">Mouth</a></li><li><a href="#reactions">Reactions</a></li><li><a href="#principles">12 Principles</a></li><li><a href="#easings">Easings</a></li><li><a href="#code">Code</a></li></ul></nav><main><section id="eye"><h2>Eye Animations</h2><p>The single Cyclops eye is the hero feature. Like Luxo Jr.'s lamp or Mike Wazowski, one eye can convey incredible range of emotion through size, shape, and pupil position.</p><div class="demo-box"><div class="ferni-avatar-container"><svg class="ferni-avatar" id="eye-demo" viewBox="0 0 100 100"><circle class="face" cx="50" cy="50" r="45"/><circle class="eye-white" cx="50" cy="40" r="18"/><circle class="iris" cx="50" cy="40" r="12"/><circle class="pupil" cx="50" cy="40" r="6"/><circle class="highlight" cx="47" cy="37" r="2"/><path class="smile" d="M 35 65 A 18 12 0 0 0 65 65" stroke-width="4"/></svg></div><div class="controls"><div class="control-group"><span class="control-group-label">Blinks</span><div class="buttons"><button class="btn btn-primary" onclick="triggerEyeAnimation('blink')">Blink</button><button class="btn btn-primary" onclick="triggerEyeAnimation('double-blink')">Double</button><button class="btn btn-primary" onclick="triggerEyeAnimation('slow-blink')">Slow</button></div></div><div class="control-group"><span class="control-group-label">Size</span><div class="buttons"><button class="btn btn-primary" onclick="triggerEyeAnimation('wide')">Wide</button><button class="btn btn-primary" onclick="triggerEyeAnimation('squint')">Squint</button></div></div><div class="control-group"><span class="control-group-label">Gaze</span><div class="buttons"><button class="btn btn-primary" onclick="triggerEyeAnimation('look-left')">Left</button><button class="btn btn-primary" onclick="triggerEyeAnimation('look-right')">Right</button><button class="btn btn-primary" onclick="triggerEyeAnimation('look-up')">Up</button><button class="btn btn-primary" onclick="triggerEyeAnimation('look-around')">Around</button></div></div></div></div><h3>Eye Animation Reference</h3><table><thead><tr><th>Animation</th><th>Duration</th><th>What Moves</th><th>Use Case</th></tr></thead><tbody><tr><td><strong>Blink</strong></td><td>150ms</td><td>Whole eye scaleY</td><td>Natural punctuation, acknowledgment</td></tr><tr><td><strong>Double Blink</strong></td><td>400ms</td><td>Whole eye scaleY x2</td><td>Surprise, realization</td></tr><tr><td><strong>Wide</strong></td><td>500ms</td><td>Eye scale up</td><td>Surprise, excitement, emphasis</td></tr><tr><td><strong>Squint</strong></td><td>600ms</td><td>Eye scaleY down</td><td>Thinking, skepticism, focus</td></tr><tr><td><strong>Look Around</strong></td><td>1200ms</td><td>Iris + pupil translate</td><td>Curiosity, searching, considering</td></tr></tbody></table></section><section id="mouth"><h2>Mouth Animations</h2><p>The smile complements the eye. Together they create the full emotional range.</p><div class="demo-box"><div class="ferni-avatar-container"><svg class="ferni-avatar" id="mouth-demo" viewBox="0 0 100 100"><circle class="face" cx="50" cy="50" r="45"/><circle class="eye-white" cx="50" cy="40" r="18"/><circle class="iris" cx="50" cy="40" r="12"/><circle class="pupil" cx="50" cy="40" r="6"/><circle class="highlight" cx="47" cy="37" r="2"/><path class="smile" d="M 35 65 A 18 12 0 0 0 65 65" stroke-width="4"/></svg></div><div class="controls"><div class="control-group"><span class="control-group-label">Expressions</span><div class="buttons"><button class="btn btn-primary" onclick="triggerMouthAnimation('smile-grow')">Big Smile</button><button class="btn btn-primary" onclick="triggerMouthAnimation('thinking-mouth')">Thinking</button></div></div></div></div></section><section id="reactions"><h2>Character Reactions</h2><p>Full reactions combine face movement, eye animation, and mouth changes. Each follows the 3-phase sequence: Anticipation, Action, Follow-Through.</p><div class="demo-box"><div class="ferni-avatar-container"><svg class="ferni-avatar animate-breathe" id="reactions-demo" viewBox="0 0 100 100"><circle class="face" cx="50" cy="50" r="45"/><circle class="eye-white" cx="50" cy="40" r="18"/><circle class="iris" cx="50" cy="40" r="12"/><circle class="pupil" cx="50" cy="40" r="6"/><circle class="highlight" cx="47" cy="37" r="2"/><path class="smile" d="M 35 65 A 18 12 0 0 0 65 65" stroke-width="4"/></svg></div><div class="controls"><div class="control-group"><span class="control-group-label">Reactions</span><div class="buttons"><button class="btn btn-primary" onclick="triggerReaction('nod')">Nod</button><button class="btn btn-primary" onclick="triggerReaction('shake')">Shake</button><button class="btn btn-primary" onclick="triggerReaction('bounce')">Bounce</button><button class="btn btn-primary" onclick="triggerReaction('curious')">Curious</button><button class="btn btn-primary" onclick="triggerReaction('thinking')">Thinking</button><button class="btn btn-primary" onclick="triggerReaction('celebrate')">Celebrate</button></div></div></div></div><h3>Reaction Reference</h3><table><thead><tr><th>Reaction</th><th>Duration</th><th>Eye</th><th>Face</th><th>Use Case</th></tr></thead><tbody><tr><td><strong>Nod</strong></td><td>600ms</td><td>Blink at peak</td><td>Vertical bob</td><td>Agreement, understanding</td></tr><tr><td><strong>Shake</strong></td><td>500ms</td><td>Squint</td><td>Horizontal shake</td><td>Gentle disagreement</td></tr><tr><td><strong>Bounce</strong></td><td>700ms</td><td>Wide eye</td><td>Squash and stretch</td><td>Excitement, joy</td></tr><tr><td><strong>Curious</strong></td><td>1000ms</td><td>Look around</td><td>Head tilt</td><td>Interest, questioning</td></tr><tr><td><strong>Thinking</strong></td><td>1000ms</td><td>Squint + look up</td><td>Slight tilt</td><td>Processing, considering</td></tr><tr><td><strong>Celebrate</strong></td><td>1000ms</td><td>Wide + smile grow</td><td>Wiggle</td><td>Achievement, success</td></tr></tbody></table></section><section id="principles"><h2>The 12 Principles of Animation</h2><p>These classic principles from Disney and Pixar guide how Ferni moves. The single eye makes many of these even more impactful.</p><div class="principle-card"><div class="principle-number">1</div><div class="principle-content"><h4>Squash and Stretch</h4><p>The eye and face deform based on speed and mass. During bounce, face compresses horizontally when stretching vertically.</p></div></div><div class="principle-card"><div class="principle-number">2</div><div class="principle-content"><h4>Anticipation</h4><p>Wind-up before action. The eye squints slightly before going wide. Face dips before bouncing up.</p></div></div><div class="principle-card"><div class="principle-number">3</div><div class="principle-content"><h4>Staging</h4><p>The single eye IS the staging. All attention naturally focuses on one point. Maximum clarity.</p></div></div><div class="principle-card"><div class="principle-number">4</div><div class="principle-content"><h4>Straight Ahead and Pose to Pose</h4><p>Key poses at 0%, 35%, 50%, 70%, 100%. The eye has clear states: normal, wide, squint, closed.</p></div></div><div class="principle-card"><div class="principle-number">5</div><div class="principle-content"><h4>Follow-Through and Overlapping</h4><p>The pupil settles after the iris. The highlight lags behind the pupil. Face settles after eye.</p></div></div><div class="principle-card"><div class="principle-number">6</div><div class="principle-content"><h4>Slow In and Slow Out</h4><p>Never linear motion. Pupil movements ease in and out. Use spring easing for organic feel.</p></div></div><div class="principle-card"><div class="principle-number">7</div><div class="principle-content"><h4>Arcs</h4><p>Natural motion follows curved paths. The pupil traces arcs when looking around, not straight lines.</p></div></div><div class="principle-card"><div class="principle-number">8</div><div class="principle-content"><h4>Secondary Action</h4><p>The highlight sparkle, subtle face breathing, iris color shifts. These support without distracting.</p></div></div><div class="principle-card"><div class="principle-number">9</div><div class="principle-content"><h4>Timing</h4><p>Blink is fast (150ms). Thinking is slow (1000ms). Timing conveys emotion and weight.</p></div></div><div class="principle-card"><div class="principle-number">10</div><div class="principle-content"><h4>Exaggeration</h4><p>Wide eye scales 1.2x, not 1.05x. Bounce goes high. The single eye allows bold exaggeration.</p></div></div><div class="principle-card"><div class="principle-number">11</div><div class="principle-content"><h4>Solid Drawing</h4><p>Consistent transform-origin. Eye elements scale from center. Face scales from center-bottom.</p></div></div><div class="principle-card"><div class="principle-number">12</div><div class="principle-content"><h4>Appeal</h4><p>The Cyclops design is instantly memorable and likeable. Like Luxo Jr., one eye creates charm.</p></div></div></section><section id="easings"><h2>Easing Curves</h2><p>Hover over each box to see the easing in action. Never use linear — everything should feel organic.</p><div class="easing-grid"><div class="easing-demo spring"><div class="easing-track"><div class="easing-ball"></div></div><div class="easing-name">Spring</div><div class="easing-value">cubic-bezier(0.34, 1.56, 0.64, 1)</div></div><div class="easing-demo expo"><div class="easing-track"><div class="easing-ball"></div></div><div class="easing-name">Expo Out</div><div class="easing-value">cubic-bezier(0.16, 1, 0.3, 1)</div></div><div class="easing-demo anticipate"><div class="easing-track"><div class="easing-ball"></div></div><div class="easing-name">Anticipate</div><div class="easing-value">cubic-bezier(0.38, -0.4, 0.88, 0.65)</div></div><div class="easing-demo gentle"><div class="easing-track"><div class="easing-ball"></div></div><div class="easing-name">Gentle</div><div class="easing-value">cubic-bezier(0.25, 0.1, 0.25, 1)</div></div><div class="easing-demo organic"><div class="easing-track"><div class="easing-ball"></div></div><div class="easing-name">Organic</div><div class="easing-value">cubic-bezier(0.4, 0.2, 0.2, 1.1)</div></div><div class="easing-demo standard"><div class="easing-track"><div class="easing-ball"></div></div><div class="easing-name">Standard</div><div class="easing-value">cubic-bezier(0.4, 0, 0.2, 1)</div></div></div></section><section id="code"><h2>Code Examples</h2><h3>Cyclops Eye Blink Animation</h3> <pre><code><span class="code-comment">/* Cyclops blink - whole eye shrinks vertically */</span>
+  </style>
+</head>
+<body>
+  <header>
+    <p class="eyebrow">Motion Design System</p>
+    <h1>Ferni Animation Guide</h1>
+    <p>The Cyclops eye design — inspired by Luxo Jr. and Mike Wazowski — creates maximum expressiveness with a single, incredibly emotive eye.</p>
+  </header>
+  
+  <nav>
+    <ul>
+      <li><a href="#eye">Eye</a></li>
+      <li><a href="#mouth">Mouth</a></li>
+      <li><a href="#reactions">Reactions</a></li>
+      <li><a href="#principles">12 Principles</a></li>
+      <li><a href="#easings">Easings</a></li>
+      <li><a href="#code">Code</a></li>
+    </ul>
+  </nav>
+  
+  <main>
+    <!-- Eye Section -->
+    <section id="eye">
+      <h2>Eye Animations</h2>
+      <p>The single Cyclops eye is the hero feature. Like Luxo Jr.'s lamp or Mike Wazowski, one eye can convey incredible range of emotion through size, shape, and pupil position.</p>
+      
+      <div class="demo-box">
+        <div class="ferni-avatar-container">
+          <svg class="ferni-avatar" id="eye-demo" viewBox="0 0 100 100">
+            <circle class="face" cx="50" cy="50" r="45"/>
+            <!-- Single Cyclops eye -->
+            <circle class="eye-white" cx="50" cy="40" r="18"/>
+            <circle class="iris" cx="50" cy="40" r="12"/>
+            <circle class="pupil" cx="50" cy="40" r="6"/>
+            <circle class="highlight" cx="47" cy="37" r="2"/>
+            <path class="smile" d="M 35 65 A 18 12 0 0 0 65 65" stroke-width="4"/>
+          </svg>
+        </div>
+        
+        <div class="controls">
+          <div class="control-group">
+            <span class="control-group-label">Blinks</span>
+            <div class="buttons">
+              <button class="btn btn-primary" onclick="triggerEyeAnimation('blink')">Blink</button>
+              <button class="btn btn-primary" onclick="triggerEyeAnimation('double-blink')">Double</button>
+              <button class="btn btn-primary" onclick="triggerEyeAnimation('slow-blink')">Slow</button>
+            </div>
+          </div>
+          
+          <div class="control-group">
+            <span class="control-group-label">Size</span>
+            <div class="buttons">
+              <button class="btn btn-primary" onclick="triggerEyeAnimation('wide')">Wide</button>
+              <button class="btn btn-primary" onclick="triggerEyeAnimation('squint')">Squint</button>
+            </div>
+          </div>
+          
+          <div class="control-group">
+            <span class="control-group-label">Gaze</span>
+            <div class="buttons">
+              <button class="btn btn-primary" onclick="triggerEyeAnimation('look-left')">Left</button>
+              <button class="btn btn-primary" onclick="triggerEyeAnimation('look-right')">Right</button>
+              <button class="btn btn-primary" onclick="triggerEyeAnimation('look-up')">Up</button>
+              <button class="btn btn-primary" onclick="triggerEyeAnimation('look-around')">Around</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <h3>Eye Animation Reference</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Animation</th>
+            <th>Duration</th>
+            <th>What Moves</th>
+            <th>Use Case</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Blink</strong></td>
+            <td>150ms</td>
+            <td>Whole eye scaleY</td>
+            <td>Natural punctuation, acknowledgment</td>
+          </tr>
+          <tr>
+            <td><strong>Double Blink</strong></td>
+            <td>400ms</td>
+            <td>Whole eye scaleY x2</td>
+            <td>Surprise, realization</td>
+          </tr>
+          <tr>
+            <td><strong>Wide</strong></td>
+            <td>500ms</td>
+            <td>Eye scale up</td>
+            <td>Surprise, excitement, emphasis</td>
+          </tr>
+          <tr>
+            <td><strong>Squint</strong></td>
+            <td>600ms</td>
+            <td>Eye scaleY down</td>
+            <td>Thinking, skepticism, focus</td>
+          </tr>
+          <tr>
+            <td><strong>Look Around</strong></td>
+            <td>1200ms</td>
+            <td>Iris + pupil translate</td>
+            <td>Curiosity, searching, considering</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+    
+    <!-- Mouth Section -->
+    <section id="mouth">
+      <h2>Mouth Animations</h2>
+      <p>The smile complements the eye. Together they create the full emotional range.</p>
+      
+      <div class="demo-box">
+        <div class="ferni-avatar-container">
+          <svg class="ferni-avatar" id="mouth-demo" viewBox="0 0 100 100">
+            <circle class="face" cx="50" cy="50" r="45"/>
+            <circle class="eye-white" cx="50" cy="40" r="18"/>
+            <circle class="iris" cx="50" cy="40" r="12"/>
+            <circle class="pupil" cx="50" cy="40" r="6"/>
+            <circle class="highlight" cx="47" cy="37" r="2"/>
+            <path class="smile" d="M 35 65 A 18 12 0 0 0 65 65" stroke-width="4"/>
+          </svg>
+        </div>
+        
+        <div class="controls">
+          <div class="control-group">
+            <span class="control-group-label">Expressions</span>
+            <div class="buttons">
+              <button class="btn btn-primary" onclick="triggerMouthAnimation('smile-grow')">Big Smile</button>
+              <button class="btn btn-primary" onclick="triggerMouthAnimation('thinking-mouth')">Thinking</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+    
+    <!-- Full Reactions Section -->
+    <section id="reactions">
+      <h2>Character Reactions</h2>
+      <p>Full reactions combine face movement, eye animation, and mouth changes. Each follows the 3-phase sequence: Anticipation, Action, Follow-Through.</p>
+      
+      <div class="demo-box">
+        <div class="ferni-avatar-container">
+          <svg class="ferni-avatar animate-breathe" id="reactions-demo" viewBox="0 0 100 100">
+            <circle class="face" cx="50" cy="50" r="45"/>
+            <circle class="eye-white" cx="50" cy="40" r="18"/>
+            <circle class="iris" cx="50" cy="40" r="12"/>
+            <circle class="pupil" cx="50" cy="40" r="6"/>
+            <circle class="highlight" cx="47" cy="37" r="2"/>
+            <path class="smile" d="M 35 65 A 18 12 0 0 0 65 65" stroke-width="4"/>
+          </svg>
+        </div>
+        
+        <div class="controls">
+          <div class="control-group">
+            <span class="control-group-label">Reactions</span>
+            <div class="buttons">
+              <button class="btn btn-primary" onclick="triggerReaction('nod')">Nod</button>
+              <button class="btn btn-primary" onclick="triggerReaction('shake')">Shake</button>
+              <button class="btn btn-primary" onclick="triggerReaction('bounce')">Bounce</button>
+              <button class="btn btn-primary" onclick="triggerReaction('curious')">Curious</button>
+              <button class="btn btn-primary" onclick="triggerReaction('thinking')">Thinking</button>
+              <button class="btn btn-primary" onclick="triggerReaction('celebrate')">Celebrate</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <h3>Reaction Reference</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Reaction</th>
+            <th>Duration</th>
+            <th>Eye</th>
+            <th>Face</th>
+            <th>Use Case</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Nod</strong></td>
+            <td>600ms</td>
+            <td>Blink at peak</td>
+            <td>Vertical bob</td>
+            <td>Agreement, understanding</td>
+          </tr>
+          <tr>
+            <td><strong>Shake</strong></td>
+            <td>500ms</td>
+            <td>Squint</td>
+            <td>Horizontal shake</td>
+            <td>Gentle disagreement</td>
+          </tr>
+          <tr>
+            <td><strong>Bounce</strong></td>
+            <td>700ms</td>
+            <td>Wide eye</td>
+            <td>Squash and stretch</td>
+            <td>Excitement, joy</td>
+          </tr>
+          <tr>
+            <td><strong>Curious</strong></td>
+            <td>1000ms</td>
+            <td>Look around</td>
+            <td>Head tilt</td>
+            <td>Interest, questioning</td>
+          </tr>
+          <tr>
+            <td><strong>Thinking</strong></td>
+            <td>1000ms</td>
+            <td>Squint + look up</td>
+            <td>Slight tilt</td>
+            <td>Processing, considering</td>
+          </tr>
+          <tr>
+            <td><strong>Celebrate</strong></td>
+            <td>1000ms</td>
+            <td>Wide + smile grow</td>
+            <td>Wiggle</td>
+            <td>Achievement, success</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+    
+    <!-- 12 Principles Section -->
+    <section id="principles">
+      <h2>The 12 Principles of Animation</h2>
+      <p>These classic principles from Disney and Pixar guide how Ferni moves. The single eye makes many of these even more impactful.</p>
+      
+      <div class="principle-card">
+        <div class="principle-number">1</div>
+        <div class="principle-content">
+          <h4>Squash and Stretch</h4>
+          <p>The eye and face deform based on speed and mass. During bounce, face compresses horizontally when stretching vertically.</p>
+        </div>
+      </div>
+      
+      <div class="principle-card">
+        <div class="principle-number">2</div>
+        <div class="principle-content">
+          <h4>Anticipation</h4>
+          <p>Wind-up before action. The eye squints slightly before going wide. Face dips before bouncing up.</p>
+        </div>
+      </div>
+      
+      <div class="principle-card">
+        <div class="principle-number">3</div>
+        <div class="principle-content">
+          <h4>Staging</h4>
+          <p>The single eye IS the staging. All attention naturally focuses on one point. Maximum clarity.</p>
+        </div>
+      </div>
+      
+      <div class="principle-card">
+        <div class="principle-number">4</div>
+        <div class="principle-content">
+          <h4>Straight Ahead and Pose to Pose</h4>
+          <p>Key poses at 0%, 35%, 50%, 70%, 100%. The eye has clear states: normal, wide, squint, closed.</p>
+        </div>
+      </div>
+      
+      <div class="principle-card">
+        <div class="principle-number">5</div>
+        <div class="principle-content">
+          <h4>Follow-Through and Overlapping</h4>
+          <p>The pupil settles after the iris. The highlight lags behind the pupil. Face settles after eye.</p>
+        </div>
+      </div>
+      
+      <div class="principle-card">
+        <div class="principle-number">6</div>
+        <div class="principle-content">
+          <h4>Slow In and Slow Out</h4>
+          <p>Never linear motion. Pupil movements ease in and out. Use spring easing for organic feel.</p>
+        </div>
+      </div>
+      
+      <div class="principle-card">
+        <div class="principle-number">7</div>
+        <div class="principle-content">
+          <h4>Arcs</h4>
+          <p>Natural motion follows curved paths. The pupil traces arcs when looking around, not straight lines.</p>
+        </div>
+      </div>
+      
+      <div class="principle-card">
+        <div class="principle-number">8</div>
+        <div class="principle-content">
+          <h4>Secondary Action</h4>
+          <p>The highlight sparkle, subtle face breathing, iris color shifts. These support without distracting.</p>
+        </div>
+      </div>
+      
+      <div class="principle-card">
+        <div class="principle-number">9</div>
+        <div class="principle-content">
+          <h4>Timing</h4>
+          <p>Blink is fast (150ms). Thinking is slow (1000ms). Timing conveys emotion and weight.</p>
+        </div>
+      </div>
+      
+      <div class="principle-card">
+        <div class="principle-number">10</div>
+        <div class="principle-content">
+          <h4>Exaggeration</h4>
+          <p>Wide eye scales 1.2x, not 1.05x. Bounce goes high. The single eye allows bold exaggeration.</p>
+        </div>
+      </div>
+      
+      <div class="principle-card">
+        <div class="principle-number">11</div>
+        <div class="principle-content">
+          <h4>Solid Drawing</h4>
+          <p>Consistent transform-origin. Eye elements scale from center. Face scales from center-bottom.</p>
+        </div>
+      </div>
+      
+      <div class="principle-card">
+        <div class="principle-number">12</div>
+        <div class="principle-content">
+          <h4>Appeal</h4>
+          <p>The Cyclops design is instantly memorable and likeable. Like Luxo Jr., one eye creates charm.</p>
+        </div>
+      </div>
+    </section>
+    
+    <!-- Easings Section -->
+    <section id="easings">
+      <h2>Easing Curves</h2>
+      <p>Hover over each box to see the easing in action. Never use linear — everything should feel organic.</p>
+      
+      <div class="easing-grid">
+        <div class="easing-demo spring">
+          <div class="easing-track"><div class="easing-ball"></div></div>
+          <div class="easing-name">Spring</div>
+          <div class="easing-value">cubic-bezier(0.34, 1.56, 0.64, 1)</div>
+        </div>
+        
+        <div class="easing-demo expo">
+          <div class="easing-track"><div class="easing-ball"></div></div>
+          <div class="easing-name">Expo Out</div>
+          <div class="easing-value">cubic-bezier(0.16, 1, 0.3, 1)</div>
+        </div>
+        
+        <div class="easing-demo anticipate">
+          <div class="easing-track"><div class="easing-ball"></div></div>
+          <div class="easing-name">Anticipate</div>
+          <div class="easing-value">cubic-bezier(0.38, -0.4, 0.88, 0.65)</div>
+        </div>
+        
+        <div class="easing-demo gentle">
+          <div class="easing-track"><div class="easing-ball"></div></div>
+          <div class="easing-name">Gentle</div>
+          <div class="easing-value">cubic-bezier(0.25, 0.1, 0.25, 1)</div>
+        </div>
+        
+        <div class="easing-demo organic">
+          <div class="easing-track"><div class="easing-ball"></div></div>
+          <div class="easing-name">Organic</div>
+          <div class="easing-value">cubic-bezier(0.4, 0.2, 0.2, 1.1)</div>
+        </div>
+        
+        <div class="easing-demo standard">
+          <div class="easing-track"><div class="easing-ball"></div></div>
+          <div class="easing-name">Standard</div>
+          <div class="easing-value">cubic-bezier(0.4, 0, 0.2, 1)</div>
+        </div>
+      </div>
+    </section>
+    
+    <!-- Code Section -->
+    <section id="code">
+      <h2>Code Examples</h2>
+      
+      <h3>Cyclops Eye Blink Animation</h3>
+      <pre><code><span class="code-comment">/* Cyclops blink - whole eye shrinks vertically */</span>
 <span class="code-keyword">@keyframes</span> cyclops-blink {
   <span class="code-number">0%</span>, <span class="code-number">45%</span>, <span class="code-number">55%</span>, <span class="code-number">100%</span> { <span class="code-function">transform</span>: <span class="code-function">scaleY</span>(<span class="code-number">1</span>); }
   <span class="code-number">50%</span> { <span class="code-function">transform</span>: <span class="code-function">scaleY</span>(<span class="code-number">0.05</span>); }
@@ -753,7 +1144,10 @@
 .ferni-avatar .pupil,
 .ferni-avatar .highlight {
   <span class="code-function">animation</span>: cyclops-blink <span class="code-number">150ms</span> <span class="code-keyword">var</span>(--ease-standard);
-}</code></pre> <h3>Pupil Gaze Animation</h3> <pre><code><span class="code-comment">/* Move iris and pupil for gaze direction */</span>
+}</code></pre>
+
+      <h3>Pupil Gaze Animation</h3>
+      <pre><code><span class="code-comment">/* Move iris and pupil for gaze direction */</span>
 <span class="code-keyword">@keyframes</span> look-around {
   <span class="code-number">0%</span>, <span class="code-number">100%</span> { <span class="code-function">transform</span>: <span class="code-function">translate</span>(<span class="code-number">0</span>, <span class="code-number">0</span>); }
   <span class="code-number">20%</span> { <span class="code-function">transform</span>: <span class="code-function">translate</span>(<span class="code-number">-3px</span>, <span class="code-number">-2px</span>); }
@@ -766,7 +1160,11 @@
 .ferni-avatar .pupil,
 .ferni-avatar .highlight {
   <span class="code-function">animation</span>: look-around <span class="code-number">1200ms</span> <span class="code-keyword">var</span>(--ease-organic);
-}</code></pre> </section></main> <script>
+}</code></pre>
+    </section>
+  </main>
+  
+  <script>
     const animationDurations = {
       'blink': 150,
       'double-blink': 400,
@@ -821,4 +1219,6 @@
       });
       void element.offsetWidth; // Force reflow
     }
-  </script> </body></html> 
+  </script>
+</body>
+</html>

@@ -1,4 +1,19 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Getting Started | Ferni Developers</title><meta name="description" content="Build your first AI voice agent in 5 minutes. Complete onboarding guide for the Ferni Agents platform."><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"><link rel="icon" type="image/svg+xml" href="../images/favicon.svg"> <style>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Getting Started | Ferni Developers</title>
+  <meta name="description" content="Build your first AI voice agent in 5 minutes. Complete onboarding guide for the Ferni Agents platform.">
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  
+  <link rel="icon" type="image/svg+xml" href="../images/favicon.svg">
+  
+  <style>
     :root {
       --color-bg-primary: #F5F1E8;
       --color-bg-secondary: #E8E0D5;
@@ -302,10 +317,87 @@
       font-weight: 600;
       margin-top: var(--space-xs);
     }
-  </style> </head><body><header class="header"><div class="header-inner"><a href="./" class="logo"><div class="logo-icon"><svg class="ferni-eyes-svg" viewBox="0 0 100 100"><ellipse cx="36" cy="50" rx="10" ry="12" fill="white"/><circle cx="33" cy="45" r="2.5" fill="white" opacity="0.9"/><ellipse cx="64" cy="50" rx="10" ry="12" fill="white"/><circle cx="61" cy="45" r="2.5" fill="white" opacity="0.9"/></svg></div><span>Ferni Developers</span></a><nav class="nav"><a href="getting-started.html" class="active">Getting Started</a><a href="api.html">API</a><a href="testing.html">Testing</a><a href="../"> Ferni.ai</a></nav></div></header><div class="container"><div class="doc-header"><h1>Getting Started</h1><p>Build your first AI voice agent in under 5 minutes</p></div><div class="doc-content"><div class="callout callout-success"><div class="callout-title"> What you'll build</div><p>By the end of this guide, you'll have a working voice AI agent with its own personality, voice, and domain expertise.</p></div><h2>Prerequisites</h2><p>Before you begin, make sure you have:</p><ul><li><strong>Node.js 18+</strong> — <a href="https://nodejs.org">Download here</a></li><li><strong>npm or pnpm</strong> — Comes with Node.js</li><li><strong>Git</strong> — For cloning the repository</li><li><strong>OpenAI API Key</strong> — <a href="https://platform.openai.com">Get one here</a></li><li><strong>Cartesia API Key</strong> (optional) — For voice synthesis</li></ul><h2>Installation</h2><div class="step-card"><div class="step-header"><div class="step-number">1</div><div class="step-title">Clone the repository</div></div><div class="code-block"> <pre><span class="keyword">git clone</span> https://github.com/ferni-ai/ferni-agents.git
-<span class="keyword">cd</span> ferni-agents</pre> </div></div><div class="step-card"><div class="step-header"><div class="step-number">2</div><div class="step-title">Install dependencies</div></div><div class="code-block"> <pre><span class="keyword">npm install</span>
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header class="header">
+    <div class="header-inner">
+      <a href="./" class="logo">
+        <div class="logo-icon"><svg class="ferni-eyes-svg" viewBox="0 0 100 100"><ellipse cx="36" cy="50" rx="10" ry="12" fill="white"/><circle cx="33" cy="45" r="2.5" fill="white" opacity="0.9"/><ellipse cx="64" cy="50" rx="10" ry="12" fill="white"/><circle cx="61" cy="45" r="2.5" fill="white" opacity="0.9"/></svg></div>
+        <span>Ferni Developers</span>
+      </a>
+      <nav class="nav">
+        <a href="getting-started.html" class="active">Getting Started</a>
+        <a href="api.html">API</a>
+        <a href="testing.html">Testing</a>
+        <a href="../"> Ferni.ai</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Doc Header -->
+  <div class="container">
+    <div class="doc-header">
+      <h1>Getting Started</h1>
+      <p>Build your first AI voice agent in under 5 minutes</p>
+    </div>
+
+    <div class="doc-content">
+      <div class="callout callout-success">
+        <div class="callout-title"> What you'll build</div>
+        <p>By the end of this guide, you'll have a working voice AI agent with its own personality, voice, and domain expertise.</p>
+      </div>
+
+      <h2>Prerequisites</h2>
+      
+      <p>Before you begin, make sure you have:</p>
+      
+      <ul>
+        <li><strong>Node.js 18+</strong> — <a href="https://nodejs.org">Download here</a></li>
+        <li><strong>npm or pnpm</strong> — Comes with Node.js</li>
+        <li><strong>Git</strong> — For cloning the repository</li>
+        <li><strong>OpenAI API Key</strong> — <a href="https://platform.openai.com">Get one here</a></li>
+        <li><strong>Cartesia API Key</strong> (optional) — For voice synthesis</li>
+      </ul>
+
+      <h2>Installation</h2>
+
+      <div class="step-card">
+        <div class="step-header">
+          <div class="step-number">1</div>
+          <div class="step-title">Clone the repository</div>
+        </div>
+        <div class="code-block">
+          <pre><span class="keyword">git clone</span> https://github.com/ferni-ai/ferni-agents.git
+<span class="keyword">cd</span> ferni-agents</pre>
+        </div>
+      </div>
+
+      <div class="step-card">
+        <div class="step-header">
+          <div class="step-number">2</div>
+          <div class="step-title">Install dependencies</div>
+        </div>
+        <div class="code-block">
+          <pre><span class="keyword">npm install</span>
 <span class="comment"># or</span>
-<span class="keyword">pnpm install</span></pre> </div></div><div class="step-card"><div class="step-header"><div class="step-number">3</div><div class="step-title">Configure environment</div></div><p>Copy the example environment file and add your API keys:</p><div class="code-block"> <pre><span class="keyword">cp</span> .env.example .env</pre> </div><p>Then edit <code>.env</code>:</p><div class="code-block"> <pre><span class="comment"># Required</span>
+<span class="keyword">pnpm install</span></pre>
+        </div>
+      </div>
+
+      <div class="step-card">
+        <div class="step-header">
+          <div class="step-number">3</div>
+          <div class="step-title">Configure environment</div>
+        </div>
+        <p>Copy the example environment file and add your API keys:</p>
+        <div class="code-block">
+          <pre><span class="keyword">cp</span> .env.example .env</pre>
+        </div>
+        <p>Then edit <code>.env</code>:</p>
+        <div class="code-block">
+          <pre><span class="comment"># Required</span>
 <span class="property">OPENAI_API_KEY</span>=<span class="string">sk-your-key-here</span>
 
 <span class="comment"># Optional: For voice synthesis</span>
@@ -313,8 +405,50 @@
 
 <span class="comment"># Optional: For real-time voice</span>
 <span class="property">LIVEKIT_API_KEY</span>=<span class="string">your-livekit-key</span>
-<span class="property">LIVEKIT_API_SECRET</span>=<span class="string">your-livekit-secret</span></pre> </div></div><div class="step-card"><div class="step-header"><div class="step-number">4</div><div class="step-title">Start the development server</div></div><div class="code-block"> <pre><span class="keyword">npm run</span> dev</pre> </div><p>Open <a href="http://localhost:3000">http://localhost:3000</a> — you should see the Ferni interface with the default agent.</p></div><div class="callout callout-success"><div class="callout-title"> You're up and running!</div><p>The default Ferni agent is now available. Try saying "Hello" to test the connection.</p></div><h2>Create Your First Agent</h2><p>Now let's create a custom agent using the CLI:</p><div class="step-card"><div class="step-header"><div class="step-number">1</div><div class="step-title">Generate agent scaffold</div></div><div class="code-block"> <pre><span class="comment"># Create a sage-style advisor</span>
-<span class="keyword">npm run</span> agents create my-advisor <span class="keyword">--template</span> sage</pre> </div><p>This creates a new agent bundle at <code>src/personas/bundles/my-advisor/</code></p></div><div class="step-card"><div class="step-header"><div class="step-number">2</div><div class="step-title">Customize the manifest</div></div><p>Open <code>src/personas/bundles/my-advisor/persona.manifest.json</code>:</p><div class="code-block"> <pre>{
+<span class="property">LIVEKIT_API_SECRET</span>=<span class="string">your-livekit-secret</span></pre>
+        </div>
+      </div>
+
+      <div class="step-card">
+        <div class="step-header">
+          <div class="step-number">4</div>
+          <div class="step-title">Start the development server</div>
+        </div>
+        <div class="code-block">
+          <pre><span class="keyword">npm run</span> dev</pre>
+        </div>
+        <p>Open <a href="http://localhost:3000">http://localhost:3000</a> — you should see the Ferni interface with the default agent.</p>
+      </div>
+
+      <div class="callout callout-success">
+        <div class="callout-title"> You're up and running!</div>
+        <p>The default Ferni agent is now available. Try saying "Hello" to test the connection.</p>
+      </div>
+
+      <h2>Create Your First Agent</h2>
+
+      <p>Now let's create a custom agent using the CLI:</p>
+
+      <div class="step-card">
+        <div class="step-header">
+          <div class="step-number">1</div>
+          <div class="step-title">Generate agent scaffold</div>
+        </div>
+        <div class="code-block">
+          <pre><span class="comment"># Create a sage-style advisor</span>
+<span class="keyword">npm run</span> agents create my-advisor <span class="keyword">--template</span> sage</pre>
+        </div>
+        <p>This creates a new agent bundle at <code>src/personas/bundles/my-advisor/</code></p>
+      </div>
+
+      <div class="step-card">
+        <div class="step-header">
+          <div class="step-number">2</div>
+          <div class="step-title">Customize the manifest</div>
+        </div>
+        <p>Open <code>src/personas/bundles/my-advisor/persona.manifest.json</code>:</p>
+        <div class="code-block">
+          <pre>{
   <span class="property">"identity"</span>: {
     <span class="property">"id"</span>: <span class="string">"my-advisor"</span>,
     <span class="property">"name"</span>: <span class="string">"Sam"</span>,
@@ -333,7 +467,18 @@
   <span class="property">"team"</span>: {
     <span class="property">"handoff_triggers"</span>: [<span class="string">"career"</span>, <span class="string">"job"</span>, <span class="string">"resume"</span>, <span class="string">"interview"</span>]
   }
-}</pre> </div></div><div class="step-card"><div class="step-header"><div class="step-number">3</div><div class="step-title">Add personality content</div></div><p>Edit <code>identity/system-prompt.md</code> with your agent's instructions:</p><div class="code-block"> <pre><span class="comment"># Sam - Career Advisor</span>
+}</pre>
+        </div>
+      </div>
+
+      <div class="step-card">
+        <div class="step-header">
+          <div class="step-number">3</div>
+          <div class="step-title">Add personality content</div>
+        </div>
+        <p>Edit <code>identity/system-prompt.md</code> with your agent's instructions:</p>
+        <div class="code-block">
+          <pre><span class="comment"># Sam - Career Advisor</span>
 
 You are Sam, a thoughtful career advisor with 20 years of experience 
 helping people find fulfilling work.
@@ -348,11 +493,66 @@ helping people find fulfilling work.
 - Career transitions
 - Resume and interview preparation
 - Salary negotiation
-- Work-life balance</pre> </div></div><div class="step-card"><div class="step-header"><div class="step-number">4</div><div class="step-title">Run with your new agent</div></div><div class="code-block"> <pre><span class="comment"># Validate the bundle first</span>
+- Work-life balance</pre>
+        </div>
+      </div>
+
+      <div class="step-card">
+        <div class="step-header">
+          <div class="step-number">4</div>
+          <div class="step-title">Run with your new agent</div>
+        </div>
+        <div class="code-block">
+          <pre><span class="comment"># Validate the bundle first</span>
 <span class="keyword">npm run</span> agents validate my-advisor
 
 <span class="comment"># Start with your agent</span>
-<span class="keyword">PERSONA_ID=</span>my-advisor <span class="keyword">npm run</span> dev</pre> </div></div><h2>Agent Templates</h2><p>The CLI provides several templates to get you started:</p><table><thead><tr><th>Template</th><th>Best For</th><th>Characteristics</th></tr></thead><tbody><tr><td><code>basic</code></td><td>General-purpose agents</td><td>Balanced personality, flexible</td></tr><tr><td><code>sage</code></td><td>Wise advisors, mentors</td><td>Slow speech, high warmth, thoughtful</td></tr><tr><td><code>specialist</code></td><td>Domain experts</td><td>Efficient, precise, direct</td></tr><tr><td><code>coordinator</code></td><td>Team lead agents</td><td>Can handoff to any team member</td></tr></tbody></table><h2>Bundle Structure</h2><p>Each agent lives in a self-contained bundle folder:</p><div class="code-block"> <pre><span class="string">src/personas/bundles/my-advisor/</span>
+<span class="keyword">PERSONA_ID=</span>my-advisor <span class="keyword">npm run</span> dev</pre>
+        </div>
+      </div>
+
+      <h2>Agent Templates</h2>
+
+      <p>The CLI provides several templates to get you started:</p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Template</th>
+            <th>Best For</th>
+            <th>Characteristics</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>basic</code></td>
+            <td>General-purpose agents</td>
+            <td>Balanced personality, flexible</td>
+          </tr>
+          <tr>
+            <td><code>sage</code></td>
+            <td>Wise advisors, mentors</td>
+            <td>Slow speech, high warmth, thoughtful</td>
+          </tr>
+          <tr>
+            <td><code>specialist</code></td>
+            <td>Domain experts</td>
+            <td>Efficient, precise, direct</td>
+          </tr>
+          <tr>
+            <td><code>coordinator</code></td>
+            <td>Team lead agents</td>
+            <td>Can handoff to any team member</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>Bundle Structure</h2>
+
+      <p>Each agent lives in a self-contained bundle folder:</p>
+
+      <div class="code-block">
+        <pre><span class="string">src/personas/bundles/my-advisor/</span>
  persona.manifest.json    <span class="comment"> Configuration (required)</span>
  identity/
     biography.md         <span class="comment"> Background story</span>
@@ -367,4 +567,88 @@ helping people find fulfilling work.
         *.json           <span class="comment"> Personal anecdotes</span>
      knowledge/
          _index.json      <span class="comment"> Topic index</span>
-         *.md             <span class="comment"> Domain expertise</span></pre> </div><h2>CLI Commands</h2><table><thead><tr><th>Command</th><th>Description</th></tr></thead><tbody><tr><td><code>npm run agents list</code></td><td>List all discovered agents</td></tr><tr><td><code>npm run agents show &lt;id&gt;</code></td><td>Show detailed agent info</td></tr><tr><td><code>npm run agents create &lt;id&gt;</code></td><td>Create new agent from template</td></tr><tr><td><code>npm run agents validate [id]</code></td><td>Validate bundle(s) for errors</td></tr><tr><td><code>npm run agents enable &lt;id&gt;</code></td><td>Enable an agent in the roster</td></tr><tr><td><code>npm run agents disable &lt;id&gt;</code></td><td>Disable without deleting</td></tr></tbody></table><h2>Next Steps</h2><ul><li><a href="api.html">API Reference</a> — Full endpoint documentation</li><li><a href="testing.html">Testing Guide</a> — How to test your agents</li><li><a href="bundles.html">Bundle System</a> — Deep dive into agent architecture</li></ul><div class="callout callout-warning"><div class="callout-title"> Need help?</div><p>Join our <a href="https://discord.gg/ferni">Discord community</a> or <a href="https://github.com/ferni-ai/ferni-agents/issues">open an issue on GitHub</a>.</p></div><div class="doc-nav-buttons"><a href="./" class="doc-nav-btn"><span class="doc-nav-label"> Previous</span><span class="doc-nav-title">Documentation Home</span></a><a href="api.html" class="doc-nav-btn next"><span class="doc-nav-label">Next </span><span class="doc-nav-title">API Reference</span></a></div></div></div><footer class="footer"><div class="footer-inner"><a href="../" class="logo" style="color: var(--color-text-inverse);"><div class="logo-icon"><svg class="ferni-eyes-svg" viewBox="0 0 100 100"><ellipse cx="36" cy="50" rx="10" ry="12" fill="white"/><circle cx="33" cy="45" r="2.5" fill="white" opacity="0.9"/><ellipse cx="64" cy="50" rx="10" ry="12" fill="white"/><circle cx="61" cy="45" r="2.5" fill="white" opacity="0.9"/></svg></div><span>Ferni</span></a><div class="footer-links"><a href="./">Documentation</a><a href="api.html">API</a><a href="https://github.com/ferni-ai/ferni-agents">GitHub</a><a href="../">Ferni.ai</a></div></div></footer></body></html> 
+         *.md             <span class="comment"> Domain expertise</span></pre>
+      </div>
+
+      <h2>CLI Commands</h2>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Command</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>npm run agents list</code></td>
+            <td>List all discovered agents</td>
+          </tr>
+          <tr>
+            <td><code>npm run agents show &lt;id&gt;</code></td>
+            <td>Show detailed agent info</td>
+          </tr>
+          <tr>
+            <td><code>npm run agents create &lt;id&gt;</code></td>
+            <td>Create new agent from template</td>
+          </tr>
+          <tr>
+            <td><code>npm run agents validate [id]</code></td>
+            <td>Validate bundle(s) for errors</td>
+          </tr>
+          <tr>
+            <td><code>npm run agents enable &lt;id&gt;</code></td>
+            <td>Enable an agent in the roster</td>
+          </tr>
+          <tr>
+            <td><code>npm run agents disable &lt;id&gt;</code></td>
+            <td>Disable without deleting</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>Next Steps</h2>
+
+      <ul>
+        <li><a href="api.html">API Reference</a> — Full endpoint documentation</li>
+        <li><a href="testing.html">Testing Guide</a> — How to test your agents</li>
+        <li><a href="bundles.html">Bundle System</a> — Deep dive into agent architecture</li>
+      </ul>
+
+      <div class="callout callout-warning">
+        <div class="callout-title"> Need help?</div>
+        <p>Join our <a href="https://discord.gg/ferni">Discord community</a> or <a href="https://github.com/ferni-ai/ferni-agents/issues">open an issue on GitHub</a>.</p>
+      </div>
+
+      <!-- Nav buttons -->
+      <div class="doc-nav-buttons">
+        <a href="./" class="doc-nav-btn">
+          <span class="doc-nav-label"> Previous</span>
+          <span class="doc-nav-title">Documentation Home</span>
+        </a>
+        <a href="api.html" class="doc-nav-btn next">
+          <span class="doc-nav-label">Next </span>
+          <span class="doc-nav-title">API Reference</span>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="footer-inner">
+      <a href="../" class="logo" style="color: var(--color-text-inverse);">
+        <div class="logo-icon"><svg class="ferni-eyes-svg" viewBox="0 0 100 100"><ellipse cx="36" cy="50" rx="10" ry="12" fill="white"/><circle cx="33" cy="45" r="2.5" fill="white" opacity="0.9"/><ellipse cx="64" cy="50" rx="10" ry="12" fill="white"/><circle cx="61" cy="45" r="2.5" fill="white" opacity="0.9"/></svg></div>
+        <span>Ferni</span>
+      </a>
+      <div class="footer-links">
+        <a href="./">Documentation</a>
+        <a href="api.html">API</a>
+        <a href="https://github.com/ferni-ai/ferni-agents">GitHub</a>
+        <a href="../">Ferni.ai</a>
+      </div>
+    </div>
+  </footer>
+</body>
+</html>
+

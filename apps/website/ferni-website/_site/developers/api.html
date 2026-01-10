@@ -1,4 +1,19 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>API Reference | Ferni Developers</title><meta name="description" content="Complete API documentation for the Ferni Agents platform. REST endpoints for agent management and voice integration."><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"><link rel="icon" type="image/svg+xml" href="../images/favicon.svg"> <style>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>API Reference | Ferni Developers</title>
+  <meta name="description" content="Complete API documentation for the Ferni Agents platform. REST endpoints for agent management and voice integration.">
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  
+  <link rel="icon" type="image/svg+xml" href="../images/favicon.svg">
+  
+  <style>
     :root {
       --color-bg-primary: #F5F1E8;
       --color-bg-secondary: #E8E0D5;
@@ -328,7 +343,53 @@
       margin-bottom: var(--space-xs);
       font-family: var(--font-body);
     }
-  </style> </head><body><header class="header"><div class="header-inner"><a href="./" class="logo"><div class="logo-icon"><svg class="ferni-eyes-svg" viewBox="0 0 100 100"><ellipse cx="36" cy="50" rx="10" ry="12" fill="white"/><circle cx="33" cy="45" r="2.5" fill="white" opacity="0.9"/><ellipse cx="64" cy="50" rx="10" ry="12" fill="white"/><circle cx="61" cy="45" r="2.5" fill="white" opacity="0.9"/></svg></div><span>Ferni Developers</span></a><nav class="nav"><a href="getting-started.html">Getting Started</a><a href="api.html" class="active">API</a><a href="testing.html">Testing</a><a href="../">← Ferni.ai</a></nav></div></header><div class="container"><div class="doc-header"><h1>API Reference</h1><p>REST endpoints for agent management and voice integration</p></div><div class="doc-content"><div class="base-url"><div class="base-url-label">Base URL</div><code>http://localhost:3000/api</code></div><h2>Agents</h2><p>Endpoints for managing AI agents in your team.</p><div class="endpoint"><div class="endpoint-header"><span class="endpoint-method method-get">GET</span><span class="endpoint-path">/api/agents</span></div><div class="endpoint-body"><p class="endpoint-desc">List all enabled agents with UI-ready data including colors, descriptions, and current status.</p><div class="response-label">Response</div><div class="code-block"> <pre>{
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header class="header">
+    <div class="header-inner">
+      <a href="./" class="logo">
+        <div class="logo-icon"><svg class="ferni-eyes-svg" viewBox="0 0 100 100"><ellipse cx="36" cy="50" rx="10" ry="12" fill="white"/><circle cx="33" cy="45" r="2.5" fill="white" opacity="0.9"/><ellipse cx="64" cy="50" rx="10" ry="12" fill="white"/><circle cx="61" cy="45" r="2.5" fill="white" opacity="0.9"/></svg></div>
+        <span>Ferni Developers</span>
+      </a>
+      <nav class="nav">
+        <a href="getting-started.html">Getting Started</a>
+        <a href="api.html" class="active">API</a>
+        <a href="testing.html">Testing</a>
+        <a href="../">← Ferni.ai</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Doc Header -->
+  <div class="container">
+    <div class="doc-header">
+      <h1>API Reference</h1>
+      <p>REST endpoints for agent management and voice integration</p>
+    </div>
+
+    <div class="doc-content">
+      <div class="base-url">
+        <div class="base-url-label">Base URL</div>
+        <code>http://localhost:3000/api</code>
+      </div>
+
+      <h2>Agents</h2>
+      <p>Endpoints for managing AI agents in your team.</p>
+
+      <!-- GET /api/agents -->
+      <div class="endpoint">
+        <div class="endpoint-header">
+          <span class="endpoint-method method-get">GET</span>
+          <span class="endpoint-path">/api/agents</span>
+        </div>
+        <div class="endpoint-body">
+          <p class="endpoint-desc">List all enabled agents with UI-ready data including colors, descriptions, and current status.</p>
+          
+          <div class="response-label">Response</div>
+          <div class="code-block">
+            <pre>{
   <span class="property">"agents"</span>: [
     {
       <span class="property">"id"</span>: <span class="string">"ferni"</span>,
@@ -343,7 +404,40 @@
     }
   ],
   <span class="property">"total"</span>: <span class="number">7</span>
-}</pre> </div></div></div><div class="endpoint"><div class="endpoint-header"><span class="endpoint-method method-get">GET</span><span class="endpoint-path">/api/agents/:id</span></div><div class="endpoint-body"><p class="endpoint-desc">Get detailed information for a specific agent by ID or alias.</p><table class="params-table"><thead><tr><th>Parameter</th><th>Type</th><th>Description</th></tr></thead><tbody><tr><td><span class="param-name">id</span><span class="param-required">required</span></td><td><span class="param-type">string</span></td><td>Agent ID or alias (e.g., "ferni", "jack-bogle")</td></tr></tbody></table><div class="response-label">Response</div><div class="code-block"> <pre>{
+}</pre>
+          </div>
+        </div>
+      </div>
+
+      <!-- GET /api/agents/:id -->
+      <div class="endpoint">
+        <div class="endpoint-header">
+          <span class="endpoint-method method-get">GET</span>
+          <span class="endpoint-path">/api/agents/:id</span>
+        </div>
+        <div class="endpoint-body">
+          <p class="endpoint-desc">Get detailed information for a specific agent by ID or alias.</p>
+          
+          <table class="params-table">
+            <thead>
+              <tr>
+                <th>Parameter</th>
+                <th>Type</th>
+                <th>Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span class="param-name">id</span><span class="param-required">required</span></td>
+                <td><span class="param-type">string</span></td>
+                <td>Agent ID or alias (e.g., "ferni", "jack-bogle")</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="response-label">Response</div>
+          <div class="code-block">
+            <pre>{
   <span class="property">"id"</span>: <span class="string">"ferni"</span>,
   <span class="property">"name"</span>: <span class="string">"Ferni"</span>,
   <span class="property">"description"</span>: <span class="string">"Your AI life coach"</span>,
@@ -360,20 +454,104 @@
     <span class="property">"handoff_triggers"</span>: [<span class="string">"life"</span>, <span class="string">"coach"</span>, <span class="string">"help"</span>],
     <span class="property">"can_handoff_to"</span>: [<span class="string">"jack"</span>, <span class="string">"maya"</span>, <span class="string">"jordan"</span>]
   }
-}</pre> </div></div></div><div class="endpoint"><div class="endpoint-header"><span class="endpoint-method method-post">POST</span><span class="endpoint-path">/api/agents/:id/enable</span></div><div class="endpoint-body"><p class="endpoint-desc">Enable or disable an agent in the team roster.</p><table class="params-table"><thead><tr><th>Parameter</th><th>Type</th><th>Description</th></tr></thead><tbody><tr><td><span class="param-name">enabled</span><span class="param-required">required</span></td><td><span class="param-type">boolean</span></td><td>Whether to enable (true) or disable (false) the agent</td></tr></tbody></table><div class="code-block"> <pre><span class="comment">// Request body</span>
+}</pre>
+          </div>
+        </div>
+      </div>
+
+      <!-- POST /api/agents/:id/enable -->
+      <div class="endpoint">
+        <div class="endpoint-header">
+          <span class="endpoint-method method-post">POST</span>
+          <span class="endpoint-path">/api/agents/:id/enable</span>
+        </div>
+        <div class="endpoint-body">
+          <p class="endpoint-desc">Enable or disable an agent in the team roster.</p>
+          
+          <table class="params-table">
+            <thead>
+              <tr>
+                <th>Parameter</th>
+                <th>Type</th>
+                <th>Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span class="param-name">enabled</span><span class="param-required">required</span></td>
+                <td><span class="param-type">boolean</span></td>
+                <td>Whether to enable (true) or disable (false) the agent</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="code-block">
+            <pre><span class="comment">// Request body</span>
 {
   <span class="property">"enabled"</span>: <span class="keyword">true</span>
-}</pre> </div></div></div><div class="endpoint"><div class="endpoint-header"><span class="endpoint-method method-put">PUT</span><span class="endpoint-path">/api/agents/:id</span></div><div class="endpoint-body"><p class="endpoint-desc">Update agent settings like colors, subtitle, or display name.</p><div class="code-block"> <pre><span class="comment">// Request body</span>
+}</pre>
+          </div>
+        </div>
+      </div>
+
+      <!-- PUT /api/agents/:id -->
+      <div class="endpoint">
+        <div class="endpoint-header">
+          <span class="endpoint-method method-put">PUT</span>
+          <span class="endpoint-path">/api/agents/:id</span>
+        </div>
+        <div class="endpoint-body">
+          <p class="endpoint-desc">Update agent settings like colors, subtitle, or display name.</p>
+          
+          <div class="code-block">
+            <pre><span class="comment">// Request body</span>
 {
   <span class="property">"subtitle"</span>: <span class="string">"Career Advisor"</span>,
   <span class="property">"colors"</span>: {
     <span class="property">"primary"</span>: <span class="string">"#4a6741"</span>,
     <span class="property">"secondary"</span>: <span class="string">"#3d5a35"</span>
   }
-}</pre> </div></div></div><h2>Team Management</h2><p>Endpoints for managing team roster and display order.</p><div class="endpoint"><div class="endpoint-header"><span class="endpoint-method method-post">POST</span><span class="endpoint-path">/api/team/order</span></div><div class="endpoint-body"><p class="endpoint-desc">Update the display order of agents in the team roster.</p><div class="code-block"> <pre><span class="comment">// Request body</span>
+}</pre>
+          </div>
+        </div>
+      </div>
+
+      <h2>Team Management</h2>
+      <p>Endpoints for managing team roster and display order.</p>
+
+      <!-- POST /api/team/order -->
+      <div class="endpoint">
+        <div class="endpoint-header">
+          <span class="endpoint-method method-post">POST</span>
+          <span class="endpoint-path">/api/team/order</span>
+        </div>
+        <div class="endpoint-body">
+          <p class="endpoint-desc">Update the display order of agents in the team roster.</p>
+          
+          <div class="code-block">
+            <pre><span class="comment">// Request body</span>
 {
   <span class="property">"order"</span>: [<span class="string">"ferni"</span>, <span class="string">"jack"</span>, <span class="string">"maya"</span>, <span class="string">"peter"</span>, <span class="string">"alex"</span>, <span class="string">"jordan"</span>]
-}</pre> </div></div></div><h2>Validation</h2><p>Endpoints for validating agent bundles.</p><div class="endpoint"><div class="endpoint-header"><span class="endpoint-method method-post">POST</span><span class="endpoint-path">/api/agents/validate</span></div><div class="endpoint-body"><p class="endpoint-desc">Run validation on all agent bundles. Returns errors and warnings.</p><div class="response-label">Response</div><div class="code-block"> <pre>{
+}</pre>
+          </div>
+        </div>
+      </div>
+
+      <h2>Validation</h2>
+      <p>Endpoints for validating agent bundles.</p>
+
+      <!-- POST /api/agents/validate -->
+      <div class="endpoint">
+        <div class="endpoint-header">
+          <span class="endpoint-method method-post">POST</span>
+          <span class="endpoint-path">/api/agents/validate</span>
+        </div>
+        <div class="endpoint-body">
+          <p class="endpoint-desc">Run validation on all agent bundles. Returns errors and warnings.</p>
+          
+          <div class="response-label">Response</div>
+          <div class="code-block">
+            <pre>{
   <span class="property">"valid"</span>: <span class="keyword">true</span>,
   <span class="property">"results"</span>: [
     {
@@ -389,10 +567,38 @@
       <span class="property">"warnings"</span>: [<span class="string">"No stories defined"</span>]
     }
   ]
-}</pre> </div></div></div><h2>Voice</h2><p>Endpoints for voice synthesis integration.</p><div class="endpoint"><div class="endpoint-header"><span class="endpoint-method method-get">GET</span><span class="endpoint-path">/api/voice/preview/:voiceId</span></div><div class="endpoint-body"><p class="endpoint-desc">Get Cartesia playground URL for previewing a voice.</p><div class="response-label">Response</div><div class="code-block"> <pre>{
+}</pre>
+          </div>
+        </div>
+      </div>
+
+      <h2>Voice</h2>
+      <p>Endpoints for voice synthesis integration.</p>
+
+      <!-- GET /api/voice/preview/:voiceId -->
+      <div class="endpoint">
+        <div class="endpoint-header">
+          <span class="endpoint-method method-get">GET</span>
+          <span class="endpoint-path">/api/voice/preview/:voiceId</span>
+        </div>
+        <div class="endpoint-body">
+          <p class="endpoint-desc">Get Cartesia playground URL for previewing a voice.</p>
+          
+          <div class="response-label">Response</div>
+          <div class="code-block">
+            <pre>{
   <span class="property">"url"</span>: <span class="string">"https://play.cartesia.ai/..."</span>,
   <span class="property">"voiceId"</span>: <span class="string">"a0e99841-438c-4a64-b679-ae501e7d6091"</span>
-}</pre> </div></div></div><h2>WebSocket Connection</h2><p>For real-time voice communication, connect via WebSocket:</p><div class="code-block"> <pre><span class="comment">// Connect to voice agent</span>
+}</pre>
+          </div>
+        </div>
+      </div>
+
+      <h2>WebSocket Connection</h2>
+      <p>For real-time voice communication, connect via WebSocket:</p>
+
+      <div class="code-block">
+        <pre><span class="comment">// Connect to voice agent</span>
 <span class="keyword">const</span> ws = <span class="keyword">new</span> WebSocket(<span class="string">'ws://localhost:3000/ws'</span>);
 
 ws.onopen = () => {
@@ -413,9 +619,83 @@ ws.onmessage = (event) => {
   <span class="keyword">if</span> (data.type === <span class="string">'transcript'</span>) {
     console.log(<span class="string">'Agent:'</span>, data.text);
   }
-};</pre> </div><h2>Error Handling</h2><p>All endpoints return standard error responses:</p><div class="code-block"> <pre><span class="comment">// Error response format</span>
+};</pre>
+      </div>
+
+      <h2>Error Handling</h2>
+      <p>All endpoints return standard error responses:</p>
+
+      <div class="code-block">
+        <pre><span class="comment">// Error response format</span>
 {
   <span class="property">"error"</span>: <span class="keyword">true</span>,
   <span class="property">"code"</span>: <span class="string">"AGENT_NOT_FOUND"</span>,
   <span class="property">"message"</span>: <span class="string">"Agent 'unknown-id' not found"</span>
-}</pre> </div><h3>Error Codes</h3><table class="params-table"><thead><tr><th>Code</th><th>HTTP Status</th><th>Description</th></tr></thead><tbody><tr><td><code>AGENT_NOT_FOUND</code></td><td>404</td><td>The requested agent ID does not exist</td></tr><tr><td><code>VALIDATION_ERROR</code></td><td>400</td><td>Request body failed validation</td></tr><tr><td><code>BUNDLE_INVALID</code></td><td>400</td><td>Agent bundle has structural errors</td></tr><tr><td><code>VOICE_UNAVAILABLE</code></td><td>503</td><td>Voice synthesis service is unavailable</td></tr></tbody></table><div class="doc-nav-buttons"><a href="getting-started.html" class="doc-nav-btn"><span class="doc-nav-label">← Previous</span><span class="doc-nav-title">Getting Started</span></a><a href="testing.html" class="doc-nav-btn next"><span class="doc-nav-label">Next →</span><span class="doc-nav-title">Testing Guide</span></a></div></div></div><footer class="footer"><div class="footer-inner"><a href="../" class="logo" style="color: var(--color-text-inverse);"><div class="logo-icon"><svg class="ferni-eyes-svg" viewBox="0 0 100 100"><ellipse cx="36" cy="50" rx="10" ry="12" fill="white"/><circle cx="33" cy="45" r="2.5" fill="white" opacity="0.9"/><ellipse cx="64" cy="50" rx="10" ry="12" fill="white"/><circle cx="61" cy="45" r="2.5" fill="white" opacity="0.9"/></svg></div><span>Ferni</span></a><div class="footer-links"><a href="./">Documentation</a><a href="getting-started.html">Getting Started</a><a href="https://github.com/ferni-ai/ferni-agents">GitHub</a><a href="../">Ferni.ai</a></div></div></footer></body></html> 
+}</pre>
+      </div>
+
+      <h3>Error Codes</h3>
+      <table class="params-table">
+        <thead>
+          <tr>
+            <th>Code</th>
+            <th>HTTP Status</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>AGENT_NOT_FOUND</code></td>
+            <td>404</td>
+            <td>The requested agent ID does not exist</td>
+          </tr>
+          <tr>
+            <td><code>VALIDATION_ERROR</code></td>
+            <td>400</td>
+            <td>Request body failed validation</td>
+          </tr>
+          <tr>
+            <td><code>BUNDLE_INVALID</code></td>
+            <td>400</td>
+            <td>Agent bundle has structural errors</td>
+          </tr>
+          <tr>
+            <td><code>VOICE_UNAVAILABLE</code></td>
+            <td>503</td>
+            <td>Voice synthesis service is unavailable</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Nav buttons -->
+      <div class="doc-nav-buttons">
+        <a href="getting-started.html" class="doc-nav-btn">
+          <span class="doc-nav-label">← Previous</span>
+          <span class="doc-nav-title">Getting Started</span>
+        </a>
+        <a href="testing.html" class="doc-nav-btn next">
+          <span class="doc-nav-label">Next →</span>
+          <span class="doc-nav-title">Testing Guide</span>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="footer-inner">
+      <a href="../" class="logo" style="color: var(--color-text-inverse);">
+        <div class="logo-icon"><svg class="ferni-eyes-svg" viewBox="0 0 100 100"><ellipse cx="36" cy="50" rx="10" ry="12" fill="white"/><circle cx="33" cy="45" r="2.5" fill="white" opacity="0.9"/><ellipse cx="64" cy="50" rx="10" ry="12" fill="white"/><circle cx="61" cy="45" r="2.5" fill="white" opacity="0.9"/></svg></div>
+        <span>Ferni</span>
+      </a>
+      <div class="footer-links">
+        <a href="./">Documentation</a>
+        <a href="getting-started.html">Getting Started</a>
+        <a href="https://github.com/ferni-ai/ferni-agents">GitHub</a>
+        <a href="../">Ferni.ai</a>
+      </div>
+    </div>
+  </footer>
+</body>
+</html>
+

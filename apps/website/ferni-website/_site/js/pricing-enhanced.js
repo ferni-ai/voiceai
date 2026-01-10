@@ -1,4 +1,104 @@
-"use strict";(function(){"use strict";function d(){const t=document.querySelector("[data-pricing-toggle]");if(!t)return;const n=document.querySelectorAll("[data-price-monthly]"),a=document.querySelectorAll("[data-price-yearly]"),e=document.querySelectorAll("[data-savings]");let o=!1;t.addEventListener("click",()=>{o=!o,t.classList.toggle("yearly",o),n.forEach(r=>{p(r,o)}),a.forEach(r=>{r.style.display=o?"":"none"}),e.forEach(r=>{r.style.opacity=o?"1":"0",r.style.transform=o?"scale(1)":"scale(0.8)"}),window.ferniAnnounce&&window.ferniAnnounce(o?"Showing yearly prices with savings":"Showing monthly prices")})}function p(t,n){const a=parseFloat(t.dataset.priceMonthly),e=a*10,o=n?a:e/12,r=n?e/12:a;t.style.transform="scale(0.9)",t.style.opacity="0.5",setTimeout(()=>{u(t,o,r,300),t.style.transform="scale(1)",t.style.opacity="1"},150)}function u(t,n,a,e){const o=performance.now(),r=t.dataset.pricePrefix||"$";function i(s){const x=s-o,c=Math.min(x/e,1),w=1-Math.pow(1-c,3),v=n+(a-n)*w;t.textContent=r+v.toFixed(2),c<1&&requestAnimationFrame(i)}requestAnimationFrame(i)}function g(){const t=document.querySelector("[data-pricing-recommended]");if(!t)return;const n=document.createElement("div");n.className="pricing-glow",n.style.cssText=`
+/**
+ * Enhanced Pricing - Ferni Landing Page
+ * ======================================
+ * Monthly/yearly toggle, glow effects, and celebration animations
+ */
+
+(function() {
+  'use strict';
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // MONTHLY/YEARLY TOGGLE
+  // Animated price comparison toggle
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  function initPricingToggle() {
+    const toggle = document.querySelector('[data-pricing-toggle]');
+    if (!toggle) return;
+
+    const monthlyPrices = document.querySelectorAll('[data-price-monthly]');
+    const yearlyPrices = document.querySelectorAll('[data-price-yearly]');
+    const savingsBadges = document.querySelectorAll('[data-savings]');
+
+    let isYearly = false;
+
+    toggle.addEventListener('click', () => {
+      isYearly = !isYearly;
+      toggle.classList.toggle('yearly', isYearly);
+
+      // Animate price change
+      monthlyPrices.forEach(el => {
+        animatePrice(el, isYearly);
+      });
+
+      yearlyPrices.forEach(el => {
+        el.style.display = isYearly ? '' : 'none';
+      });
+
+      // Show/hide savings badges
+      savingsBadges.forEach(badge => {
+        badge.style.opacity = isYearly ? '1' : '0';
+        badge.style.transform = isYearly ? 'scale(1)' : 'scale(0.8)';
+      });
+
+      // Announce change
+      if (window.ferniAnnounce) {
+        window.ferniAnnounce(isYearly ? 'Showing yearly prices with savings' : 'Showing monthly prices');
+      }
+    });
+  }
+
+  function animatePrice(el, toYearly) {
+    const monthlyValue = parseFloat(el.dataset.priceMonthly);
+    const yearlyValue = monthlyValue * 10; // 2 months free
+
+    const startValue = toYearly ? monthlyValue : yearlyValue / 12;
+    const endValue = toYearly ? yearlyValue / 12 : monthlyValue;
+
+    el.style.transform = 'scale(0.9)';
+    el.style.opacity = '0.5';
+
+    setTimeout(() => {
+      // Animate number
+      animateNumber(el, startValue, endValue, 300);
+      el.style.transform = 'scale(1)';
+      el.style.opacity = '1';
+    }, 150);
+  }
+
+  function animateNumber(el, start, end, duration) {
+    const startTime = performance.now();
+    const prefix = el.dataset.pricePrefix || '$';
+
+    function update(currentTime) {
+      const elapsed = currentTime - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3); // ease-out
+      const current = start + (end - start) * eased;
+
+      el.textContent = prefix + current.toFixed(2);
+
+      if (progress < 1) {
+        requestAnimationFrame(update);
+      }
+    }
+
+    requestAnimationFrame(update);
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // RECOMMENDED PLAN GLOW
+  // Animated glow effect on the recommended pricing card
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  function initRecommendedGlow() {
+    const recommendedCard = document.querySelector('[data-pricing-recommended]');
+    if (!recommendedCard) return;
+
+    // Create glow element
+    const glow = document.createElement('div');
+    glow.className = 'pricing-glow';
+    glow.style.cssText = `
       position: absolute;
       inset: -2px;
       background: linear-gradient(
@@ -10,25 +110,70 @@
       border-radius: inherit;
       z-index: -1;
       animation: glowMove 3s ease-in-out infinite;
-    `,t.style.position="relative",t.appendChild(n),t.addEventListener("mousemove",a=>{const e=t.getBoundingClientRect(),o=a.clientX-e.left,r=a.clientY-e.top;n.style.background=`
+    `;
+
+    recommendedCard.style.position = 'relative';
+    recommendedCard.appendChild(glow);
+
+    // Mouse tracking glow
+    recommendedCard.addEventListener('mousemove', (e) => {
+      const rect = recommendedCard.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+
+      glow.style.background = `
         radial-gradient(
-          circle at ${o}px ${r}px,
+          circle at ${x}px ${y}px,
           rgba(74, 103, 65, 0.4) 0%,
           transparent 50%
         )
-      `}),t.addEventListener("mouseleave",()=>{n.style.background=`
+      `;
+    });
+
+    recommendedCard.addEventListener('mouseleave', () => {
+      glow.style.background = `
         linear-gradient(
           90deg,
           transparent,
           rgba(74, 103, 65, 0.3),
           transparent
         )
-      `})}function m(){document.querySelectorAll("[data-feature-list]").forEach(n=>{const a=n.querySelectorAll("li"),e=parseInt(n.dataset.featureList)||4;if(a.length<=e)return;a.forEach((i,s)=>{s>=e&&(i.style.display="none",i.dataset.hidden="true")});const o=document.createElement("button");o.className="feature-toggle",o.innerHTML=`
-        <span>Show ${a.length-e} more</span>
+      `;
+    });
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // FEATURE LIST EXPAND/COLLAPSE
+  // Animated feature list with "Show more"
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  function initFeatureExpand() {
+    const featureLists = document.querySelectorAll('[data-feature-list]');
+
+    featureLists.forEach(list => {
+      const items = list.querySelectorAll('li');
+      const visibleCount = parseInt(list.dataset.featureList) || 4;
+
+      if (items.length <= visibleCount) return;
+
+      // Hide extra items
+      items.forEach((item, index) => {
+        if (index >= visibleCount) {
+          item.style.display = 'none';
+          item.dataset.hidden = 'true';
+        }
+      });
+
+      // Create toggle button
+      const toggleBtn = document.createElement('button');
+      toggleBtn.className = 'feature-toggle';
+      toggleBtn.innerHTML = `
+        <span>Show ${items.length - visibleCount} more</span>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;">
           <path d="M6 9l6 6 6-6"/>
         </svg>
-      `,o.style.cssText=`
+      `;
+      toggleBtn.style.cssText = `
         display: flex;
         align-items: center;
         gap: 0.5rem;
@@ -41,13 +186,114 @@
         padding: 0.5rem 0;
         margin-top: 0.5rem;
         transition: color 0.3s ease;
-      `;let r=!1;o.addEventListener("click",()=>{r=!r,a.forEach((i,s)=>{s>=e&&(r?(i.style.display="",i.style.animation="featureSlideIn 0.3s ease forwards",i.style.animationDelay=`${(s-e)*.05}s`):(i.style.animation="featureSlideOut 0.2s ease forwards",setTimeout(()=>{i.style.display="none"},200)))}),o.innerHTML=r?'<span>Show less</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;transform:rotate(180deg);"><path d="M6 9l6 6 6-6"/></svg>':`<span>Show ${a.length-e} more</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><path d="M6 9l6 6 6-6"/></svg>`}),n.parentNode.appendChild(o)})}function f(){document.querySelectorAll("[data-pricing-card]").forEach(n=>{const a=n.querySelectorAll("[data-feature]");n.addEventListener("mouseenter",()=>{a.forEach(e=>{e.dataset.unique==="true"&&(e.style.background="rgba(74, 103, 65, 0.1)",e.style.borderRadius="0.5rem",e.style.padding="0.25rem 0.5rem",e.style.margin="-0.25rem -0.5rem")})}),n.addEventListener("mouseleave",()=>{a.forEach(e=>{e.style.background="",e.style.padding="",e.style.margin=""})})})}function y(){document.querySelectorAll("[data-upgrade-btn]").forEach(n=>{n.addEventListener("click",a=>{if(window.ferniConfetti){const e=n.getBoundingClientRect(),o=document.createElement("div");o.style.cssText=`
+      `;
+
+      let isExpanded = false;
+
+      toggleBtn.addEventListener('click', () => {
+        isExpanded = !isExpanded;
+
+        items.forEach((item, index) => {
+          if (index >= visibleCount) {
+            if (isExpanded) {
+              item.style.display = '';
+              item.style.animation = 'featureSlideIn 0.3s ease forwards';
+              item.style.animationDelay = `${(index - visibleCount) * 0.05}s`;
+            } else {
+              item.style.animation = 'featureSlideOut 0.2s ease forwards';
+              setTimeout(() => {
+                item.style.display = 'none';
+              }, 200);
+            }
+          }
+        });
+
+        toggleBtn.innerHTML = isExpanded 
+          ? `<span>Show less</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;transform:rotate(180deg);"><path d="M6 9l6 6 6-6"/></svg>`
+          : `<span>Show ${items.length - visibleCount} more</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><path d="M6 9l6 6 6-6"/></svg>`;
+      });
+
+      list.parentNode.appendChild(toggleBtn);
+    });
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // HOVER HIGHLIGHT DIFFERENCES
+  // Shows what's different between plans on hover
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  function initPlanComparison() {
+    const cards = document.querySelectorAll('[data-pricing-card]');
+
+    cards.forEach(card => {
+      const features = card.querySelectorAll('[data-feature]');
+
+      card.addEventListener('mouseenter', () => {
+        // Highlight unique features
+        features.forEach(feature => {
+          if (feature.dataset.unique === 'true') {
+            feature.style.background = 'rgba(74, 103, 65, 0.1)';
+            feature.style.borderRadius = '0.5rem';
+            feature.style.padding = '0.25rem 0.5rem';
+            feature.style.margin = '-0.25rem -0.5rem';
+          }
+        });
+      });
+
+      card.addEventListener('mouseleave', () => {
+        features.forEach(feature => {
+          feature.style.background = '';
+          feature.style.padding = '';
+          feature.style.margin = '';
+        });
+      });
+    });
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // UPGRADE BUTTON CONFETTI
+  // Celebration when clicking upgrade
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  function initUpgradeConfetti() {
+    const upgradeButtons = document.querySelectorAll('[data-upgrade-btn]');
+
+    upgradeButtons.forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        // Create confetti burst at button position
+        if (window.ferniConfetti) {
+          const rect = btn.getBoundingClientRect();
+          const container = document.createElement('div');
+          container.style.cssText = `
             position: fixed;
-            left: ${e.left+e.width/2}px;
-            top: ${e.top}px;
+            left: ${rect.left + rect.width / 2}px;
+            top: ${rect.top}px;
             pointer-events: none;
             z-index: 9999;
-          `,document.body.appendChild(o),window.ferniConfetti(o,25),setTimeout(()=>o.remove(),2e3)}n.style.transform="scale(1.05)",setTimeout(()=>{n.style.transform=""},200)})})}function h(){const t=document.createElement("style");t.textContent=`
+          `;
+          document.body.appendChild(container);
+          
+          window.ferniConfetti(container, 25);
+          
+          setTimeout(() => container.remove(), 2000);
+        }
+
+        // Button animation
+        btn.style.transform = 'scale(1.05)';
+        setTimeout(() => {
+          btn.style.transform = '';
+        }, 200);
+      });
+    });
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // INJECT STYLES
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  function injectStyles() {
+    const style = document.createElement('style');
+    style.textContent = `
       /* Pricing toggle */
       [data-pricing-toggle] {
         position: relative;
@@ -97,4 +343,30 @@
       [data-savings] {
         transition: opacity 0.3s ease, transform 0.3s ease;
       }
-    `,document.head.appendChild(t)}function l(){h(),d(),g(),m(),f(),y(),console.log("%c\u{1F4B0} Enhanced pricing loaded","color: #4a6741; font-weight: bold;")}document.readyState==="loading"?document.addEventListener("DOMContentLoaded",l):l()})();
+    `;
+    document.head.appendChild(style);
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // INITIALIZE
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  function init() {
+    injectStyles();
+    initPricingToggle();
+    initRecommendedGlow();
+    initFeatureExpand();
+    initPlanComparison();
+    initUpgradeConfetti();
+    
+    console.log('%c💰 Enhanced pricing loaded', 'color: #4a6741; font-weight: bold;');
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+
+})();
+

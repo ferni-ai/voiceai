@@ -54,7 +54,7 @@
   --color-text-dimmed: var(--color-text-dimmed);
 
   /* ===== Accent Colors - Uses Ferni textOnDark for contrast ===== */
-  --color-accent: var(--color-ferni-text, #a5c99a);
+  --color-accent: var(--color-ferni-text, var(--color-success-light));
   --color-accent-hover: var(--color-ferni-light);
   --color-accent-light: rgba(165, 201, 154, 0.2);
   --color-highlight: var(--color-highlight);
@@ -84,8 +84,8 @@
 /* Base body styles for manual toggle - explicit colors */
 [data-theme="dark"] body,
 [data-theme="dark"] {
-  background: #584840;
-  color: #faf6f0;
+  background: var(--color-cedar-dark);
+  color: var(--color-bg-primary);
 }
 
 /* Default headings for manual toggle - explicit light colors */
@@ -95,16 +95,16 @@
 [data-theme="dark"] h4,
 [data-theme="dark"] h5,
 [data-theme="dark"] h6 {
-  color: #faf6f0 !important;
+  color: var(--color-bg-primary) !important;
 }
 
 /* Default links for manual toggle */
 [data-theme="dark"] a {
-  color: #d4a84a;
+  color: var(--color-accent-gold);
 }
 
 [data-theme="dark"] a:hover {
-  color: #e0bc6a;
+  color: var(--color-accent-gold-hover);
 }
 
 /* =======================================================
@@ -133,7 +133,7 @@
     --color-text-dimmed: var(--color-text-dimmed);
     
     /* ===== Accent Colors - Uses Ferni textOnDark for contrast ===== */
-    --color-accent: var(--color-ferni-text, #a5c99a);
+    --color-accent: var(--color-ferni-text, var(--color-success-light));
     --color-accent-hover: var(--color-ferni-light);
     --color-accent-light: rgba(165, 201, 154, 0.2);
     --color-highlight: var(--color-highlight);
@@ -162,22 +162,22 @@
   
   /* ===== Body Base - explicit colors ===== */
   body {
-    background: #584840;
-    color: #faf6f0;
+    background: var(--color-cedar-dark);
+    color: var(--color-bg-primary);
   }
   
   /* ===== Default Headings - explicit light colors ===== */
   h1, h2, h3, h4, h5, h6 {
-    color: #faf6f0 !important;
+    color: var(--color-bg-primary) !important;
   }
 
   /* ===== Default Links ===== */
   a {
-    color: #d4a84a;
+    color: var(--color-accent-gold);
   }
 
   a:hover {
-    color: #e0bc6a;
+    color: var(--color-accent-gold-hover);
   }
 }
 
@@ -202,49 +202,49 @@
   .nav__logo-text,
   .nav-logo,
   .logo-text {
-    color: #faf6f0 !important;
+    color: var(--color-bg-primary) !important;
   }
 
   /* Navigation links - explicit light colors */
   .nav__link,
   .nav-link {
-    color: #f0ebe4 !important;
+    color: var(--color-text-secondary-light) !important;
   }
 
   .nav__link:hover,
   .nav__link.is-active,
   .nav-link:hover,
   .nav-link.is-active {
-    color: #faf6f0 !important;
+    color: var(--color-bg-primary) !important;
   }
 
   .nav__cta {
-    background: #d4a84a;
+    background: var(--color-accent-gold);
     color: white;
   }
 
   .nav__cta:hover {
-    background: #e0bc6a;
+    background: var(--color-accent-gold-hover);
     box-shadow: 0 8px 32px rgba(212, 168, 74, 0.25);
   }
 
   /* Nav phone link */
   .nav-phone {
-    color: #f0ebe4 !important;
+    color: var(--color-text-secondary-light) !important;
   }
 
   .nav-phone:hover {
-    color: #faf6f0 !important;
+    color: var(--color-bg-primary) !important;
   }
 
   /* Mobile menu button hamburger lines */
   .nav-menu-btn span {
-    background: #faf6f0;
+    background: var(--color-bg-primary);
   }
 
   /* Mobile Menu */
   .mobile-menu {
-    background: #584840;
+    background: var(--color-cedar-dark);
   }
 
   .mobile-menu__header {
@@ -252,19 +252,19 @@
   }
 
   .mobile-menu__close {
-    color: #f0ebe4;
+    color: var(--color-text-secondary-light);
   }
 
   .mobile-menu__nav a,
   .mobile-link {
-    color: #f0ebe4 !important;
+    color: var(--color-text-secondary-light) !important;
     border-bottom-color: rgba(215, 185, 145, 0.12);
   }
 
   .mobile-menu__nav a:hover,
   .mobile-link:hover {
-    color: #faf6f0 !important;
-    background: #70605a;
+    color: var(--color-bg-primary) !important;
+    background: var(--color-cedar);
   }
 }
 
@@ -319,44 +319,44 @@
   
   /* Hero Content - explicit light colors for dark mode */
   .hero__tagline {
-    color: #d4a84a;
+    color: var(--color-accent-gold);
   }
 
   .hero__headline {
-    color: #faf6f0 !important;
+    color: var(--color-bg-primary) !important;
   }
 
   .hero__headline-accent {
-    color: #d4a84a;
+    color: var(--color-accent-gold);
   }
 
   .hero__subhead {
-    color: #f0ebe4;
+    color: var(--color-text-secondary-light);
   }
 
   .hero__phone {
-    color: #e8e2da;
+    color: var(--color-text-muted);
   }
 
   .hero__phone a {
-    color: #d4a84a;
+    color: var(--color-accent-gold);
   }
 
   .hero__phone a:hover {
-    color: #e0bc6a;
+    color: var(--color-accent-gold-hover);
   }
 
   /* Scroll Indicator */
   .scroll-indicator {
-    color: #e8e2da;
+    color: var(--color-text-muted);
   }
 
   .scroll-indicator__mouse {
-    border-color: #e8e2da;
+    border-color: var(--color-text-muted);
   }
 
   .scroll-indicator__mouse::before {
-    background: #e8e2da;
+    background: var(--color-text-muted);
   }
 }
 
@@ -366,20 +366,20 @@
 
 @media (prefers-color-scheme: dark) {
   .section__eyebrow {
-    color: #d4a84a;
+    color: var(--color-accent-gold);
   }
 
   .section__title {
-    color: #faf6f0 !important;
+    color: var(--color-bg-primary) !important;
   }
 
   .section__subtitle {
-    color: #f0ebe4;
+    color: var(--color-text-secondary-light);
   }
 
   /* Alternate section styling */
   .section--alt {
-    background: #70605a;
+    background: var(--color-cedar);
   }
 }
 
@@ -390,7 +390,7 @@
 @media (prefers-color-scheme: dark) {
   .two-am {
     /* Explicit dark gradient - var(--color-background-deep) doesn't exist in tokens */
-    background: linear-gradient(180deg, #1a1613 0%, #2c2520 100%);
+    background: linear-gradient(180deg, var(--cinematic-black-rich) 0%, var(--color-text-primary) 100%);
   }
 
   .two-am__darkness {
@@ -410,7 +410,7 @@
 
   .two-am__quote {
     /* Light cream text for readability on dark background */
-    color: #f5f0e6;
+    color: var(--color-bg-secondary);
     font-style: italic;
   }
 
@@ -472,7 +472,7 @@
 
 .theme--dark .two-am {
   /* Explicit dark gradient - ensures visibility regardless of OS preference */
-  background: linear-gradient(180deg, #1a1613 0%, #2c2520 100%);
+  background: linear-gradient(180deg, var(--cinematic-black-rich) 0%, var(--color-text-primary) 100%);
 }
 
 .theme--dark .two-am__darkness {
@@ -492,7 +492,7 @@
 
 .theme--dark .two-am__quote {
   /* Light cream text for readability on dark background */
-  color: #f5f0e6;
+  color: var(--color-bg-secondary);
   font-style: italic;
 }
 
@@ -538,7 +538,7 @@
 }
 
 .theme--dark .two-am__ferni-says {
-  color: #f5f0e6;
+  color: var(--color-bg-secondary);
 }
 
 .theme--dark .two-am__ferni-sub {
@@ -1700,15 +1700,16 @@
     -webkit-backdrop-filter: blur(20px);
     border-top: 1px solid var(--glass-border);
   }
-  
+
   .mobile-cta .btn--secondary {
     background: var(--color-background-elevated);
-    color: var(--color-text-secondary);
+    color: var(--color-text-secondary-light);
     border-color: var(--color-border-medium);
   }
-  
+
   .mobile-cta .btn--secondary:hover {
     background: var(--color-background-surface);
+    color: var(--color-bg-primary);
   }
 }
 
@@ -1722,22 +1723,23 @@
     border-color: var(--color-border-subtle);
     box-shadow: var(--shadow-lg);
   }
-  
+
   .cookie-banner p {
-    color: var(--color-text-secondary);
+    color: var(--color-text-secondary-light);
   }
-  
+
   .cookie-banner a {
     color: var(--color-highlight);
   }
-  
+
   .cookie-banner .btn--ghost {
-    color: var(--color-text-muted);
+    color: var(--color-text-secondary-light);
     border-color: var(--color-border-medium);
   }
-  
+
   .cookie-banner .btn--ghost:hover {
     background: var(--color-background-surface);
+    color: var(--color-bg-primary);
   }
 }
 
@@ -1750,32 +1752,32 @@
     background: var(--color-accent);
     color: white;
   }
-  
+
   .btn--primary:hover {
     background: var(--color-accent-hover);
     box-shadow: var(--shadow-glow-ferni);
   }
-  
+
   .btn--secondary {
     background: var(--color-background-elevated);
-    color: var(--color-text-secondary);
+    color: var(--color-text-secondary-light);
     border-color: var(--color-border-medium);
   }
-  
+
   .btn--secondary:hover {
     background: var(--color-background-surface);
-    color: var(--color-text-primary);
+    color: var(--color-bg-primary);
   }
   
   .btn--ghost {
     background: transparent;
-    color: var(--color-text-secondary);
+    color: var(--color-text-secondary-light);
     border-color: var(--color-border-medium);
   }
-  
+
   .btn--ghost:hover {
     background: rgba(255, 255, 255, 0.05);
-    color: var(--color-text-primary);
+    color: var(--color-bg-primary);
   }
 }
 
@@ -1890,48 +1892,48 @@
 [data-theme="dark"] .nav__logo-text,
 [data-theme="dark"] .nav-logo,
 [data-theme="dark"] .logo-text {
-  color: #faf6f0 !important;
+  color: var(--color-bg-primary) !important;
 }
 
 /* Navigation links - explicit light colors */
 [data-theme="dark"] .nav__link,
 [data-theme="dark"] .nav-link {
-  color: #f0ebe4 !important;
+  color: var(--color-text-secondary-light) !important;
 }
 
 [data-theme="dark"] .nav__link:hover,
 [data-theme="dark"] .nav__link.is-active,
 [data-theme="dark"] .nav-link:hover,
 [data-theme="dark"] .nav-link.is-active {
-  color: #faf6f0 !important;
+  color: var(--color-bg-primary) !important;
 }
 
 [data-theme="dark"] .nav__cta {
-  background: #d4a84a;
+  background: var(--color-accent-gold);
   color: white;
 }
 
 [data-theme="dark"] .nav__cta:hover {
-  background: #e0bc6a;
+  background: var(--color-accent-gold-hover);
   box-shadow: 0 8px 32px rgba(212, 168, 74, 0.25);
 }
 
 /* Nav phone link */
 [data-theme="dark"] .nav-phone {
-  color: #f0ebe4 !important;
+  color: var(--color-text-secondary-light) !important;
 }
 
 [data-theme="dark"] .nav-phone:hover {
-  color: #faf6f0 !important;
+  color: var(--color-bg-primary) !important;
 }
 
 /* Mobile menu button hamburger lines */
 [data-theme="dark"] .nav-menu-btn span {
-  background: #faf6f0;
+  background: var(--color-bg-primary);
 }
 
 [data-theme="dark"] .mobile-menu {
-  background: #584840;
+  background: var(--color-cedar-dark);
 }
 
 [data-theme="dark"] .mobile-menu__header {
@@ -1939,19 +1941,19 @@
 }
 
 [data-theme="dark"] .mobile-menu__close {
-  color: #f0ebe4;
+  color: var(--color-text-secondary-light);
 }
 
 [data-theme="dark"] .mobile-menu__nav a,
 [data-theme="dark"] .mobile-link {
-  color: #f0ebe4 !important;
+  color: var(--color-text-secondary-light) !important;
   border-bottom-color: rgba(215, 185, 145, 0.12);
 }
 
 [data-theme="dark"] .mobile-menu__nav a:hover,
 [data-theme="dark"] .mobile-link:hover {
-  color: #faf6f0 !important;
-  background: #70605a;
+  color: var(--color-bg-primary) !important;
+  background: var(--color-cedar);
 }
 
 /* ----- Hero Section ----- */
@@ -1976,47 +1978,47 @@
 }
 
 [data-theme="dark"] .hero__tagline {
-  color: #d4a84a;
+  color: var(--color-accent-gold);
 }
 
 [data-theme="dark"] .hero__headline {
-  color: #faf6f0 !important;
+  color: var(--color-bg-primary) !important;
 }
 
 [data-theme="dark"] .hero__headline-accent {
-  color: #d4a84a;
+  color: var(--color-accent-gold);
 }
 
 [data-theme="dark"] .hero__subhead {
-  color: #f0ebe4;
+  color: var(--color-text-secondary-light);
 }
 
 [data-theme="dark"] .hero__badge {
-  color: #e8e2da;
+  color: var(--color-text-muted);
 }
 
 [data-theme="dark"] .hero__phone {
-  color: #e8e2da;
+  color: var(--color-text-muted);
 }
 
 [data-theme="dark"] .hero__phone a {
-  color: #d4a84a;
+  color: var(--color-accent-gold);
 }
 
 [data-theme="dark"] .hero__phone a:hover {
-  color: #e0bc6a;
+  color: var(--color-accent-gold-hover);
 }
 
 [data-theme="dark"] .scroll-indicator {
-  color: #e8e2da;
+  color: var(--color-text-muted);
 }
 
 [data-theme="dark"] .scroll-indicator__mouse {
-  border-color: #e8e2da;
+  border-color: var(--color-text-muted);
 }
 
 [data-theme="dark"] .scroll-indicator__mouse::before {
-  background: #e8e2da;
+  background: var(--color-text-muted);
 }
 
 /* ----- Stats Bar ----- */
@@ -2086,19 +2088,19 @@
 
 /* ----- Section Headers (Universal) ----- */
 [data-theme="dark"] .section__eyebrow {
-  color: #d4a84a;
+  color: var(--color-accent-gold);
 }
 
 [data-theme="dark"] .section__title {
-  color: #faf6f0 !important;
+  color: var(--color-bg-primary) !important;
 }
 
 [data-theme="dark"] .section__subtitle {
-  color: #f0ebe4;
+  color: var(--color-text-secondary-light);
 }
 
 [data-theme="dark"] .section--alt {
-  background: #70605a;
+  background: var(--color-cedar);
 }
 
 /* ----- Team Cards ----- */
@@ -2209,24 +2211,24 @@
 
 [data-theme="dark"] .btn--secondary {
   background: var(--color-background-elevated);
-  color: var(--color-text-secondary);
+  color: var(--color-text-secondary-light);
   border-color: var(--color-border-medium);
 }
 
 [data-theme="dark"] .btn--secondary:hover {
   background: var(--color-background-surface);
-  color: var(--color-text-primary);
+  color: var(--color-bg-primary);
 }
 
 [data-theme="dark"] .btn--ghost {
   background: transparent;
-  color: var(--color-text-secondary);
+  color: var(--color-text-secondary-light);
   border-color: var(--color-border-medium);
 }
 
 [data-theme="dark"] .btn--ghost:hover {
   background: rgba(255, 255, 255, 0.05);
-  color: var(--color-text-primary);
+  color: var(--color-bg-primary);
 }
 
 /* ----- Two-AM Section ----- */
@@ -2550,10 +2552,10 @@
    COMPREHENSIVE BODY TEXT & CARD DARK MODE FIXES
    Ensures all text elements have proper contrast
    Uses correct tokens from _tokens.css:
-   - --color-text-primary: #faf6f0 (light cream for main text)
-   - --color-text-secondary: #f0ebe4 (for body text)
-   - --color-text-muted: #e8e2da (for captions/labels)
-   - --color-accent: #d4a84a (golden accent)
+   - --color-text-primary: var(--color-bg-primary) (light cream for main text)
+   - --color-text-secondary: var(--color-text-secondary-light) (for body text)
+   - --color-text-muted: var(--color-text-muted) (for captions/labels)
+   - --color-accent: var(--color-accent-gold) (golden accent)
    ======================================================= */
 
 /* ----- Base Card Component ----- */
@@ -2913,12 +2915,12 @@
 /* ----- Phone Mockup ----- */
 @media (prefers-color-scheme: dark) {
   .phone-mockup {
-    background: #1a1a1a;
+    background: var(--color-cinematic-rich);
   }
 }
 
 [data-theme="dark"] .phone-mockup {
-  background: #1a1a1a;
+  background: var(--color-cinematic-rich);
 }
 
 /* ----- FAQ Section (Additional coverage) ----- */

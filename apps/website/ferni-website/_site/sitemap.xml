@@ -7,8 +7,62 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://ferni.ai/blog/why-we-let-ai-help-build-ferni/</loc>
+    <lastmod>12/31/2024</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://ferni.ai/blog/how-ai-helped-design-its-own-brain/</loc>
+    <lastmod>1/1/2025</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://ferni.ai/blog/giving-ai-a-personality/</loc>
+    <lastmod>1/2/2025</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://ferni.ai/blog/daily-standup-with-ai/</loc>
+    <lastmod>1/3/2025</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://ferni.ai/blog/building-habits-maya/</loc>
+    <lastmod>1/4/2025</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://ferni.ai/blog/how-ferni-remembers-you/</loc>
+    <lastmod>1/4/2025</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://ferni.ai/building/the-3am-spark/</loc>
     <lastmod>1/4/2025</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://ferni.ai/blog/we-ship-every-day/</loc>
+    <lastmod>1/5/2025</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://ferni.ai/blog/ai-should-make-you-feel-less-alone/</loc>
+    <lastmod>1/6/2025</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://ferni.ai/blog/whats-next-for-ferni/</loc>
+    <lastmod>1/7/2025</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -19,8 +73,32 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://ferni.ai/blog/the-loneliness-gap/</loc>
+    <lastmod>1/8/2025</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://ferni.ai/blog/stories-from-the-2am-hour/</loc>
+    <lastmod>1/9/2025</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://ferni.ai/blog/why-voice-first/</loc>
+    <lastmod>1/9/2025</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://ferni.ai/building/first-big-failure/</loc>
     <lastmod>1/11/2025</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://ferni.ai/blog/introducing-ferni/</loc>
+    <lastmod>1/14/2025</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -307,12 +385,6 @@
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://ferni.ai/blog/blog/</loc>
-    <lastmod>1/1/2026</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
     <loc>https://ferni.ai/capabilities/</loc>
     <lastmod>1/1/2026</lastmod>
     <changefreq>monthly</changefreq>
@@ -343,80 +415,74 @@
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://ferni.ai/blog/ai-should-make-you-feel-less-alone/</loc>
-    <lastmod>1/3/2026</lastmod>
+    <loc>https://ferni.ai/about/</loc>
+    <lastmod>1/6/2026</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://ferni.ai/blog/between-01-liminal/</loc>
-    <lastmod>1/4/2026</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://ferni.ai/how-it-works/</loc>
-    <lastmod>1/5/2026</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://ferni.ai/privacy/</loc>
-    <lastmod>1/5/2026</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://ferni.ai/terms/</loc>
-    <lastmod>1/5/2026</lastmod>
+    <loc>https://ferni.ai/blog/</loc>
+    <lastmod>1/6/2026</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://ferni.ai/contact/</loc>
-    <lastmod>1/5/2026</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://ferni.ai/team/</loc>
-    <lastmod>1/5/2026</lastmod>
+    <lastmod>1/6/2026</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://ferni.ai/give/</loc>
-    <lastmod>1/5/2026</lastmod>
+    <lastmod>1/6/2026</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://ferni.ai/sms-consent/</loc>
-    <lastmod>1/5/2026</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://ferni.ai/about/</loc>
-    <lastmod>1/5/2026</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://ferni.ai/tailwind-landing/</loc>
-    <lastmod>1/5/2026</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://ferni.ai/team/ferni/</loc>
-    <lastmod>1/5/2026</lastmod>
+    <loc>https://ferni.ai/how-it-works/</loc>
+    <lastmod>1/6/2026</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://ferni.ai/preview-story-hero/</loc>
-    <lastmod>1/5/2026</lastmod>
+    <lastmod>1/6/2026</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://ferni.ai/privacy/</loc>
+    <lastmod>1/6/2026</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://ferni.ai/sms-consent/</loc>
+    <lastmod>1/6/2026</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://ferni.ai/tailwind-landing/</loc>
+    <lastmod>1/6/2026</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://ferni.ai/team/</loc>
+    <lastmod>1/6/2026</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://ferni.ai/team/ferni/</loc>
+    <lastmod>1/6/2026</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://ferni.ai/terms/</loc>
+    <lastmod>1/6/2026</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>

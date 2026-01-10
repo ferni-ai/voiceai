@@ -1,1 +1,306 @@
-.memory-demo[data-ai-storytelling=memory] .memory-demo__moment{transition:all .4s cubic-bezier(.25, .46, .45, .94)}.memory-demo[data-ai-storytelling=memory] .memory-demo__date{transition:opacity .3s ease,transform .3s ease}.memory-demo[data-ai-storytelling=memory] .memory-demo__text{transition:opacity .3s ease,transform .3s ease;white-space:pre-wrap}.memory-demo[data-ai-storytelling=memory] .memory-demo__card{transition:box-shadow .4s ease,transform .3s ease}.memory-demo[data-ai-storytelling=memory] .memory-demo__card--ferni{animation:memory-pulse 15s ease-in-out infinite}@keyframes memory-pulse{0%,100%{box-shadow:0 4px 12px rgba(74,103,65,.1)}50%{box-shadow:0 4px 20px rgba(74,103,65,.2)}}.showcase[data-ai-storytelling=showcase] .showcase__app-chat{transition:opacity .4s cubic-bezier(.25, .46, .45, .94)}.showcase[data-ai-storytelling=showcase] .showcase__app-bubble{animation:bubble-appear .3s ease-out forwards;opacity:0;transform:translateY(8px)}.showcase[data-ai-storytelling=showcase] .showcase__app-bubble:first-child{animation-delay:.1s}.showcase[data-ai-storytelling=showcase] .showcase__app-bubble:nth-child(2){animation-delay:.2s}.showcase[data-ai-storytelling=showcase] .showcase__app-bubble:nth-child(3){animation-delay:.3s}.showcase[data-ai-storytelling=showcase] .showcase__app-bubble:nth-child(4){animation-delay:.4s}@keyframes bubble-appear{to{opacity:1;transform:translateY(0)}}.showcase[data-ai-storytelling=showcase] .bubble-insight{position:relative;overflow:hidden}.showcase[data-ai-storytelling=showcase] .bubble-insight::after{content:'';position:absolute;top:0;left:-100%;width:100%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.1),transparent);animation:insight-shimmer 3s ease-in-out infinite}@keyframes insight-shimmer{0%,100%{left:-100%}50%{left:100%}}.use-case__example{transition:opacity .3s ease,transform .2s ease;position:relative}.use-case:hover .use-case__example{color:var(--color-text-primary,var(--color-text-primary))}.use-case__example::after{content:'';display:inline-block;width:1px;height:1em;background:var(--color-accent,var(--color-ferni));margin-left:2px;animation:cursor-blink 1s step-end infinite;opacity:0}.use-case:hover .use-case__example::after{opacity:1}@keyframes cursor-blink{0%,50%{opacity:1}100%,51%{opacity:0}}.journey__stage-description{transition:opacity .4s ease,transform .3s ease;position:relative}.journey__stage-description:has(+.journey__stage-description)::before,.journey__stage-description[style*="opacity: 1"]::before{content:'';position:absolute;left:-1rem;top:0;bottom:0;width:2px;background:var(--color-accent,var(--color-ferni));opacity:.3;transform:scaleY(0);transform-origin:top;transition:transform .4s ease}.journey__stage:hover .journey__stage-description::before{transform:scaleY(1)}.proof-table__good{transition:opacity .3s ease,color .3s ease}.proof-table__row:hover .proof-table__good{color:var(--color-accent,var(--color-ferni))}.proof-table__col--ferni{position:relative}.proof-table__col--ferni::before{content:'';position:absolute;inset:-4px;background:linear-gradient(135deg,rgba(74,103,65,.05),transparent);border-radius:var(--radius-sm);opacity:0;transition:opacity .3s ease}.proof-table__row:hover .proof-table__col--ferni::before{opacity:1}.final-cta__headline{transition:opacity .4s ease,transform .4s ease}.final-cta__subhead{transition:opacity .4s ease}.final-cta__phone-label{transition:opacity .3s ease,color .3s ease}.final-cta[data-time=lateNight]{--cta-glow:rgba(74, 103, 65, 0.15)}.final-cta[data-time=earlyMorning]{--cta-glow:rgba(196, 133, 106, 0.1)}.final-cta[data-time=evening]{--cta-glow:rgba(74, 103, 65, 0.1)}.final-cta[data-visitor=loyal] .final-cta__headline,.final-cta[data-visitor=returning] .final-cta__headline{animation:welcome-back 2s ease-out}@keyframes welcome-back{0%{opacity:0;transform:translateY(10px)}100%{opacity:1;transform:translateY(0)}}[data-ai-storytelling]{position:relative}[data-ai-storytelling]::after{content:attr(data-ai-storytelling);position:absolute;top:8px;right:8px;font-size:var(--text-2xs);background:rgba(74,103,65,.1);color:var(--color-accent,var(--color-ferni));padding:2px 6px;border-radius:var(--radius-xs);opacity:0;pointer-events:none;transition:opacity .2s ease}body.debug [data-ai-storytelling]:hover::after{opacity:1}@media (prefers-reduced-motion:reduce){.final-cta__headline,.final-cta__phone-label,.final-cta__subhead,.journey__stage-description,.memory-demo[data-ai-storytelling=memory] .memory-demo__card,.memory-demo[data-ai-storytelling=memory] .memory-demo__date,.memory-demo[data-ai-storytelling=memory] .memory-demo__moment,.memory-demo[data-ai-storytelling=memory] .memory-demo__text,.proof-table__good,.showcase[data-ai-storytelling=showcase] .showcase__app-bubble,.showcase[data-ai-storytelling=showcase] .showcase__app-chat,.use-case__example{transition:none!important;animation:none!important}}
+/**
+ * AI Storytelling - Animation Styles
+ * ═══════════════════════════════════════════════════════════════════════════
+ */
+
+/* ============================================================================
+   MEMORY TIMELINE ANIMATIONS
+   ============================================================================ */
+
+.memory-demo[data-ai-storytelling="memory"] .memory-demo__moment {
+  transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.memory-demo[data-ai-storytelling="memory"] .memory-demo__date {
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.memory-demo[data-ai-storytelling="memory"] .memory-demo__text {
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  /* Preserve line breaks and formatting */
+  white-space: pre-wrap;
+}
+
+/* Subtle pulse on memory cards when content changes */
+.memory-demo[data-ai-storytelling="memory"] .memory-demo__card {
+  transition: box-shadow 0.4s ease, transform 0.3s ease;
+}
+
+.memory-demo[data-ai-storytelling="memory"] .memory-demo__card--ferni {
+  animation: memory-pulse 15s ease-in-out infinite;
+}
+
+@keyframes memory-pulse {
+  0%, 100% {
+    box-shadow: 0 4px 12px rgba(74, 103, 65, 0.1);
+  }
+  50% {
+    box-shadow: 0 4px 20px rgba(74, 103, 65, 0.2);
+  }
+}
+
+/* ============================================================================
+   SHOWCASE CHAT ANIMATIONS
+   ============================================================================ */
+
+.showcase[data-ai-storytelling="showcase"] .showcase__app-chat {
+  transition: opacity 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.showcase[data-ai-storytelling="showcase"] .showcase__app-bubble {
+  animation: bubble-appear 0.3s ease-out forwards;
+  opacity: 0;
+  transform: translateY(8px);
+}
+
+.showcase[data-ai-storytelling="showcase"] .showcase__app-bubble:nth-child(1) {
+  animation-delay: 0.1s;
+}
+
+.showcase[data-ai-storytelling="showcase"] .showcase__app-bubble:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.showcase[data-ai-storytelling="showcase"] .showcase__app-bubble:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+.showcase[data-ai-storytelling="showcase"] .showcase__app-bubble:nth-child(4) {
+  animation-delay: 0.4s;
+}
+
+@keyframes bubble-appear {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Insight badge shimmer */
+.showcase[data-ai-storytelling="showcase"] .bubble-insight {
+  position: relative;
+  overflow: hidden;
+}
+
+.showcase[data-ai-storytelling="showcase"] .bubble-insight::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.1),
+    transparent
+  );
+  animation: insight-shimmer 3s ease-in-out infinite;
+}
+
+@keyframes insight-shimmer {
+  0%, 100% {
+    left: -100%;
+  }
+  50% {
+    left: 100%;
+  }
+}
+
+/* ============================================================================
+   USE CASE VOICE ANIMATIONS
+   ============================================================================ */
+
+.use-case__example {
+  transition: opacity 0.3s ease, transform 0.2s ease;
+  position: relative;
+}
+
+/* Subtle glow on voice change */
+.use-case:hover .use-case__example {
+  color: var(--color-text-primary, var(--color-text-primary));
+}
+
+/* Typing effect for quotes */
+.use-case__example::after {
+  content: '';
+  display: inline-block;
+  width: 1px;
+  height: 1em;
+  background: var(--color-accent, var(--color-ferni));
+  margin-left: 2px;
+  animation: cursor-blink 1s step-end infinite;
+  opacity: 0;
+}
+
+.use-case:hover .use-case__example::after {
+  opacity: 1;
+}
+
+@keyframes cursor-blink {
+  0%, 50% {
+    opacity: 1;
+  }
+  51%, 100% {
+    opacity: 0;
+  }
+}
+
+/* ============================================================================
+   JOURNEY STAGE ANIMATIONS
+   ============================================================================ */
+
+.journey__stage-description {
+  transition: opacity 0.4s ease, transform 0.3s ease;
+  position: relative;
+}
+
+/* Quote style for testimonials */
+.journey__stage-description:has(+.journey__stage-description)::before,
+.journey__stage-description[style*="opacity: 1"]::before {
+  content: '';
+  position: absolute;
+  left: -1rem;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--color-accent, var(--color-ferni));
+  opacity: 0.3;
+  transform: scaleY(0);
+  transform-origin: top;
+  transition: transform 0.4s ease;
+}
+
+.journey__stage:hover .journey__stage-description::before {
+  transform: scaleY(1);
+}
+
+/* ============================================================================
+   COMPARISON TABLE ANIMATIONS
+   ============================================================================ */
+
+.proof-table__good {
+  transition: opacity 0.3s ease, color 0.3s ease;
+}
+
+.proof-table__row:hover .proof-table__good {
+  color: var(--color-accent, var(--color-ferni));
+}
+
+/* Emphasis pulse for Ferni column */
+.proof-table__col--ferni {
+  position: relative;
+}
+
+.proof-table__col--ferni::before {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  background: linear-gradient(135deg, rgba(74, 103, 65, 0.05), transparent);
+  border-radius: var(--radius-sm);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.proof-table__row:hover .proof-table__col--ferni::before {
+  opacity: 1;
+}
+
+/* ============================================================================
+   FINAL CTA PERSONALIZATION
+   ============================================================================ */
+
+.final-cta__headline {
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+
+.final-cta__subhead {
+  transition: opacity 0.4s ease;
+}
+
+.final-cta__phone-label {
+  transition: opacity 0.3s ease, color 0.3s ease;
+}
+
+/* Time-of-day visual cues */
+.final-cta[data-time="lateNight"] {
+  --cta-glow: rgba(74, 103, 65, 0.15);
+}
+
+.final-cta[data-time="earlyMorning"] {
+  --cta-glow: rgba(196, 133, 106, 0.1);
+}
+
+.final-cta[data-time="evening"] {
+  --cta-glow: rgba(74, 103, 65, 0.1);
+}
+
+/* Returning visitor warmth */
+.final-cta[data-visitor="returning"] .final-cta__headline,
+.final-cta[data-visitor="loyal"] .final-cta__headline {
+  animation: welcome-back 2s ease-out;
+}
+
+@keyframes welcome-back {
+  0% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ============================================================================
+   STORYTELLING INDICATORS
+   ============================================================================ */
+
+/* Subtle indicator that content is dynamic */
+[data-ai-storytelling] {
+  position: relative;
+}
+
+/* AI badge (optional - can be shown in debug mode) */
+[data-ai-storytelling]::after {
+  content: attr(data-ai-storytelling);
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  font-size: var(--text-2xs);
+  background: rgba(74, 103, 65, 0.1);
+  color: var(--color-accent, var(--color-ferni));
+  padding: 2px 6px;
+  border-radius: var(--radius-xs);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+/* Show badge on hover in debug mode */
+body.debug [data-ai-storytelling]:hover::after {
+  opacity: 1;
+}
+
+/* ============================================================================
+   REDUCED MOTION
+   ============================================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .memory-demo[data-ai-storytelling="memory"] .memory-demo__moment,
+  .memory-demo[data-ai-storytelling="memory"] .memory-demo__date,
+  .memory-demo[data-ai-storytelling="memory"] .memory-demo__text,
+  .memory-demo[data-ai-storytelling="memory"] .memory-demo__card,
+  .showcase[data-ai-storytelling="showcase"] .showcase__app-chat,
+  .showcase[data-ai-storytelling="showcase"] .showcase__app-bubble,
+  .use-case__example,
+  .journey__stage-description,
+  .proof-table__good,
+  .final-cta__headline,
+  .final-cta__subhead,
+  .final-cta__phone-label {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
