@@ -554,7 +554,10 @@ export async function handleSanctuaryRoutes(
       const [insights, superhumanCtx] = await Promise.all([
         generateSanctuaryInsights(userId),
         buildSuperhumanContext(userId).catch((err) => {
-          log.warn({ userId, error: String(err) }, 'Failed to build superhuman context - using empty');
+          log.warn(
+            { userId, error: String(err) },
+            'Failed to build superhuman context - using empty'
+          );
           return {};
         }),
       ]);
@@ -598,7 +601,10 @@ export async function handleSanctuaryRoutes(
 
       if (userId) {
         superhumanCtx = await buildSuperhumanContext(userId).catch((err) => {
-          log.warn({ userId, error: String(err) }, 'Failed to build superhuman context for practices - using empty');
+          log.warn(
+            { userId, error: String(err) },
+            'Failed to build superhuman context for practices - using empty'
+          );
           return {};
         });
       }

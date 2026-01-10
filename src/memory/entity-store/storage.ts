@@ -20,6 +20,18 @@ import type {
   EntityType,
   Mention,
 } from './types.js';
+import {
+  getCachedEntityList,
+  cacheEntityList,
+  getCachedEntity,
+  cacheEntity,
+  getCachedEntityIdByAlias,
+  cacheAliasMapping,
+  invalidateUserCache,
+  invalidateEntity,
+  recordCacheHit,
+  recordCacheMiss,
+} from './entity-cache.js';
 
 const log = createLogger({ module: 'entity-store:storage' });
 
@@ -89,6 +101,11 @@ export async function createEntity(userId: string, entity: Omit<Entity, 'id'>): 
 
   await docRef.set(cleanForFirestore(fullEntity));
 
+  // Invalidate user cache since entity list changed
+  invalidateUserCache(userId);
+  // Cache the new entity
+  cacheEntity(userId, fullEntity);
+
   log.info(
     { userId, entityId: fullEntity.id, name: fullEntity.canonicalName, type: fullEntity.type },
     '✨ Created entity'
@@ -101,13 +118,21 @@ export async function createEntity(userId: string, entity: Omit<Entity, 'id'>): 
  * Get an entity by ID
  */
 export async function getEntity(userId: string, entityId: string): Promise<Entity | null> {
+  // Check cache first
+  const cached = getCachedEntity(userId, entityId);
+  if (cached) {
+    recordCacheHit('entityById');
+    return cached;
+  }
+  recordCacheMiss('entityById');
+
   const ref = await getEntitiesRef(userId);
   const doc = await ref.doc(entityId).get();
 
   if (!doc.exists) return null;
 
   const data = doc.data();
-  return {
+  const entity = {
     ...data,
     id: doc.id,
     createdAt: data?.createdAt?.toDate?.() || new Date(),
@@ -115,6 +140,11 @@ export async function getEntity(userId: string, entityId: string): Promise<Entit
     firstMentionedAt: data?.firstMentionedAt?.toDate?.() || new Date(),
     lastMentionedAt: data?.lastMentionedAt?.toDate?.() || new Date(),
   } as Entity;
+
+  // Cache the result
+  cacheEntity(userId, entity);
+
+  return entity;
 }
 
 /**
@@ -138,6 +168,9 @@ export async function updateEntity(
 
   await docRef.update(cleanForFirestore(updateData));
 
+  // Invalidate cache for this entity (aliases may have changed)
+  invalidateEntity(userId, entityId);
+
   log.debug({ userId, entityId }, 'Updated entity');
 
   return getEntity(userId, entityId);
@@ -153,6 +186,9 @@ export async function deleteEntity(userId: string, entityId: string): Promise<bo
   const existing = await docRef.get();
   if (!existing.exists) return false;
 
+  // Invalidate cache before deletion
+  invalidateEntity(userId, entityId);
+
   await docRef.delete();
   log.info({ userId, entityId }, 'Deleted entity');
 
@@ -167,6 +203,15 @@ export async function findEntityByAlias(
   alias: string,
   type?: EntityType
 ): Promise<Entity | null> {
+  // Check cache first
+  const cachedEntityId = getCachedEntityIdByAlias(userId, alias, type);
+  if (cachedEntityId) {
+    recordCacheHit('alias');
+    // Get full entity (also cached)
+    return getEntity(userId, cachedEntityId);
+  }
+  recordCacheMiss('alias');
+
   const ref = await getEntitiesRef(userId);
   const normalizedAlias = alias.toLowerCase().trim();
 
@@ -177,7 +222,11 @@ export async function findEntityByAlias(
   let snapshot = await query.limit(1).get();
   if (!snapshot.empty) {
     const doc = snapshot.docs[0];
-    return { ...doc.data(), id: doc.id } as Entity;
+    const entity = { ...doc.data(), id: doc.id } as Entity;
+    // Cache the result
+    cacheEntity(userId, entity);
+    cacheAliasMapping(userId, alias, entity.id, type);
+    return entity;
   }
 
   // Then check specific relation (for "my brother", "my mom", etc.)
@@ -186,7 +235,11 @@ export async function findEntityByAlias(
     snapshot = await query.limit(1).get();
     if (!snapshot.empty) {
       const doc = snapshot.docs[0];
-      return { ...doc.data(), id: doc.id } as Entity;
+      const entity = { ...doc.data(), id: doc.id } as Entity;
+      // Cache the result
+      cacheEntity(userId, entity);
+      cacheAliasMapping(userId, alias, entity.id, type);
+      return entity;
     }
   }
 
@@ -198,7 +251,11 @@ export async function findEntityByAlias(
   snapshot = await query.limit(1).get();
   if (!snapshot.empty) {
     const doc = snapshot.docs[0];
-    return { ...doc.data(), id: doc.id } as Entity;
+    const entity = { ...doc.data(), id: doc.id } as Entity;
+    // Cache the result
+    cacheEntity(userId, entity);
+    cacheAliasMapping(userId, alias, entity.id, type);
+    return entity;
   }
 
   return null;
@@ -259,6 +316,14 @@ export async function getAllEntities(
   userId: string,
   options: EntitySearchOptions = {}
 ): Promise<Entity[]> {
+  // Check cache first
+  const cached = getCachedEntityList(userId, options);
+  if (cached) {
+    recordCacheHit('entityList');
+    return cached;
+  }
+  recordCacheMiss('entityList');
+
   const ref = await getEntitiesRef(userId);
   const limit = options.limit || options.topK || 100;
 
@@ -271,7 +336,7 @@ export async function getAllEntities(
   // Use lastMentioned (not lastMentionedAt) to match Entity schema
   const snapshot = await query.orderBy('lastMentioned', 'desc').limit(limit).get();
 
-  return snapshot.docs.map((doc) => ({
+  const entities = snapshot.docs.map((doc) => ({
     ...doc.data(),
     id: doc.id,
     createdAt: doc.data()?.createdAt?.toDate?.() || new Date(),
@@ -279,6 +344,11 @@ export async function getAllEntities(
     firstMentionedAt: doc.data()?.firstMentionedAt?.toDate?.() || new Date(),
     lastMentionedAt: doc.data()?.lastMentionedAt?.toDate?.() || new Date(),
   })) as Entity[];
+
+  // Cache the result
+  cacheEntityList(userId, entities, options);
+
+  return entities;
 }
 
 /**

@@ -337,6 +337,118 @@ export async function handleGetSuperhumanInsights(
 }
 
 /**
+ * GET /api/memories/on-this-day - Memory Lane "On This Day" memories
+ *
+ * Returns memories and events from the same day in previous years.
+ */
+export async function handleGetOnThisDay(
+  req: IncomingMessage,
+  res: ServerResponse,
+  parsedUrl: URL
+): Promise<void> {
+  const userId = requireUserId(req, res, parsedUrl);
+  if (!userId) return;
+
+  try {
+    const { getDefaultStore } = await import('../../memory/index.js');
+    const { getAllUserMemories } = await import('../../services/memory/persona-memories.js');
+
+    const store = getDefaultStore();
+    const profile = (await store.getProfile(userId)) as unknown as AnyRecord | null;
+    const rawMemories = (await getAllUserMemories(userId)) as unknown as AnyRecord[];
+
+    const today = new Date();
+    const todayMonth = today.getMonth();
+    const todayDate = today.getDate();
+
+    // Filter memories from the same day in previous years
+    const onThisDayMemories: Array<{
+      id: string;
+      date: string;
+      yearsAgo: number;
+      content: string;
+      type: string;
+      personaId?: string;
+    }> = [];
+
+    for (const memory of rawMemories) {
+      const memoryDate = memory.createdAt instanceof Date
+        ? memory.createdAt
+        : new Date(memory.createdAt as string);
+
+      if (
+        memoryDate.getMonth() === todayMonth &&
+        memoryDate.getDate() === todayDate &&
+        memoryDate.getFullYear() < today.getFullYear()
+      ) {
+        const yearsAgo = today.getFullYear() - memoryDate.getFullYear();
+        onThisDayMemories.push({
+          id: memory.id as string,
+          date: memoryDate.toISOString(),
+          yearsAgo,
+          content: formatMemoryContent(memory),
+          type: mapMemoryTypeToUIType(memory.type as string),
+          personaId: memory.personaId as string | undefined,
+        });
+      }
+    }
+
+    // Also check profile for important dates (birthdays, anniversaries, etc.)
+    const significantDates: Array<{
+      id: string;
+      type: 'birthday' | 'anniversary' | 'milestone';
+      label: string;
+      yearsAgo: number;
+    }> = [];
+
+    if (profile?.importantDates) {
+      const dates = profile.importantDates as Array<{
+        date: string;
+        type: string;
+        label: string;
+      }>;
+
+      for (const date of dates) {
+        const dateObj = new Date(date.date);
+        if (
+          dateObj.getMonth() === todayMonth &&
+          dateObj.getDate() === todayDate
+        ) {
+          const yearsAgo = today.getFullYear() - dateObj.getFullYear();
+          significantDates.push({
+            id: `date-${date.date}`,
+            type: date.type as 'birthday' | 'anniversary' | 'milestone',
+            label: date.label,
+            yearsAgo: yearsAgo > 0 ? yearsAgo : 0,
+          });
+        }
+      }
+    }
+
+    // Sort by years ago (most recent first)
+    onThisDayMemories.sort((a, b) => a.yearsAgo - b.yearsAgo);
+
+    sendJSONCached(
+      res,
+      {
+        memories: onThisDayMemories,
+        significantDates,
+        today: {
+          month: todayMonth + 1, // 1-indexed for display
+          date: todayDate,
+          formatted: today.toLocaleDateString(undefined, { month: 'long', day: 'numeric' }),
+        },
+        hasContent: onThisDayMemories.length > 0 || significantDates.length > 0,
+      },
+      300 // Cache for 5 minutes
+    );
+  } catch (err) {
+    log.error({ error: err, userId }, 'Failed to get on-this-day memories');
+    sendJSON(res, { memories: [], significantDates: [], hasContent: false }, 500);
+  }
+}
+
+/**
  * Route handler for memories endpoints
  */
 export async function handleMemoriesRoutes(
@@ -352,6 +464,12 @@ export async function handleMemoriesRoutes(
 
   if (pathname === '/api/cognitive/superhuman-insights' && req.method === 'GET') {
     await handleGetSuperhumanInsights(req, res, parsedUrl);
+    return true;
+  }
+
+  // Memory Lane - On This Day
+  if (pathname === '/api/memories/on-this-day' && req.method === 'GET') {
+    await handleGetOnThisDay(req, res, parsedUrl);
     return true;
   }
 

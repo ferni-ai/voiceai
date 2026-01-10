@@ -20,6 +20,7 @@ import {
   type AuthState,
 } from '../services/firebase-auth.service.js';
 import { createLogger } from '../utils/logger.js';
+import { apiGet } from '../utils/api.js';
 
 // ============================================================================
 // TYPES
@@ -294,22 +295,15 @@ async function checkWaitlistAccess(): Promise<WaitlistCheckResult> {
       return { approved: false, status: 'not_found', message: 'Not authenticated' };
     }
 
-    const response = await fetch('/api/waitlist/check', {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-    });
+    const response = await apiGet<WaitlistCheckResult>('/api/waitlist/check');
 
-    if (!response.ok) {
+    if (!response.ok || !response.data) {
       log.error('Waitlist check failed:', response.status);
       return { approved: false, status: 'not_found', message: 'Check failed' };
     }
 
-    const result = (await response.json()) as WaitlistCheckResult;
-    log.info('Waitlist check result:', result);
-    return result;
+    log.info('Waitlist check result:', response.data);
+    return response.data;
   } catch (error) {
     log.error('Waitlist check error:', error);
     return { approved: false, status: 'not_found', message: 'Network error' };

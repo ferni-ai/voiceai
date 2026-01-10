@@ -85,6 +85,13 @@ export interface UserData {
   /** Preferred language for speech recognition validation (default: 'en') */
   preferredLanguage?: string;
 
+  /** User's IP-detected location (for weather, local info personalization) */
+  userLocation?: {
+    city?: string;
+    regionCode?: string;
+    countryCode?: string;
+  };
+
   // Timing
   userSpeakingStartTime?: number;
   userWentSilent?: boolean;

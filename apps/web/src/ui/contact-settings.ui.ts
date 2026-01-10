@@ -16,7 +16,7 @@ import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { getUserTimezone } from '../services/timezone.service.js';
-import { getApiHeadersAsync } from '../utils/api-helpers.js';
+import { apiGet, apiPost } from '../utils/api.js';
 
 const log = createLogger('ContactSettingsUI');
 
@@ -876,32 +876,45 @@ async function loadContactInfo(): Promise<void> {
   state.isLoading = true;
 
   try {
-    // Get authenticated headers (includes Firebase Bearer token)
-    const headers = await getApiHeadersAsync();
-
     // Load contact info
-    const response = await fetch('/api/outreach/context', { headers });
-    const data = await response.json();
+    const response = await apiGet<{
+      success?: boolean;
+      context?: {
+        personal?: {
+          phone?: string;
+          email?: string;
+          preferredName?: string;
+          phoneVerified?: boolean;
+          emailVerified?: boolean;
+        };
+      };
+    }>('/api/outreach/context');
 
-    if (data.success && data.context?.personal) {
+    if (response.ok && response.data?.success && response.data.context?.personal) {
       state.contactInfo = {
-        phone: data.context.personal.phone,
-        email: data.context.personal.email,
-        preferredName: data.context.personal.preferredName,
-        phoneVerified: data.context.personal.phoneVerified,
-        emailVerified: data.context.personal.emailVerified,
+        phone: response.data.context.personal.phone,
+        email: response.data.context.personal.email,
+        preferredName: response.data.context.personal.preferredName,
+        phoneVerified: response.data.context.personal.phoneVerified,
+        emailVerified: response.data.context.personal.emailVerified,
       };
     }
-    
+
     // Load user preferences (timezone, quiet hours)
     try {
-      const prefsResponse = await fetch('/api/user/preferences', { headers });
-      const prefsData = await prefsResponse.json();
-      
-      if (prefsData.success && prefsData.preferences) {
-        state.contactInfo.timezone = prefsData.preferences.timezone;
-        state.contactInfo.quietHoursStart = prefsData.preferences.quietHoursStart;
-        state.contactInfo.quietHoursEnd = prefsData.preferences.quietHoursEnd;
+      const prefsResponse = await apiGet<{
+        success?: boolean;
+        preferences?: {
+          timezone?: string;
+          quietHoursStart?: string;
+          quietHoursEnd?: string;
+        };
+      }>('/api/user/preferences');
+
+      if (prefsResponse.ok && prefsResponse.data?.success && prefsResponse.data.preferences) {
+        state.contactInfo.timezone = prefsResponse.data.preferences.timezone;
+        state.contactInfo.quietHoursStart = prefsResponse.data.preferences.quietHoursStart;
+        state.contactInfo.quietHoursEnd = prefsResponse.data.preferences.quietHoursEnd;
         state.contactInfo.quietHoursEnabled = true; // Enabled by default
       }
     } catch (prefsError) {
@@ -942,37 +955,25 @@ async function handleSave(): Promise<void> {
   const quietHoursEnabled = state.contactInfo.quietHoursEnabled !== false;
 
   try {
-    // Get authenticated headers (includes Firebase Bearer token)
-    const headers = await getApiHeadersAsync({ 'Content-Type': 'application/json' });
-
     // Save contact info
-    const personalResponse = await fetch('/api/user/contact', {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({
-        phone,
-        email,
-        preferredName,
-        timezone: state.contactInfo.timezone || getUserTimezone(),
-      }),
+    const personalResponse = await apiPost<{ error?: string }>('/api/user/contact', {
+      phone,
+      email,
+      preferredName,
+      timezone: state.contactInfo.timezone || getUserTimezone(),
     });
 
     if (!personalResponse.ok) {
-      const errorData = await personalResponse.json().catch(() => ({}));
-      log.error({ status: personalResponse.status, errorData }, 'Failed to save contact info');
-      throw new Error(errorData.error || 'Failed to save contact info');
+      log.error({ status: personalResponse.status, error: personalResponse.error }, 'Failed to save contact info');
+      throw new Error(personalResponse.error || 'Failed to save contact info');
     }
 
     // Save quiet hours preferences (only if enabled)
     if (quietHoursEnabled) {
-      const prefsResponse = await fetch('/api/user/preferences', {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-          timezone: state.contactInfo.timezone || getUserTimezone(),
-          quietHoursStart,
-          quietHoursEnd,
-        }),
+      const prefsResponse = await apiPost('/api/user/preferences', {
+        timezone: state.contactInfo.timezone || getUserTimezone(),
+        quietHoursStart,
+        quietHoursEnd,
       });
 
       if (!prefsResponse.ok) {
@@ -1018,12 +1019,7 @@ async function handleSendVerification(): Promise<void> {
   render();
 
   try {
-    const headers = await getApiHeadersAsync({ 'Content-Type': 'application/json' });
-    const response = await fetch('/api/outreach/verify-phone', {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({ phone }),
-    });
+    const response = await apiPost('/api/outreach/verify-phone', { phone });
 
     if (!response.ok) {
       throw new Error('Failed to send verification');
@@ -1041,14 +1037,9 @@ async function handleSendVerification(): Promise<void> {
 
 async function handleVerifyCode(code: string): Promise<void> {
   try {
-    const headers = await getApiHeadersAsync({ 'Content-Type': 'application/json' });
-    const response = await fetch('/api/outreach/verify-phone/confirm', {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({
-        phone: state.pendingPhone,
-        code,
-      }),
+    const response = await apiPost('/api/outreach/verify-phone/confirm', {
+      phone: state.pendingPhone,
+      code,
     });
 
     if (response.ok) {

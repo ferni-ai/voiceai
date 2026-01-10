@@ -20,6 +20,7 @@ import { createLogger } from '../utils/logger.js';
 import { soundUI } from './sound.ui.js';
 import { getCustomAgent, type CustomAgent } from '../services/custom-agent.service.js';
 import { t } from '../i18n/index.js';
+import { apiPost } from '../utils/api.js';
 
 const log = createLogger('VoiceCloneRecorder');
 
@@ -1163,27 +1164,23 @@ async function uploadSampleToBackend(
       new Uint8Array(arrayBuffer).reduce((data, byte) => data + String.fromCharCode(byte), '')
     );
 
-    const response = await fetch(`/api/custom-agents/${agentId}/voice/upload`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
+    const response = await apiPost<{ uploadId: string; quality: string }>(
+      `/api/custom-agents/${agentId}/voice/upload`,
+      {
         audio: base64,
         mimeType: sample.audioBlob.type || 'audio/webm',
         filename: `voice-sample-${sample.id}.webm`,
-      }),
-    });
+      }
+    );
 
-    if (!response.ok) {
-      log.error('Upload failed:', await response.text());
+    if (!response.ok || !response.data) {
+      log.error('Upload failed:', response.error);
       return null;
     }
 
-    const result = await response.json();
     return {
-      uploadId: result.uploadId,
-      quality: result.quality,
+      uploadId: response.data.uploadId,
+      quality: response.data.quality,
     };
   } catch (err) {
     log.error('Failed to upload sample:', err);
@@ -1200,26 +1197,19 @@ async function createVoiceClone(
   userName: string
 ): Promise<{ voiceId: string; isSimulated: boolean } | null> {
   try {
-    const response = await fetch(`/api/custom-agents/${agentId}/voice/clone`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        uploadId,
-        userName,
-      }),
-    });
+    const response = await apiPost<{ voiceId: string; isSimulated?: boolean }>(
+      `/api/custom-agents/${agentId}/voice/clone`,
+      { uploadId, userName }
+    );
 
-    if (!response.ok) {
-      log.error('Clone failed:', await response.text());
+    if (!response.ok || !response.data) {
+      log.error('Clone failed:', response.error);
       return null;
     }
 
-    const result = await response.json();
     return {
-      voiceId: result.voiceId,
-      isSimulated: result.isSimulated || false,
+      voiceId: response.data.voiceId,
+      isSimulated: response.data.isSimulated || false,
     };
   } catch (err) {
     log.error('Failed to create voice clone:', err);

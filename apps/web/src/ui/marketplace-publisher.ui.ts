@@ -27,6 +27,7 @@ import { DURATION, EASING, STAGGER } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { toast } from './whisper.ui.js';
+import { getApiHeadersAsync } from '../utils/api-helpers.js';
 
 // Use TIGHT for fast staggered animations
 const STAGGER_FAST = STAGGER.TIGHT;
@@ -251,7 +252,9 @@ async function loadPublisherData(): Promise<void> {
   if (!publisherSession) return;
 
   try {
+    const authHeaders = await getApiHeadersAsync();
     const headers = {
+      ...authHeaders,
       'x-publisher-id': publisherSession.id,
       'x-publisher-name': publisherSession.name,
     };
@@ -739,10 +742,11 @@ async function handleSubmission(form: HTMLFormElement): Promise<void> {
         };
 
   try {
+    const authHeaders = await getApiHeadersAsync({ 'Content-Type': 'application/json' });
     const response = await fetch('/api/marketplace/publisher/submit', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
+        ...authHeaders,
         'x-publisher-id': publisherSession.id,
         'x-publisher-name': publisherSession.name,
       },

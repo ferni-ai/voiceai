@@ -178,6 +178,7 @@ import { handleDesignTokensRoutes } from '../../api/design-tokens-routes.js';
 import { handleInsightsRoutes } from '../../api/insights-routes.js';
 import { handleMemoryRoutes } from '../../api/memory-routes.js';
 import { handleActionRoutes } from '../../api/action-routes.js';
+import { handleWorkerRoutes } from '../../api/worker-routes.js';
 import { handleSemanticIntelligenceRoutes } from './routes/semantic-intelligence.js';
 import {
   handleTwilioRoutes,
@@ -854,6 +855,12 @@ const server = http.createServer(async (req, res) => {
     // Monitoring routes
     if (pathname.startsWith('/api/monitoring')) {
       const handled = await handleMonitoringRoutes(req, res, pathname, parsedUrl);
+      if (handled) return;
+    }
+
+    // Worker routes (background worker stats and health)
+    if (pathname.startsWith('/api/workers')) {
+      const handled = await handleWorkerRoutes(req, res, pathname);
       if (handled) return;
     }
 

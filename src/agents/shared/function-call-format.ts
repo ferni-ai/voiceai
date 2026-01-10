@@ -201,6 +201,15 @@ export const REGISTERED_TOOLS = [
   'draftMessage',
 
   // ============================================================================
+  // OUTREACH (telephony-executor handles these - not in auto-discovered domains)
+  // ============================================================================
+  'reachOut', // Unified outreach - single person
+  'multiOutreach', // Multi-person outreach - multiple people with mixed channels
+  'callOnBehalf',
+  'callAndConverse',
+  'makePhoneCall',
+
+  // ============================================================================
   // MARKET (not in domains)
   // ============================================================================
   'getMarketSummary',

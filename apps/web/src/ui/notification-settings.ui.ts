@@ -17,6 +17,7 @@ import {
 } from '../services/push-notifications.service.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
+import { apiGet, apiPost, apiDelete } from '../utils/api.js';
 
 const log = createLogger('NotifySettings');
 const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
@@ -152,10 +153,9 @@ class NotificationSettingsUI {
     this.isLoadingUpcoming = true;
 
     try {
-      const response = await fetch('/api/outreach/upcoming');
-      if (response.ok) {
-        const data = await response.json();
-        this.upcomingItems = (data.upcoming || []).map((item: Record<string, unknown>) => ({
+      const response = await apiGet<{ upcoming?: Array<Record<string, unknown>> }>('/api/outreach/upcoming');
+      if (response.ok && response.data) {
+        this.upcomingItems = (response.data.upcoming || []).map((item: Record<string, unknown>) => ({
           ...item,
           scheduledFor: new Date(item.scheduledFor as string),
         }));
@@ -804,10 +804,9 @@ class NotificationSettingsUI {
     if (!choice) return;
 
     try {
-      const response = await fetch('/api/outreach/reschedule', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ triggerId: outreachId, newTime: choice }),
+      const response = await apiPost<{ success?: boolean }>('/api/outreach/reschedule', {
+        triggerId: outreachId,
+        newTime: choice,
       });
 
       if (response.ok) {
@@ -882,9 +881,7 @@ class NotificationSettingsUI {
     }
 
     try {
-      const response = await fetch(`/api/outreach/pending/${outreachId}`, {
-        method: 'DELETE',
-      });
+      const response = await apiDelete<{ success?: boolean }>(`/api/outreach/pending/${outreachId}`);
 
       if (response.ok) {
         log.info({ outreachId }, 'Cancelled outreach');

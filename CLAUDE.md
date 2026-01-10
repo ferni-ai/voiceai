@@ -1011,9 +1011,9 @@ pnpm dev
 "Transfer me to Maya"             # → should handoff
 ```
 
-### Tool Selection Architecture (How 697 Tools Become Voice-Callable)
+### Tool Selection Architecture (How Tools Become Voice-Callable)
 
-Ferni has **~697 tools across 95 domains**. The system uses semantic selection to pick the right tools per conversation turn.
+Ferni has **tools across 118 domains**. The system uses semantic selection to pick the right tools per conversation turn.
 
 #### Config: `data/model-config.json`
 
@@ -1029,7 +1029,7 @@ Ferni has **~697 tools across 95 domains**. The system uses semantic selection t
 
 | Setting                               | Value         | Effect                                                             |
 | ------------------------------------- | ------------- | ------------------------------------------------------------------ |
-| `enabledDomains: []`                  | Empty array   | **All 95 domains available** - semantic router picks relevant ones |
+| `enabledDomains: []`                  | Empty array   | **All 118 domains available** - semantic router picks relevant ones |
 | `enabledDomains: ["grief", "career"]` | Specific list | Only those domains available                                       |
 | `maxTools: 60`                        | Number        | Cap on tools sent to LLM (prevents context bloat)                  |
 | `includedTools`                       | Array         | Always included regardless of semantic match                       |
@@ -1128,7 +1128,7 @@ Level 100 (Application):
 Level 70 (Domain - peers can import each other):
   personas/         → Persona bundles + cognitive profiles
   intelligence/     → Context builders (emotion, memory, topics)
-  tools/            → 35+ LLM tools organized by domain
+  tools/            → 118 tool domains (semantic selection)
   conversation/     → Conversation state, quality tracking
   speech/           → Audio prosody, emotion detection, SSML
 
@@ -1316,7 +1316,7 @@ git commit --no-verify -m "EMERGENCY: ..."
 - `src/servers/CLAUDE.md` - Token server, OAuth, API routes
 
 **Domain Modules:**
-- `src/tools/CLAUDE.md` - How to create tools (109 domains)
+- `src/tools/CLAUDE.md` - How to create tools (118 domains)
 - `src/tools/habit-coaching/CLAUDE.md` - Habit coaching module
 - `src/personas/CLAUDE.md` - How to create personas (6 AI team members)
 - `src/intelligence/CLAUDE.md` - Context builder patterns
@@ -1340,10 +1340,10 @@ git commit --no-verify -m "EMERGENCY: ..."
 
 | Category | Count |
 |----------|-------|
-| CLAUDE.md files | 38 |
-| Architecture docs | 80 |
-| Audit docs | 73 |
-| Plan docs | 44 |
-| Tool domains | 109 |
+| CLAUDE.md files | 80 |
+| Architecture docs | 94 |
+| Audit docs | 79 |
+| Plan docs | 51 |
+| Tool domains | 118 |
 | AI personas | 6 |
-| Superhuman services | 19 |
+| Superhuman services | 45 |

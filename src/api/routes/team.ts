@@ -284,6 +284,9 @@ async function getUserEngagementInsights(userId: string): Promise<UserEngagement
     const createdAt = profile.createdAt ? new Date(profile.createdAt) : new Date();
     const daysSinceFirst = Math.floor((Date.now() - createdAt.getTime()) / (1000 * 60 * 60 * 24));
 
+    // Calculate most active day from session/weather history
+    const mostActiveDay = await calculateMostActiveDay(userId, weatherHistory);
+
     return {
       streaks: processedStreaks,
       activeStreakCount: streaks.filter((s) => s.currentStreak > 0).length,
@@ -295,12 +298,108 @@ async function getUserEngagementInsights(userId: string): Promise<UserEngagement
       totalConversations: profile.stats?.totalSkyChecks || 0,
       daysSinceFirstConversation: daysSinceFirst,
       conversationsThisWeek: weatherHistory.length,
-      mostActiveDay: null, // TODO: Calculate from session data
+      mostActiveDay,
       preferredTime: profile.preferences?.preferredTime || null,
     };
   } catch (err) {
     log.warn({ error: err, userId }, 'Failed to fetch engagement insights, using defaults');
     return defaultInsights;
+  }
+}
+
+// Team analytics cache (1 hour TTL)
+const teamAnalyticsCache = new Map<string, { data: string | null; timestamp: number }>();
+const TEAM_ANALYTICS_CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
+
+/**
+ * Calculate the most active day of the week from session data
+ * @returns Day name (e.g., "Monday", "Tuesday") or null if insufficient data
+ */
+async function calculateMostActiveDay(
+  userId: string,
+  weatherHistory: Array<{ date?: string; weather: { primary: string; energy: string } }>
+): Promise<string | null> {
+  // Check cache first
+  const cacheKey = `mostActiveDay:${userId}`;
+  const cached = teamAnalyticsCache.get(cacheKey);
+  if (cached && (Date.now() - cached.timestamp) < TEAM_ANALYTICS_CACHE_TTL_MS) {
+    return cached.data;
+  }
+  try {
+    // Count sessions by day of week
+    const dayCount: Record<string, number> = {
+      Sunday: 0,
+      Monday: 0,
+      Tuesday: 0,
+      Wednesday: 0,
+      Thursday: 0,
+      Friday: 0,
+      Saturday: 0,
+    };
+
+    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+    // Count from weather history (recent data)
+    for (const entry of weatherHistory) {
+      if (entry.date) {
+        const date = new Date(entry.date);
+        const dayName = dayNames[date.getDay()];
+        dayCount[dayName]++;
+      }
+    }
+
+    // Try to get more session data from Firestore for better accuracy
+    try {
+      const { getConversationHistoryService } = await import(
+        '../../services/stores/conversation-history.js'
+      );
+      const historyService = getConversationHistoryService();
+      const history = await historyService.getHistory(userId, 30);
+
+      if (history?.sessions) {
+        for (const session of history.sessions) {
+          if (session.date) {
+            const date = new Date(session.date);
+            const dayName = dayNames[date.getDay()];
+            dayCount[dayName]++;
+          }
+        }
+      }
+    } catch {
+      // Silently continue with weather data only
+    }
+
+    // Find the most active day
+    let maxCount = 0;
+    let mostActiveDay: string | null = null;
+
+    for (const [day, count] of Object.entries(dayCount)) {
+      if (count > maxCount) {
+        maxCount = count;
+        mostActiveDay = day;
+      }
+    }
+
+    // Only return if we have meaningful data (at least 3 sessions on that day)
+    const result = maxCount >= 3 ? mostActiveDay : null;
+
+    // Cache the result
+    teamAnalyticsCache.set(cacheKey, { data: result, timestamp: Date.now() });
+
+    // Cleanup old cache entries periodically
+    if (teamAnalyticsCache.size > 500) {
+      const now = Date.now();
+      for (const [key, value] of teamAnalyticsCache.entries()) {
+        if (now - value.timestamp > TEAM_ANALYTICS_CACHE_TTL_MS) {
+          teamAnalyticsCache.delete(key);
+        }
+      }
+    }
+
+    return result;
+  } catch (err) {
+    log.debug({ error: err, userId }, 'Could not calculate most active day');
+    return null;
   }
 }
 

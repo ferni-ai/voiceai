@@ -17,6 +17,7 @@ import { execSync } from 'child_process';
 import { createLogger } from '../../utils/safe-logger.js';
 import { SlackNotificationService } from '../slack-notifications.js';
 import { getCallQualityMonitor } from '../analytics/call-quality-monitor.js';
+import { registerInterval, clearNamedInterval } from '../../utils/interval-manager.js';
 
 const log = createLogger({ module: 'AutoRollback' });
 
@@ -64,13 +65,14 @@ const DEFAULT_CONFIG: RollbackConfig = {
 // STATE
 // ============================================================================
 
+const AUTO_ROLLBACK_INTERVAL = 'auto-rollback-check';
+
 interface RollbackState {
   isMonitoring: boolean;
   monitoringStartedAt: number | null;
   lastRollbackAt: number | null;
   rollbacksThisHour: number;
   rollbackHistory: RollbackEvent[];
-  checkTimer: ReturnType<typeof setInterval> | null;
 }
 
 interface RollbackEvent {
@@ -96,7 +98,6 @@ const state: RollbackState = {
   lastRollbackAt: null,
   rollbacksThisHour: 0,
   rollbackHistory: [],
-  checkTimer: null,
 };
 
 let config = { ...DEFAULT_CONFIG };
@@ -135,10 +136,14 @@ export function startPostDeployMonitoring(deployConfig: Partial<RollbackConfig>)
     slackService = new SlackNotificationService();
   }
 
-  // Start periodic checks
-  state.checkTimer = setInterval(() => {
-    void checkQualityAndMaybeRollback();
-  }, config.checkIntervalMs);
+  // Start periodic checks using managed interval
+  registerInterval(
+    AUTO_ROLLBACK_INTERVAL,
+    () => {
+      void checkQualityAndMaybeRollback();
+    },
+    config.checkIntervalMs
+  );
 
   // Also do an immediate check after a short delay
   setTimeout(() => {
@@ -165,10 +170,7 @@ export function startPostDeployMonitoring(deployConfig: Partial<RollbackConfig>)
  * Stop monitoring
  */
 export function stopMonitoring(): void {
-  if (state.checkTimer) {
-    clearInterval(state.checkTimer);
-    state.checkTimer = null;
-  }
+  clearNamedInterval(AUTO_ROLLBACK_INTERVAL);
   state.isMonitoring = false;
   state.monitoringStartedAt = null;
   log.info('Post-deploy monitoring stopped');

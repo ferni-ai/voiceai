@@ -10,6 +10,7 @@ import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { toast } from './whisper.ui.js';
+import { apiGet } from '../utils/api.js';
 
 const log = createLogger('GamePicker');
 
@@ -282,6 +283,8 @@ class GamePickerUI {
   private container: HTMLElement | null = null;
   private isVisible = false;
   private styleElement: HTMLStyleElement | null = null;
+  /** Stored escape key handler for cleanup - prevents memory leak */
+  private escapeHandler: ((e: KeyboardEvent) => void) | null = null;
 
   constructor() {
     this.injectStyles();
@@ -311,15 +314,21 @@ class GamePickerUI {
    */
   hide(): void {
     if (!this.isVisible || !this.container) return;
-    
+
+    // Remove escape key listener to prevent memory leak
+    if (this.escapeHandler) {
+      document.removeEventListener('keydown', this.escapeHandler);
+      this.escapeHandler = null;
+    }
+
     this.container.classList.remove('game-picker--visible');
-    
+
     trackedTimeout(() => {
       this.container?.remove();
       this.container = null;
       this.isVisible = false;
     }, DURATION.SLOW);
-    
+
     log.info('🎮 Game picker closed');
   }
 
@@ -499,15 +508,14 @@ class GamePickerUI {
     modal.querySelector('.game-picker__help-btn')?.addEventListener('click', () => {
       this.showHelpModal();
     });
-    
-    // Escape key
-    const handleEscape = (e: KeyboardEvent) => {
+
+    // Escape key - store reference for cleanup in hide()
+    this.escapeHandler = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        this.hide();
-        document.removeEventListener('keydown', handleEscape);
+        this.hide(); // hide() now handles removing the listener
       }
     };
-    document.addEventListener('keydown', handleEscape);
+    document.addEventListener('keydown', this.escapeHandler);
   }
   
   /**
@@ -688,16 +696,15 @@ class GamePickerUI {
         return { available: false, reason: 'Sign in to unlock library games' };
       }
 
-      const response = await fetch(`/api/games/library/availability?userId=${userId}`);
-      const data = await response.json();
-      
-      if (data.success && data.available) {
+      const response = await apiGet<{ success?: boolean; available?: boolean; reason?: string }>(`/api/games/library/availability?userId=${userId}`);
+
+      if (response.ok && response.data?.success && response.data?.available) {
         return { available: true };
       }
-      
-      return { 
-        available: false, 
-        reason: data.reason || 'Connect Spotify to play from your library' 
+
+      return {
+        available: false,
+        reason: response.data?.reason || 'Connect Spotify to play from your library'
       };
     } catch (error) {
       log.warn({ error }, '🎮 Failed to check library availability');

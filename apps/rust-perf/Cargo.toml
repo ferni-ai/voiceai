@@ -6,7 +6,8 @@ description = "SIMD-optimized performance-critical operations for Ferni"
 license = "MIT"
 
 [lib]
-crate-type = ["cdylib"]
+# cdylib for Node.js NAPI bindings, rlib for Rust tests
+crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 # NAPI-RS for Node.js bindings

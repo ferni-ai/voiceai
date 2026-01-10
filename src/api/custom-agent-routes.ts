@@ -8,6 +8,7 @@
  */
 
 import { Router, type Request, type Response } from 'express';
+import { Storage } from '@google-cloud/storage';
 import { getLogger } from '../utils/safe-logger.js';
 
 // Multer types for file uploads
@@ -54,6 +55,7 @@ import {
 import {
   processVoiceUpload,
   createVoiceClone,
+  generateVoicePreview,
 } from '../services/custom-agent/voice-clone.service.js';
 import type {
   CreateCustomAgentRequest,
@@ -62,6 +64,96 @@ import type {
 } from '../types/custom-agent-api.js';
 
 const log = getLogger().child({ module: 'CustomAgentRoutes' });
+
+// ============================================================================
+// GCS CONFIGURATION
+// ============================================================================
+
+const GCS_BUCKET_NAME = process.env.CUSTOM_AGENT_BUCKET || 'voiceai-custom-agents';
+const GCS_SIGNED_URL_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+
+let storageInstance: Storage | null = null;
+
+/**
+ * Get or create GCS Storage instance
+ */
+function getStorage(): Storage {
+  if (!storageInstance) {
+    storageInstance = new Storage();
+  }
+  return storageInstance;
+}
+
+/**
+ * Upload audio buffer to GCS
+ * @returns Signed URL for accessing the uploaded file
+ */
+async function uploadVoiceSampleToGCS(
+  userId: string,
+  agentId: string,
+  buffer: Buffer,
+  mimeType: string
+): Promise<{ gcsUri: string; signedUrl: string }> {
+  const storage = getStorage();
+  const bucket = storage.bucket(GCS_BUCKET_NAME);
+
+  // Generate unique filename
+  const timestamp = Date.now();
+  const extension = mimeType.includes('webm') ? 'webm' : mimeType.includes('wav') ? 'wav' : 'audio';
+  const filename = `${userId}/${agentId}/voice-sample-${timestamp}.${extension}`;
+
+  const file = bucket.file(filename);
+
+  // Upload the buffer
+  await file.save(buffer, {
+    metadata: {
+      contentType: mimeType,
+      metadata: {
+        userId,
+        agentId,
+        uploadedAt: new Date().toISOString(),
+      },
+    },
+  });
+
+  // Generate signed URL for read access
+  const [signedUrl] = await file.getSignedUrl({
+    action: 'read',
+    expires: Date.now() + GCS_SIGNED_URL_EXPIRY_MS,
+  });
+
+  const gcsUri = `gs://${GCS_BUCKET_NAME}/${filename}`;
+
+  log.info({ userId, agentId, gcsUri }, 'Voice sample uploaded to GCS');
+
+  return { gcsUri, signedUrl };
+}
+
+/**
+ * Delete voice sample from GCS
+ */
+async function deleteVoiceSampleFromGCS(gcsUri: string): Promise<boolean> {
+  try {
+    // Extract filename from gs:// URI
+    const match = gcsUri.match(/^gs:\/\/([^/]+)\/(.+)$/);
+    if (!match) {
+      log.warn({ gcsUri }, 'Invalid GCS URI format');
+      return false;
+    }
+
+    const [, bucketName, filename] = match;
+    const storage = getStorage();
+    const bucket = storage.bucket(bucketName);
+    const file = bucket.file(filename);
+
+    await file.delete();
+    log.info({ gcsUri }, 'Voice sample deleted from GCS');
+    return true;
+  } catch (error) {
+    log.error({ error, gcsUri }, 'Failed to delete voice sample from GCS');
+    return false;
+  }
+}
 
 // ============================================================================
 // ROUTER SETUP
@@ -297,27 +389,44 @@ router.post(
         return res.status(404).json({ error: 'Agent not found' });
       }
 
-      // TODO: Upload to GCS and get URL
-      // For now, return a placeholder
-      const audioUrl = `gs://voiceai-custom-agents/${userId}/${agentId}/voice-sample-${Date.now()}.webm`;
+      // Upload to GCS
+      const { gcsUri, signedUrl } = await uploadVoiceSampleToGCS(
+        userId,
+        agentId,
+        multerReq.file.buffer,
+        multerReq.file.mimetype
+      );
 
-      // Analyze audio quality (basic check)
-      const durationMs = (multerReq.file.size / (16000 * 2)) * 1000; // Rough estimate
-      const qualityScore = durationMs >= 10000 ? 0.8 : 0.5;
-      const feedback =
-        durationMs >= 10000
-          ? 'Good audio quality'
-          : 'Recording is short. Try 10-30 seconds for best results.';
+      // Analyze audio quality (basic check based on file size)
+      // Assuming 16kHz mono 16-bit PCM: ~32KB per second
+      const estimatedDurationSec = multerReq.file.size / 32000;
+      const qualityScore = estimatedDurationSec >= 10 ? 0.8 : estimatedDurationSec >= 5 ? 0.6 : 0.4;
+
+      let feedback: string;
+      if (estimatedDurationSec >= 10) {
+        feedback = 'Great recording! This should produce excellent voice cloning results.';
+      } else if (estimatedDurationSec >= 5) {
+        feedback = 'Good recording. For best results, try 10-30 seconds of clear speech.';
+      } else {
+        feedback = 'Recording is short. We recommend 10-30 seconds for best voice cloning quality.';
+      }
 
       // Update agent with pending voice status
       await updateAgentVoice(userId, agentId, {
         type: 'cloned',
-        audioSampleUrl: audioUrl,
+        audioSampleUrl: gcsUri,
         status: 'pending',
       });
 
-      log.info({ userId, agentId, audioUrl }, 'Voice sample uploaded');
-      return res.json({ audioUrl, qualityScore, feedback });
+      log.info({ userId, agentId, gcsUri, estimatedDurationSec }, 'Voice sample uploaded to GCS');
+
+      return res.json({
+        audioUrl: signedUrl, // Return signed URL for playback
+        gcsUri, // Return GCS URI for internal use
+        qualityScore,
+        feedback,
+        estimatedDurationSec: Math.round(estimatedDurationSec),
+      });
     } catch (error) {
       log.error({ error, userId, agentId }, 'Failed to upload voice sample');
       return res.status(500).json({
@@ -434,9 +543,13 @@ router.post('/:agentId/voice/clone', async (req: Request, res: Response) => {
   }
 });
 
+// Voice preview cache (5 min TTL)
+const voicePreviewCache = new Map<string, { data: unknown; timestamp: number }>();
+const VOICE_PREVIEW_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
 /**
  * POST /api/custom-agents/:agentId/voice/preview
- * Generate a voice preview
+ * Generate a voice preview using Cartesia TTS
  */
 router.post('/:agentId/voice/preview', async (req: Request, res: Response) => {
   const { userId } = req as Request & { userId: string };
@@ -448,18 +561,80 @@ router.post('/:agentId/voice/preview', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Text is required' });
     }
 
+    if (text.length > 500) {
+      return res.status(400).json({ error: 'Text must be 500 characters or less for preview' });
+    }
+
     const agent = await getCustomAgent(userId, agentId);
     if (!agent) {
       return res.status(404).json({ error: 'Agent not found' });
     }
 
-    // TODO: Call Cartesia TTS API
-    // For now, return a placeholder
-    const previewUrl = `/api/custom-agents/${agentId}/voice/preview.mp3?text=${encodeURIComponent(text)}`;
+    // Get voice ID from agent config
+    const voiceId = agent.voice?.voiceId;
+    if (!voiceId) {
+      return res.status(400).json({
+        error: 'Agent has no voice configured',
+        hint: 'Upload a voice sample or select a pre-made voice first',
+      });
+    }
 
-    return res.json({ previewUrl });
+    // Check voice status
+    if (agent.voice?.status !== 'ready') {
+      return res.status(400).json({
+        error: 'Voice is not ready',
+        status: agent.voice?.status,
+        hint: agent.voice?.status === 'pending' ? 'Voice clone is still processing' : 'Voice configuration incomplete',
+      });
+    }
+
+    // Check cache first (keyed by voiceId + text hash)
+    const cacheKey = `${voiceId}:${Buffer.from(text).toString('base64').slice(0, 32)}`;
+    const cached = voicePreviewCache.get(cacheKey);
+    if (cached && (Date.now() - cached.timestamp) < VOICE_PREVIEW_CACHE_TTL_MS) {
+      log.debug({ userId, agentId, voiceId, cached: true }, 'Voice preview served from cache');
+      return res.json(cached.data);
+    }
+
+    // Generate preview using Cartesia TTS
+    const preview = await generateVoicePreview(voiceId, text);
+
+    const responseData = {
+      previewUrl: preview.audioUrl,
+      durationSeconds: preview.durationSeconds,
+      // Include base64 audio data for direct playback
+      audioBase64: preview.audioBase64,
+      voiceId,
+    };
+
+    // Cache the result
+    voicePreviewCache.set(cacheKey, { data: responseData, timestamp: Date.now() });
+
+    // Cleanup old cache entries periodically
+    if (voicePreviewCache.size > 100) {
+      const now = Date.now();
+      for (const [key, value] of voicePreviewCache.entries()) {
+        if (now - value.timestamp > VOICE_PREVIEW_CACHE_TTL_MS) {
+          voicePreviewCache.delete(key);
+        }
+      }
+    }
+
+    log.info({ userId, agentId, voiceId, durationSeconds: preview.durationSeconds }, 'Voice preview generated');
+
+    return res.json(responseData);
   } catch (error) {
     log.error({ error, userId, agentId }, 'Failed to generate voice preview');
+
+    // Handle rate limiting
+    if ((error as Error).message?.includes('Rate limited')) {
+      return res.status(429).json({
+        error: 'Rate limited',
+        message: 'Too many preview requests. Please wait a moment before trying again.',
+        retryAfter: 5,
+      });
+    }
+
     return res.status(500).json({
       error: 'Failed to generate preview',
       message: (error as Error).message,

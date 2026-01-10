@@ -46,6 +46,7 @@ import { handleSkyCheckRoutes } from './routes/sky-check.js';
 import { handleTeamRoutes } from './routes/team.js';
 import { handleTeamInsightsRoutes } from './routes/team-insights.js';
 import { handleLifeContextRoutes } from './life-context-routes.js';
+import { handleQuizRoutes } from './routes/quiz.js';
 import { handleVideoSessionRoutes } from './routes/video-sessions.js';
 import { handleWearableRoutes } from './routes/wearable.js';
 
@@ -57,12 +58,16 @@ const ENGAGEMENT_ROUTE_PREFIXES = [
   '/api/predictions',
   '/api/rituals',
   '/api/cognitive',
+  '/api/memories', // Memory Lane - on this day
   '/api/huddles',
   '/api/export',
   '/api/relationship',
   '/api/games',
   '/api/sky-check',
   '/api/growth',
+  '/api/insights', // Pattern insights
+  '/api/journal', // Growth journal
+  '/api/quiz', // Knowledge quiz
   '/api/video',
   '/api/wearable',
   '/api/group',
@@ -215,6 +220,11 @@ export async function handleEngagementRoutes(
 
   // Life Context (Phase 6 Cross-Domain Synthesis)
   if (await handleLifeContextRoutes(req, res, pathname)) {
+    return true;
+  }
+
+  // Knowledge Quiz ("How Well Do You Know Me?")
+  if (await handleQuizRoutes(req, res, pathname, parsedUrl)) {
     return true;
   }
 

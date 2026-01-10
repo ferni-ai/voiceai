@@ -21,6 +21,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { registerInterval, clearNamedInterval, hasInterval } from '../../utils/interval-manager.js';
 import { CircuitBreaker, CircuitBreakerOptions, CircuitState } from './circuit-breaker.js';
 import type { RedisCache } from '../../memory/redis-cache.js';
 
@@ -58,8 +59,11 @@ export class RedisCircuitBreaker extends CircuitBreaker {
   private redisKeyPrefix: string;
   private instanceId: string;
   private syncIntervalMs: number;
-  private syncInterval: NodeJS.Timeout | null = null;
   private lastSyncTime = 0;
+
+  private getIntervalName(): string {
+    return `redis-circuit-breaker-sync-${this.name}`;
+  }
 
   constructor(name: string, options: RedisCircuitBreakerOptions = {}) {
     // Create original callback
@@ -185,15 +189,19 @@ export class RedisCircuitBreaker extends CircuitBreaker {
    * Start periodic sync to catch state changes from other instances
    */
   private startPeriodicSync(): void {
-    if (this.syncInterval) return;
+    if (hasInterval(this.getIntervalName())) return;
 
-    this.syncInterval = setInterval(async () => {
-      try {
-        await this.loadStateFromRedis();
-      } catch (error) {
-        log.debug({ error: String(error), circuit: this.name }, 'Periodic sync failed');
-      }
-    }, this.syncIntervalMs);
+    registerInterval(
+      this.getIntervalName(),
+      async () => {
+        try {
+          await this.loadStateFromRedis();
+        } catch (error) {
+          log.debug({ error: String(error), circuit: this.name }, 'Periodic sync failed');
+        }
+      },
+      this.syncIntervalMs
+    );
 
     log.debug({ circuit: this.name, intervalMs: this.syncIntervalMs }, 'Started periodic circuit sync');
   }
@@ -202,10 +210,7 @@ export class RedisCircuitBreaker extends CircuitBreaker {
    * Stop periodic sync (call on shutdown)
    */
   stopPeriodicSync(): void {
-    if (this.syncInterval) {
-      clearInterval(this.syncInterval);
-      this.syncInterval = null;
-    }
+    clearNamedInterval(this.getIntervalName());
   }
 
   /**

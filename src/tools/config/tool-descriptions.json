@@ -2952,6 +2952,30 @@
       "file": "src/tools/spotify.ts",
       "_original": "EXECUTE IMMEDIATELY to play preview in call. DO NOT announce - call and speak result."
     },
+    "playSonosMusic": {
+      "description": "CALL THIS FUNCTION to play music on Sonos speakers. When user says 'play jazz on Sonos', 'play music in the living room', 'play on my Sonos' - EXECUTE this function immediately. Searches favorites and plays matching music.",
+      "file": "src/tools/domains/entertainment/sonos-music.ts"
+    },
+    "playSonosFavorite": {
+      "description": "Play a specific Sonos favorite by name. Use when user asks for a specific favorite like 'play my jazz favorites on Sonos' or 'play Chill Vibes on Sonos'.",
+      "file": "src/tools/domains/entertainment/sonos-music.ts"
+    },
+    "pauseSonos": {
+      "description": "Pause music playback on Sonos. Use when user says 'pause Sonos', 'stop the music in living room', etc.",
+      "file": "src/tools/domains/entertainment/sonos-music.ts"
+    },
+    "resumeSonos": {
+      "description": "Resume paused music on Sonos. Use when user says 'resume Sonos', 'continue the music', etc.",
+      "file": "src/tools/domains/entertainment/sonos-music.ts"
+    },
+    "setSonosVolume": {
+      "description": "Set Sonos volume level. Use when user says 'turn up the Sonos', 'set volume to 50%', 'make it louder in living room'.",
+      "file": "src/tools/domains/entertainment/sonos-music.ts"
+    },
+    "whatsSonosPlaying": {
+      "description": "Check what's currently playing on Sonos. Use when user asks 'what's playing on Sonos?', 'what song is this?', etc.",
+      "file": "src/tools/domains/entertainment/sonos-music.ts"
+    },
     "playWithPossibility": {
       "description": "Create space for imaginative play with possibilities unconstrained by practicality.",
       "file": "src/tools/domains/dreams/index.ts"
@@ -4008,7 +4032,7 @@
       "file": "src/tools/team-integration.ts"
     },
     "startTextGame": {
-      "description": "Start a text-based game like tic-tac-toe.",
+      "description": "Start a text-based game. Available games: tic-tac-toe (classic 3x3 grid), 20-questions (guess what I'm thinking), word-association (word chain game), would-you-rather (dilemma choices), story-builder (collaborative storytelling), three-word-day (describe your day in 3 words), headline-writer (write future headlines), emoji-story (tell a story with emojis), values-card-sort (discover your values), one-word-checkin (how are you feeling?), tiny-win-tracker (celebrate small wins), fortune-cookie (wisdom and reflection).",
       "file": "src/tools/domains/games/index.ts"
     },
     "stopCallMusic": {

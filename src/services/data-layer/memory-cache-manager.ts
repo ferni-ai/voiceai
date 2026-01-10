@@ -16,6 +16,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { registerInterval, clearNamedInterval, hasInterval } from '../../utils/interval-manager.js';
 import type { RedisCache } from '../../memory/redis-cache.js';
 
 const log = createLogger({ module: 'MemoryCacheManager' });
@@ -568,7 +569,7 @@ interface RegisteredCache {
 }
 
 const registeredCaches = new Map<string, RegisteredCache>();
-let cleanupInterval: NodeJS.Timeout | null = null;
+const CACHE_CLEANUP_INTERVAL = 'memory-cache-cleanup';
 
 /**
  * Register a cache for management
@@ -625,24 +626,28 @@ export function unregisterCache(name: string): void {
  * Start periodic cleanup of all registered caches
  */
 export function startCacheCleanup(intervalMs = 60_000): void {
-  if (cleanupInterval) return;
+  if (hasInterval(CACHE_CLEANUP_INTERVAL)) return;
 
-  cleanupInterval = setInterval(() => {
-    let totalCleaned = 0;
+  registerInterval(
+    CACHE_CLEANUP_INTERVAL,
+    () => {
+      let totalCleaned = 0;
 
-    for (const [name, registered] of registeredCaches) {
-      try {
-        const cleaned = registered.cache.cleanup();
-        totalCleaned += cleaned;
-      } catch (error) {
-        log.warn({ name, error: String(error) }, 'Cache cleanup error');
+      for (const [name, registered] of registeredCaches) {
+        try {
+          const cleaned = registered.cache.cleanup();
+          totalCleaned += cleaned;
+        } catch (error) {
+          log.warn({ name, error: String(error) }, 'Cache cleanup error');
+        }
       }
-    }
 
-    if (totalCleaned > 0) {
-      log.debug({ totalCleaned, cacheCount: registeredCaches.size }, 'Periodic cache cleanup');
-    }
-  }, intervalMs);
+      if (totalCleaned > 0) {
+        log.debug({ totalCleaned, cacheCount: registeredCaches.size }, 'Periodic cache cleanup');
+      }
+    },
+    intervalMs
+  );
 
   log.info({ intervalMs, cacheCount: registeredCaches.size }, 'Cache cleanup started');
 }
@@ -651,11 +656,8 @@ export function startCacheCleanup(intervalMs = 60_000): void {
  * Stop periodic cleanup
  */
 export function stopCacheCleanup(): void {
-  if (cleanupInterval) {
-    clearInterval(cleanupInterval);
-    cleanupInterval = null;
-    log.info('Cache cleanup stopped');
-  }
+  clearNamedInterval(CACHE_CLEANUP_INTERVAL);
+  log.info('Cache cleanup stopped');
 }
 
 /**

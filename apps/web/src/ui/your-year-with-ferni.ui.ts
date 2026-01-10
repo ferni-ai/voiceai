@@ -21,6 +21,7 @@
 
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { t } from '../i18n/index.js';
+import { apiGet } from '../utils/api.js';
 import { createLogger } from '../utils/logger.js';
 
 const log = createLogger('YourYearWithFerni');
@@ -159,9 +160,9 @@ export class YourYearWithFerni {
 
   private async loadYearData(userId: string): Promise<YearData> {
     try {
-      const response = await fetch(`/api/year-in-review/${userId}`);
-      if (response.ok) {
-        return await response.json();
+      const response = await apiGet<YearData>(`/api/year-in-review/${userId}`);
+      if (response.ok && response.data) {
+        return response.data;
       }
     } catch (error) {
       log.warn({ error }, 'Failed to load year data, using placeholder');

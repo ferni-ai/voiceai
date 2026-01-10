@@ -66,6 +66,18 @@ export async function handleInsightsRoutes(
   pathname: string,
   _parsedUrl?: URL
 ): Promise<boolean> {
+  // Reserved paths for predictive insights - don't handle here
+  // These are handled by handlePredictiveInsightsRequest in the server
+  const predictiveInsightsPaths = [
+    '/api/insights/predictions',
+    '/api/insights/dismiss',
+    '/api/insights/feedback',
+    '/api/insights/summary',
+  ];
+  if (predictiveInsightsPaths.includes(pathname)) {
+    return false; // Let predictive insights handler take care of these
+  }
+
   // GET /api/insights/:userId - Fetch insights for a user
   const userIdMatch = pathname.match(/^\/api\/insights\/([^/]+)$/);
   if (userIdMatch && req.method === 'GET') {

@@ -243,9 +243,8 @@ export async function createSessionServices(
   if (validatedUserId) {
     // ⚡ PERFORMANCE: Use Redis-backed profile cache for faster session start
     // Cache hit: ~5-20ms vs Firestore: ~100-500ms
-    const { getProfileWithCache, cacheProfile, invalidateProfile } = await import(
-      './data-layer/profile-cache.js'
-    );
+    const { getProfileWithCache, cacheProfile, invalidateProfile } =
+      await import('./data-layer/profile-cache.js');
 
     // BLOCKING: Load profile with cache-through pattern (Redis → Firestore)
     userProfile = await getProfileWithCache(validatedUserId, async (uid) => {

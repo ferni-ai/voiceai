@@ -8,6 +8,7 @@
  */
 
 import { createLogger } from '../utils/logger.js';
+import { apiPost } from '../utils/api.js';
 
 const log = createLogger('CrashReporter');
 
@@ -161,15 +162,10 @@ export async function reportCrash(
 
   // Try to send to backend
   try {
-    const response = await fetch('/api/crash-report', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(report),
-    });
+    const response = await apiPost<{ crashId?: string }>('/api/crash-report', report);
 
-    if (response.ok) {
-      const result = (await response.json()) as { crashId?: string };
-      log.info({ crashId: result.crashId }, 'Crash report sent successfully');
+    if (response.ok && response.data) {
+      log.info({ crashId: response.data.crashId }, 'Crash report sent successfully');
 
       // Flush any queued crashes
       await flushCrashQueue();
@@ -251,11 +247,7 @@ async function flushCrashQueue(): Promise<void> {
 
   for (const report of queue) {
     try {
-      await fetch('/api/crash-report', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...report, fromQueue: true }),
-      });
+      await apiPost('/api/crash-report', { ...report, fromQueue: true });
     } catch {
       // Re-queue if still failing
       queueCrash(report);

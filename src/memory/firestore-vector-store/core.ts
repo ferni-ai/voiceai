@@ -29,6 +29,7 @@ import { DEFAULT_COLLECTION_NAME, DEFAULT_EMBEDDING_DIMENSION } from './types.js
 import { extractEmbedding, matchesFilter } from './helpers.js';
 import { FallbackCache } from './fallback-cache.js';
 import { RecoveryManager, migrateCacheToFirestore } from './recovery.js';
+import { getVectorSearchCache, type VectorSearchCache } from './search-cache.js';
 
 const log = getLogger();
 
@@ -53,6 +54,7 @@ export class FirestoreVectorStore implements VectorStoreContract {
   private useFallback = false;
   private fallbackReason: string | null = null;
   private recoveryManager: RecoveryManager;
+  private searchCache: VectorSearchCache;
 
   constructor(config?: FirestoreVectorConfig) {
     this.config = {
@@ -71,6 +73,7 @@ export class FirestoreVectorStore implements VectorStoreContract {
       onRecoverySuccess: () => this.onRecoverySuccess(),
       isInFallbackMode: () => this.useFallback,
     });
+    this.searchCache = getVectorSearchCache();
   }
 
   /**
@@ -340,8 +343,17 @@ export class FirestoreVectorStore implements VectorStoreContract {
       return [];
     }
 
+    // Check search cache first (exact or fuzzy match)
+    const cachedResults = this.searchCache.get(query, queryEmbedding, options?.filter, { topK, minScore });
+    if (cachedResults) {
+      return cachedResults;
+    }
+
     if (this.useFallback || !this.db) {
-      return this.fallbackCache.search(queryEmbedding, topK, options?.filter, minScore);
+      const fallbackResults = this.fallbackCache.search(queryEmbedding, topK, options?.filter, minScore);
+      // Cache fallback results too
+      this.searchCache.set(query, queryEmbedding, fallbackResults, options?.filter, { topK, minScore });
+      return fallbackResults;
     }
 
     try {
@@ -402,6 +414,8 @@ export class FirestoreVectorStore implements VectorStoreContract {
         }
 
         if (candidateDocs.length === 0) {
+          // Cache empty results too (to avoid repeated queries)
+          this.searchCache.set(query, queryEmbedding, [], options?.filter, { topK, minScore });
           return [];
         }
 
@@ -409,7 +423,7 @@ export class FirestoreVectorStore implements VectorStoreContract {
         const topKResult = topKSimilar(queryEmbedding, candidateEmbeddings, topK, minScore);
 
         // Map indices back to documents
-        return topKResult.indices.map((idx, i) => ({
+        const results = topKResult.indices.map((idx, i) => ({
           document: {
             id: candidateDocs[idx].id,
             text: candidateDocs[idx].text,
@@ -418,12 +432,18 @@ export class FirestoreVectorStore implements VectorStoreContract {
           },
           score: topKResult.similarities[i],
         }));
+
+        // Cache the results
+        this.searchCache.set(query, queryEmbedding, results, options?.filter, { topK, minScore });
+        return results;
       }
     } catch (error) {
       log.warn({ error: String(error) }, 'Firestore search failed, using fallback');
     }
 
-    return this.fallbackCache.search(queryEmbedding, topK, options?.filter, minScore);
+    const fallbackResults = this.fallbackCache.search(queryEmbedding, topK, options?.filter, minScore);
+    this.searchCache.set(query, queryEmbedding, fallbackResults, options?.filter, { topK, minScore });
+    return fallbackResults;
   }
 
   /**
@@ -442,8 +462,17 @@ export class FirestoreVectorStore implements VectorStoreContract {
     const topK = options?.topK || 5;
     const minScore = options?.minScore || 0;
 
+    // Check cache (uses embedding-based fuzzy matching since no query text)
+    const cacheKey = '[embedding]'; // Placeholder - fuzzy matching uses embedding
+    const cachedResults = this.searchCache.get(cacheKey, queryEmbedding, options?.filter, { topK, minScore });
+    if (cachedResults) {
+      return cachedResults;
+    }
+
     if (this.useFallback || !this.db) {
-      return this.fallbackCache.search(queryEmbedding, topK, options?.filter, minScore);
+      const fallbackResults = this.fallbackCache.search(queryEmbedding, topK, options?.filter, minScore);
+      this.searchCache.set(cacheKey, queryEmbedding, fallbackResults, options?.filter, { topK, minScore });
+      return fallbackResults;
     }
 
     try {
@@ -486,6 +515,7 @@ export class FirestoreVectorStore implements VectorStoreContract {
         }
 
         if (candidateDocs.length === 0) {
+          this.searchCache.set(cacheKey, queryEmbedding, [], options?.filter, { topK, minScore });
           return [];
         }
 
@@ -493,7 +523,7 @@ export class FirestoreVectorStore implements VectorStoreContract {
         const topKResult = topKSimilar(queryEmbedding, candidateEmbeddings, topK, minScore);
 
         // Map indices back to documents
-        return topKResult.indices.map((idx, i) => ({
+        const results = topKResult.indices.map((idx, i) => ({
           document: {
             id: candidateDocs[idx].id,
             text: candidateDocs[idx].text,
@@ -502,12 +532,17 @@ export class FirestoreVectorStore implements VectorStoreContract {
           },
           score: topKResult.similarities[i],
         }));
+
+        this.searchCache.set(cacheKey, queryEmbedding, results, options?.filter, { topK, minScore });
+        return results;
       }
     } catch (error) {
       log.warn({ error: String(error) }, 'searchByEmbedding failed');
     }
 
-    return this.fallbackCache.search(queryEmbedding, topK, options?.filter, minScore);
+    const fallbackResults = this.fallbackCache.search(queryEmbedding, topK, options?.filter, minScore);
+    this.searchCache.set(cacheKey, queryEmbedding, fallbackResults, options?.filter, { topK, minScore });
+    return fallbackResults;
   }
 
   /**
@@ -612,6 +647,7 @@ export class FirestoreVectorStore implements VectorStoreContract {
     await this.ensureInitialized();
 
     this.fallbackCache.clear();
+    this.searchCache.clear();
 
     if (this.useFallback || !this.db) return;
 
@@ -637,9 +673,32 @@ export class FirestoreVectorStore implements VectorStoreContract {
       this.db = null;
     }
     this.fallbackCache.clear();
+    this.searchCache.clear();
     this._initialized = false;
     this.useFallback = false;
     this.fallbackReason = null;
     this.recoveryManager.reset();
+  }
+
+  /**
+   * Get search cache statistics.
+   */
+  getSearchCacheStats(): {
+    size: number;
+    maxSize: number;
+    hits: number;
+    misses: number;
+    fuzzyHits: number;
+    hitRate: number;
+    evictions: number;
+  } {
+    return this.searchCache.getStats();
+  }
+
+  /**
+   * Invalidate search cache for a specific user.
+   */
+  invalidateSearchCacheForUser(userId: string): number {
+    return this.searchCache.invalidateForUser(userId);
   }
 }

@@ -13,6 +13,7 @@
  */
 
 import { createLogger } from '../utils/logger.js';
+import { apiGet, apiPost } from '../utils/api.js';
 
 const log = createLogger('AppleIAP');
 
@@ -292,18 +293,13 @@ async function verifyWithBackend(
   transactionId: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const response = await fetch('/api/apple/verify', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        userId,
-        receiptData: transactionId, // In StoreKit 2, we send transaction ID
-      }),
+    const response = await apiPost<{ error?: string }>('/api/apple/verify', {
+      userId,
+      receiptData: transactionId, // In StoreKit 2, we send transaction ID
     });
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({}));
-      return { success: false, error: error.error || 'Verification failed' };
+      return { success: false, error: response.error || 'Verification failed' };
     }
 
     return { success: true };
@@ -335,20 +331,18 @@ export async function getSubscriptionStatus(userId: string): Promise<Subscriptio
     }
 
     // Verify with backend
-    const response = await fetch(
+    const response = await apiGet<{ tier?: string; status?: string; expiresDate?: string }>(
       `/api/apple/status?userId=${userId}&transactionId=${transactionId}`
     );
 
-    if (!response.ok) {
+    if (!response.ok || !response.data) {
       return await checkStripeStatus(userId);
     }
 
-    const data = await response.json();
-
     return {
-      tier: data.tier || 'free',
-      status: data.status || 'active',
-      expiresDate: data.expiresDate,
+      tier: response.data.tier || 'free',
+      status: response.data.status || 'active',
+      expiresDate: response.data.expiresDate,
       provider: 'apple',
     };
   } catch (error) {
@@ -366,17 +360,18 @@ export async function getSubscriptionStatus(userId: string): Promise<Subscriptio
  */
 async function checkStripeStatus(userId: string): Promise<SubscriptionStatus> {
   try {
-    const response = await fetch(`/api/subscription/status?userId=${userId}`);
-    if (!response.ok) {
+    const response = await apiGet<{ tier?: string; status?: string; currentPeriodEnd?: string }>(
+      `/api/subscription/status?userId=${userId}`
+    );
+    if (!response.ok || !response.data) {
       return { tier: 'free', status: 'expired', provider: 'none' };
     }
 
-    const data = await response.json();
     return {
-      tier: data.tier || 'free',
-      status: data.status || 'active',
-      expiresDate: data.currentPeriodEnd,
-      provider: data.tier !== 'free' ? 'stripe' : 'none',
+      tier: response.data.tier || 'free',
+      status: response.data.status || 'active',
+      expiresDate: response.data.currentPeriodEnd,
+      provider: response.data.tier !== 'free' ? 'stripe' : 'none',
     };
   } catch {
     return { tier: 'free', status: 'expired', provider: 'none' };
@@ -397,11 +392,13 @@ export async function getCancellationInstructions(): Promise<{
   note: string;
 }> {
   try {
-    const response = await fetch('/api/apple/cancel-instructions');
-    if (!response.ok) {
+    const response = await apiGet<{ title: string; steps: string[]; note: string }>(
+      '/api/apple/cancel-instructions'
+    );
+    if (!response.ok || !response.data) {
       throw new Error('Failed to fetch instructions');
     }
-    return response.json();
+    return response.data;
   } catch {
     // Fallback instructions
     return {

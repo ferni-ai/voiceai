@@ -13,6 +13,7 @@
  */
 
 import { getLogger } from './safe-logger.js';
+import { registerInterval } from './interval-manager.js';
 
 // ============================================================================
 // TYPES
@@ -352,32 +353,36 @@ export const Metrics = {
 export function startMetricsReporter(intervalMs = 60000): () => void {
   const log = getLogger();
 
-  const intervalId = setInterval(() => {
-    const snapshot = Metrics.getSnapshot();
-    log.info(
-      {
-        counterCount: snapshot.counters.length,
-        gaugeCount: snapshot.gauges.length,
-        histogramCount: snapshot.histograms.length,
-        timestamp: snapshot.timestamp.toISOString(),
-      },
-      'Metrics report'
-    );
+  const clearInterval = registerInterval(
+    'metrics-reporter',
+    () => {
+      const snapshot = Metrics.getSnapshot();
+      log.info(
+        {
+          counterCount: snapshot.counters.length,
+          gaugeCount: snapshot.gauges.length,
+          histogramCount: snapshot.histograms.length,
+          timestamp: snapshot.timestamp.toISOString(),
+        },
+        'Metrics report'
+      );
 
-    // Log any critical gauges
-    for (const gauge of snapshot.gauges) {
-      if (gauge.name.includes('error') || gauge.name.includes('failure')) {
-        if (gauge.value > 0) {
-          log.warn(
-            { name: gauge.name, value: gauge.value, labels: gauge.labels },
-            'Error gauge elevated'
-          );
+      // Log any critical gauges
+      for (const gauge of snapshot.gauges) {
+        if (gauge.name.includes('error') || gauge.name.includes('failure')) {
+          if (gauge.value > 0) {
+            log.warn(
+              { name: gauge.name, value: gauge.value, labels: gauge.labels },
+              'Error gauge elevated'
+            );
+          }
         }
       }
-    }
-  }, intervalMs);
+    },
+    intervalMs
+  );
 
-  return () => clearInterval(intervalId);
+  return clearInterval;
 }
 
 // ============================================================================

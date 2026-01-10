@@ -32,6 +32,9 @@ export * from './embedding-worker.js';
 export * from './summarization-worker.js';
 export * from './audio-analysis-pool.js';
 export * from './predictions-worker.js';
+// NOTE: OutreachWorker is exported but NOT started with other workers.
+// It's a Cloud Run JOB (batch processor) that runs on a schedule,
+// not a persistent event-driven worker. See outreach-worker.ts for usage.
 export * from './outreach-worker.js';
 
 import { createLogger } from '../utils/safe-logger.js';

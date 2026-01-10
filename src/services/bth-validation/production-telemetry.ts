@@ -8,6 +8,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { registerInterval, clearNamedInterval } from '../../utils/interval-manager.js';
 import type {
   BTHProductionEvent,
   CapabilityTelemetry,
@@ -24,8 +25,8 @@ const log = createLogger({ module: 'BTHProductionTelemetry' });
 const eventBuffer: BTHProductionEvent[] = [];
 const BUFFER_FLUSH_SIZE = 50;
 const BUFFER_FLUSH_INTERVAL_MS = 30000; // 30 seconds
+const BTH_TELEMETRY_FLUSH_INTERVAL = 'bth-telemetry-flush';
 
-let flushInterval: NodeJS.Timeout | null = null;
 let config: BTHValidationConfig = {
   minEvaluationsPerScenario: 10,
   minPreferenceRate: 0.6,
@@ -69,14 +70,16 @@ export function initBTHTelemetry(customConfig?: Partial<BTHValidationConfig>): v
     config = { ...config, ...customConfig };
   }
 
-  // Start periodic flush
-  if (!flushInterval) {
-    flushInterval = setInterval(() => {
+  // Start periodic flush using managed interval
+  registerInterval(
+    BTH_TELEMETRY_FLUSH_INTERVAL,
+    () => {
       flushEventBuffer().catch((err) => {
         log.error({ error: String(err) }, 'Failed to flush BTH event buffer');
       });
-    }, BUFFER_FLUSH_INTERVAL_MS);
-  }
+    },
+    BUFFER_FLUSH_INTERVAL_MS
+  );
 
   log.info(
     {
@@ -91,10 +94,7 @@ export function initBTHTelemetry(customConfig?: Partial<BTHValidationConfig>): v
  * Shutdown telemetry gracefully.
  */
 export async function shutdownBTHTelemetry(): Promise<void> {
-  if (flushInterval) {
-    clearInterval(flushInterval);
-    flushInterval = null;
-  }
+  clearNamedInterval(BTH_TELEMETRY_FLUSH_INTERVAL);
 
   await flushEventBuffer();
   log.info('BTH telemetry shutdown complete');

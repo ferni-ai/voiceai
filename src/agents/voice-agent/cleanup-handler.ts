@@ -447,6 +447,22 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
         })()
       : Promise.resolve(),
 
+    // 🎵 MUSIC LEARNING: Persist Thompson Sampling profiles and music memories
+    // This ensures per-user transition preferences survive server restarts
+    userId
+      ? (async () => {
+          try {
+            const { flushMusicLearning } = await import('../../audio/music-learning-persistence.js');
+            await flushMusicLearning(userId);
+            diag.session('🎵 Music learning persisted', { userId });
+          } catch (musicErr) {
+            diag.warn('Music learning persistence failed (non-fatal)', {
+              error: String(musicErr),
+            });
+          }
+        })()
+      : Promise.resolve(),
+
     // 🧠 MEMORY ENHANCEMENT: Persist all memory enhancement systems
     // Tonal Memory, Between-Session Thinking, Curiosity Memory, Persona Growth
     userId
@@ -718,17 +734,83 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
     userId
       ? (async () => {
           const { flushResonanceProfile } =
-            await import('../../personas/bundles/ferni/personality-resonance-store.js');
+            await import('../../personas/shared/personality-resonance-store.js');
           await flushResonanceProfile(userId);
           diag.session('🎭 Personality resonance profile persisted');
         })()
       : Promise.resolve(),
 
-    // 🧠 DEEP SIGNAL EXTRACTION: Disabled - modules not yet implemented
-    // TODO: Re-enable when realtime-memory.js and unified-memory getMemory/saveMemory are ready
-    // See: src/memory/realtime-memory.ts (needs creation)
-    // See: src/services/unified-memory.ts getMemory/saveMemory methods (needs implementation)
-    Promise.resolve(),
+    // 🧠 DEEP SIGNAL EXTRACTION: Extract and persist deep signals from conversation
+    userId
+      ? (async () => {
+          try {
+            const { getLastConversationContext } = await import('../../memory/realtime-memory.js');
+            const { saveMemoryDirect } = await import('../../services/unified-memory-service.js');
+
+            // Get conversation context for signal extraction
+            const context = await getLastConversationContext(userId);
+            if (!context || !context.turns || context.turns.length === 0) {
+              diag.debug('No conversation turns for deep signal extraction');
+              return;
+            }
+
+            // Extract deep signals from the conversation
+            const signals: Array<{ type: string; content: string; weight: number }> = [];
+
+            // Look for emotional moments
+            for (const turn of context.turns) {
+              if (turn.metadata?.emotion && turn.role === 'user') {
+                const intensity = turn.metadata.durationMs ? turn.metadata.durationMs / 10000 : 0.5;
+                if (intensity > 0.6) {
+                  signals.push({
+                    type: 'emotion',
+                    content: `Expressed ${turn.metadata.emotion}: ${turn.content.slice(0, 100)}`,
+                    weight: Math.min(intensity, 1.0),
+                  });
+                }
+              }
+
+              // Look for commitment-like statements
+              const commitmentPatterns = [
+                /i (will|want to|need to|should|must|have to)/i,
+                /i('m| am) going to/i,
+                /my goal is/i,
+                /i promise/i,
+              ];
+              if (turn.role === 'user' && commitmentPatterns.some((p) => p.test(turn.content))) {
+                signals.push({
+                  type: 'commitment',
+                  content: turn.content.slice(0, 200),
+                  weight: 0.7,
+                });
+              }
+            }
+
+            // Save extracted signals
+            let savedCount = 0;
+            for (const signal of signals.slice(0, 5)) {
+              // Limit to 5 signals per session
+              const result = await saveMemoryDirect(userId, {
+                content: signal.content,
+                type: signal.type as 'emotion' | 'commitment',
+                emotionalWeight: signal.weight,
+                metadata: { extractedAt: new Date().toISOString(), sessionId },
+              });
+              if (result.success) savedCount++;
+            }
+
+            if (savedCount > 0) {
+              diag.session('🧠 Deep signals extracted and persisted', {
+                userId,
+                signalsExtracted: signals.length,
+                signalsSaved: savedCount,
+              });
+            }
+          } catch (error) {
+            diag.warn('Deep signal extraction failed (non-fatal)', { error: String(error) });
+          }
+        })()
+      : Promise.resolve(),
 
     // LLM expressions - flush high-engagement to Firestore
     userId

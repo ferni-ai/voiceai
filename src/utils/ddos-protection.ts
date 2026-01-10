@@ -221,13 +221,13 @@ export async function parseJsonBodySafe<T = unknown>(
 
 const healthRateLimits = new Map<string, { count: number; resetTime: number }>();
 
-// Cleanup interval ID for proper shutdown
-let healthRateLimitCleanupInterval: ReturnType<typeof setInterval> | null = null;
+// Track if cleanup is running
+let healthRateLimitCleanupStarted = false;
 
 function startHealthRateLimitCleanup(): void {
-  if (healthRateLimitCleanupInterval) return; // Already running
+  if (healthRateLimitCleanupStarted) return; // Already running
 
-  // Cleanup old entries every minute
+  // Cleanup old entries every minute using managed interval
   registerInterval(
     'ddos-health-rate-limit-cleanup',
     () => {
@@ -240,7 +240,7 @@ function startHealthRateLimitCleanup(): void {
     },
     60_000
   );
-  healthRateLimitCleanupInterval = 1 as unknown as ReturnType<typeof setInterval>; // Marker
+  healthRateLimitCleanupStarted = true;
 }
 
 // Start cleanup automatically
@@ -384,21 +384,32 @@ function isInternalRequest(req: IncomingMessage): boolean {
 // OAUTH STATE PROTECTION
 // ============================================================================
 
+// Counter for unique OAuth manager instances
+let oauthManagerCounter = 0;
+
 /**
  * Create a secure OAuth state manager with limits
  */
 export function createOAuthStateManager<T = unknown>(expiry = DDOS_CONFIG.oauthStateExpiry) {
   const states = new Map<string, { data: T; expires: number }>();
 
-  // Cleanup expired states every minute
-  const cleanupInterval = setInterval(() => {
-    const now = Date.now();
-    for (const [state, entry] of Array.from(states.entries())) {
-      if (entry.expires < now) {
-        states.delete(state);
+  // Generate unique interval name for this manager instance
+  const instanceId = ++oauthManagerCounter;
+  const intervalName = `ddos-oauth-cleanup-${instanceId}`;
+
+  // Cleanup expired states every minute using managed interval
+  const clearCleanup = registerInterval(
+    intervalName,
+    () => {
+      const now = Date.now();
+      for (const [state, entry] of Array.from(states.entries())) {
+        if (entry.expires < now) {
+          states.delete(state);
+        }
       }
-    }
-  }, 60_000);
+    },
+    60_000
+  );
 
   return {
     /**
@@ -443,7 +454,7 @@ export function createOAuthStateManager<T = unknown>(expiry = DDOS_CONFIG.oauthS
      * Cleanup on shutdown
      */
     destroy(): void {
-      clearInterval(cleanupInterval);
+      clearCleanup(); // Uses managed interval cleanup
       states.clear();
     },
   };
@@ -632,16 +643,18 @@ export async function checkAndAlertDDoS(serverName = 'unknown'): Promise<void> {
  * Checks every 30 seconds for attack patterns.
  */
 export function startDDoSMonitoring(serverName: string, intervalMs = 30_000): () => void {
-  const interval = setInterval(() => {
-    checkAndAlertDDoS(serverName).catch((err) => {
-      // Silently ignore alert failures to prevent cascading issues
-      if (process.env.NODE_ENV === 'development') {
-        log.error({ error: String(err) }, 'DDoS Monitor alert failed');
-      }
-    });
-  }, intervalMs);
-
-  return () => clearInterval(interval);
+  return registerInterval(
+    `ddos-monitor-${serverName}`,
+    () => {
+      checkAndAlertDDoS(serverName).catch((err) => {
+        // Silently ignore alert failures to prevent cascading issues
+        if (process.env.NODE_ENV === 'development') {
+          log.error({ error: String(err) }, 'DDoS Monitor alert failed');
+        }
+      });
+    },
+    intervalMs
+  );
 }
 
 // ============================================================================
@@ -700,10 +713,9 @@ export function handleSecurityMonitoring(
  * Call this on graceful shutdown or in tests.
  */
 export function stopDDoSProtection(): void {
-  if (healthRateLimitCleanupInterval) {
-    clearInterval(healthRateLimitCleanupInterval);
-    healthRateLimitCleanupInterval = null;
-  }
+  // Use interval manager to clear the registered interval
+  clearNamedInterval('ddos-health-rate-limit-cleanup');
+  healthRateLimitCleanupStarted = false;
   healthRateLimits.clear();
   rateLimitEvents.length = 0;
 }

@@ -12,8 +12,8 @@
 
 import { createLogger } from '../../../utils/safe-logger.js';
 import { diag } from '../../../services/diagnostic-logger.js';
-import type { PersonalityContext } from './better-than-human-personality.js';
-import type { NoticingResult } from './realtime-noticing.js';
+import type { PersonalityContext } from '../../shared/better-than-human-personality.js';
+import type { NoticingResult } from '../../shared/realtime-noticing.js';
 import type { ThemeCategory } from '../../../services/session-variety-tracker.js';
 
 const log = createLogger({ module: 'personality-telemetry' });

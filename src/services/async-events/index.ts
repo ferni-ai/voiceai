@@ -23,6 +23,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { registerInterval, clearNamedInterval, hasInterval } from '../../utils/interval-manager.js';
 import { resilienceMetrics } from '../observability/resilience-metrics.js';
 
 const log = createLogger({ module: 'AsyncEvents' });
@@ -105,6 +106,8 @@ export type EventHandler = (payload: EventPayload) => void | Promise<void>;
 // EVENT BUS
 // ============================================================================
 
+const ASYNC_EVENTS_METRICS_INTERVAL = 'async-events-metrics';
+
 class AsyncEventBus {
   private handlers = new Map<EventType, Set<EventHandler>>();
   private queue: EventPayload[] = [];
@@ -124,7 +127,6 @@ class AsyncEventBus {
   };
 
   // Queue monitoring
-  private metricsInterval: ReturnType<typeof setInterval> | null = null;
   private lastMetricsTime = Date.now();
   private lastProcessedCount = 0;
 
@@ -137,26 +139,22 @@ class AsyncEventBus {
    * Start periodic queue metrics reporting.
    */
   private startMetricsReporting(): void {
-    if (this.metricsInterval) return;
+    if (hasInterval(ASYNC_EVENTS_METRICS_INTERVAL)) return;
 
-    this.metricsInterval = setInterval(() => {
-      this.reportQueueMetrics();
-    }, QUEUE_METRICS_INTERVAL_MS);
-
-    // Don't prevent process from exiting
-    if (this.metricsInterval.unref) {
-      this.metricsInterval.unref();
-    }
+    registerInterval(
+      ASYNC_EVENTS_METRICS_INTERVAL,
+      () => {
+        this.reportQueueMetrics();
+      },
+      QUEUE_METRICS_INTERVAL_MS
+    );
   }
 
   /**
    * Stop metrics reporting (for cleanup).
    */
   stopMetricsReporting(): void {
-    if (this.metricsInterval) {
-      clearInterval(this.metricsInterval);
-      this.metricsInterval = null;
-    }
+    clearNamedInterval(ASYNC_EVENTS_METRICS_INTERVAL);
   }
 
   /**

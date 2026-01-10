@@ -21,6 +21,7 @@ import { DURATION, EASING } from '../config/animation-constants.js';
 import { appState } from '../state/app.state.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
+import { apiGet } from '../utils/api.js';
 
 // toast is available if needed for error messages
 // import { toast } from './whisper.ui.js';
@@ -232,11 +233,13 @@ async function loadBillingData(): Promise<void> {
   if (!deviceId) return;
 
   try {
-    const response = await fetch(`/api/marketplace/usage?userId=${encodeURIComponent(deviceId)}`);
-    if (response.ok) {
-      const data = await response.json();
-      state.usage = data.usage || [];
-      state.tier = data.tier || 'free';
+    const response = await apiGet<{
+      usage?: UsageSummary[];
+      tier?: 'free' | 'friend' | 'partner';
+    }>(`/api/marketplace/usage?userId=${encodeURIComponent(deviceId)}`);
+    if (response.ok && response.data) {
+      state.usage = response.data.usage || [];
+      state.tier = response.data.tier || 'free';
       log.debug('Billing data loaded:', { usage: state.usage.length });
     }
   } catch (error) {
@@ -478,10 +481,11 @@ export function createUsageIndicator(): HTMLElement {
     if (!deviceId) return;
 
     try {
-      const response = await fetch(`/api/marketplace/usage/summary?userId=${encodeURIComponent(deviceId)}`);
-      if (response.ok) {
-        const data = await response.json();
-        const percent = data.usagePercentage || 0;
+      const response = await apiGet<{ usagePercentage?: number }>(
+        `/api/marketplace/usage/summary?userId=${encodeURIComponent(deviceId)}`
+      );
+      if (response.ok && response.data) {
+        const percent = response.data.usagePercentage || 0;
 
         indicator.innerHTML = `
           <div class="usage-mini-bar">

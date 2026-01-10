@@ -13,6 +13,7 @@
  */
 
 import { createLogger } from '../utils/logger.js';
+import { apiGet } from '../utils/api.js';
 
 const log = createLogger('LifeContext');
 
@@ -307,20 +308,20 @@ export async function startLifeContextPolling(userId: string): Promise<void> {
 
   const pollForContext = async () => {
     try {
-      const response = await fetch(`/api/life-context?userId=${userId}`);
-      if (!response.ok) return;
+      const response = await apiGet<{ snapshot?: LifeContextSnapshot; triggers?: SynthesisTrigger[] }>(
+        `/api/life-context?userId=${userId}`
+      );
+      if (!response.ok || !response.data) return;
 
-      const data = (await response.json()) as { snapshot?: LifeContextSnapshot; triggers?: SynthesisTrigger[] };
-
-      if (data.snapshot) {
-        currentSnapshot = data.snapshot;
-        currentTriggers = data.triggers ?? [];
+      if (response.data.snapshot) {
+        currentSnapshot = response.data.snapshot;
+        currentTriggers = response.data.triggers ?? [];
 
         notifyListeners({
           type: 'update',
           userId,
-          snapshot: data.snapshot,
-          triggers: data.triggers ?? [],
+          snapshot: response.data.snapshot,
+          triggers: response.data.triggers ?? [],
           timestamp: new Date().toISOString(),
         });
       }

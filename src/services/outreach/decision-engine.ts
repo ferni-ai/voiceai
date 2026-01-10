@@ -51,6 +51,9 @@ import {
   onNeedsMultiplePerspectives,
 } from './superhuman-outreach-bridge.js';
 
+// Redis cache for real-time session suppression
+import { getRedisCache } from '../../memory/redis-cache.js';
+
 // Re-export types from dedicated types module
 export type {
   OutreachTriggerType,
@@ -589,6 +592,25 @@ class OutreachDecisionEngine extends EventEmitter {
     // Decision 1: Is outreach enabled?
     if (!state.outreachEnabled) {
       return this.createDecision(trigger, 'skip', 'Outreach disabled for user');
+    }
+
+    // Decision 1.5: Check Redis session suppression (user in session or just finished)
+    try {
+      const redis = getRedisCache();
+      const suppression = await redis.isOutreachSuppressed(trigger.userId);
+      if (suppression.suppressed) {
+        // Defer until suppression expires (30 min from session end typically)
+        const deferTime = new Date(Date.now() + 30 * 60 * 1000);
+        return this.createDecision(
+          trigger,
+          'defer',
+          `Session suppression: ${suppression.reason || 'user in/recently in session'}`,
+          deferTime
+        );
+      }
+    } catch (redisErr) {
+      // Redis unavailable - proceed without suppression check
+      log.debug({ error: String(redisErr) }, 'Redis suppression check failed (proceeding)');
     }
 
     // Decision 2: Rate limit check

@@ -12,6 +12,7 @@
  */
 
 import { createLogger } from '../utils/safe-logger.js';
+import { registerInterval, clearNamedInterval } from '../utils/interval-manager.js';
 import { SlackNotificationService } from './slack-notifications.js';
 
 const log = createLogger({ module: 'PredictiveAlerting' });
@@ -91,7 +92,7 @@ interface PredictiveAlert {
 let config = { ...DEFAULT_CONFIG };
 const metrics = new Map<string, MetricSeries>();
 const lastAlerts = new Map<string, number>();
-let predictionInterval: NodeJS.Timeout | null = null;
+const PREDICTION_INTERVAL_NAME = 'predictive-alerting';
 let slackService: SlackNotificationService | null = null;
 let isRunning = false;
 
@@ -397,9 +398,13 @@ export function startPredictiveAlerting(userConfig?: Partial<PredictiveConfig>):
   registerMetric('first_response_time', 3000, 'upper'); // Alert when response time exceeds 3s
 
   // Start prediction loop
-  predictionInterval = setInterval(() => {
-    runPredictions().catch((e) => log.error({ error: String(e) }, 'Prediction loop failed'));
-  }, config.predictionIntervalMs);
+  registerInterval(
+    PREDICTION_INTERVAL_NAME,
+    () => {
+      runPredictions().catch((e) => log.error({ error: String(e) }, 'Prediction loop failed'));
+    },
+    config.predictionIntervalMs
+  );
 
   log.info('🔮 Predictive alerting started');
 }
@@ -407,10 +412,7 @@ export function startPredictiveAlerting(userConfig?: Partial<PredictiveConfig>):
 export function stopPredictiveAlerting(): void {
   if (!isRunning) return;
 
-  if (predictionInterval) {
-    clearInterval(predictionInterval);
-    predictionInterval = null;
-  }
+  clearNamedInterval(PREDICTION_INTERVAL_NAME);
 
   isRunning = false;
   log.info('Predictive alerting stopped');

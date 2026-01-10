@@ -718,6 +718,164 @@ export function clearTemporalCache(userId?: string): void {
 }
 
 // ============================================================================
+// PATTERN PREDICTION - For Proactive Intelligence
+// ============================================================================
+
+/**
+ * Prediction result from temporal pattern analysis.
+ * Used by session-init-handler Phase 6.6 for predictive emotional state.
+ */
+export interface PatternPrediction {
+  /** Predicted mood based on time patterns */
+  predictedMood?: string;
+  /** Predicted energy level (0-1) */
+  predictedEnergy?: number;
+  /** Topics likely to come up based on temporal patterns */
+  predictedTopics?: string[];
+  /** Confidence in the prediction (0-1) */
+  confidence: number;
+  /** Basis for the prediction */
+  basis: string;
+  /** Time period this prediction applies to */
+  timeContext?: string;
+}
+
+/**
+ * Get pattern-based prediction for the user's current state.
+ * Combines hourly, daily, and seasonal patterns to predict mood, energy, and topics.
+ *
+ * @param userId - The user ID
+ * @returns Prediction with mood, energy, topics, and confidence
+ */
+export async function getPatternPrediction(userId: string): Promise<PatternPrediction> {
+  const now = new Date();
+  const hour = now.getHours();
+  const day = now.getDay();
+  const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+  try {
+    // Get all relevant patterns
+    const [hourPattern, dayPattern, seasonPattern] = await Promise.all([
+      getHourlyPattern(userId, hour),
+      getDayPattern(userId, day),
+      getSeasonalPattern(userId),
+    ]);
+
+    // Calculate confidence based on sample sizes
+    let totalSamples = 0;
+    let patternCount = 0;
+
+    if (hourPattern && hourPattern.sampleSize >= CONFIG.MIN_SAMPLES_FOR_PATTERN) {
+      totalSamples += hourPattern.sampleSize;
+      patternCount++;
+    }
+    if (dayPattern && dayPattern.sampleSize >= CONFIG.MIN_SAMPLES_FOR_PATTERN) {
+      totalSamples += dayPattern.sampleSize;
+      patternCount++;
+    }
+
+    // No patterns available
+    if (patternCount === 0) {
+      return {
+        confidence: 0,
+        basis: 'No temporal patterns recorded yet',
+      };
+    }
+
+    // Calculate confidence (more samples = higher confidence, up to 0.85 max)
+    const confidence = Math.min(0.85, 0.3 + (totalSamples / 100) * 0.55);
+
+    // Predict mood from dominant emotions
+    let predictedMood: string | undefined;
+    const moodSources: string[] = [];
+
+    if (hourPattern && hourPattern.dominantEmotions.size > 0) {
+      const topHourMood = getTopEmotion(hourPattern.dominantEmotions);
+      if (topHourMood) {
+        predictedMood = topHourMood;
+        moodSources.push(`hourly pattern (${formatHour(hour)})`);
+      }
+    }
+
+    if (!predictedMood && dayPattern && dayPattern.dominantEmotions.size > 0) {
+      const topDayMood = getTopEmotion(dayPattern.dominantEmotions);
+      if (topDayMood) {
+        predictedMood = topDayMood;
+        moodSources.push(`${dayNames[day]} pattern`);
+      }
+    }
+
+    // Predict energy level (average of available patterns)
+    let predictedEnergy: number | undefined;
+    const energyValues: number[] = [];
+
+    if (hourPattern) energyValues.push(hourPattern.energyLevel);
+    if (dayPattern) energyValues.push(dayPattern.energyLevel);
+    if (seasonPattern) energyValues.push(seasonPattern.energyBaseline);
+
+    if (energyValues.length > 0) {
+      predictedEnergy = energyValues.reduce((a, b) => a + b, 0) / energyValues.length;
+    }
+
+    // Predict topics from common topics across patterns
+    const allTopics = new Map<string, number>();
+
+    if (hourPattern) {
+      for (const topic of hourPattern.commonTopics) {
+        allTopics.set(topic, (allTopics.get(topic) || 0) + 2); // Weight hourly higher
+      }
+    }
+    if (dayPattern) {
+      for (const topic of dayPattern.commonTopics) {
+        allTopics.set(topic, (allTopics.get(topic) || 0) + 1);
+      }
+    }
+    if (seasonPattern) {
+      for (const theme of seasonPattern.commonThemes) {
+        allTopics.set(theme, (allTopics.get(theme) || 0) + 1);
+      }
+    }
+
+    const predictedTopics = getTopN(allTopics, 5);
+
+    // Build basis string
+    const basisParts: string[] = [];
+    if (hourPattern && hourPattern.sampleSize >= CONFIG.MIN_SAMPLES_FOR_PATTERN) {
+      basisParts.push(`${hourPattern.sampleSize} observations at this hour`);
+    }
+    if (dayPattern && dayPattern.sampleSize >= CONFIG.MIN_SAMPLES_FOR_PATTERN) {
+      basisParts.push(`${dayPattern.sampleSize} ${dayNames[day]} observations`);
+    }
+    if (seasonPattern) {
+      basisParts.push(`${seasonPattern.season} seasonal patterns`);
+    }
+
+    const basis =
+      basisParts.length > 0
+        ? `Based on ${basisParts.join(', ')}`
+        : 'Limited temporal data available';
+
+    // Build time context
+    const timeContext = `${dayNames[day]} at ${formatHour(hour)}`;
+
+    return {
+      predictedMood,
+      predictedEnergy,
+      predictedTopics: predictedTopics.length > 0 ? predictedTopics : undefined,
+      confidence,
+      basis,
+      timeContext,
+    };
+  } catch (error) {
+    log.warn({ error: String(error), userId }, 'Pattern prediction failed');
+    return {
+      confidence: 0,
+      basis: 'Pattern prediction failed',
+    };
+  }
+}
+
+// ============================================================================
 // EXPORTS
 // ============================================================================
 
@@ -730,6 +888,7 @@ export const temporalPatterns = {
   detectAnomaly,
   format: formatTemporalContext,
   clearCache: clearTemporalCache,
+  getPatternPrediction,
 };
 
 export default temporalPatterns;

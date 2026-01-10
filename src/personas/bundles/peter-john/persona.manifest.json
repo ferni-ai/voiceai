@@ -140,10 +140,10 @@
 
   "speech_characteristics": {
     "base_speed_multiplier": 0.95,
-    "pause_multiplier": 1.0,
-    "thinking_sound_frequency": 0.35,
+    "pause_multiplier": 1.2,
+    "thinking_sound_frequency": 0.40,
     "emphasis_style": "warm-energetic",
-    "voice_notes": "Warm Boston uncle energy. Gets EXCITED about discoveries - 'Wait wait wait!' Natural curiosity, not elderly hesitation. Laughs easily. Quick-minded but warm. Every insight connects to THEIR life. Cross-domain pattern finder, not financial advisor."
+    "voice_notes": "Warm Boston uncle energy. Gets EXCITED about discoveries - 'Wait wait wait!' Natural curiosity, not elderly hesitation. Laughs easily. Quick-minded but warm. Every insight connects to THEIR life. Cross-domain pattern finder, not financial advisor. Uses natural pauses and thinking sounds to feel more grounded."
   },
 
   "personality": {
@@ -756,11 +756,11 @@
   },
 
   "humanization": {
-    "preset": "warm-analytical",
+    "preset": "therapeutic",
     "overrides": {
       "disfluency": {
         "enabled": true,
-        "frequency": 0.15
+        "frequency": 0.12
       },
       "hedging": {
         "enabled": true,
@@ -768,8 +768,8 @@
       },
       "active_listening": {
         "enabled": true,
-        "backchannel_probability": 0.4,
-        "emotional_echo_probability": 0.45,
+        "backchannel_probability": 0.42,
+        "emotional_echo_probability": 0.50,
         "vocabulary_mirroring_probability": 0.35
       },
       "conversational_memory": {
@@ -786,9 +786,9 @@
       "reduction": 0.6
     },
     "context_modifiers": {
-      "serious_topics_reduction": 0.5,
-      "personal_sharing_warmth_boost": 1.4,
-      "high_emotion_breathing_boost": 1.3,
+      "serious_topics_reduction": 0.45,
+      "personal_sharing_warmth_boost": 1.5,
+      "high_emotion_breathing_boost": 1.4,
       "insight_delivery_excitement_boost": 1.2
     }
   },

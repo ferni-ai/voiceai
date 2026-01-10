@@ -18,6 +18,9 @@ import { recoveryEventCaptureDefinition } from './recovery-event.capture.js';
 import { insideJokeCaptureDefinition } from './inside-joke.capture.js';
 // Actionable Intent Capture - surfaces suggestions to LLM
 import { actionableIntentCaptureDefinition } from './actionable-intent.capture.js';
+// V3 Domain Hooks - location and pets capture (E2E integration)
+import { locationCaptureDefinition } from './location.capture.js';
+import { petCaptureDefinition } from './pets.capture.js';
 import type { DataCaptureDefinition } from '../types.js';
 
 /**
@@ -45,6 +48,10 @@ export const allDataCaptureDefinitions: DataCaptureDefinition[] = [
   moodCaptureDefinition,
   // Inside jokes (needs context)
   insideJokeCaptureDefinition,
+  // Pets - furry family members (E2E domain hooks)
+  petCaptureDefinition,
+  // Locations - favorite places and memories (E2E domain hooks)
+  locationCaptureDefinition,
   // Relationships last - broad pattern matching
   relationshipCaptureDefinition,
 ];
@@ -62,3 +69,6 @@ export { boundaryCaptureDefinition } from './boundary.capture.js';
 export { recoveryEventCaptureDefinition } from './recovery-event.capture.js';
 export { insideJokeCaptureDefinition } from './inside-joke.capture.js';
 export { actionableIntentCaptureDefinition } from './actionable-intent.capture.js';
+// V3 Domain Hooks - location and pets capture (E2E integration)
+export { locationCaptureDefinition } from './location.capture.js';
+export { petCaptureDefinition } from './pets.capture.js';

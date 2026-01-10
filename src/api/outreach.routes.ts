@@ -1163,11 +1163,7 @@ Whenever you're ready.`,
         boundaries: state?.boundaries || [],
       };
 
-      const content = await generatePersonalizedContent(
-        userContext,
-        outreachType,
-        channel
-      );
+      const content = await generatePersonalizedContent(userContext, outreachType, channel);
 
       sendJsonResponse(res, 200, { success: true, content });
       return true;

@@ -594,6 +594,43 @@ export {
   type SearchResult,
 } from './context-service/index.js';
 
+// ============================================================================
+// WRITE-AHEAD LOG (Non-blocking Firestore Writes)
+// ============================================================================
+
+export {
+  initializeFirestoreWAL,
+  shutdownFirestoreWAL,
+  queueUserProfileUpdate,
+  queueUserProfileSet,
+  queueSubcollectionWrite,
+  queueMemoryWrite,
+  queueSessionWrite,
+  queueHighPriorityWrite,
+  queueDeletion,
+  queueAnalyticsEvent,
+  flushUserWrites,
+  flushAllWrites,
+  getWALStatistics,
+  isWALHealthy,
+  type WritePriority,
+} from './firestore-wal-integration.js';
+
+export {
+  WriteAheadLog,
+  getWriteAheadLog,
+  queueWrite,
+  queueSet,
+  queueUpdate,
+  queueMerge,
+  queueDelete,
+  flushWrites,
+  getWALStats,
+  type WALEntry,
+  type WALStats,
+  type WALConfig,
+} from './write-ahead-log.js';
+
 export default {
   initializeServices: _initializeServices,
   getGlobalServices: _getGlobalServices,

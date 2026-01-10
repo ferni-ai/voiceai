@@ -20,6 +20,7 @@
 import { t } from '../i18n/index.js';
 import { DURATION, EASING, prefersReducedMotion } from '../config/animation-constants.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
+import { apiGet } from '../utils/api.js';
 import {
   escapeHtml,
   ICONS,
@@ -1365,20 +1366,21 @@ export async function fetchSuperhumanInsights(): Promise<{
   topicAbsences: TopicAbsence[];
 } | null> {
   try {
-    const response = await fetch('/api/cognitive/superhuman-insights', {
-      credentials: 'include',
-    });
+    const response = await apiGet<{
+      insights?: SuperhumanInsight[];
+      temporalContext?: { isSpecialDate: boolean; specialDateInfo?: string; seasonalPattern?: string };
+      topicAbsences?: TopicAbsence[];
+    }>('/api/cognitive/superhuman-insights');
 
-    if (!response.ok) {
+    if (!response.ok || !response.data) {
       log.warn('Failed to fetch superhuman insights:', response.status);
       return null;
     }
 
-    const data = await response.json();
     return {
-      insights: data.insights || [],
-      temporalContext: data.temporalContext || { isSpecialDate: false },
-      topicAbsences: data.topicAbsences || [],
+      insights: response.data.insights || [],
+      temporalContext: response.data.temporalContext || { isSpecialDate: false },
+      topicAbsences: response.data.topicAbsences || [],
     };
   } catch (error) {
     log.warn('Error fetching superhuman insights:', error);

@@ -145,57 +145,162 @@ export function clearMusicFeedbackRecorder(sessionId?: string): void {
 }
 
 /**
+ * Semantic feedback patterns with weights
+ * Higher weight = stronger signal of sentiment
+ */
+interface SemanticPattern {
+  pattern: RegExp;
+  weight: number; // 0.1 (weak) to 1.0 (strong)
+  category: 'gratitude' | 'relief' | 'enjoyment' | 'emotional' | 'practical' | 'energy' | 'negative';
+}
+
+const POSITIVE_PATTERNS: SemanticPattern[] = [
+  // Gratitude (strong positive signal)
+  { pattern: /thank(s| you)( (so much|for that))?/i, weight: 0.8, category: 'gratitude' },
+  { pattern: /appreciate (that|it|this)/i, weight: 0.7, category: 'gratitude' },
+
+  // Emotional relief (very strong signal - music helped emotionally)
+  { pattern: /i (feel|felt|'m feeling) (so much )?(better|calmer|more relaxed|at peace|grounded|centered)/i, weight: 0.95, category: 'relief' },
+  { pattern: /(that|this|it) (really )?(helped|helped me)/i, weight: 0.9, category: 'relief' },
+  { pattern: /needed (that|this|to hear that)/i, weight: 0.85, category: 'relief' },
+  { pattern: /exactly what i needed/i, weight: 0.95, category: 'relief' },
+  { pattern: /weight off my (shoulders|chest)/i, weight: 0.9, category: 'relief' },
+
+  // Enjoyment (moderate signal)
+  { pattern: /that (was |felt )?(nice|good|great|lovely|perfect|beautiful|wonderful|amazing)/i, weight: 0.7, category: 'enjoyment' },
+  { pattern: /love(d)? (that|it|the music|this)/i, weight: 0.75, category: 'enjoyment' },
+  { pattern: /beautiful( music| song)?/i, weight: 0.6, category: 'enjoyment' },
+  { pattern: /so (good|nice|calming|peaceful|relaxing)/i, weight: 0.7, category: 'enjoyment' },
+  { pattern: /(good|great|perfect) (choice|pick|song|music)/i, weight: 0.65, category: 'enjoyment' },
+
+  // Emotional resonance (strong signal)
+  { pattern: /hit(s)? (me |the spot|different)/i, weight: 0.8, category: 'emotional' },
+  { pattern: /spoke to me/i, weight: 0.85, category: 'emotional' },
+  { pattern: /really (resonated|connected)/i, weight: 0.8, category: 'emotional' },
+  { pattern: /brought (tears|a smile)/i, weight: 0.9, category: 'emotional' },
+  { pattern: /made me (feel|smile|cry)/i, weight: 0.85, category: 'emotional' },
+
+  // Practical effectiveness (moderate signal)
+  { pattern: /i('m| am) (ready|able) to/i, weight: 0.6, category: 'practical' },
+  { pattern: /now i can/i, weight: 0.55, category: 'practical' },
+  { pattern: /cleared my (head|mind)/i, weight: 0.75, category: 'practical' },
+  { pattern: /helped me (think|focus|process)/i, weight: 0.8, category: 'practical' },
+
+  // Energy shift (moderate signal)
+  { pattern: /feel (more )?energized/i, weight: 0.65, category: 'energy' },
+  { pattern: /that was fun/i, weight: 0.6, category: 'energy' },
+  { pattern: /(pumped|hyped)( me)? up/i, weight: 0.7, category: 'energy' },
+
+  // Continuation signals (weak but positive)
+  { pattern: /more( of that| please| music)?$/i, weight: 0.5, category: 'enjoyment' },
+  { pattern: /play (that|it|another) again/i, weight: 0.7, category: 'enjoyment' },
+  { pattern: /can you play/i, weight: 0.4, category: 'enjoyment' }, // Requesting more
+];
+
+const NEGATIVE_PATTERNS: SemanticPattern[] = [
+  // Strong negative
+  { pattern: /not (really |what i |helping|working)/i, weight: 0.8, category: 'negative' },
+  { pattern: /don't like/i, weight: 0.85, category: 'negative' },
+  { pattern: /hate (that|this|it)/i, weight: 0.95, category: 'negative' },
+  { pattern: /stop( the music| it| playing)?/i, weight: 0.9, category: 'negative' },
+  { pattern: /turn (it|that|this) off/i, weight: 0.9, category: 'negative' },
+  { pattern: /annoying/i, weight: 0.8, category: 'negative' },
+  { pattern: /too (loud|quiet|much|long)/i, weight: 0.6, category: 'negative' },
+  { pattern: /not (in the |the right )?mood/i, weight: 0.7, category: 'negative' },
+  { pattern: /can('t| not) (focus|concentrate|think) with/i, weight: 0.75, category: 'negative' },
+  { pattern: /(weird|strange|wrong|off)/i, weight: 0.5, category: 'negative' },
+  { pattern: /makes? me (feel )?(worse|sad|anxious)/i, weight: 0.9, category: 'negative' },
+];
+
+/**
  * Auto-detect feedback signals from user response
  *
+ * Enhanced with semantic understanding:
+ * - Multiple pattern categories with weighted scoring
+ * - Confidence based on signal strength
+ * - Better handling of nuanced responses
+ *
  * @param userResponse - What the user said
- * @returns Detected feedback signals
+ * @returns Detected feedback signals with confidence
  */
-export function detectFeedbackFromResponse(userResponse: string): Partial<MusicFeedback> {
+export function detectFeedbackFromResponse(userResponse: string): Partial<MusicFeedback> & {
+  confidence?: number;
+  matchedCategories?: string[];
+} {
   const response = userResponse.toLowerCase();
-  const feedback: Partial<MusicFeedback> = {
+  const feedback: Partial<MusicFeedback> & {
+    confidence?: number;
+    matchedCategories?: string[];
+  } = {
     userResponse,
     continuedSession: true,
   };
 
-  // Detect positive signals
-  const positivePatterns = [
-    /thank(s| you)/,
-    /that (was |felt )?(nice|good|great|lovely|perfect)/,
-    /i (feel|felt) (better|calmer|more relaxed|good)/,
-    /that helped/,
-    /beautiful/,
-    /love(d)? (that|it|the music)/,
-    /needed that/,
-  ];
+  // Calculate weighted positive score
+  let positiveScore = 0;
+  let negativeScore = 0;
+  const matchedCategories: string[] = [];
 
-  for (const pattern of positivePatterns) {
+  for (const { pattern, weight, category } of POSITIVE_PATTERNS) {
     if (pattern.test(response)) {
-      feedback.wasPositive = true;
-      break;
+      positiveScore += weight;
+      if (!matchedCategories.includes(category)) {
+        matchedCategories.push(category);
+      }
     }
   }
 
-  // Detect negative signals
-  const negativePatterns = [
-    /not (really |what i |helping)/,
-    /don't like/,
-    /stop/,
-    /too (loud|quiet|much)/,
-    /annoying/,
-    /weird/,
-  ];
-
-  for (const pattern of negativePatterns) {
+  for (const { pattern, weight, category } of NEGATIVE_PATTERNS) {
     if (pattern.test(response)) {
-      feedback.wasPositive = false;
-      break;
+      negativeScore += weight;
+      if (!matchedCategories.includes(category)) {
+        matchedCategories.push(category);
+      }
     }
   }
 
-  // If no explicit signal, leave wasPositive undefined
-  // (the recorder will use other signals like voice tone)
+  // Normalize scores (cap at 1.0)
+  positiveScore = Math.min(positiveScore, 1.0);
+  negativeScore = Math.min(negativeScore, 1.0);
+
+  // Determine sentiment with confidence
+  const scoreDiff = positiveScore - negativeScore;
+
+  if (scoreDiff > 0.2) {
+    // Clear positive signal
+    feedback.wasPositive = true;
+    feedback.confidence = Math.min(0.5 + scoreDiff, 1.0);
+  } else if (scoreDiff < -0.2) {
+    // Clear negative signal
+    feedback.wasPositive = false;
+    feedback.confidence = Math.min(0.5 + Math.abs(scoreDiff), 1.0);
+  } else if (positiveScore > 0.3 && negativeScore === 0) {
+    // Weak but clear positive
+    feedback.wasPositive = true;
+    feedback.confidence = positiveScore;
+  } else if (negativeScore > 0.3 && positiveScore === 0) {
+    // Weak but clear negative
+    feedback.wasPositive = false;
+    feedback.confidence = negativeScore;
+  }
+  // If mixed or neutral, leave wasPositive undefined
+
+  if (matchedCategories.length > 0) {
+    feedback.matchedCategories = matchedCategories;
+  }
 
   return feedback;
+}
+
+/**
+ * Simple feedback detection (backward compatible)
+ * Returns basic wasPositive without confidence scoring
+ */
+export function detectFeedbackSimple(userResponse: string): Partial<MusicFeedback> {
+  const result = detectFeedbackFromResponse(userResponse);
+  // Strip confidence for backward compatibility
+  const { confidence: _, matchedCategories: __, ...basic } = result;
+  return basic;
 }
 
 // ============================================================================

@@ -15,6 +15,7 @@
  */
 
 import { createLogger } from '../utils/logger.js';
+import { apiPost } from '../utils/api.js';
 
 const log = createLogger('JournalCapture');
 
@@ -300,31 +301,18 @@ export async function saveMomentToJournal(
   twinId: string
 ): Promise<boolean> {
   try {
-    const userId = localStorage.getItem('ferni_user_id');
-    if (!userId) {
-      log.error('No user ID for saving moment');
-      return false;
-    }
-
-    const response = await fetch(`/api/custom-agents/${twinId}/memories`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-User-ID': userId,
-      },
-      body: JSON.stringify({
-        type: 'journalEntry',
-        content: moment.content,
-        context: moment.context,
-        mood: moment.mood,
-        themes: moment.themes,
-        source: 'auto-capture',
-        momentType: moment.type,
-        intensity: moment.intensity,
-        conversationId: moment.conversationId,
-        personaId: moment.personaId,
-        capturedAt: moment.timestamp,
-      }),
+    const response = await apiPost(`/api/custom-agents/${twinId}/memories`, {
+      type: 'journalEntry',
+      content: moment.content,
+      context: moment.context,
+      mood: moment.mood,
+      themes: moment.themes,
+      source: 'auto-capture',
+      momentType: moment.type,
+      intensity: moment.intensity,
+      conversationId: moment.conversationId,
+      personaId: moment.personaId,
+      capturedAt: moment.timestamp,
     });
 
     if (!response.ok) {

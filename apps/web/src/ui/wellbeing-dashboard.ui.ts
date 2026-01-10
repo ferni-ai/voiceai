@@ -10,6 +10,7 @@
 // Design system animation constants available via CSS variables:
 // --duration-normal, --duration-slow, --duration-entrance, --ease-spring, etc.
 import { t } from '../i18n/index.js';
+import { getApiHeadersAsync } from '../utils/api-helpers.js';
 import { createLogger } from '../utils/logger.js';
 
 const log = createLogger('WellbeingDashboard');
@@ -1471,7 +1472,10 @@ function transformApiResponse(
 async function fetchDashboardData(): Promise<DashboardData | null> {
   try {
     const userId = localStorage.getItem('ferni_user_id');
-    const headers: HeadersInit = userId ? { 'X-User-ID': userId } : {};
+    const authHeaders = await getApiHeadersAsync();
+    const headers: HeadersInit = userId
+      ? { ...authHeaders, 'X-User-ID': userId }
+      : authHeaders;
 
     // Fetch dashboard and trends in parallel
     const [dashboardResponse, trendsResponse] = await Promise.all([

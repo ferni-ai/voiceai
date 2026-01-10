@@ -11,6 +11,10 @@
 //!
 //! Expected performance: 3-10x faster than JavaScript regex
 
+// Allow dead_code for comprehensive SSML support structures
+// (fields/variants prepared for future tag type expansion)
+#![allow(dead_code)]
+
 use memchr::memmem;
 use rayon::prelude::*;
 use regex::{Regex, RegexSet};

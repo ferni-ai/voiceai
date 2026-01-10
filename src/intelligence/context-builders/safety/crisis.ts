@@ -22,8 +22,35 @@ import {
   type ContextBuilderInput,
   type ContextInjection,
 } from '../index.js';
+// Crisis hooks for semantic indexing (E2E integration)
+import { onCrisisEpisodeChange } from '../../../services/data-layer/hooks/crisis-hooks.js';
 
 const log = createLogger({ module: 'context:crisis' });
+
+// Helper to record crisis episodes (fire-and-forget)
+async function recordCrisisEpisode(
+  userId: string | undefined,
+  type: string,
+  severity: 'low' | 'moderate' | 'high' | 'critical',
+  description: string,
+  distressLevel: number
+): Promise<void> {
+  if (!userId) return;
+  try {
+    const episodeData = {
+      type,
+      severity,
+      description,
+      distressLevel,
+      detectedAt: new Date(),
+      status: 'active' as const,
+    };
+    await onCrisisEpisodeChange(userId, `crisis_${Date.now()}`, episodeData, 'create');
+    log.info({ userId, type, severity }, '🚨 Crisis episode recorded');
+  } catch (error) {
+    log.warn({ error: String(error) }, 'Failed to record crisis episode (non-fatal)');
+  }
+}
 
 // ============================================================================
 // CRISIS PATTERNS
@@ -162,6 +189,16 @@ function buildCrisisContext(input: ContextBuilderInput): ContextInjection[] {
     (distressLevel >= DISTRESS.ELEVATED || analysis.emotion.primary === 'fear')
   ) {
     log.warn({ distress: distressLevel }, 'MARKET PANIC DETECTED - Critical intervention needed');
+
+    // Record crisis episode (fire-and-forget) for semantic indexing
+    void recordCrisisEpisode(
+      input.userId,
+      'market_panic',
+      distressLevel >= DISTRESS.HIGH ? 'critical' : 'high',
+      'Market panic detected - user expressing fear about selling investments',
+      distressLevel
+    );
+
     injections.push(
       createCriticalInjection(
         'market_panic',
@@ -190,6 +227,16 @@ DO NOT: Promise the market will go up. DO: Promise you'll be here to talk.`,
   for (const { pattern, lossType } of GRIEF_PATTERNS) {
     if (pattern.test(userText) && distressLevel >= DISTRESS.MODERATE) {
       log.info({ lossType, distress: distressLevel }, 'Grief detected');
+
+      // Record grief episode (fire-and-forget) for semantic indexing
+      void recordCrisisEpisode(
+        input.userId,
+        `grief_${lossType}`,
+        distressLevel >= DISTRESS.HIGH ? 'high' : 'moderate',
+        `Grief detected - ${lossType} loss`,
+        distressLevel
+      );
+
       injections.push(
         createCriticalInjection(
           'grief',

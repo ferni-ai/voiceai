@@ -31,8 +31,8 @@ vi.mock('../../services/superhuman/predictive-coaching.js', () => ({
   clearPatternCache: vi.fn().mockResolvedValue(undefined),
 }));
 
-// Mock superhuman observations
-vi.mock('../../conversation/superhuman/superhuman-observations.js', () => ({
+// Mock superhuman observations (now in services layer)
+vi.mock('../../services/superhuman/observations.js', () => ({
   getSuperhumanObservations: vi.fn().mockReturnValue({
     analyzeMessage: vi.fn(),
   }),

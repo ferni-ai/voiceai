@@ -583,13 +583,116 @@ export async function initializeSession(ctx: SessionInitContext): Promise<Sessio
           }
         })(),
 
-        // Phase 6.5: 🔮 PROACTIVE INSIGHT GENERATION - Disabled until UserProfile types extended
-        // TODO: Re-enable when UserProfile includes recentTopics, emotionalTrend, openCommitments, etc.
-        Promise.resolve(),
+        // Phase 6.5: 🔮 PROACTIVE INSIGHT GENERATION - Generate insights from user patterns
+        userId
+          ? (async () => {
+              try {
+                const profile = services.userProfile;
+                if (!profile) return;
 
-        // Phase 6.6: 🧠 PREDICTIVE EMOTIONAL STATE - Disabled until semantic-intelligence modules ready
-        // TODO: Re-enable when temporal-patterns.getPatternPrediction and emotional-trajectories.getEmotionalContext exist
-        Promise.resolve(),
+                // Check for open commitments that need follow-up
+                const openCommitments = profile.openCommitments?.filter(
+                  (c) => c.status === 'open' || c.status === 'in_progress'
+                );
+                if (openCommitments && openCommitments.length > 0) {
+                  const dueCommitments = openCommitments.filter((c) => {
+                    if (!c.dueDate) return false;
+                    const daysUntilDue =
+                      (new Date(c.dueDate).getTime() - Date.now()) / (24 * 60 * 60 * 1000);
+                    return daysUntilDue <= 3 && daysUntilDue >= 0;
+                  });
+
+                  if (dueCommitments.length > 0) {
+                    diag.session('🔮 Proactive insight: commitments due soon', {
+                      userId,
+                      dueCount: dueCommitments.length,
+                      commitments: dueCommitments.map((c) => c.description.slice(0, 50)),
+                    });
+                  }
+                }
+
+                // Check emotional trend for proactive support
+                if (profile.emotionalTrend) {
+                  if (
+                    profile.emotionalTrend.direction === 'declining' &&
+                    profile.emotionalTrend.velocity < -0.3
+                  ) {
+                    diag.session('🔮 Proactive insight: declining emotional trend detected', {
+                      userId,
+                      trend: profile.emotionalTrend.direction,
+                      dominantEmotion: profile.emotionalTrend.dominantEmotion,
+                    });
+                  }
+                }
+
+                // Check recent topics for conversation continuity
+                if (profile.recentTopics && profile.recentTopics.length > 0) {
+                  const frequentTopics = profile.recentTopics.filter((t) => t.frequency >= 3);
+                  if (frequentTopics.length > 0) {
+                    diag.debug('Frequent topics identified for conversation continuity', {
+                      topics: frequentTopics.map((t) => t.topic),
+                    });
+                  }
+                }
+              } catch (insightErr) {
+                diag.debug('Proactive insight generation failed (non-fatal)', {
+                  error: String(insightErr),
+                });
+              }
+            })()
+          : Promise.resolve(),
+
+        // Phase 6.6: 🧠 PREDICTIVE EMOTIONAL STATE - Predict emotional needs from patterns
+        userId
+          ? (async () => {
+              try {
+                const { getPatternPrediction } = await import(
+                  '../../services/superhuman/semantic-intelligence/temporal-patterns.js'
+                );
+                const { getEmotionalContext } = await import(
+                  '../../services/superhuman/semantic-intelligence/emotional-trajectories.js'
+                );
+
+                // Get temporal pattern prediction
+                const patternPrediction = await getPatternPrediction(userId);
+
+                // Get emotional trajectory context
+                const emotionalContext = await getEmotionalContext(userId);
+
+                // Log predictive state for debugging/analytics
+                if (patternPrediction.confidence > 0.5 || emotionalContext.activeArcs.length > 0) {
+                  diag.session('🧠 Predictive emotional state loaded', {
+                    userId,
+                    temporalPrediction: {
+                      mood: patternPrediction.predictedMood,
+                      energy: patternPrediction.predictedEnergy,
+                      confidence: patternPrediction.confidence,
+                      timeContext: patternPrediction.timeContext,
+                    },
+                    emotionalContext: {
+                      activeArcs: emotionalContext.activeArcs.length,
+                      dominantTrajectory: emotionalContext.dominantTrajectory,
+                      trend: emotionalContext.trend,
+                      intensity: emotionalContext.intensity,
+                    },
+                  });
+
+                  // Store predictions in userData for turn processing
+                  if (userData) {
+                    (userData as Record<string, unknown>).predictiveState = {
+                      temporalPrediction: patternPrediction,
+                      emotionalContext,
+                      loadedAt: new Date().toISOString(),
+                    };
+                  }
+                }
+              } catch (predictiveErr) {
+                diag.debug('Predictive emotional state failed (non-fatal)', {
+                  error: String(predictiveErr),
+                });
+              }
+            })()
+          : Promise.resolve(),
 
         // Phase 7: Embedding Cache Precomputation - warm cache for fast semantic search
         (async () => {

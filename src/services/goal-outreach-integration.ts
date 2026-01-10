@@ -15,6 +15,7 @@
 
 import { canReachUser, scheduleEmail, scheduleText } from './outreach/user-contact.js';
 import { getLogger } from '../utils/safe-logger.js';
+import { registerInterval, clearNamedInterval, hasInterval } from '../utils/interval-manager.js';
 import { canSendOutreach, getPreferences } from './outreach-intelligence.js';
 import { createPersistenceStore, type PersistenceStore } from './persistence/index.js';
 import { cleanForFirestore } from '../utils/firestore-utils.js';
@@ -784,44 +785,45 @@ function generateMissedCheckInMessage(daysSinceContact: number, goal: Goal): str
 // SCHEDULED JOBS
 // ============================================================================
 
-let goalCheckInterval: NodeJS.Timeout | null = null;
+const GOAL_MONITORING_INTERVAL = 'goal-outreach-monitoring';
 
 /**
  * Start the goal monitoring background job
  */
 export function startGoalMonitoring(intervalMs: number = 60 * 60 * 1000): void {
-  if (goalCheckInterval) {
+  if (hasInterval(GOAL_MONITORING_INTERVAL)) {
     getLogger().warn('Goal monitoring already running');
     return;
   }
 
   getLogger().info({ intervalMs }, '🎯 Starting goal monitoring');
 
-  goalCheckInterval = setInterval(() => {
-    void (async () => {
-      try {
-        const streakAlerts = await checkAtRiskStreaks();
-        const deadlineAlerts = await checkGoalDeadlines();
+  registerInterval(
+    GOAL_MONITORING_INTERVAL,
+    () => {
+      void (async () => {
+        try {
+          const streakAlerts = await checkAtRiskStreaks();
+          const deadlineAlerts = await checkGoalDeadlines();
 
-        if (streakAlerts > 0 || deadlineAlerts > 0) {
-          getLogger().info({ streakAlerts, deadlineAlerts }, '📊 Goal monitoring cycle complete');
+          if (streakAlerts > 0 || deadlineAlerts > 0) {
+            getLogger().info({ streakAlerts, deadlineAlerts }, '📊 Goal monitoring cycle complete');
+          }
+        } catch (error) {
+          getLogger().error({ error }, 'Goal monitoring error');
         }
-      } catch (error) {
-        getLogger().error({ error }, 'Goal monitoring error');
-      }
-    })();
-  }, intervalMs);
+      })();
+    },
+    intervalMs
+  );
 }
 
 /**
  * Stop the goal monitoring background job
  */
 export function stopGoalMonitoring(): void {
-  if (goalCheckInterval) {
-    clearInterval(goalCheckInterval);
-    goalCheckInterval = null;
-    getLogger().info('Goal monitoring stopped');
-  }
+  clearNamedInterval(GOAL_MONITORING_INTERVAL);
+  getLogger().info('Goal monitoring stopped');
 }
 
 // ============================================================================

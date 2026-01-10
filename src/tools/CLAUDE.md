@@ -106,7 +106,7 @@ tools/
 │   ├── index.ts              # Re-exports all advanced systems
 │   └── tool-lifecycle.ts     # A/B testing, semantic routing integration
 │
-├── domains/                   # Domain-specific tool collections (40+ domains)
+├── domains/                   # Domain-specific tool collections (118 domains)
 │   ├── calendar/             # Calendar tools (Alex)
 │   ├── career/               # Career tools
 │   ├── communication/        # Email, SMS, messaging (Alex)
@@ -125,7 +125,7 @@ tools/
 │   ├── self-compassion/      # Inner critic, self-kindness
 │   ├── wellness/             # Health tracking, medications
 │   ├── wisdom/               # Quotes, principles (Nayan)
-│   └── ...                   # 40+ total domains
+│   └── ...                   # 118 total domains
 │
 ├── factories/                 # Tool factory patterns
 ├── habit-coaching/            # Habit coaching module (split for size)

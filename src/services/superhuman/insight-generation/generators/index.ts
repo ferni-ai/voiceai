@@ -21,6 +21,13 @@ export { dreamDecayGenerator } from './dream-decay.js';
 export { anticipatoryGenerator } from './anticipatory.js';
 export { firstTimeCelebrationGenerator } from './first-time-celebration.js';
 
+// Persona-voiced observations (team members noticing things)
+export {
+  generateObservations as personaVoicedObservations,
+  PERSONA_VOICES,
+  OBSERVATION_TEMPLATES,
+} from './persona-voiced-observations.js';
+
 /**
  * Initialize all generators (import side-effects register them)
  */

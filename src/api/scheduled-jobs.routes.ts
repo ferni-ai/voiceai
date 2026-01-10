@@ -9,6 +9,7 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import { createLogger } from '../utils/safe-logger.js';
+import { handleCleanupOrphanedUploads } from './jobs/cleanup-orphaned-uploads.js';
 
 const log = createLogger({ module: 'ScheduledJobsAPI' });
 
@@ -93,6 +94,13 @@ export async function handleScheduledJobsRoutes(
 
     case '/api/jobs/flush-ml-state':
       await handleFlushMLState(res);
+      return true;
+
+    // ========================================================================
+    // GCS CLEANUP JOBS
+    // ========================================================================
+    case '/api/jobs/cleanup-orphaned-uploads':
+      await handleCleanupOrphanedUploads(res);
       return true;
 
     // ========================================================================

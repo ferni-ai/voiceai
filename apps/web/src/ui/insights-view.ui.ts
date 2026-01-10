@@ -27,6 +27,7 @@ import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { playMicroExpression } from './better-than-human.ui.js';
 import { CHAPTER_ICONS } from './icons/hub-icons.js';
+import { apiGet } from '../utils/api.js';
 
 const log = createLogger('InsightsView');
 const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
@@ -549,10 +550,9 @@ export class InsightsView {
         return;
       }
 
-      const response = await fetch(`/api/insights/${userId}`);
-      if (response.ok) {
-        const data = await response.json();
-        this.update(data);
+      const response = await apiGet<InsightData>(`/api/insights/${userId}`);
+      if (response.ok && response.data) {
+        this.update(response.data);
       }
     } catch (error) {
       log.warn('Failed to load insights', error);

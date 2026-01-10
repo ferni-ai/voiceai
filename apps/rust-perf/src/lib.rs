@@ -1204,8 +1204,8 @@ mod tests {
 
         // Test with 1536-dim vectors (OpenAI embedding size)
         let dim = 1536;
-        let a: Vec<f32> = (0..dim).map(|i| (i as f32 / dim as f32)).collect();
-        let b: Vec<f32> = (0..dim).map(|i| (i as f32 / dim as f32) + 0.1).collect();
+        let a: Vec<f32> = (0..dim).map(|i| i as f32 / dim as f32).collect();
+        let b: Vec<f32> = (0..dim).map(|i| i as f32 / dim as f32 + 0.1).collect();
         let distance = euclidean_distance_f32_impl(&a, &b);
         // Distance should be about sqrt(1536 * 0.1^2) = sqrt(15.36) ≈ 3.92
         assert!(distance > 3.0 && distance < 5.0, "Expected ~3.92, got {}", distance);
@@ -1295,8 +1295,8 @@ mod tests {
     fn test_cosine_similarity_f32_large_vectors() {
         // Test with 1536-dim vectors (OpenAI embedding size)
         let dim = 1536;
-        let a: Vec<f32> = (0..dim).map(|i| (i as f32 / dim as f32)).collect();
-        let b: Vec<f32> = (0..dim).map(|i| (i as f32 / dim as f32)).collect();
+        let a: Vec<f32> = (0..dim).map(|i| i as f32 / dim as f32).collect();
+        let b: Vec<f32> = (0..dim).map(|i| i as f32 / dim as f32).collect();
 
         let similarity = cosine_similarity_f32_impl(&a, &b);
         assert!((similarity - 1.0).abs() < 0.001, "Same vectors should have similarity 1.0, got {}", similarity);
@@ -1306,7 +1306,7 @@ mod tests {
     fn test_find_similar_pairs() {
         // Create 4 embeddings of dimension 8
         // First two are identical, third is similar, fourth is different
-        let dim = 8;
+        let _dim = 8;
         let embeddings: Vec<f32> = vec![
             1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,  // 0: unit vector along x
             1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,  // 1: identical to 0
@@ -1724,11 +1724,8 @@ pub struct TimeSeriesStats {
     pub count: u32,
 }
 
-/// SIMD-accelerated single-pass statistics calculation.
-/// Computes mean, variance, min, max in one pass through the data.
-#[napi]
-pub fn calculate_statistics_f32(values: Float32Array) -> TimeSeriesStats {
-    let data: &[f32] = &values;
+/// Internal implementation of statistics calculation (no NAPI types)
+fn calculate_statistics_f32_impl(data: &[f32]) -> TimeSeriesStats {
     let n = data.len();
 
     if n == 0 {
@@ -1801,6 +1798,14 @@ pub fn calculate_statistics_f32(values: Float32Array) -> TimeSeriesStats {
         max: max_val as f64,
         count: n as u32,
     }
+}
+
+/// SIMD-accelerated single-pass statistics calculation.
+/// Computes mean, variance, min, max in one pass through the data.
+#[napi]
+pub fn calculate_statistics_f32(values: Float32Array) -> TimeSeriesStats {
+    let data: &[f32] = &values;
+    calculate_statistics_f32_impl(data)
 }
 
 /// SIMD-accelerated linear regression (least squares).
@@ -1945,9 +1950,8 @@ pub fn calculate_seasonality_f32(
         };
     }
 
-    // Calculate overall mean using SIMD (need to clone for ownership)
-    let values_copy = Float32Array::new(data.to_vec());
-    let stats = calculate_statistics_f32(values_copy);
+    // Calculate overall mean using SIMD (use internal impl, no NAPI types)
+    let stats = calculate_statistics_f32_impl(data);
     let mean = stats.mean as f32;
 
     let mut best_strength = 0.0f32;
@@ -2030,16 +2034,13 @@ pub fn batch_calculate_statistics_f32(
         current_offset += len as usize;
     }
 
-    // Process in parallel
+    // Process in parallel using internal impl (no NAPI types)
     offsets.par_iter()
         .zip(series_lengths.par_iter())
         .map(|(&offset, &len)| {
             let end = (offset + len as usize).min(data.len());
             let slice = &data[offset..end];
-
-            // Create Float32Array from slice (copy required for napi)
-            let arr: Vec<f32> = slice.to_vec();
-            calculate_statistics_f32(Float32Array::new(arr))
+            calculate_statistics_f32_impl(slice)
         })
         .collect()
 }
@@ -2435,7 +2436,7 @@ pub fn text_semantic_similarity(text1: String, text2: String) -> f64 {
 // MESSAGE ANALYSIS (NLP)
 // ============================================================================
 
-/// Pre-compiled patterns for wrap-up detection
+// Pre-compiled patterns for wrap-up detection
 lazy_static::lazy_static! {
     static ref WRAP_UP_PATTERNS: Vec<Regex> = vec![
         Regex::new(r"(?i)\b(bye|goodbye|see you|talk later|gotta go|have to go|need to go)\b").unwrap(),

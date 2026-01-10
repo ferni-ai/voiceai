@@ -1198,6 +1198,110 @@ export class UnifiedMemoryService {
   }
 
   // ==========================================================================
+  // DIRECT MEMORY ACCESS API - For Deep Signal Extraction
+  // ==========================================================================
+
+  /**
+   * Get a specific memory by ID
+   * Used for deep signal extraction and cleanup operations
+   */
+  async getMemory(
+    userId: string,
+    memoryId: string
+  ): Promise<{
+    id: string;
+    content: string;
+    type: string;
+    timestamp: Date;
+    metadata?: Record<string, unknown>;
+  } | null> {
+    try {
+      const memories = await getUserMemories(userId);
+      const memory = memories.find((m) => m.id === memoryId);
+
+      if (!memory) {
+        log.debug({ userId, memoryId }, 'Memory not found');
+        return null;
+      }
+
+      return {
+        id: memory.id,
+        content: memory.content,
+        type: memory.type,
+        timestamp: memory.timestamp,
+        metadata: {
+          emotionalWeight: memory.emotionalWeight,
+          topics: memory.topics,
+          source: memory.source,
+        },
+      };
+    } catch (error) {
+      log.error({ error: String(error), userId, memoryId }, 'Get memory failed');
+      return null;
+    }
+  }
+
+  /**
+   * Save a memory directly to storage
+   * Used for deep signal extraction and real-time memory capture
+   */
+  async saveMemoryDirect(
+    userId: string,
+    memory: {
+      id?: string;
+      content: string;
+      type: 'fact' | 'preference' | 'event' | 'emotion' | 'commitment' | 'milestone' | 'signal';
+      emotionalWeight?: number;
+      topics?: string[];
+      metadata?: Record<string, unknown>;
+    }
+  ): Promise<{ success: boolean; memoryId: string }> {
+    try {
+      const memoryId = memory.id || `mem_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+
+      // Map type to MemoryItem type
+      const typeMap: Record<
+        string,
+        'summary' | 'moment' | 'topic' | 'commitment' | 'preference' | 'person' | 'event'
+      > = {
+        fact: 'summary',
+        preference: 'preference',
+        event: 'event',
+        emotion: 'moment',
+        commitment: 'commitment',
+        milestone: 'event',
+        signal: 'moment',
+      };
+
+      const memoryItem = {
+        id: memoryId,
+        type: typeMap[memory.type] ?? 'topic',
+        content: memory.content,
+        timestamp: new Date(),
+        emotionalWeight: memory.emotionalWeight ?? 0.5,
+        relevanceDecay: 0,
+        baseImportance: memory.emotionalWeight ?? 0.5,
+        topics: memory.topics,
+        source: { collection: 'memories', documentId: memoryId },
+        metadata: memory.metadata,
+      };
+
+      const saved = await saveMemory(userId, memoryItem, memory.emotionalWeight ?? 0.5);
+
+      if (!saved) {
+        log.warn({ userId, memoryId }, 'Save to storage failed, memory not persisted');
+        return { success: false, memoryId };
+      }
+
+      log.debug({ userId, memoryId, type: memory.type }, 'Memory saved directly');
+      return { success: true, memoryId };
+    } catch (error) {
+      log.error({ error: String(error), userId }, 'Save memory direct failed');
+      return { success: false, memoryId: '' };
+    }
+  }
+
+  // ==========================================================================
   // PRIVATE HELPERS
   // ==========================================================================
 
@@ -1304,4 +1408,43 @@ export function getUnifiedMemoryService(): UnifiedMemoryService {
  */
 export function resetUnifiedMemoryService(): void {
   instance = null;
+}
+
+// ============================================================================
+// CONVENIENCE EXPORTS - For cleanup-handler and deep signal extraction
+// ============================================================================
+
+/**
+ * Get a specific memory by ID
+ * Convenience wrapper around UnifiedMemoryService.getMemory
+ */
+export async function getMemory(
+  userId: string,
+  memoryId: string
+): Promise<{
+  id: string;
+  content: string;
+  type: string;
+  timestamp: Date;
+  metadata?: Record<string, unknown>;
+} | null> {
+  return getUnifiedMemoryService().getMemory(userId, memoryId);
+}
+
+/**
+ * Save a memory directly to storage
+ * Convenience wrapper around UnifiedMemoryService.saveMemoryDirect
+ */
+export async function saveMemoryDirect(
+  userId: string,
+  memory: {
+    id?: string;
+    content: string;
+    type: 'fact' | 'preference' | 'event' | 'emotion' | 'commitment' | 'milestone' | 'signal';
+    emotionalWeight?: number;
+    topics?: string[];
+    metadata?: Record<string, unknown>;
+  }
+): Promise<{ success: boolean; memoryId: string }> {
+  return getUnifiedMemoryService().saveMemoryDirect(userId, memory);
 }

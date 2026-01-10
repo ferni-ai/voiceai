@@ -11,6 +11,7 @@
 
 import type { UserProfile } from '../types/user-profile.js';
 import { getLogger } from '../utils/safe-logger.js';
+import { registerInterval, clearNamedInterval } from '../utils/interval-manager.js';
 
 // Import metrics for observability
 import { persistenceMetrics } from './analytics/persistence-metrics.js';
@@ -581,9 +582,12 @@ export function cleanupIntelligenceEngines(userId: string): void {
 // AUTO-SAVE MANAGER
 // ============================================================================
 
+function getAutoSaveIntervalName(userId: string): string {
+  return `intelligence-auto-save-${userId}`;
+}
+
 interface AutoSaveEntry {
   userId: string;
-  intervalId: ReturnType<typeof setInterval>;
   lastSave: Date;
   saveCallback: (userId: string) => Promise<void>;
 }
@@ -608,24 +612,27 @@ export function startAutoSave(
   // Clear existing auto-save if any
   stopAutoSave(userId);
 
-  const intervalId = setInterval(() => {
-    void (async () => {
-      try {
-        await saveCallback(userId);
-        const entry = autoSaveRegistry.get(userId);
-        if (entry) {
-          entry.lastSave = new Date();
+  registerInterval(
+    getAutoSaveIntervalName(userId),
+    () => {
+      void (async () => {
+        try {
+          await saveCallback(userId);
+          const entry = autoSaveRegistry.get(userId);
+          if (entry) {
+            entry.lastSave = new Date();
+          }
+          getLogger().debug({ userId }, 'Auto-saved intelligence state');
+        } catch (error) {
+          getLogger().warn({ error, userId }, 'Auto-save failed');
         }
-        getLogger().debug({ userId }, 'Auto-saved intelligence state');
-      } catch (error) {
-        getLogger().warn({ error, userId }, 'Auto-save failed');
-      }
-    })();
-  }, mergedConfig.autoSaveIntervalMs);
+      })();
+    },
+    mergedConfig.autoSaveIntervalMs
+  );
 
   autoSaveRegistry.set(userId, {
     userId,
-    intervalId,
     lastSave: new Date(),
     saveCallback,
   });
@@ -639,7 +646,7 @@ export function startAutoSave(
 export function stopAutoSave(userId: string): void {
   const entry = autoSaveRegistry.get(userId);
   if (entry) {
-    clearInterval(entry.intervalId);
+    clearNamedInterval(getAutoSaveIntervalName(userId));
     autoSaveRegistry.delete(userId);
     getLogger().debug({ userId }, 'Stopped auto-save');
   }
@@ -649,8 +656,8 @@ export function stopAutoSave(userId: string): void {
  * Stop all auto-saves (for shutdown)
  */
 export function stopAllAutoSaves(): void {
-  for (const [userId, entry] of autoSaveRegistry.entries()) {
-    clearInterval(entry.intervalId);
+  for (const [userId] of autoSaveRegistry.entries()) {
+    clearNamedInterval(getAutoSaveIntervalName(userId));
     getLogger().debug({ userId }, 'Stopped auto-save during shutdown');
   }
   autoSaveRegistry.clear();

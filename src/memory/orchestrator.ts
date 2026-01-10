@@ -38,10 +38,7 @@ import {
 } from './advanced-retrieval.js';
 
 // Entity Store - Unified Better Than Human memory
-import {
-  isEntityStoreReady,
-  retrieveMemoriesUnified,
-} from './entity-store/integration.js';
+import { isEntityStoreReady, retrieveMemoriesUnified } from './entity-store/integration.js';
 import { getRetrievalExplainer } from './retrieval-explanations.js';
 import { getSessionPrimer } from './session-priming.js';
 import { getUnifiedEmotionalMemory } from './emotional-memory-unified.js';
@@ -676,7 +673,10 @@ export class MemoryOrchestratorImpl implements MemoryOrchestratorInterface {
   private mapEntityTypeToMemoryType(
     entityType: string
   ): 'summary' | 'moment' | 'topic' | 'commitment' | 'preference' | 'person' | 'event' {
-    const typeMap: Record<string, 'summary' | 'moment' | 'topic' | 'commitment' | 'preference' | 'person' | 'event'> = {
+    const typeMap: Record<
+      string,
+      'summary' | 'moment' | 'topic' | 'commitment' | 'preference' | 'person' | 'event'
+    > = {
       person: 'person',
       commitment: 'commitment',
       event: 'event',
@@ -706,10 +706,15 @@ export class MemoryOrchestratorImpl implements MemoryOrchestratorInterface {
 
     switch (attrs._type) {
       case 'person': {
-        const personAttrs = attrs as { relationship?: string; lastKnownStatus?: string; recentContext?: string[] };
+        const personAttrs = attrs as {
+          relationship?: string;
+          lastKnownStatus?: string;
+          recentContext?: string[];
+        };
         if (personAttrs.relationship) parts.push(`(${personAttrs.relationship})`);
         if (personAttrs.lastKnownStatus) parts.push(`- ${personAttrs.lastKnownStatus}`);
-        if (personAttrs.recentContext?.length) parts.push(`Recent: ${personAttrs.recentContext[0]}`);
+        if (personAttrs.recentContext?.length)
+          parts.push(`Recent: ${personAttrs.recentContext[0]}`);
         break;
       }
       case 'commitment': {

@@ -42,7 +42,7 @@ import {
 import {
   type SuperhumanObservationsEngine,
   getSuperhumanObservations,
-} from '../superhuman-observations.js';
+} from '../../../services/superhuman/observations.js';
 import { type TeamCoherenceEngine, getTeamCoherence } from '../team-coherence.js';
 import { type TemporalEmotionalEngine, getTemporalEmotional } from '../temporal-emotional.js';
 

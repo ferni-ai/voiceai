@@ -21,6 +21,11 @@ import {
 } from './helpers.js';
 import { getLogger } from '../utils/safe-logger.js';
 import { cleanForFirestore } from '../utils/firestore-utils.js';
+import {
+  sendEmail,
+  isEmailDeliveryAvailable,
+  generatePersonaEmailHTML,
+} from '../services/outreach/delivery/email-delivery.js';
 
 const log = getLogger().child({ module: 'CustomAgentFeaturesRoutes' });
 
@@ -152,6 +157,68 @@ function generateToken(length = 32): string {
 }
 
 // ============================================================================
+// EMAIL INTEGRATION
+// ============================================================================
+
+/**
+ * Send share invite email to the invited user
+ */
+async function sendShareInviteEmail(
+  invite: ShareInvite,
+  agentName: string,
+  ownerName: string,
+  personalMessage?: string
+): Promise<boolean> {
+  if (!isEmailDeliveryAvailable()) {
+    log.warn({ inviteId: invite.id }, 'Email delivery not available, skipping invite email');
+    return false;
+  }
+
+  try {
+    const accessLink = `https://app.ferni.ai/shared/${invite.accessToken}`;
+    const roleDescription = invite.role === 'contributor'
+      ? 'add memories and contribute to'
+      : 'view and interact with';
+
+    let emailBody = `${ownerName} has invited you to ${roleDescription} their custom Ferni agent "${agentName}".`;
+
+    if (personalMessage) {
+      emailBody += `\n\n"${personalMessage}"`;
+    }
+
+    emailBody += `\n\nThis agent was created to preserve memories and continue meaningful conversations.`;
+    emailBody += `\n\nClick the link below to accept this invitation and start your connection:`;
+
+    const result = await sendEmail({
+      to: invite.email,
+      subject: `${ownerName} invited you to meet ${agentName} on Ferni`,
+      body: emailBody,
+      personaId: 'ferni',
+      userId: invite.ownerId,
+      outreachId: `share-invite-${invite.id}`,
+      preheader: `You've been invited to connect with a special AI companion`,
+      html: generatePersonaEmailHTML('ferni', {
+        body: emailBody,
+        ctaText: 'Accept Invitation',
+        ctaUrl: accessLink,
+        footerNote: `This invitation expires on ${new Date(invite.expiresAt).toLocaleDateString()}.`,
+      }),
+    });
+
+    if (result.success) {
+      log.info({ inviteId: invite.id, email: invite.email, messageId: result.messageId }, 'Share invite email sent');
+    } else {
+      log.error({ inviteId: invite.id, error: result.error }, 'Failed to send share invite email');
+    }
+
+    return result.success;
+  } catch (error) {
+    log.error({ error: String(error), inviteId: invite.id }, 'Error sending share invite email');
+    return false;
+  }
+}
+
+// ============================================================================
 // ROUTE HANDLER
 // ============================================================================
 
@@ -200,10 +267,19 @@ export async function handleCustomAgentFeaturesRoutes(
         email: string;
         role?: 'viewer' | 'contributor';
         message?: string;
+        agentName?: string;
+        ownerName?: string;
       }>(req);
 
       if (!body.agentId || !body.email) {
         sendError(res, 'Missing agentId or email', 400);
+        return true;
+      }
+
+      // Validate email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(body.email)) {
+        sendError(res, 'Invalid email format', 400);
         return true;
       }
 
@@ -222,12 +298,16 @@ export async function handleCustomAgentFeaturesRoutes(
       // Save to Firestore
       await db.collection('share_invites').doc(invite.id).set(cleanForFirestore(invite));
 
-      // In production, send email via SendGrid/Mailgun
-      // For now, just return the invite data
-      log.info({ inviteId: invite.id, email: body.email }, 'Share invite created');
+      // Send email via email-delivery service
+      const agentName = body.agentName || 'Custom Agent';
+      const ownerName = body.ownerName || 'Someone special';
+      const emailSent = await sendShareInviteEmail(invite, agentName, ownerName, body.message);
 
-      // TODO: Integrate with email service
-      // await sendShareInviteEmail(invite, body.message);
+      log.info({
+        inviteId: invite.id,
+        email: body.email,
+        emailSent,
+      }, 'Share invite created');
 
       sendJSON(res, {
         success: true,
@@ -236,8 +316,9 @@ export async function handleCustomAgentFeaturesRoutes(
           email: invite.email,
           role: invite.role,
           expiresAt: invite.expiresAt,
-          // Return access link for now (in production, sent via email)
-          accessLink: `https://app.ferni.ai/shared/${invite.accessToken}`,
+          emailSent,
+          // Access link is sent via email when available, otherwise returned here
+          accessLink: emailSent ? undefined : `https://app.ferni.ai/shared/${invite.accessToken}`,
         },
       });
     } catch (error) {

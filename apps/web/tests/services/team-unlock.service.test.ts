@@ -8,7 +8,7 @@
  * - Backend sync and bypass mode
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Mock localStorage
 const localStorageMock = (() => {
@@ -32,9 +32,17 @@ Object.defineProperty(global, 'localStorage', { value: localStorageMock });
 const mockFetch = vi.fn();
 global.fetch = mockFetch;
 
+// Relationship stage types for proper mocking
+type RelationshipStage =
+  | 'first-meeting'
+  | 'getting-started'
+  | 'building-trust'
+  | 'established'
+  | 'deep-partnership';
+
 // Mock relationship stage service - vi.hoisted to ensure it's available before vi.mock
 const mockStageService = vi.hoisted(() => ({
-  getStage: vi.fn(() => 'first-meeting' as const),
+  getStage: vi.fn((): RelationshipStage => 'first-meeting'),
   getMetrics: vi.fn(() => ({
     totalConversations: 0,
     daysSinceFirstMeeting: 0,
@@ -52,6 +60,17 @@ vi.mock('../../src/services/relationship-stage.service.js', () => ({
 beforeEach(() => {
   vi.clearAllMocks();
   localStorageMock.clear();
+  // CRITICAL: Reset module state between tests to prevent state leakage
+  _resetForTesting();
+
+  // Reset mock stage service to default values
+  mockStageService.getStage.mockReturnValue('first-meeting');
+  mockStageService.getMetrics.mockReturnValue({
+    totalConversations: 0,
+    daysSinceFirstMeeting: 0,
+    currentStreak: 0,
+    longestStreak: 0,
+  });
 
   mockFetch.mockResolvedValue({
     ok: true,
@@ -86,8 +105,8 @@ import {
   isBypassModeActive,
   getBypassMode,
   TEAM_MEMBERS,
+  _resetForTesting,
   type TeamMemberId,
-  type TeamUnlockState,
 } from '../../src/services/team-unlock.service.js';
 
 describe('TeamUnlockService', () => {
@@ -270,14 +289,20 @@ describe('TeamUnlockService', () => {
     });
 
     it('should respect bypass mode', async () => {
-      mockFetch.mockResolvedValueOnce({
+      // Use mockResolvedValue to handle fetchWithRetry retries
+      // Need to mock multiple times since fetchWithRetry may retry on initial response
+      const bypassResponse = {
         ok: true,
         json: () =>
           Promise.resolve({
             bypassMode: 'all',
             tier: 'free',
           }),
-      });
+      };
+      mockFetch
+        .mockResolvedValueOnce(bypassResponse)
+        .mockResolvedValueOnce(bypassResponse)
+        .mockResolvedValueOnce(bypassResponse);
 
       await resyncWithBackend('test-user');
 

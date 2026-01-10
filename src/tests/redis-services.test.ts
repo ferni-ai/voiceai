@@ -19,7 +19,7 @@ const mockRedisCache = {
   set: vi.fn(() => Promise.resolve()),
   setCompressed: vi.fn(() => Promise.resolve()),
   getCompressed: vi.fn(() => Promise.resolve(null)),
-  del: vi.fn(() => Promise.resolve()),
+  delete: vi.fn(() => Promise.resolve(true)), // RedisCache uses 'delete', not 'del'
   getPersonaAffinity: vi.fn(() => Promise.resolve(null)),
   setPersonaAffinity: vi.fn(() => Promise.resolve()),
   getEmotionalState: vi.fn(() => Promise.resolve(null)),
@@ -45,9 +45,8 @@ describe('RedisBackedCache', () => {
   });
 
   it('should initialize with Redis when available', async () => {
-    const { createRedisBackedCache } = await import(
-      '../services/data-layer/memory-cache-manager.js'
-    );
+    const { createRedisBackedCache } =
+      await import('../services/data-layer/memory-cache-manager.js');
 
     const cache = await createRedisBackedCache<string>('test-cache', {
       ttlMs: 60000,
@@ -59,9 +58,8 @@ describe('RedisBackedCache', () => {
   });
 
   it('should get from L1 memory first', async () => {
-    const { createRedisBackedCache } = await import(
-      '../services/data-layer/memory-cache-manager.js'
-    );
+    const { createRedisBackedCache } =
+      await import('../services/data-layer/memory-cache-manager.js');
 
     const cache = await createRedisBackedCache<string>('test-l1', {
       ttlMs: 60000,
@@ -77,9 +75,8 @@ describe('RedisBackedCache', () => {
   });
 
   it('should write to L1 synchronously and provide L2 via async', async () => {
-    const { createRedisBackedCache } = await import(
-      '../services/data-layer/memory-cache-manager.js'
-    );
+    const { createRedisBackedCache } =
+      await import('../services/data-layer/memory-cache-manager.js');
 
     const cache = await createRedisBackedCache<{ name: string }>('test-write', {
       ttlMs: 60000,
@@ -98,9 +95,8 @@ describe('RedisBackedCache', () => {
   });
 
   it('should provide getAsync for L2 lookup', async () => {
-    const { createRedisBackedCache } = await import(
-      '../services/data-layer/memory-cache-manager.js'
-    );
+    const { createRedisBackedCache } =
+      await import('../services/data-layer/memory-cache-manager.js');
 
     const cache = await createRedisBackedCache<{ name: string }>('test-fallback', {
       ttlMs: 60000,
@@ -120,9 +116,8 @@ describe('RedisBackedCache', () => {
   });
 
   it('should delete from L1', async () => {
-    const { createRedisBackedCache } = await import(
-      '../services/data-layer/memory-cache-manager.js'
-    );
+    const { createRedisBackedCache } =
+      await import('../services/data-layer/memory-cache-manager.js');
 
     const cache = await createRedisBackedCache<string>('test-delete', {
       ttlMs: 60000,
@@ -247,9 +242,8 @@ describe('Redis Pub/Sub', () => {
   });
 
   it('should provide convenience publish functions', async () => {
-    const { publishSessionEvent, publishCacheInvalidation, publishInsightsUpdate } = await import(
-      '../services/redis-pubsub.js'
-    );
+    const { publishSessionEvent, publishCacheInvalidation, publishInsightsUpdate } =
+      await import('../services/redis-pubsub.js');
 
     // These should not throw (they gracefully fail if Redis not available)
     await expect(
@@ -287,9 +281,8 @@ describe('Redis Circuit Breaker', () => {
   });
 
   it('should create Redis-backed circuit breaker', async () => {
-    const { createRedisCircuitBreaker } = await import(
-      '../services/self-healing/redis-circuit-breaker.js'
-    );
+    const { createRedisCircuitBreaker } =
+      await import('../services/self-healing/redis-circuit-breaker.js');
 
     const breaker = createRedisCircuitBreaker('test-breaker', {
       failureThreshold: 3,
@@ -301,9 +294,8 @@ describe('Redis Circuit Breaker', () => {
   });
 
   it('should execute functions when circuit is closed', async () => {
-    const { createRedisCircuitBreaker } = await import(
-      '../services/self-healing/redis-circuit-breaker.js'
-    );
+    const { createRedisCircuitBreaker } =
+      await import('../services/self-healing/redis-circuit-breaker.js');
 
     const breaker = createRedisCircuitBreaker('test-execute', {
       failureThreshold: 3,
@@ -314,9 +306,8 @@ describe('Redis Circuit Breaker', () => {
   });
 
   it('should open circuit after failure threshold', async () => {
-    const { createRedisCircuitBreaker } = await import(
-      '../services/self-healing/redis-circuit-breaker.js'
-    );
+    const { createRedisCircuitBreaker } =
+      await import('../services/self-healing/redis-circuit-breaker.js');
 
     const breaker = createRedisCircuitBreaker('test-failures', {
       failureThreshold: 2,
@@ -346,9 +337,8 @@ describe('Redis Circuit Breaker', () => {
   });
 
   it('should provide stats', async () => {
-    const { createRedisCircuitBreaker } = await import(
-      '../services/self-healing/redis-circuit-breaker.js'
-    );
+    const { createRedisCircuitBreaker } =
+      await import('../services/self-healing/redis-circuit-breaker.js');
 
     const breaker = createRedisCircuitBreaker('test-stats', {
       failureThreshold: 5,
@@ -362,9 +352,8 @@ describe('Redis Circuit Breaker', () => {
   });
 
   it('should track all Redis circuit breakers', async () => {
-    const { createRedisCircuitBreaker, getAllRedisCircuitStats } = await import(
-      '../services/self-healing/redis-circuit-breaker.js'
-    );
+    const { createRedisCircuitBreaker, getAllRedisCircuitStats } =
+      await import('../services/self-healing/redis-circuit-breaker.js');
 
     createRedisCircuitBreaker('track-test-1', { failureThreshold: 5 });
     createRedisCircuitBreaker('track-test-2', { failureThreshold: 5 });
@@ -437,9 +426,8 @@ describe('Persona Insights Cache L2', () => {
   });
 
   it('should include L2 status in stats', async () => {
-    const { getInsightsCacheStats } = await import(
-      '../intelligence/context-builders/persona-insights-cache.js'
-    );
+    const { getInsightsCacheStats } =
+      await import('../intelligence/context-builders/persona-insights-cache.js');
 
     const stats = getInsightsCacheStats();
     expect(stats).toHaveProperty('redisL2Enabled');

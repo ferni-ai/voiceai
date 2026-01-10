@@ -17,6 +17,7 @@ const log = createLogger({ module: 'TelephonyExecutor' });
 /** Tools handled by this executor */
 const HANDLED_TOOLS = [
   'reachout', // Unified "Better than Human" outreach (auto-selects channel)
+  'multioutreach', // Multi-target outreach (call/text/email multiple people)
   'callonbehalf',
   'callandconverse', // Personal calls (family, friends)
   'makephonecall', // Voicemail/business calls
@@ -159,6 +160,61 @@ async function execute(
     } catch (error) {
       log.error({ error: String(error), contact, purpose }, '🤝 Unified outreach failed');
       return `I had trouble reaching out to ${contact}. ${error instanceof Error ? error.message : 'Would you like me to try a different way?'}`;
+    }
+  }
+
+  // ========================================
+  // MULTI-OUTREACH - Reach multiple people at once
+  // Supports mixed channels and scheduling
+  // ========================================
+  if (fnLower === 'multioutreach') {
+    const targets = args.targets as Array<{
+      contact: string;
+      purpose?: string;
+      channel?: string;
+      message?: string;
+      scheduledFor?: string;
+    }>;
+    const defaultPurpose = (args.defaultPurpose as string) || 'check in';
+
+    log.info(
+      { userId, targetCount: targets?.length, defaultPurpose },
+      '🤝 Multi-outreach initiated'
+    );
+
+    if (!targets || targets.length === 0) {
+      return 'Who would you like me to reach out to?';
+    }
+
+    try {
+      // Lazy load the multi-outreach tool
+      const { createMultiOutreachTool } =
+        await import('../../../tools/domains/communication/outreach/multi-outreach.js');
+
+      // Create the tool with context
+      const tool = createMultiOutreachTool({
+        userId,
+        agentId: ctx.personaId || 'ferni',
+        agentDisplayName: 'Ferni',
+        services: {
+          has: () => false,
+          get: () => {
+            throw new Error('Service not available');
+          },
+          getOptional: () => undefined,
+        },
+      });
+
+      // Execute the tool
+      const result = await tool.execute({
+        targets,
+        defaultPurpose,
+      });
+
+      return result;
+    } catch (error) {
+      log.error({ error: String(error), targetCount: targets?.length }, '🤝 Multi-outreach failed');
+      return `I had trouble reaching out to those contacts. ${error instanceof Error ? error.message : 'Would you like me to try one at a time?'}`;
     }
   }
 

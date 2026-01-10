@@ -23,6 +23,7 @@ import {
   listMemories,
   type CustomAgent,
 } from '../services/custom-agent.service.js';
+import { apiPost } from '../utils/api.js';
 
 const log = createLogger('TalkToTwinUI');
 
@@ -466,24 +467,19 @@ async function callTwinAPI(
   keyThemes: string[]
 ): Promise<string> {
   try {
-    const response = await fetch('/api/journal/twin-response', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        userMessage,
-        profile,
-        relevantJournals: relevantJournals.map((j) => ({
-          content: j.content,
-          mood: j.mood,
-          date: j.date.toISOString(),
-        })),
-        keyThemes,
-      }),
+    const response = await apiPost<{ response: string }>('/api/journal/twin-response', {
+      userMessage,
+      profile,
+      relevantJournals: relevantJournals.map((j) => ({
+        content: j.content,
+        mood: j.mood,
+        date: j.date.toISOString(),
+      })),
+      keyThemes,
     });
 
-    if (response.ok) {
-      const result = (await response.json()) as { response: string };
-      return result.response;
+    if (response.ok && response.data) {
+      return response.data.response;
     }
   } catch (error) {
     log.warn('Twin API failed, using fallback:', error);

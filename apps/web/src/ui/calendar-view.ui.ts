@@ -14,7 +14,7 @@
 
 import { t } from '../i18n/index.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
-import { apiGet, apiPost } from '../utils/api.js';
+import { apiGet, apiPost, getUserId } from '../utils/api.js';
 import { createLogger } from '../utils/logger.js';
 
 const log = createLogger('CalendarViewUI');
@@ -388,7 +388,8 @@ class CalendarViewUI {
 
     try {
       // Check if Google Calendar is connected (for showing sync status in UI)
-      const statusRes = await apiGet<{ linked?: boolean }>('/auth/google/status');
+      const userId = getUserId();
+      const statusRes = await apiGet<{ linked?: boolean }>(`/auth/google/status?user_id=${encodeURIComponent(userId)}`);
       this.isConnected = statusRes?.data?.linked === true;
 
       // ALWAYS load calendar data - Ferni Calendar is always available!

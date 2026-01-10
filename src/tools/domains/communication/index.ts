@@ -391,6 +391,8 @@ export {
 export {
   createUnifiedOutreachTool,
   getUnifiedOutreachDefinition,
+  createMultiOutreachTool,
+  getMultiOutreachDefinition,
   craftPersonalizedMessage,
   craftConversationOpener,
   getBatchOutreachDefinitions,

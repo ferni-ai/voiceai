@@ -14,6 +14,7 @@
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
+import sharp from 'sharp';
 import { createLogger } from '../../utils/safe-logger.js';
 import { parseBody, sendJSON, sendError } from '../helpers.js';
 import {
@@ -33,6 +34,49 @@ const log = createLogger({ module: 'ShareRoutes' });
 
 const cardStore = new Map<string, ShareableCard>();
 const cardSVGCache = new Map<string, string>();
+const cardPNGCache = new Map<string, Buffer>();
+
+// Cache TTL for PNG images (1 hour)
+const PNG_CACHE_TTL_MS = 60 * 60 * 1000;
+
+// Track cache timestamps
+const pngCacheTimestamps = new Map<string, number>();
+
+/**
+ * Convert SVG to PNG using Sharp
+ */
+async function convertSvgToPng(svg: string, dimensions: { width: number; height: number }): Promise<Buffer> {
+  try {
+    // Convert SVG string to buffer
+    const svgBuffer = Buffer.from(svg);
+
+    // Use sharp to convert SVG to PNG
+    const pngBuffer = await sharp(svgBuffer)
+      .resize(dimensions.width, dimensions.height)
+      .png({
+        quality: 90,
+        compressionLevel: 6,
+      })
+      .toBuffer();
+
+    return pngBuffer;
+  } catch (error) {
+    log.error({ error: String(error) }, 'Failed to convert SVG to PNG');
+    throw error;
+  }
+}
+
+/**
+ * Send PNG image response
+ */
+function sendPNG(res: ServerResponse, buffer: Buffer): void {
+  res.writeHead(200, {
+    'Content-Type': 'image/png',
+    'Content-Length': buffer.length,
+    'Cache-Control': 'public, max-age=3600', // 1 hour
+  });
+  res.end(buffer);
+}
 
 // ============================================================================
 // HELPERS
@@ -166,33 +210,57 @@ function handleGetCardSVG(req: IncomingMessage, res: ServerResponse, cardId: str
 
 /**
  * GET /api/share/cards/:cardId/image
- * Get card as PNG image
- *
- * Note: In production, this would use Sharp or Puppeteer for PNG conversion.
- * For now, we return the SVG with PNG content-type headers that browsers
- * can still render, or use a client-side conversion.
+ * Get card as PNG image using Sharp for conversion
  */
-function handleGetCardImage(req: IncomingMessage, res: ServerResponse, cardId: string): void {
-  const svg = cardSVGCache.get(cardId);
+async function handleGetCardImage(req: IncomingMessage, res: ServerResponse, cardId: string): Promise<void> {
+  try {
+    // Check PNG cache first (with TTL)
+    const cachedPng = cardPNGCache.get(cardId);
+    const cacheTimestamp = pngCacheTimestamps.get(cardId);
 
-  if (!svg) {
-    const card = cardStore.get(cardId);
-    if (card) {
-      const regeneratedSvg = generateCardSVG(card.type, card.data);
-      cardSVGCache.set(cardId, regeneratedSvg);
-      // For now, return SVG (browsers will render it)
-      // TODO: Convert to PNG using Sharp
-      sendSVG(res, regeneratedSvg);
+    if (cachedPng && cacheTimestamp && (Date.now() - cacheTimestamp < PNG_CACHE_TTL_MS)) {
+      sendPNG(res, cachedPng);
       return;
     }
 
-    sendError(res, 'Card not found', 404);
-    return;
-  }
+    // Get the card
+    const card = cardStore.get(cardId);
+    if (!card) {
+      sendError(res, 'Card not found', 404);
+      return;
+    }
 
-  // TODO: Convert SVG to PNG using Sharp
-  // For now, return SVG which works for most use cases
-  sendSVG(res, svg);
+    // Get or generate SVG
+    let svg = cardSVGCache.get(cardId);
+    if (!svg) {
+      svg = generateCardSVG(card.type, card.data);
+      cardSVGCache.set(cardId, svg);
+    }
+
+    // Get dimensions for the card type
+    const dimensions = getCardDimensions(card.type);
+
+    // Convert SVG to PNG
+    const pngBuffer = await convertSvgToPng(svg, dimensions);
+
+    // Cache the PNG
+    cardPNGCache.set(cardId, pngBuffer);
+    pngCacheTimestamps.set(cardId, Date.now());
+
+    log.debug({ cardId, pngSize: pngBuffer.length }, 'PNG generated from SVG');
+
+    sendPNG(res, pngBuffer);
+  } catch (error) {
+    log.error({ error: String(error), cardId }, 'Failed to generate PNG image');
+    // Fallback to SVG if PNG conversion fails
+    const card = cardStore.get(cardId);
+    if (card) {
+      const svg = cardSVGCache.get(cardId) || generateCardSVG(card.type, card.data);
+      sendSVG(res, svg);
+    } else {
+      sendError(res, 'Failed to generate image', 500);
+    }
+  }
 }
 
 /**
@@ -360,7 +428,7 @@ export async function handleShareRoutes(
   // GET /api/share/cards/:cardId/image
   const cardImageMatch = pathname.match(/^\/api\/share\/cards\/([^/]+)\/image$/);
   if (cardImageMatch && method === 'GET') {
-    handleGetCardImage(req, res, cardImageMatch[1]);
+    await handleGetCardImage(req, res, cardImageMatch[1]);
     return true;
   }
 

@@ -111,3 +111,19 @@ export {
   readRelationshipNodes,
   readGuestProfiles,
 } from './migration.js';
+
+// ============================================================================
+// CACHE EXPORTS
+// ============================================================================
+
+export {
+  // Configuration
+  configureEntityCache,
+  // Manual cache operations (for advanced use)
+  invalidateUserCache,
+  invalidateEntity,
+  clearAllEntityCaches,
+  // Metrics
+  getEntityCacheMetrics,
+  resetEntityCacheMetrics,
+} from './entity-cache.js';

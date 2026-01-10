@@ -113,7 +113,7 @@ export async function warmSessionCaches(
         const { getProfileWithCache } = await import('./data-layer/profile-cache.js');
         const { getStore } = await import('../memory/store-factory.js');
         const store = await getStore();
-        const profile = await getProfileWithCache(userId, (uid) => store.getProfile(uid));
+        const profile = await getProfileWithCache(userId, async (uid) => store.getProfile(uid));
         if (profile) {
           warmedCaches.push('user-profile');
         }
@@ -196,9 +196,8 @@ export async function warmSessionCaches(
       name: 'semantic-router',
       fn: async () => {
         try {
-          const { initializeCache } = await import(
-            '../tools/semantic-router/integration/redis-cache.js'
-          );
+          const { initializeCache } =
+            await import('../tools/semantic-router/integration/redis-cache.js');
           await initializeCache();
           warmedCaches.push('semantic-router');
         } catch (error) {
@@ -269,9 +268,8 @@ export async function warmHandoffCaches(
   log.debug({ userId, sessionId, anticipatedPersonaId }, '🔥 Pre-warming handoff caches');
 
   try {
-    const { preloadPersonaInsights } = await import(
-      '../intelligence/context-builders/persona-insights-cache.js'
-    );
+    const { preloadPersonaInsights } =
+      await import('../intelligence/context-builders/persona-insights-cache.js');
 
     // Preload persona insights in background
     await preloadPersonaInsights(sessionId, anticipatedPersonaId, userId, async () => {

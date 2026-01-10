@@ -14,6 +14,7 @@
 
 import { EventEmitter } from 'events';
 import { createLogger } from '../utils/safe-logger.js';
+import { registerInterval, clearNamedInterval } from '../utils/interval-manager.js';
 import {
   scanForCrossPersonaInsights,
   getProactiveInsights,
@@ -44,9 +45,13 @@ export type InsightBroadcastListener = (event: InsightBroadcastEvent) => void;
 class InsightsBroadcast extends EventEmitter {
   private userLastScan = new Map<string, number>();
   private userKnownInsights = new Map<string, Set<string>>(); // userId -> Set of known insight IDs
-  private scanIntervals = new Map<string, NodeJS.Timeout>();
+  private activeUsers = new Set<string>(); // Track which users have active monitoring
   private readonly scanIntervalMs = 5 * 60 * 1000; // 5 minutes
   private readonly minScanGapMs = 60 * 1000; // 1 minute minimum between scans
+
+  private getIntervalName(userId: string): string {
+    return `insights-broadcast-${userId}`;
+  }
 
   constructor() {
     super();
@@ -65,7 +70,7 @@ class InsightsBroadcast extends EventEmitter {
    * Start real-time monitoring for a user
    */
   startMonitoring(userId: string): void {
-    if (this.scanIntervals.has(userId)) {
+    if (this.activeUsers.has(userId)) {
       log.debug({ userId }, 'Already monitoring user');
       return;
     }
@@ -78,22 +83,25 @@ class InsightsBroadcast extends EventEmitter {
     // Do an initial scan
     void this.scanUserInsights(userId);
 
-    // Set up periodic scanning
-    const interval = setInterval(() => {
-      void this.scanUserInsights(userId);
-    }, this.scanIntervalMs);
+    // Set up periodic scanning using managed interval
+    registerInterval(
+      this.getIntervalName(userId),
+      () => {
+        void this.scanUserInsights(userId);
+      },
+      this.scanIntervalMs
+    );
 
-    this.scanIntervals.set(userId, interval);
+    this.activeUsers.add(userId);
   }
 
   /**
    * Stop real-time monitoring for a user
    */
   stopMonitoring(userId: string): void {
-    const interval = this.scanIntervals.get(userId);
-    if (interval) {
-      clearInterval(interval);
-      this.scanIntervals.delete(userId);
+    if (this.activeUsers.has(userId)) {
+      clearNamedInterval(this.getIntervalName(userId));
+      this.activeUsers.delete(userId);
       this.userKnownInsights.delete(userId);
       this.userLastScan.delete(userId);
       log.info({ userId }, 'Stopped insight monitoring');
@@ -218,18 +226,18 @@ class InsightsBroadcast extends EventEmitter {
    * Get monitoring status for a user
    */
   isMonitoring(userId: string): boolean {
-    return this.scanIntervals.has(userId);
+    return this.activeUsers.has(userId);
   }
 
   /**
    * Shutdown all monitoring
    */
   shutdown(): void {
-    for (const [userId, interval] of this.scanIntervals) {
-      clearInterval(interval);
+    for (const userId of this.activeUsers) {
+      clearNamedInterval(this.getIntervalName(userId));
       log.debug({ userId }, 'Stopped monitoring on shutdown');
     }
-    this.scanIntervals.clear();
+    this.activeUsers.clear();
     this.userKnownInsights.clear();
     this.userLastScan.clear();
     this.removeAllListeners();

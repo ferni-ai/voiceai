@@ -56,6 +56,7 @@ export {
 } from './subscription-routes.js';
 export { handleVoicePresenceRoutes } from './voice-presence-routes.js';
 export { handleWellbeingRoutes } from './wellbeing.routes.js';
+export { handleWorkerRoutes } from './worker-routes.js';
 
 // Modular route handlers
 export { handleVoiceAuthRoutes } from './voice-auth.routes.js';

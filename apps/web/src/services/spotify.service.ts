@@ -9,6 +9,7 @@ import type { SpotifyState } from '../types/events.js';
 import { API } from '../config/index.js';
 import { setSpotifyState } from '../state/app.state.js';
 import { createLogger } from '../utils/logger.js';
+import { apiGet } from '../utils/api.js';
 
 const log = createLogger('Spotify');
 
@@ -321,25 +322,23 @@ class SpotifyService {
   private async checkStatus(): Promise<boolean> {
     try {
       const deviceId = localStorage.getItem('voiceai_deviceId') || 'unknown';
-      const response = await fetch(`${API.SPOTIFY_STATUS}?device_id=${encodeURIComponent(deviceId)}`);
-      
-      if (!response.ok) {
+      const response = await apiGet<{
+        spotify_configured: boolean;
+        linked: boolean;
+      }>(`${API.SPOTIFY_STATUS}?device_id=${encodeURIComponent(deviceId)}`);
+
+      if (!response.ok || !response.data) {
         log.debug('Spotify status check failed');
         return false;
       }
 
-      const data = await response.json() as {
-        spotify_configured: boolean;
-        linked: boolean;
-      };
-
       // Only proceed if Spotify is configured AND linked
-      if (!data.spotify_configured) {
+      if (!response.data.spotify_configured) {
         log.debug('Spotify not configured on server');
         return false;
       }
 
-      if (!data.linked) {
+      if (!response.data.linked) {
         log.debug('Spotify not linked for this device');
         return false;
       }
@@ -357,14 +356,15 @@ class SpotifyService {
   private async fetchToken(): Promise<string | null> {
     try {
       const deviceId = localStorage.getItem('voiceai_deviceId') || 'unknown';
-      const response = await fetch(`${API.SPOTIFY_TOKEN}?device_id=${encodeURIComponent(deviceId)}`);
-      if (!response.ok) {
+      const response = await apiGet<SpotifyTokenResponse>(
+        `${API.SPOTIFY_TOKEN}?device_id=${encodeURIComponent(deviceId)}`
+      );
+      if (!response.ok || !response.data) {
         // Don't log warning - status check already determined we should skip
         return null;
       }
 
-      const data = await response.json() as SpotifyTokenResponse;
-      return data.access_token || null;
+      return response.data.access_token || null;
 
     } catch (error) {
       log.debug('Failed to fetch token:', error);

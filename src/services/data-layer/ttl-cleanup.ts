@@ -1,17 +1,22 @@
 /**
- * TTL Cleanup Job
+ * TTL Cleanup Service
  *
- * Scheduled job to purge expired documents from:
- * - Firestore (documents with createdAt older than policy TTL)
- * - Cleans up old data to manage storage costs and search quality
+ * Implements automatic purging of old data based on TTL policies.
+ * This ensures data hygiene and prevents unbounded storage growth.
  *
- * Run with: pnpm ops:ttl-cleanup
+ * Collection TTL policies:
+ * - semantic_intelligence/correlations: 90 days
+ * - semantic_intelligence/threads: 180 days
+ * - outreach/history: 365 days
+ * - user_corrections: 365 days
+ * - persona_interactions: 180 days
+ * - emotional_trajectories: 90 days
+ * - crisis_episodes: never (sensitive, manual only)
  *
  * @module services/data-layer/ttl-cleanup
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { getIndexingPolicy } from './indexing-policy.js';
 
 const log = createLogger({ module: 'TTLCleanup' });
 
@@ -19,335 +24,396 @@ const log = createLogger({ module: 'TTLCleanup' });
 // TYPES
 // ============================================================================
 
-interface CleanupResult {
+export interface TTLConfig {
+  path: string;
+  ttlDays: number;
+  batchSize?: number;
+  description?: string;
+}
+
+export interface CleanupResult {
+  collection: string;
   deleted: number;
-  totalDocsDeleted: number; // Alias for deleted
-  errors: string[];
-  collections: Record<string, number>;
-  results: Array<{ entityType: string; deleted: number }>; // Alias for collections as array
+  errors: number;
   durationMs: number;
 }
 
-interface CollectionConfig {
-  path: string;
-  ttlDays: number;
-  dateField: string;
+export interface CleanupReport {
+  timestamp: Date;
+  results: CleanupResult[];
+  totalDeleted: number;
+  totalErrors: number;
+  durationMs: number;
 }
 
 // ============================================================================
-// DRY RUN FLAG
+// TTL CONFIGURATIONS
 // ============================================================================
 
-const isDryRun = process.env.DRY_RUN === 'true';
+/**
+ * TTL configurations for all collections.
+ * Ordered by shortest TTL first for efficiency.
+ */
+export const TTL_CONFIGS: TTLConfig[] = [
+  // Ephemeral data - short TTL
+  {
+    path: 'emotional_state_cache',
+    ttlDays: 1,
+    description: 'Cached emotional states from sessions',
+  },
+  {
+    path: 'voice_biomarkers',
+    ttlDays: 7,
+    description: 'Voice prosody biomarkers',
+  },
 
-// ============================================================================
-// FIRESTORE ACCESS
-// ============================================================================
+  // Semantic intelligence - medium TTL
+  {
+    path: 'semantic_intelligence/correlations',
+    ttlDays: 90,
+    description: 'Cross-domain correlation patterns',
+  },
+  {
+    path: 'semantic_intelligence/emotional_trajectories',
+    ttlDays: 90,
+    description: 'Emotional arc tracking',
+  },
+  {
+    path: 'semantic_intelligence/temporal_patterns',
+    ttlDays: 90,
+    description: 'Time-based behavior patterns',
+  },
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let _db: any = null;
+  // Session and interaction data - medium TTL
+  {
+    path: 'persona_interactions',
+    ttlDays: 180,
+    description: 'Persona interaction history',
+  },
+  {
+    path: 'semantic_intelligence/threads',
+    ttlDays: 180,
+    description: 'Conversation threads',
+  },
+  {
+    path: 'handoff_history',
+    ttlDays: 180,
+    description: 'Handoff records between personas',
+  },
 
-async function getDb(): Promise<unknown> {
-  if (_db) return _db;
+  // Learning and history - long TTL
+  {
+    path: 'user_corrections',
+    ttlDays: 365,
+    description: 'User corrections for learning',
+  },
+  {
+    path: 'outreach/history',
+    ttlDays: 365,
+    description: 'Outreach attempt history',
+  },
+  {
+    path: 'implicit_preferences',
+    ttlDays: 365,
+    description: 'Learned user preferences',
+  },
 
-  try {
-    // Dynamic import to avoid bundling Firebase in voice agent
-    const firebaseAdmin = await import('firebase-admin');
-
-    if (!firebaseAdmin.default.apps.length) {
-      firebaseAdmin.default.initializeApp();
-    }
-
-    _db = firebaseAdmin.default.firestore();
-    return _db;
-  } catch {
-    log.warn('Firebase not available - TTL cleanup skipped');
-    return null;
-  }
-}
-
-// ============================================================================
-// COLLECTION CONFIGS
-// ============================================================================
-
-function getCollectionConfigs(): CollectionConfig[] {
-  const policy = getIndexingPolicy();
-  const configs: CollectionConfig[] = [];
-
-  // Generate configs from indexing policy
-  for (const entityPolicy of policy.entities) {
-    if (entityPolicy.ttlDays > 0) {
-      configs.push({
-        path: entityPolicy.entityType,
-        ttlDays: entityPolicy.ttlDays,
-        dateField: 'createdAt',
-      });
-    }
-  }
-
-  // Add additional collections not in indexing policy
-  const additionalCollections: CollectionConfig[] = [
-    // Session data (keep 30 days)
-    { path: 'sessions', ttlDays: 30, dateField: 'startedAt' },
-    // Tool executions (keep 90 days for analytics)
-    { path: 'tool_executions', ttlDays: 90, dateField: 'executedAt' },
-    // Voice biomarkers (short-term)
-    { path: 'voice_biomarkers', ttlDays: 30, dateField: 'recordedAt' },
-    // Outreach triggers (keep 30 days)
-    { path: 'outreach_triggers', ttlDays: 30, dateField: 'createdAt' },
-    // Outreach history (keep 180 days)
-    { path: 'outreach_history', ttlDays: 180, dateField: 'sentAt' },
-  ];
-
-  return [...configs, ...additionalCollections];
-}
+  // Note: crisis_episodes and dreams are NOT included
+  // These are sensitive/important and should never be auto-deleted
+];
 
 // ============================================================================
 // CLEANUP FUNCTIONS
 // ============================================================================
 
-async function cleanupCollection(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  db: any,
-  userId: string,
-  config: CollectionConfig
-): Promise<{ deleted: number; error?: string }> {
+/**
+ * Delete documents older than TTL cutoff from a collection
+ */
+async function deleteExpiredDocuments(
+  db: FirebaseFirestore.Firestore,
+  config: TTLConfig
+): Promise<CleanupResult> {
+  const startTime = Date.now();
   const cutoffDate = new Date();
   cutoffDate.setDate(cutoffDate.getDate() - config.ttlDays);
 
+  let deleted = 0;
+  let errors = 0;
+  const batchSize = config.batchSize || 100;
+
   try {
-    const collectionRef = db.collection('bogle_users').doc(userId).collection(config.path);
-
     // Query for old documents
-    const query = collectionRef.where(config.dateField, '<', cutoffDate).limit(500); // Batch size
+    const collectionRef = db.collection(config.path);
+    const query = collectionRef
+      .where('createdAt', '<', cutoffDate)
+      .orderBy('createdAt', 'asc')
+      .limit(batchSize);
 
-    const snapshot = await query.get();
+    // Delete in batches
+    let hasMore = true;
+    while (hasMore) {
+      const snapshot = await query.get();
 
-    if (snapshot.empty) {
-      return { deleted: 0 };
-    }
+      if (snapshot.empty) {
+        hasMore = false;
+        break;
+      }
 
-    let deleted = 0;
-
-    if (isDryRun) {
-      deleted = snapshot.size;
-      log.info(
-        { userId, collection: config.path, count: deleted },
-        '[DRY RUN] Would delete documents'
-      );
-    } else {
-      // Batch delete
+      // Delete batch
       const batch = db.batch();
-      snapshot.docs.forEach((doc: { ref: unknown }) => {
+      snapshot.docs.forEach((doc) => {
         batch.delete(doc.ref);
       });
 
       await batch.commit();
-      deleted = snapshot.size;
+      deleted += snapshot.size;
 
-      log.debug({ userId, collection: config.path, count: deleted }, 'Deleted expired documents');
-    }
+      log.debug({ collection: config.path, deletedBatch: snapshot.size }, 'Deleted batch');
 
-    return { deleted };
-  } catch (error) {
-    return { deleted: 0, error: String(error) };
-  }
-}
-
-async function cleanupUser(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  db: any,
-  userId: string,
-  configs: CollectionConfig[]
-): Promise<{ deleted: number; errors: string[]; collections: Record<string, number> }> {
-  const result = {
-    deleted: 0,
-    errors: [] as string[],
-    collections: {} as Record<string, number>,
-  };
-
-  for (const config of configs) {
-    const cleanupResult = await cleanupCollection(db, userId, config);
-
-    if (cleanupResult.error) {
-      result.errors.push(`${config.path}: ${cleanupResult.error}`);
-    } else {
-      result.deleted += cleanupResult.deleted;
-      if (cleanupResult.deleted > 0) {
-        result.collections[config.path] = cleanupResult.deleted;
+      // Check if there are more documents
+      if (snapshot.size < batchSize) {
+        hasMore = false;
       }
+
+      // Small delay to avoid overwhelming Firestore
+      await new Promise((resolve) => setTimeout(resolve, 100));
     }
+
+    log.info({ collection: config.path, deleted, ttlDays: config.ttlDays }, '✅ TTL cleanup complete');
+  } catch (error) {
+    log.error({ error: String(error), collection: config.path }, 'TTL cleanup failed');
+    errors = 1;
   }
 
-  return result;
+  return {
+    collection: config.path,
+    deleted,
+    errors,
+    durationMs: Date.now() - startTime,
+  };
 }
-
-// ============================================================================
-// MAIN CLEANUP FUNCTION
-// ============================================================================
 
 /**
- * Run TTL cleanup across all users
+ * Run TTL cleanup for all configured collections
  */
 export async function runTTLCleanup(options?: {
-  userIds?: string[];
-  maxUsers?: number;
+  collections?: string[];
   dryRun?: boolean;
-  entityTypes?: string[];
-}): Promise<CleanupResult> {
-  const startTime = performance.now();
-  const db = await getDb();
+}): Promise<CleanupReport> {
+  const startTime = Date.now();
+  const results: CleanupResult[] = [];
+  let totalDeleted = 0;
+  let totalErrors = 0;
 
-  if (!db) {
-    return {
-      deleted: 0,
-      totalDocsDeleted: 0,
-      errors: ['Firestore not available'],
-      collections: {},
-      results: [],
-      durationMs: 0,
-    };
-  }
-
-  const configs = getCollectionConfigs();
-  log.info({ configCount: configs.length, isDryRun }, '🧹 Starting TTL cleanup');
-
-  const result: CleanupResult = {
-    deleted: 0,
-    totalDocsDeleted: 0,
-    errors: [],
-    collections: {},
-    results: [],
-    durationMs: 0,
-  };
+  log.info(
+    { dryRun: options?.dryRun, collections: options?.collections?.length || 'all' },
+    '🧹 Starting TTL cleanup'
+  );
 
   try {
-    let userIds: string[] = options?.userIds ?? [];
-
-    if (userIds.length === 0) {
-      // Get all users
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const usersSnapshot = await (db as any)
-        .collection('bogle_users')
-        .limit(options?.maxUsers || 1000)
-        .get();
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      userIds = usersSnapshot.docs.map((doc: any) => doc.id);
+    // Get Firestore instance
+    const admin = await import('firebase-admin');
+    if (admin.apps.length === 0) {
+      admin.initializeApp();
     }
+    const db = admin.firestore();
 
-    log.info({ userCount: userIds.length }, 'Processing users');
+    // Filter collections if specified
+    const configs = options?.collections
+      ? TTL_CONFIGS.filter((c) => options.collections!.includes(c.path))
+      : TTL_CONFIGS;
 
-    for (const userId of userIds) {
-      const userResult = await cleanupUser(db, userId, configs);
+    if (options?.dryRun) {
+      // Dry run - just count what would be deleted
+      for (const config of configs) {
+        const cutoffDate = new Date();
+        cutoffDate.setDate(cutoffDate.getDate() - config.ttlDays);
 
-      result.deleted += userResult.deleted;
-      result.errors.push(...userResult.errors);
+        try {
+          const snapshot = await db
+            .collection(config.path)
+            .where('createdAt', '<', cutoffDate)
+            .count()
+            .get();
 
-      // Merge collection counts
-      for (const [collection, count] of Object.entries(userResult.collections)) {
-        result.collections[collection] = (result.collections[collection] || 0) + count;
+          const count = snapshot.data().count;
+          results.push({
+            collection: config.path,
+            deleted: count, // Would be deleted
+            errors: 0,
+            durationMs: 0,
+          });
+          totalDeleted += count;
+
+          log.info(
+            { collection: config.path, wouldDelete: count, ttlDays: config.ttlDays },
+            '🔍 Dry run count'
+          );
+        } catch (error) {
+          log.warn(
+            { error: String(error), collection: config.path },
+            'Dry run count failed (collection may not exist)'
+          );
+          results.push({
+            collection: config.path,
+            deleted: 0,
+            errors: 1,
+            durationMs: 0,
+          });
+          totalErrors++;
+        }
+      }
+    } else {
+      // Actual cleanup
+      for (const config of configs) {
+        const result = await deleteExpiredDocuments(db, config);
+        results.push(result);
+        totalDeleted += result.deleted;
+        totalErrors += result.errors;
       }
     }
   } catch (error) {
-    result.errors.push(String(error));
-    log.error({ error: String(error) }, 'TTL cleanup failed');
+    log.error({ error: String(error) }, 'TTL cleanup initialization failed');
+    totalErrors++;
   }
 
-  result.durationMs = Math.round(performance.now() - startTime);
-
-  // Add aliases for backward compatibility
-  result.totalDocsDeleted = result.deleted;
-  result.results = Object.entries(result.collections).map(([entityType, deleted]) => ({
-    entityType,
-    deleted,
-  }));
+  const report: CleanupReport = {
+    timestamp: new Date(),
+    results,
+    totalDeleted,
+    totalErrors,
+    durationMs: Date.now() - startTime,
+  };
 
   log.info(
     {
-      deleted: result.deleted,
-      errors: result.errors.length,
-      durationMs: result.durationMs,
-      isDryRun,
+      totalDeleted,
+      totalErrors,
+      durationMs: report.durationMs,
+      collections: results.length,
     },
-    '🧹 TTL cleanup completed'
+    '🧹 TTL cleanup complete'
   );
 
-  return result;
+  return report;
 }
 
 /**
- * Scheduled entry point (called by Cloud Scheduler or cron)
+ * Run TTL cleanup for a single user's data
+ * Useful for GDPR deletion requests
  */
-export async function scheduledTTLCleanup(): Promise<void> {
-  log.info('Starting scheduled TTL cleanup');
+export async function runUserDataCleanup(userId: string): Promise<CleanupReport> {
+  const startTime = Date.now();
+  const results: CleanupResult[] = [];
+  let totalDeleted = 0;
+  let totalErrors = 0;
 
-  const result = await runTTLCleanup();
+  log.info({ userId }, '🧹 Starting user data cleanup');
 
-  if (result.errors.length > 0) {
-    log.warn({ errors: result.errors }, 'TTL cleanup had errors');
-  }
-
-  // Log summary
-  console.log('\n=== TTL Cleanup Summary ===');
-  console.log(`Total deleted: ${result.deleted}`);
-  console.log(`Duration: ${result.durationMs}ms`);
-  console.log(`Errors: ${result.errors.length}`);
-
-  if (Object.keys(result.collections).length > 0) {
-    console.log('\nBy collection:');
-    for (const [collection, count] of Object.entries(result.collections)) {
-      console.log(`  ${collection}: ${count}`);
+  try {
+    const admin = await import('firebase-admin');
+    if (admin.apps.length === 0) {
+      admin.initializeApp();
     }
+    const db = admin.firestore();
+
+    // Collections that store user data
+    const userCollections = [
+      'users',
+      'memories',
+      'semantic_intelligence',
+      'outreach',
+      'persona_affinities',
+      'user_corrections',
+      'dreams',
+      'commitments',
+      'contacts',
+    ];
+
+    for (const collection of userCollections) {
+      try {
+        // Query for user's documents
+        const snapshot = await db
+          .collection(collection)
+          .where('userId', '==', userId)
+          .limit(500)
+          .get();
+
+        if (!snapshot.empty) {
+          const batch = db.batch();
+          snapshot.docs.forEach((doc) => {
+            batch.delete(doc.ref);
+          });
+          await batch.commit();
+
+          results.push({
+            collection,
+            deleted: snapshot.size,
+            errors: 0,
+            durationMs: 0,
+          });
+          totalDeleted += snapshot.size;
+
+          log.info({ collection, deleted: snapshot.size, userId }, 'User data deleted');
+        }
+      } catch (error) {
+        log.warn({ error: String(error), collection, userId }, 'User data deletion failed');
+        results.push({
+          collection,
+          deleted: 0,
+          errors: 1,
+          durationMs: 0,
+        });
+        totalErrors++;
+      }
+    }
+  } catch (error) {
+    log.error({ error: String(error), userId }, 'User data cleanup initialization failed');
+    totalErrors++;
   }
 
-  if (result.errors.length > 0) {
-    console.log('\nErrors:');
-    result.errors.forEach((e) => console.log(`  - ${e}`));
-  }
-}
-
-// ============================================================================
-// TTL STATISTICS (for API endpoints)
-// ============================================================================
-
-export interface TTLStatistic {
-  ttlDays: number | null;
-  expirationDate: string | null;
+  return {
+    timestamp: new Date(),
+    results,
+    totalDeleted,
+    totalErrors,
+    durationMs: Date.now() - startTime,
+  };
 }
 
 /**
- * Get TTL statistics for all entity types
- * Used by health endpoints and APIs
+ * Schedule daily TTL cleanup (for Cloud Scheduler or cron)
+ * Alias: scheduledTTLCleanup for backwards compatibility
  */
-export function getTTLStatistics(): Record<string, TTLStatistic> {
-  const configs = getCollectionConfigs();
-  const stats: Record<string, TTLStatistic> = {};
-
-  for (const config of configs) {
-    stats[config.path] = {
-      ttlDays: config.ttlDays,
-      expirationDate:
-        config.ttlDays > 0
-          ? new Date(Date.now() - config.ttlDays * 24 * 60 * 60 * 1000).toISOString()
-          : null,
-    };
-  }
-
-  return stats;
+export function scheduleTTLCleanup(): void {
+  // This is called at startup if running as a standalone service
+  // In production, use Cloud Scheduler to call runTTLCleanup() daily
+  log.info('TTL cleanup service ready. Schedule via Cloud Scheduler for daily execution.');
 }
 
-// ============================================================================
-// CLI ENTRY POINT
-// ============================================================================
+// Alias for backwards compatibility with data-layer/index.ts
+export const scheduledTTLCleanup = scheduleTTLCleanup;
 
-if (process.argv[1]?.includes('ttl-cleanup')) {
-  scheduledTTLCleanup()
-    .then(() => process.exit(0))
-    .catch((error) => {
-      console.error('TTL cleanup failed:', error);
-      process.exit(1);
-    });
+/**
+ * Get statistics about TTL cleanup status
+ */
+export async function getTTLStatistics(): Promise<{
+  collections: number;
+  configured: Array<{ path: string; ttlDays: number }>;
+  lastRun?: Date;
+}> {
+  return {
+    collections: TTL_CONFIGS.length,
+    configured: TTL_CONFIGS.map((c) => ({ path: c.path, ttlDays: c.ttlDays })),
+    lastRun: undefined, // Would need to track in Firestore for persistence
+  };
 }
 
-export default runTTLCleanup;
+export default {
+  runTTLCleanup,
+  runUserDataCleanup,
+  scheduleTTLCleanup,
+  scheduledTTLCleanup,
+  getTTLStatistics,
+  TTL_CONFIGS,
+};

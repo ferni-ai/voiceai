@@ -42,9 +42,15 @@ const ICONS = {
   // 💚 "Our Song" heart - filled to indicate shared memory
   ourSong:
     '<svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>',
+  // 🤍 Heart outline for favorite button (unfilled)
+  heartOutline:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>',
   // ✖️ Close/dismiss button
   close:
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
+  // 📜 History/list icon for recently played
+  history:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
 };
 
 // ============================================================================
@@ -64,6 +70,8 @@ export interface NowPlayingCallbacks {
   onSkip?: () => void;
   onPause?: () => void;
   onResume?: () => void;
+  onVolumeChange?: (volume: number) => void;
+  onFavorite?: (track: NowPlayingTrack) => void;
 }
 
 // ============================================================================
@@ -89,6 +97,9 @@ class NowPlayingUI {
   private absoluteMaxTimeoutId: ReturnType<typeof setTimeout> | null = null;
   // 🎧 Auto-collapse timer - collapses to compact mode after showing full info
   private autoCollapseTimeoutId: ReturnType<typeof setTimeout> | null = null;
+  // 📜 Track history - stores recently played tracks for the history drawer
+  private trackHistory: Array<NowPlayingTrack & { playedAt: number }> = [];
+  private static readonly MAX_HISTORY_SIZE = 20;
   // Default track duration fallback (35 seconds - just over typical 30s preview)
   // Tighter timing so card hides promptly when 'stopped' message is missed
   private static readonly SAFETY_HIDE_DELAY_MS = 35000;
@@ -136,6 +147,7 @@ class NowPlayingUI {
 
     this.currentTrack = track;
     this.startTime = Date.now();
+    this.addToHistory(track);
     this.updateTrackInfo();
     this.startWaveformAnimation();
     this.startProgressTracking();
@@ -622,8 +634,62 @@ class NowPlayingUI {
         flex: 1;
         min-width: 0;
         overflow: hidden;
+        position: relative;
+        cursor: pointer;
       }
-      
+
+      /* 📝 Track info tooltip - shows full info when text is truncated */
+      .now-playing__info-tooltip {
+        position: absolute;
+        bottom: calc(100% + var(--space-2));
+        left: 50%;
+        transform: translateX(-50%);
+        background: var(--color-background-elevated);
+        border-radius: var(--radius-md);
+        padding: var(--space-2) var(--space-3);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        white-space: nowrap;
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+        transition: opacity var(--duration-fast) ease, visibility var(--duration-fast) ease;
+        z-index: var(--z-tooltip, 1000);
+        max-width: 280px;
+      }
+
+      .now-playing__info-tooltip::after {
+        content: '';
+        position: absolute;
+        top: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+        border: 6px solid transparent;
+        border-top-color: var(--color-background-elevated);
+      }
+
+      .now-playing__info:hover .now-playing__info-tooltip,
+      .now-playing__info:focus .now-playing__info-tooltip {
+        opacity: 1;
+        visibility: visible;
+      }
+
+      .now-playing__info-tooltip-track {
+        font-size: 0.8125rem;
+        font-weight: 600;
+        color: var(--color-text-primary);
+        margin: 0;
+        white-space: normal;
+        word-break: break-word;
+      }
+
+      .now-playing__info-tooltip-artist {
+        font-size: 0.75rem;
+        color: var(--color-text-secondary);
+        margin: var(--space-1) 0 0 0;
+        white-space: normal;
+        word-break: break-word;
+      }
+
       .now-playing__track {
         font-size: 0.8125rem;
         font-weight: 500;
@@ -704,33 +770,175 @@ class NowPlayingUI {
       .now-playing--paused .now-playing__bar {
         height: 3px !important;
       }
-      
-      /* Hide music icon, show play icon when paused */
-      .now-playing--paused .now-playing__icon--music {
+
+      /* Play/Pause button visibility logic:
+         - Default (playing): Show pause button, hide play button and music icon
+         - Paused: Show play button, hide pause button and music icon */
+
+      /* Hide music icon by default when controls are active */
+      .now-playing__icon--music {
         display: none;
       }
-      
+
+      /* Pause button - shown by default (when playing) */
+      .now-playing__icon--pause {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+      }
+
+      .now-playing__icon--pause:hover {
+        background: var(--color-accent);
+        color: var(--color-text-on-accent, #fff);
+        transform: scale(1.05);
+      }
+
+      .now-playing__icon--pause:active {
+        transform: scale(0.95);
+      }
+
+      /* Play button - hidden by default */
       .now-playing__icon--play {
         display: none;
       }
-      
+
+      /* When paused: hide pause, show play */
+      .now-playing--paused .now-playing__icon--pause {
+        display: none;
+      }
+
       .now-playing--paused .now-playing__icon--play {
         display: flex;
         align-items: center;
         justify-content: center;
         cursor: pointer;
       }
-      
+
       .now-playing--paused .now-playing__icon--play:hover {
         background: var(--color-accent);
         color: var(--color-text-on-accent, #fff);
         transform: scale(1.05);
       }
-      
+
       .now-playing--paused .now-playing__icon--play:active {
         transform: scale(0.95);
       }
       
+      /* 🎛️ Controls container (favorite, skip, volume) */
+      .now-playing__controls {
+        display: flex;
+        align-items: center;
+        gap: var(--space-1);
+        flex-shrink: 0;
+      }
+
+      .now-playing__btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 28px;
+        padding: 0;
+        border: none;
+        border-radius: var(--radius-md);
+        background: transparent;
+        color: var(--color-text-secondary);
+        cursor: pointer;
+        transition: background var(--duration-fast) ease,
+                    color var(--duration-fast) ease,
+                    transform var(--duration-fast) ease;
+      }
+
+      .now-playing__btn svg {
+        width: 14px;
+        height: 14px;
+      }
+
+      .now-playing__btn:hover {
+        background: var(--color-background-hover, rgba(0,0,0,0.05));
+        color: var(--color-text-primary);
+      }
+
+      .now-playing__btn:active {
+        transform: scale(0.92);
+      }
+
+      /* ❤️ Favorite button */
+      .now-playing__btn--favorite:hover {
+        color: var(--color-semantic-error, #e74c3c);
+      }
+
+      .now-playing__btn--favorite.is-favorite {
+        color: var(--color-semantic-error, #e74c3c);
+      }
+
+      .now-playing__btn--favorite.is-favorite svg {
+        fill: currentColor;
+      }
+
+      /* ⏭️ Skip button */
+      .now-playing__btn--skip:hover {
+        color: var(--persona-primary, #4a6741);
+      }
+
+      /* 📜 History button */
+      .now-playing__btn--history:hover {
+        color: var(--color-accent-primary, #4a6741);
+      }
+
+      /* 🔊 Volume control */
+      .now-playing__volume-control {
+        position: relative;
+        display: flex;
+        align-items: center;
+      }
+
+      .now-playing__volume-slider {
+        position: absolute;
+        right: 100%;
+        margin-right: var(--space-1);
+        width: 0;
+        height: 4px;
+        opacity: 0;
+        pointer-events: none;
+        transition: width var(--duration-normal) ease, opacity var(--duration-fast) ease;
+        appearance: none;
+        background: var(--color-border);
+        border-radius: 2px;
+        cursor: pointer;
+      }
+
+      .now-playing__volume-control:hover .now-playing__volume-slider,
+      .now-playing__volume-slider:focus {
+        width: 60px;
+        opacity: 1;
+        pointer-events: auto;
+      }
+
+      .now-playing__volume-slider::-webkit-slider-thumb {
+        appearance: none;
+        width: 12px;
+        height: 12px;
+        background: var(--persona-primary, #4a6741);
+        border-radius: 50%;
+        cursor: pointer;
+      }
+
+      .now-playing__volume-slider::-moz-range-thumb {
+        width: 12px;
+        height: 12px;
+        background: var(--persona-primary, #4a6741);
+        border-radius: 50%;
+        border: none;
+        cursor: pointer;
+      }
+
+      /* Hide controls in collapsed mode */
+      .now-playing--collapsed .now-playing__controls {
+        display: none;
+      }
+
       /* State: Changing (DJ crossfade) */
       .now-playing--changing {
         animation: now-playing-crossfade 1.2s ease-in-out;
@@ -953,6 +1161,8 @@ class NowPlayingUI {
     this.container.setAttribute('aria-live', 'polite');
     this.container.setAttribute('aria-label', 'Now playing');
 
+    // Note: innerHTML is safe here - all content comes from static ICONS constants
+    // defined in this file, not from untrusted user input
     this.container.innerHTML = `
       <button class="now-playing__dismiss" aria-label="${t('accessibility.dismiss')}" title="${t('accessibility.dismiss')}">
         ${ICONS.close}
@@ -960,12 +1170,36 @@ class NowPlayingUI {
       <div class="now-playing__icon now-playing__icon--music">
         ${ICONS.music}
       </div>
+      <div class="now-playing__icon now-playing__icon--pause" role="button" tabindex="0" aria-label="${t('accessibility.pause')}" title="Pause music">
+        ${ICONS.pause}
+      </div>
       <div class="now-playing__icon now-playing__icon--play" role="button" tabindex="0" aria-label="${t('accessibility.play')}" title="Resume playback">
         ${ICONS.play}
       </div>
-      <div class="now-playing__info">
+      <div class="now-playing__info" tabindex="0" role="button" aria-label="Track info (hover for full details)">
         <p class="now-playing__track">Loading...</p>
         <p class="now-playing__artist"></p>
+        <div class="now-playing__info-tooltip">
+          <p class="now-playing__info-tooltip-track"></p>
+          <p class="now-playing__info-tooltip-artist"></p>
+        </div>
+      </div>
+      <div class="now-playing__controls">
+        <button class="now-playing__btn now-playing__btn--favorite" role="button" tabindex="0" aria-label="Add to favorites" title="Add to favorites">
+          ${ICONS.heartOutline}
+        </button>
+        <button class="now-playing__btn now-playing__btn--skip" role="button" tabindex="0" aria-label="Skip track" title="Skip to next track">
+          ${ICONS.skipForward}
+        </button>
+        <div class="now-playing__volume-control">
+          <button class="now-playing__btn now-playing__btn--volume" role="button" tabindex="0" aria-label="Volume" title="Adjust volume">
+            ${ICONS.volume}
+          </button>
+          <input type="range" class="now-playing__volume-slider" min="0" max="100" value="70" aria-label="Volume slider" />
+        </div>
+        <button class="now-playing__btn now-playing__btn--history" role="button" tabindex="0" aria-label="Recently played" title="View recently played">
+          ${ICONS.history}
+        </button>
       </div>
       <div class="now-playing__our-song" title="${t('titles.sharedSong')}" aria-label="${t('accessibility.sharedMusicalMemory')}">
         ${ICONS.ourSong}
@@ -1023,6 +1257,29 @@ class NowPlayingUI {
       });
     }
 
+    // ⏸️ Pause button (visible when playing) - triggers pause callback
+    const pauseBtn = this.container.querySelector('.now-playing__icon--pause');
+    if (pauseBtn) {
+      pauseBtn.addEventListener('click', (e) => {
+        e.stopPropagation(); // Don't trigger expand
+        log.debug('Pause button clicked - pausing playback');
+        if (this._callbacks.onPause) {
+          this._callbacks.onPause();
+        }
+      });
+      // Also handle keyboard activation for accessibility
+      pauseBtn.addEventListener('keydown', (e) => {
+        if ((e as KeyboardEvent).key === 'Enter' || (e as KeyboardEvent).key === ' ') {
+          e.preventDefault();
+          e.stopPropagation();
+          log.debug('Pause button activated via keyboard - pausing playback');
+          if (this._callbacks.onPause) {
+            this._callbacks.onPause();
+          }
+        }
+      });
+    }
+
     // ▶️ Play button (visible when paused) - triggers resume callback
     const playBtn = this.container.querySelector('.now-playing__icon--play');
     if (playBtn) {
@@ -1046,6 +1303,97 @@ class NowPlayingUI {
       });
     }
 
+    // ⏭️ Skip button - triggers skip callback
+    const skipBtn = this.container.querySelector('.now-playing__btn--skip');
+    if (skipBtn) {
+      skipBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        log.debug('Skip button clicked');
+        if (this._callbacks.onSkip) {
+          this._callbacks.onSkip();
+        }
+      });
+    }
+
+    // ❤️ Favorite button - triggers favorite callback and toggles state
+    const favoriteBtn = this.container.querySelector('.now-playing__btn--favorite');
+    if (favoriteBtn) {
+      favoriteBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isFavorite = favoriteBtn.classList.toggle('is-favorite');
+        log.debug('Favorite button clicked', { isFavorite, track: this.currentTrack?.name });
+        if (this._callbacks.onFavorite && this.currentTrack) {
+          this._callbacks.onFavorite(this.currentTrack);
+        }
+        // Update button label for accessibility
+        favoriteBtn.setAttribute(
+          'aria-label',
+          isFavorite ? 'Remove from favorites' : 'Add to favorites'
+        );
+        favoriteBtn.setAttribute(
+          'title',
+          isFavorite ? 'Remove from favorites' : 'Add to favorites'
+        );
+      });
+    }
+
+    // 🔊 Volume slider - triggers volume change callback
+    const volumeSlider = this.container.querySelector<HTMLInputElement>('.now-playing__volume-slider');
+    const volumeBtn = this.container.querySelector('.now-playing__btn--volume');
+    if (volumeSlider) {
+      volumeSlider.addEventListener('input', (e) => {
+        e.stopPropagation();
+        const volume = parseInt((e.target as HTMLInputElement).value, 10);
+        log.debug('Volume changed', { volume });
+        if (this._callbacks.onVolumeChange) {
+          this._callbacks.onVolumeChange(volume);
+        }
+        // Update volume icon based on level
+        if (volumeBtn) {
+          volumeBtn.innerHTML = volume === 0 ? ICONS.volumeMuted : ICONS.volume;
+        }
+      });
+    }
+
+    // 🔇 Volume button click - toggle mute
+    if (volumeBtn && volumeSlider) {
+      let lastVolume = 70; // Remember last non-zero volume for unmute
+      volumeBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const currentVolume = parseInt(volumeSlider.value, 10);
+        if (currentVolume > 0) {
+          // Mute: save current volume and set to 0
+          lastVolume = currentVolume;
+          volumeSlider.value = '0';
+          volumeBtn.innerHTML = ICONS.volumeMuted;
+          log.debug('Volume muted');
+          if (this._callbacks.onVolumeChange) {
+            this._callbacks.onVolumeChange(0);
+          }
+        } else {
+          // Unmute: restore last volume
+          volumeSlider.value = String(lastVolume);
+          volumeBtn.innerHTML = ICONS.volume;
+          log.debug('Volume unmuted', { volume: lastVolume });
+          if (this._callbacks.onVolumeChange) {
+            this._callbacks.onVolumeChange(lastVolume);
+          }
+        }
+      });
+    }
+
+    // 📜 History button - opens the music history drawer
+    const historyBtn = this.container.querySelector('.now-playing__btn--history');
+    if (historyBtn) {
+      historyBtn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        log.debug('History button clicked');
+        // Dynamically import to avoid circular dependency
+        const { musicHistoryUI } = await import('./music-history.ui.js');
+        musicHistoryUI.toggle();
+      });
+    }
+
     document.body.appendChild(this.container);
   }
 
@@ -1061,6 +1409,16 @@ class NowPlayingUI {
     }
     if (artistEl) {
       artistEl.textContent = this.currentTrack.artist;
+    }
+
+    // 📋 Tooltip with full track info (shows on hover when text is truncated)
+    const tooltipTrack = this.container.querySelector('.now-playing__info-tooltip-track');
+    const tooltipArtist = this.container.querySelector('.now-playing__info-tooltip-artist');
+    if (tooltipTrack) {
+      tooltipTrack.textContent = this.currentTrack.name;
+    }
+    if (tooltipArtist) {
+      tooltipArtist.textContent = this.currentTrack.artist;
     }
 
     // 💚 "Our Song" indicator - shows a heart for shared musical memories
@@ -1264,6 +1622,54 @@ class NowPlayingUI {
     this.isCollapsed = false;
     this._currentState = 'idle';
   }
+
+  // ============================================================================
+  // TRACK HISTORY
+  // ============================================================================
+
+  /**
+   * Add a track to the history (called when a new track starts playing)
+   */
+  private addToHistory(track: NowPlayingTrack): void {
+    // Don't add duplicates if the same track is played again within 1 minute
+    const lastTrack = this.trackHistory[0];
+    if (
+      lastTrack &&
+      lastTrack.name === track.name &&
+      lastTrack.artist === track.artist &&
+      Date.now() - lastTrack.playedAt < 60000
+    ) {
+      return;
+    }
+
+    // Add to beginning of history with timestamp
+    this.trackHistory.unshift({
+      ...track,
+      playedAt: Date.now(),
+    });
+
+    // Trim to max size
+    if (this.trackHistory.length > NowPlayingUI.MAX_HISTORY_SIZE) {
+      this.trackHistory = this.trackHistory.slice(0, NowPlayingUI.MAX_HISTORY_SIZE);
+    }
+
+    log.debug({ trackCount: this.trackHistory.length }, 'Track added to history');
+  }
+
+  /**
+   * Get the track history (most recent first)
+   */
+  getHistory(): Array<NowPlayingTrack & { playedAt: number }> {
+    return [...this.trackHistory];
+  }
+
+  /**
+   * Clear the track history
+   */
+  clearHistory(): void {
+    this.trackHistory = [];
+    log.debug('Track history cleared');
+  }
 }
 
 // ============================================================================
@@ -1295,6 +1701,9 @@ export const nowPlayingUI = {
   hide: () => getNowPlayingUI().hide(),
   updateState: (state: MusicPlaybackState) => getNowPlayingUI().updateState(state),
   setCallbacks: (callbacks: NowPlayingCallbacks) => getNowPlayingUI().setCallbacks(callbacks),
+  // 📜 Track history methods
+  getHistory: () => getNowPlayingUI().getHistory(),
+  clearHistory: () => getNowPlayingUI().clearHistory(),
 };
 
 export default nowPlayingUI;

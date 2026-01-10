@@ -173,6 +173,7 @@ pub struct CacheStats {
 }
 
 /// Batch hash computation for multiple texts
+#[allow(dead_code)]
 pub fn batch_hash_texts(texts: &[String]) -> Vec<[u8; 32]> {
     texts
         .iter()

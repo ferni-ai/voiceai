@@ -14,6 +14,7 @@
  */
 
 import pino from 'pino';
+import { registerInterval, clearNamedInterval, hasInterval } from '../../utils/interval-manager.js';
 
 const log = pino({ name: 'voice-rate-limit' });
 
@@ -471,18 +472,15 @@ function cleanup(): void {
 }
 
 // Start cleanup interval
-let cleanupInterval: ReturnType<typeof setInterval> | null = null;
+const VOICE_RATE_LIMIT_CLEANUP_INTERVAL = 'voice-rate-limit-cleanup';
 
 export function startCleanup(): void {
-  if (cleanupInterval) return;
-  cleanupInterval = setInterval(cleanup, CLEANUP_INTERVAL_MS);
+  if (hasInterval(VOICE_RATE_LIMIT_CLEANUP_INTERVAL)) return;
+  registerInterval(VOICE_RATE_LIMIT_CLEANUP_INTERVAL, cleanup, CLEANUP_INTERVAL_MS);
 }
 
 export function stopCleanup(): void {
-  if (cleanupInterval) {
-    clearInterval(cleanupInterval);
-    cleanupInterval = null;
-  }
+  clearNamedInterval(VOICE_RATE_LIMIT_CLEANUP_INTERVAL);
 }
 
 // Auto-start cleanup

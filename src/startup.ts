@@ -194,6 +194,18 @@ export async function startup(): Promise<AppConfig> {
   logger.info('Starting schedulers...');
   startReminderScheduler(60000); // Check every minute
   startProactiveScheduler({ checkIntervalMs: 300000 }); // Check every 5 minutes
+
+  // Start scheduled outreach executor (for multiOutreach scheduled messages)
+  try {
+    const { startScheduledOutreachExecutor } = await import(
+      './services/outreach/scheduled-outreach-executor.js'
+    );
+    startScheduledOutreachExecutor({ pollIntervalMs: 60000 }); // Check every minute
+    logger.info('✓ Scheduled outreach executor running');
+  } catch (err) {
+    logger.warn(`Scheduled outreach executor failed to start (non-fatal): ${err}`);
+  }
+
   logger.info('✓ Schedulers running');
 
   // ============================================================================

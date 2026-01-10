@@ -298,6 +298,7 @@ pub fn extract_interjections(text: &str) -> Vec<(String, usize, usize)> {
 }
 
 /// Count repetitions only (for quick checks)
+#[allow(dead_code)]
 pub fn count_repetitions(text: &str) -> u32 {
     let (single, double) = count_word_repetitions(text);
     single + double

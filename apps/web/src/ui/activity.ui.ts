@@ -308,6 +308,23 @@ const ACTIVITY_STYLES = `
     50% { opacity: 0.5; }
   }
 
+  .activity-offline-banner {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-md);
+    background: var(--color-semantic-warning-subtle, rgba(255, 193, 7, 0.15));
+    border-bottom: 1px solid var(--color-semantic-warning, #ffc107);
+    color: var(--color-text-primary);
+    font-size: 0.875rem;
+  }
+
+  .activity-offline-banner__icon {
+    width: 16px;
+    height: 16px;
+    color: var(--color-semantic-warning, #ffc107);
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .activity-panel {
       transition: none;
@@ -325,10 +342,15 @@ const ACTIVITY_STYLES = `
 class ActivityUI {
   private panel: HTMLElement | null = null;
   private content: HTMLElement | null = null;
+  private offlineBanner: HTMLElement | null = null;
   private actions: FerniAction[] = [];
   private activeFilter: ActionType | 'all' = 'all';
   private isVisible = false;
   private styleElement: HTMLStyleElement | null = null;
+  private eventSource: EventSource | null = null;
+  private reconnectAttempts = 0;
+  private reconnectTimeout: number | null = null;
+  private isOnline = navigator.onLine;
 
   /**
    * Initialize the Activity UI
@@ -339,6 +361,7 @@ class ActivityUI {
     this.injectStyles();
     this.createPanel();
     this.attachEventListeners();
+    this.setupNetworkListeners();
 
     log.debug({}, 'Activity UI initialized');
   }
@@ -354,6 +377,9 @@ class ActivityUI {
     this.isVisible = true;
     this.panel?.classList.add('activity-panel--visible');
 
+    // Connect to SSE for real-time updates
+    this.connectSSE();
+
     await this.loadActions();
   }
 
@@ -363,6 +389,9 @@ class ActivityUI {
   hide(): void {
     this.isVisible = false;
     this.panel?.classList.remove('activity-panel--visible');
+
+    // Disconnect SSE to save resources when panel is hidden
+    this.disconnectSSE();
   }
 
   /**
@@ -380,11 +409,162 @@ class ActivityUI {
    * Clean up resources
    */
   destroy(): void {
+    this.disconnectSSE();
     this.panel?.remove();
     this.styleElement?.remove();
     this.panel = null;
     this.content = null;
     this.styleElement = null;
+  }
+
+  // ============================================================================
+  // SSE REAL-TIME UPDATES
+  // ============================================================================
+
+  /**
+   * Connect to the SSE stream for real-time action updates
+   */
+  private connectSSE(): void {
+    // Don't connect if offline or already connected
+    if (!this.isOnline || this.eventSource) return;
+
+    try {
+      // Create EventSource with credentials for auth
+      this.eventSource = new EventSource('/api/actions/stream', {
+        withCredentials: true,
+      });
+
+      this.eventSource.addEventListener('connected', () => {
+        log.debug({}, 'SSE connected');
+        this.reconnectAttempts = 0;
+      });
+
+      this.eventSource.addEventListener('action_created', (e) => {
+        this.handleActionEvent('created', e);
+      });
+
+      this.eventSource.addEventListener('action_updated', (e) => {
+        this.handleActionEvent('updated', e);
+      });
+
+      this.eventSource.addEventListener('action_completed', (e) => {
+        this.handleActionEvent('completed', e);
+      });
+
+      this.eventSource.addEventListener('action_failed', (e) => {
+        this.handleActionEvent('failed', e);
+      });
+
+      this.eventSource.onerror = () => {
+        log.warn({}, 'SSE connection error');
+        this.handleSSEError();
+      };
+    } catch (error) {
+      log.error({ error: String(error) }, 'Failed to create EventSource');
+    }
+  }
+
+  /**
+   * Disconnect from SSE stream
+   */
+  private disconnectSSE(): void {
+    if (this.reconnectTimeout !== null) {
+      clearTimeout(this.reconnectTimeout);
+      this.reconnectTimeout = null;
+    }
+    if (this.eventSource) {
+      this.eventSource.close();
+      this.eventSource = null;
+      log.debug({}, 'SSE disconnected');
+    }
+  }
+
+  /**
+   * Handle incoming action events from SSE
+   */
+  private handleActionEvent(type: string, event: MessageEvent): void {
+    try {
+      const data = JSON.parse(event.data as string) as {
+        type: string;
+        action: FerniAction;
+        timestamp: string;
+      };
+
+      log.debug({ type, actionId: data.action.id }, 'Received SSE action event');
+
+      // Update local actions array
+      const existingIndex = this.actions.findIndex((a) => a.id === data.action.id);
+
+      if (existingIndex >= 0) {
+        // Update existing action
+        this.actions[existingIndex] = data.action;
+      } else if (type === 'created') {
+        // Add new action at the beginning
+        this.actions.unshift(data.action);
+      }
+
+      // Re-render if panel is visible
+      if (this.isVisible) {
+        this.renderActions();
+      }
+    } catch (error) {
+      log.error({ error: String(error) }, 'Failed to parse SSE event');
+    }
+  }
+
+  /**
+   * Handle SSE connection errors with exponential backoff
+   */
+  private handleSSEError(): void {
+    this.disconnectSSE();
+
+    // Only reconnect if online and panel is visible
+    if (!this.isOnline || !this.isVisible) return;
+
+    // Exponential backoff: 1s, 2s, 4s, 8s, max 30s
+    const delay = Math.min(1000 * Math.pow(2, this.reconnectAttempts), 30000);
+    this.reconnectAttempts++;
+
+    log.debug({ attempt: this.reconnectAttempts, delay }, 'Scheduling SSE reconnect');
+
+    this.reconnectTimeout = window.setTimeout(() => {
+      this.connectSSE();
+    }, delay);
+  }
+
+  /**
+   * Handle online/offline events
+   */
+  private setupNetworkListeners(): void {
+    window.addEventListener('online', () => {
+      this.isOnline = true;
+      log.debug({}, 'Network: online');
+      this.updateOfflineBanner();
+      if (this.isVisible) {
+        this.connectSSE();
+        // Refresh data in case we missed updates
+        void this.loadActions();
+      }
+    });
+
+    window.addEventListener('offline', () => {
+      this.isOnline = false;
+      log.debug({}, 'Network: offline');
+      this.disconnectSSE();
+      this.updateOfflineBanner();
+    });
+
+    // Set initial state
+    this.updateOfflineBanner();
+  }
+
+  /**
+   * Show/hide offline banner based on network status
+   */
+  private updateOfflineBanner(): void {
+    if (this.offlineBanner) {
+      this.offlineBanner.style.display = this.isOnline ? 'none' : 'flex';
+    }
   }
 
   // ============================================================================
@@ -413,12 +593,35 @@ class ActivityUI {
     const filters = this.createFilters();
     this.panel.appendChild(filters);
 
+    // Offline banner (hidden by default)
+    this.offlineBanner = this.createOfflineBanner();
+    this.panel.appendChild(this.offlineBanner);
+
     // Content area
     this.content = document.createElement('div');
     this.content.className = 'activity-panel__content';
     this.panel.appendChild(this.content);
 
     document.body.appendChild(this.panel);
+  }
+
+  private createOfflineBanner(): HTMLElement {
+    const banner = document.createElement('div');
+    banner.className = 'activity-offline-banner';
+    banner.style.display = 'none';
+    banner.setAttribute('role', 'status');
+    banner.setAttribute('aria-live', 'polite');
+
+    const icon = document.createElement('span');
+    icon.className = 'activity-offline-banner__icon';
+    icon.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 1l22 22M16.72 11.06A10.94 10.94 0 0119 12.55M5 12.55a10.94 10.94 0 015.17-2.39M10.71 5.05A16 16 0 0122.58 9M1.42 9a15.91 15.91 0 014.7-2.88M8.53 16.11a6 6 0 016.95 0M12 20h.01"/></svg>';
+    banner.appendChild(icon);
+
+    const text = document.createElement('span');
+    text.textContent = "You're offline. Showing cached data.";
+    banner.appendChild(text);
+
+    return banner;
   }
 
   private createHeader(): HTMLElement {
@@ -545,23 +748,24 @@ class ActivityUI {
     const yesterday = new Date(today.getTime() - 24 * 60 * 60 * 1000);
     const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
 
-    const groups: Record<string, FerniAction[]> = {
-      Today: [],
-      Yesterday: [],
-      'This Week': [],
-      Earlier: [],
+    // Define groups with explicit type to avoid noUncheckedIndexedAccess issues
+    const groups = {
+      Today: [] as FerniAction[],
+      Yesterday: [] as FerniAction[],
+      'This Week': [] as FerniAction[],
+      Earlier: [] as FerniAction[],
     };
 
     for (const action of actions) {
       const date = new Date(action.createdAt);
       if (date >= today) {
-        groups['Today'].push(action);
+        groups.Today.push(action);
       } else if (date >= yesterday) {
-        groups['Yesterday'].push(action);
+        groups.Yesterday.push(action);
       } else if (date >= weekAgo) {
         groups['This Week'].push(action);
       } else {
-        groups['Earlier'].push(action);
+        groups.Earlier.push(action);
       }
     }
 

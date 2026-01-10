@@ -18,17 +18,76 @@ import {
   type ActionType,
   type ActionStatus,
   type FerniAction,
+  type ActionChangeEvent,
 } from '../services/action-tracker/index.js';
 import { createLogger } from '../utils/safe-logger.js';
-import { requireAuth } from './auth-middleware.js';
-import {
-  handleCorsPreflightIfNeeded,
-  sendError,
-  sendJSON,
-  sendJSONCached,
-} from './helpers.js';
+import { requireAuth, authenticate, rateLimit } from './auth-middleware.js';
+import { handleCorsPreflightIfNeeded, sendError, sendJSON, sendJSONCached } from './helpers.js';
 
 const log = createLogger({ module: 'ActionRoutes' });
+
+// Rate limit: 100 requests per minute per user (generous for SSE reconnects)
+const ACTION_RATE_LIMIT = { maxRequests: 100, windowMs: 60000 };
+
+// ============================================================================
+// SSE CONNECTION MANAGEMENT
+// ============================================================================
+
+/**
+ * Active SSE connections per user
+ * We track connections to send real-time action updates
+ */
+interface SSEConnection {
+  res: ServerResponse;
+  userId: string;
+  connectedAt: Date;
+}
+
+const activeConnections = new Map<string, Set<SSEConnection>>();
+
+/**
+ * Send an SSE event to all connections for a user
+ */
+function broadcastToUser(userId: string, eventType: string, data: unknown): void {
+  const userConnections = activeConnections.get(userId);
+  if (!userConnections || userConnections.size === 0) return;
+
+  const message = `event: ${eventType}\ndata: ${JSON.stringify(data)}\n\n`;
+
+  for (const conn of userConnections) {
+    try {
+      conn.res.write(message);
+    } catch {
+      // Connection closed, will be cleaned up
+    }
+  }
+}
+
+/**
+ * SSE listener initialization flag
+ */
+let sseInitialized = false;
+
+/**
+ * Ensure SSE listener is set up (called lazily on first SSE connection)
+ */
+function ensureSSEListenerInitialized(): void {
+  if (sseInitialized) return;
+
+  const tracker = getActionTracker();
+
+  // Subscribe to action events and broadcast to connected clients
+  tracker.onEvent((event: ActionChangeEvent) => {
+    broadcastToUser(event.userId, event.type, {
+      type: event.type,
+      action: serializeActionForBroadcast(event.action),
+      timestamp: event.timestamp.toISOString(),
+    });
+  });
+
+  sseInitialized = true;
+  log.info('SSE listener initialized for action tracker');
+}
 
 // ============================================================================
 // ROUTE HANDLER
@@ -50,6 +109,11 @@ export async function handleActionRoutes(
     return true;
   }
 
+  // Rate limiting (before auth to prevent auth bypass attacks)
+  if (rateLimit(req, res, ACTION_RATE_LIMIT)) {
+    return true;
+  }
+
   // Require authentication for all action routes
   const auth = await requireAuth(req, res);
   if (!auth) return true;
@@ -66,6 +130,11 @@ export async function handleActionRoutes(
     // GET /api/actions/stats - Get action statistics
     if (pathname === '/api/actions/stats' && req.method === 'GET') {
       return await handleActionStats(req, res, auth.userId);
+    }
+
+    // GET /api/actions/stream - Server-Sent Events for real-time updates
+    if (pathname === '/api/actions/stream' && req.method === 'GET') {
+      return await handleActionStream(req, res, auth.userId);
     }
 
     // GET /api/actions/:id - Get single action
@@ -166,6 +235,87 @@ async function handlePendingActions(
     sendError(res, "Couldn't load pending activity", 500);
     return true;
   }
+}
+
+/**
+ * GET /api/actions/stream
+ * Server-Sent Events endpoint for real-time action updates
+ *
+ * Client should use EventSource to connect:
+ * const es = new EventSource('/api/actions/stream', { withCredentials: true });
+ * es.addEventListener('action_created', (e) => console.log(JSON.parse(e.data)));
+ * es.addEventListener('action_updated', (e) => console.log(JSON.parse(e.data)));
+ * es.addEventListener('action_completed', (e) => console.log(JSON.parse(e.data)));
+ */
+async function handleActionStream(
+  req: IncomingMessage,
+  res: ServerResponse,
+  userId: string
+): Promise<boolean> {
+  // Initialize SSE listener on first connection
+  ensureSSEListenerInitialized();
+
+  // Set SSE headers
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    Connection: 'keep-alive',
+    'Access-Control-Allow-Origin': req.headers.origin || '*',
+    'Access-Control-Allow-Credentials': 'true',
+  });
+
+  // Create connection object
+  const connection: SSEConnection = {
+    res,
+    userId,
+    connectedAt: new Date(),
+  };
+
+  // Add to active connections
+  if (!activeConnections.has(userId)) {
+    activeConnections.set(userId, new Set());
+  }
+  activeConnections.get(userId)!.add(connection);
+
+  log.info(
+    { userId, totalConnections: activeConnections.get(userId)!.size },
+    'SSE client connected'
+  );
+
+  // Send initial connection event
+  res.write(
+    `event: connected\ndata: ${JSON.stringify({
+      message: 'Connected to action stream',
+      userId,
+      timestamp: new Date().toISOString(),
+    })}\n\n`
+  );
+
+  // Send heartbeat every 30 seconds to keep connection alive
+  const heartbeatInterval = setInterval(() => {
+    try {
+      res.write(`: heartbeat ${new Date().toISOString()}\n\n`);
+    } catch {
+      // Connection closed
+      clearInterval(heartbeatInterval);
+    }
+  }, 30000);
+
+  // Clean up on connection close
+  req.on('close', () => {
+    clearInterval(heartbeatInterval);
+    const userConnections = activeConnections.get(userId);
+    if (userConnections) {
+      userConnections.delete(connection);
+      if (userConnections.size === 0) {
+        activeConnections.delete(userId);
+      }
+    }
+    log.info({ userId }, 'SSE client disconnected');
+  });
+
+  // Keep connection open (don't return true, let it stay alive)
+  return true;
 }
 
 /**
@@ -306,27 +456,39 @@ function serializeAction(action: FerniAction): Record<string, unknown> {
     ...action,
     createdAt: action.createdAt instanceof Date ? action.createdAt.toISOString() : action.createdAt,
     updatedAt: action.updatedAt instanceof Date ? action.updatedAt.toISOString() : action.updatedAt,
-    completedAt: action.completedAt instanceof Date ? action.completedAt.toISOString() : action.completedAt,
+    completedAt:
+      action.completedAt instanceof Date ? action.completedAt.toISOString() : action.completedAt,
     request: {
       ...action.request,
-      requestedAt: action.request.requestedAt instanceof Date
-        ? action.request.requestedAt.toISOString()
-        : action.request.requestedAt,
+      requestedAt:
+        action.request.requestedAt instanceof Date
+          ? action.request.requestedAt.toISOString()
+          : action.request.requestedAt,
     },
-    execution: action.execution ? {
-      ...action.execution,
-      startedAt: action.execution.startedAt instanceof Date
-        ? action.execution.startedAt.toISOString()
-        : action.execution.startedAt,
-      completedAt: action.execution.completedAt instanceof Date
-        ? action.execution.completedAt.toISOString()
-        : action.execution.completedAt,
-    } : undefined,
-    events: action.events.map(event => ({
+    execution: action.execution
+      ? {
+          ...action.execution,
+          startedAt:
+            action.execution.startedAt instanceof Date
+              ? action.execution.startedAt.toISOString()
+              : action.execution.startedAt,
+          completedAt:
+            action.execution.completedAt instanceof Date
+              ? action.execution.completedAt.toISOString()
+              : action.execution.completedAt,
+        }
+      : undefined,
+    events: action.events.map((event) => ({
       ...event,
-      timestamp: event.timestamp instanceof Date
-        ? event.timestamp.toISOString()
-        : event.timestamp,
+      timestamp: event.timestamp instanceof Date ? event.timestamp.toISOString() : event.timestamp,
     })),
   };
+}
+
+/**
+ * Serialize action for SSE broadcast (same as serializeAction but hoisted for use in callbacks)
+ * This is needed because the SSE listener is initialized lazily and needs access to serialization
+ */
+function serializeActionForBroadcast(action: FerniAction): Record<string, unknown> {
+  return serializeAction(action);
 }

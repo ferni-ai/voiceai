@@ -839,7 +839,9 @@ class DataExportService {
       try {
         const service = getConversationHistoryService();
         // Type narrowing for optional deleteHistory method
-        type WithDeleteHistory = { deleteHistory?: (userId: string) => Promise<void> };
+        interface WithDeleteHistory {
+          deleteHistory?: (userId: string) => Promise<void>;
+        }
         const serviceWithDelete = service as unknown as WithDeleteHistory;
         if (typeof serviceWithDelete.deleteHistory === 'function') {
           await serviceWithDelete.deleteHistory(userId);
@@ -857,7 +859,9 @@ class DataExportService {
       try {
         const memoryService = getCognitiveMemoryService();
         // Type narrowing for optional deleteAllMemories method
-        type WithDeleteAllMemories = { deleteAllMemories?: (userId: string) => Promise<void> };
+        interface WithDeleteAllMemories {
+          deleteAllMemories?: (userId: string) => Promise<void>;
+        }
         const memoryWithDelete = memoryService as unknown as WithDeleteAllMemories;
         if (typeof memoryWithDelete.deleteAllMemories === 'function') {
           await memoryWithDelete.deleteAllMemories(userId);

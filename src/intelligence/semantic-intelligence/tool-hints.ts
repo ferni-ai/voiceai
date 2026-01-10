@@ -12,7 +12,6 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import type {
-  ToolMatch,
   SemanticRouterResult,
   ToolCategory,
 } from '../../tools/semantic-router/types.js';
@@ -317,7 +316,7 @@ function convertMatchesToHints(routerResult: SemanticRouterResult): ToolHint[] {
  * - Intent mood (command/request vs question/statement)
  * - Pattern matches (very reliable signal)
  */
-function determineIfToolRequest(routerResult: SemanticRouterResult, inputText: string): boolean {
+function determineIfToolRequest(routerResult: SemanticRouterResult, _inputText: string): boolean {
   const topMatch = routerResult.matches?.[0];
 
   // No matches = probably conversation
@@ -365,6 +364,10 @@ export function buildToolHintInjection(hints: ToolHint[], isToolRequest: boolean
 
   if (isToolRequest) {
     lines.push('[SEMANTIC HINT] This appears to be a tool request.');
+    // CRITICAL: Remind Gemini HOW to call tools - this was missing and causing
+    // Gemini to respond conversationally instead of outputting JSON function calls
+    lines.push('[ACTION REQUIRED] Output a JSON function call. Format: {"fn":"toolName","args":{...}}');
+    lines.push('[DO NOT] Describe what you would do - ACTUALLY call the tool with JSON.');
   }
 
   // Only include top 2 hints in injection to keep it concise
@@ -379,6 +382,15 @@ export function buildToolHintInjection(hints: ToolHint[], isToolRequest: boolean
     lines.push(
       `[TOOL HINT] ${hint.toolName} (${confidencePercent}% match) - ${hint.reason}${argsNote}`
     );
+  }
+
+  // Add concrete example for the top hint to make JSON format crystal clear
+  if (isToolRequest && topHints.length > 0) {
+    const topHint = topHints[0];
+    const exampleArgs = topHint.suggestedArgs
+      ? JSON.stringify(topHint.suggestedArgs)
+      : '{}';
+    lines.push(`[EXAMPLE] {"fn":"${topHint.toolId}","args":${exampleArgs}}`);
   }
 
   // If there are more hints, note that

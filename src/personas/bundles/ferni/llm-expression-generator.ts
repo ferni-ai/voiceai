@@ -26,7 +26,7 @@ import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 // Pre-import these modules to avoid slow dynamic imports in hot path
 // Note: These must be imported AFTER the types to avoid circular dependencies
 let composeExpressionFn:
-  | typeof import('./better-than-human-personality.js').composeExpression
+  | typeof import('../../shared/better-than-human-personality.js').composeExpression
   | null = null;
 let getExpressionFn: typeof import('./dynamic-personality.js').getExpression | null = null;
 
@@ -34,7 +34,7 @@ let getExpressionFn: typeof import('./dynamic-personality.js').getExpression | n
 void (async () => {
   try {
     const [personality, dynamic] = await Promise.all([
-      import('./better-than-human-personality.js'),
+      import('../../shared/better-than-human-personality.js'),
       import('./dynamic-personality.js'),
     ]);
     composeExpressionFn = personality.composeExpression;
@@ -733,6 +733,7 @@ export function getBestExpression(
   if (composeExpressionFn) {
     try {
       const composed = composeExpressionFn({
+        personaId: 'ferni',
         sessionId,
         userId,
         turnCount: 1,
@@ -794,17 +795,36 @@ export function getBestExpression(
 // ============================================================================
 
 // Minimal Firestore types (to avoid hard dependency)
+interface FirestoreDocSnapshot {
+  exists: boolean;
+  data: () => unknown;
+}
+
+interface FirestoreQuerySnapshot {
+  empty: boolean;
+  docs: Array<{ data: () => unknown }>;
+}
+
+interface FirestoreCollectionRef {
+  doc: (id: string) => FirestoreDocRef;
+  orderBy: (field: string, direction?: 'asc' | 'desc') => FirestoreQuery;
+  get: () => Promise<FirestoreQuerySnapshot>;
+}
+
+interface FirestoreQuery {
+  limit: (n: number) => FirestoreQuery;
+  orderBy: (field: string, direction?: 'asc' | 'desc') => FirestoreQuery;
+  get: () => Promise<FirestoreQuerySnapshot>;
+}
+
+interface FirestoreDocRef {
+  get: () => Promise<FirestoreDocSnapshot>;
+  set: (data: unknown, options?: { merge?: boolean }) => Promise<void>;
+  collection: (subPath: string) => FirestoreCollectionRef;
+}
+
 interface FirestoreDB {
-  collection: (path: string) => {
-    doc: (id: string) => {
-      collection: (subPath: string) => {
-        doc: (subId: string) => {
-          get: () => Promise<{ exists: boolean; data: () => unknown }>;
-          set: (data: unknown, options?: { merge?: boolean }) => Promise<void>;
-        };
-      };
-    };
-  };
+  collection: (path: string) => FirestoreCollectionRef;
 }
 
 let firestoreDb: FirestoreDB | null = null;
@@ -917,20 +937,46 @@ async function persistExpression(userId: string, expr: GeneratedExpression): Pro
  * Load persisted expressions for a user
  *
  * Call at session start to seed cache with proven expressions.
+ * Returns expressions ordered by engagement score (highest first).
  */
 export async function loadPersistedExpressions(userId: string): Promise<GeneratedExpression[]> {
   const db = await initFirestore();
   if (!db) return [];
 
   try {
-    // Note: We'd need to list documents in the collection, but Firestore Admin SDK
-    // requires a different approach. For now, we rely on resonance store tracking.
-    // Full implementation would use:
-    // const snapshot = await db.collection('bogle_users').doc(userId)
-    //   .collection('learned_expressions').orderBy('engagementScore', 'desc').limit(20).get();
+    const expressionsRef = db
+      .collection('bogle_users')
+      .doc(userId)
+      .collection('learned_expressions');
 
-    log.debug({ userId }, 'Loading persisted expressions (not yet implemented)');
-    return [];
+    const snapshot = await expressionsRef.orderBy('engagementScore', 'desc').limit(20).get();
+
+    if (snapshot.empty) {
+      log.debug({ userId }, 'No persisted expressions found');
+      return [];
+    }
+
+    const expressions: GeneratedExpression[] = snapshot.docs.map((doc) => {
+      const data = doc.data() as PersistedExpression;
+      return {
+        id: data.id,
+        theme: data.theme,
+        content: data.content,
+        ssml: data.ssml,
+        context: {
+          theme: data.theme,
+          momentum: 'cruising',
+          turnCount: 5, // Default context for loaded expressions
+          emotion: undefined,
+          recentTopics: [],
+        },
+        generatedAt: new Date(data.createdAt),
+        usedCount: data.timesUsed,
+      };
+    });
+
+    log.debug({ userId, count: expressions.length }, 'Loaded persisted expressions');
+    return expressions;
   } catch (error) {
     log.warn({ error: String(error), userId }, 'Failed to load persisted expressions');
     return [];

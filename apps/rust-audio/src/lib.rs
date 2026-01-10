@@ -49,6 +49,10 @@ mod post_tts;
 mod post_tts_processor;
 mod pre_stt;
 mod sola;
+mod yin;
+
+// Re-export YIN NAPI functions
+pub use yin::{estimate_pitch_yin, batch_estimate_pitch_yin, NativeYinResult};
 
 use napi::bindgen_prelude::*;
 use napi_derive::napi;

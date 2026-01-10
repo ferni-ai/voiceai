@@ -19,6 +19,7 @@
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { t } from '../i18n/index.js';
 import { appState } from '../state/app.state.js';
+import { apiPost } from '../utils/api.js';
 import { openBillingPortal } from '../utils/billing.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
@@ -498,22 +499,16 @@ async function handleUpgrade(tier: string): Promise<void> {
   updateLoadingState(true);
 
   try {
-    const response = await fetch('/subscription/checkout', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        userId: deviceId,
-        device_id: deviceId,
-        tier,
-        successUrl: window.location.origin + '?upgrade=success&tier=' + tier,
-        cancelUrl: window.location.origin + '?upgrade=cancel',
-      }),
+    const response = await apiPost<{ url?: string }>('/subscription/checkout', {
+      userId: deviceId,
+      device_id: deviceId,
+      tier,
+      successUrl: window.location.origin + '?upgrade=success&tier=' + tier,
+      cancelUrl: window.location.origin + '?upgrade=cancel',
     });
 
-    const result = await response.json();
-
-    if (response.ok && result.url) {
-      window.location.href = result.url;
+    if (response.ok && response.data?.url) {
+      window.location.href = response.data.url;
     } else {
       toast.error("That didn't go through. Try again?");
     }
@@ -539,21 +534,15 @@ async function handlePlantSeed(): Promise<void> {
   updateLoadingState(true);
 
   try {
-    const response = await fetch('/api/garden/plant', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        userId: deviceId,
-        amountInCents: selectedTipAmount * 100,
-        successUrl: window.location.origin + '?tip=success',
-        cancelUrl: window.location.origin + '?tip=cancel',
-      }),
+    const response = await apiPost<{ url?: string }>('/api/garden/plant', {
+      userId: deviceId,
+      amountInCents: selectedTipAmount * 100,
+      successUrl: window.location.origin + '?tip=success',
+      cancelUrl: window.location.origin + '?tip=cancel',
     });
 
-    const result = await response.json();
-
-    if (response.ok && result.url) {
-      window.location.href = result.url;
+    if (response.ok && response.data?.url) {
+      window.location.href = response.data.url;
     } else {
       toast.error("Hmm, that didn't work. Try again?");
     }

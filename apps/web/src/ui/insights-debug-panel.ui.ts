@@ -10,7 +10,7 @@
  */
 
 import { getState as getNotificationState } from '../services/cross-team-notifications.service.js';
-import { getApiHeadersAsync } from '../utils/api-helpers.js';
+import { apiGet, apiPost } from '../utils/api.js';
 import { createLogger } from '../utils/logger.js';
 import { t } from '../i18n/index.js';
 
@@ -421,11 +421,16 @@ async function renderPerformanceStats(): Promise<void> {
 
   try {
     // Fetch performance stats from API (backend has the actual data)
-    const headers = await getApiHeadersAsync();
-    const response = await fetch('/api/team-insights/performance', { headers });
-    if (!response.ok) throw new Error('Failed to fetch performance stats');
+    const response = await apiGet<{
+      totalCalls?: number;
+      averageDurationMs?: number;
+      cacheHitRate?: number;
+      slowestCall?: { durationMs: number };
+      recentCalls?: Array<{ persona: string; cacheHit: boolean; durationMs: number }>;
+    }>('/api/team-insights/performance');
+    if (!response.ok || !response.data) throw new Error('Failed to fetch performance stats');
 
-    const stats = await response.json();
+    const stats = response.data;
 
     statsContainer.innerHTML = `
       <div class="insights-debug-panel__stat">
@@ -486,13 +491,21 @@ async function renderInsightsList(): Promise<void> {
   if (!container) return;
 
   try {
-    // Fetch insights from API (with auth headers)
-    const headers = await getApiHeadersAsync();
-    const response = await fetch('/api/team-insights?limit=10', { headers });
-    if (!response.ok) throw new Error('Failed to fetch insights');
+    // Fetch insights from API
+    const response = await apiGet<{
+      insights?: Array<{
+        id: string;
+        type: string;
+        priority: string;
+        message: string;
+        sourcePersona: string;
+        targetPersona: string;
+        timestamp: string;
+      }>;
+    }>('/api/team-insights?limit=10');
+    if (!response.ok || !response.data) throw new Error('Failed to fetch insights');
 
-    const data = await response.json();
-    const insights = data.insights || [];
+    const insights = response.data.insights || [];
 
     if (insights.length === 0) {
       container.innerHTML = '<div class="insights-debug-panel__empty">No recent insights</div>';
@@ -562,14 +575,10 @@ function setupEventListeners(): void {
   const clearBtn = document.getElementById('insights-clear-btn');
   clearBtn?.addEventListener('click', async () => {
     try {
-      // Call backend API to clear caches (with auth headers)
-      const headers = await getApiHeadersAsync();
-      const response = await fetch('/api/team-insights/performance/clear', {
-        method: 'POST',
-        headers,
-      });
+      // Call backend API to clear caches
+      const response = await apiPost('/api/team-insights/performance/clear', {});
       if (!response.ok) throw new Error('Failed to clear caches');
-      
+
       await refreshAll();
       log.info('Cleared caches');
     } catch (err) {

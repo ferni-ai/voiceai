@@ -12,6 +12,7 @@ import { t } from '../i18n/index.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { DURATION } from '../config/animation-constants.js';
+import { apiGet, apiPost, apiDelete } from '../utils/api.js';
 
 const log = createLogger('OutreachScheduleUI');
 
@@ -639,10 +640,9 @@ async function loadData(): Promise<void> {
 
 async function fetchUpcomingOutreach(): Promise<ScheduledOutreach[]> {
   try {
-    const response = await fetch('/api/outreach/upcoming');
-    if (!response.ok) throw new Error('Failed to fetch');
-    const data = await response.json();
-    return data.upcoming ?? [];
+    const response = await apiGet<{ upcoming?: ScheduledOutreach[] }>('/api/outreach/upcoming');
+    if (!response.ok || !response.data) return [];
+    return response.data.upcoming ?? [];
   } catch {
     // Return empty array - real data will appear when outreach is scheduled
     return [];
@@ -651,10 +651,9 @@ async function fetchUpcomingOutreach(): Promise<ScheduledOutreach[]> {
 
 async function fetchOutreachHistory(): Promise<OutreachHistory[]> {
   try {
-    const response = await fetch('/api/outreach/history?limit=20');
-    if (!response.ok) throw new Error('Failed to fetch');
-    const data = await response.json();
-    return data.history ?? [];
+    const response = await apiGet<{ history?: OutreachHistory[] }>('/api/outreach/history?limit=20');
+    if (!response.ok || !response.data) return [];
+    return response.data.history ?? [];
   } catch {
     // Return empty array - real history will appear after outreach is sent
     return [];
@@ -802,9 +801,9 @@ async function handleAction(action: string, outreachId: string): Promise<void> {
 async function showPreview(outreachId: string): Promise<void> {
   // Fetch the outreach details
   try {
-    const response = await fetch(`/api/outreach/pending?userId=default`);
-    const data = await response.json();
-    const item = data.pending?.find((p: ScheduledOutreach) => p.id === outreachId);
+    const response = await apiGet<{ pending?: ScheduledOutreach[] }>(`/api/outreach/pending`);
+    if (!response.ok || !response.data) return;
+    const item = response.data.pending?.find((p: ScheduledOutreach) => p.id === outreachId);
 
     if (!item) {
       log.warn({ outreachId }, 'Outreach not found for preview');
@@ -1078,10 +1077,9 @@ async function showReschedule(outreachId: string): Promise<void> {
       const newTime = (btn as HTMLElement).dataset.time;
       try {
         // Call API to reschedule
-        const response = await fetch(`/api/outreach/reschedule`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ triggerId: outreachId, newTime }),
+        const response = await apiPost<{ success?: boolean }>(`/api/outreach/reschedule`, {
+          triggerId: outreachId,
+          newTime,
         });
 
         if (response.ok) {
@@ -1104,9 +1102,7 @@ async function cancelOutreach(outreachId: string): Promise<void> {
   }
 
   try {
-    const response = await fetch(`/api/outreach/pending/${outreachId}`, {
-      method: 'DELETE',
-    });
+    const response = await apiDelete<{ success?: boolean }>(`/api/outreach/pending/${outreachId}`);
 
     if (response.ok) {
       // Refresh the list

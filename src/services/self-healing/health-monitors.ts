@@ -16,6 +16,7 @@ import { createLogger } from '../../utils/safe-logger.js';
 import { createCircuitBreaker } from './circuit-breaker.js';
 import { recordLatency, recordSuccessRate } from './anomaly-detection.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
+import { registerInterval, clearNamedInterval, hasInterval } from '../../utils/interval-manager.js';
 
 const log = createLogger({ module: 'health-monitors' });
 
@@ -746,8 +747,9 @@ export function getMonitors(): readonly HealthMonitor[] {
 // BACKGROUND MONITORING
 // ============================================================================
 
-let monitoringInterval: ReturnType<typeof setInterval> | null = null;
-let criticalMonitoringInterval: ReturnType<typeof setInterval> | null = null;
+/** Interval names for cleanup */
+const HEALTH_MONITOR_INTERVAL = 'health-monitor-all';
+const CRITICAL_HEALTH_MONITOR_INTERVAL = 'health-monitor-critical';
 
 /** Critical services that get more frequent health checks */
 const CRITICAL_SERVICES = ['livekit', 'gemini', 'firestore'];
@@ -784,7 +786,7 @@ export function startHealthMonitoring(
   intervalMs: number = DEFAULT_INTERVAL_MS,
   criticalIntervalMs: number = CRITICAL_INTERVAL_MS
 ): void {
-  if (monitoringInterval) {
+  if (hasInterval(HEALTH_MONITOR_INTERVAL)) {
     return; // Already running
   }
 
@@ -795,41 +797,35 @@ export function startHealthMonitoring(
     log.error({ error: String(error) }, 'Initial health check failed');
   });
 
-  // Schedule periodic checks for all services
-  monitoringInterval = setInterval(() => {
-    runAllHealthChecks().catch((error) => {
-      log.error({ error: String(error) }, 'Periodic health check failed');
-    });
-  }, intervalMs);
+  // Schedule periodic checks for all services using managed intervals
+  registerInterval(
+    HEALTH_MONITOR_INTERVAL,
+    () => {
+      runAllHealthChecks().catch((error) => {
+        log.error({ error: String(error) }, 'Periodic health check failed');
+      });
+    },
+    intervalMs
+  );
 
   // Schedule more frequent checks for critical services
-  criticalMonitoringInterval = setInterval(() => {
-    runCriticalHealthChecks().catch((error) => {
-      log.error({ error: String(error) }, 'Critical health check failed');
-    });
-  }, criticalIntervalMs);
-
-  // Don't prevent process from exiting
-  if (monitoringInterval.unref) {
-    monitoringInterval.unref();
-  }
-  if (criticalMonitoringInterval.unref) {
-    criticalMonitoringInterval.unref();
-  }
+  registerInterval(
+    CRITICAL_HEALTH_MONITOR_INTERVAL,
+    () => {
+      runCriticalHealthChecks().catch((error) => {
+        log.error({ error: String(error) }, 'Critical health check failed');
+      });
+    },
+    criticalIntervalMs
+  );
 }
 
 /**
  * Stop background health monitoring
  */
 export function stopHealthMonitoring(): void {
-  if (monitoringInterval) {
-    clearInterval(monitoringInterval);
-    monitoringInterval = null;
-  }
-  if (criticalMonitoringInterval) {
-    clearInterval(criticalMonitoringInterval);
-    criticalMonitoringInterval = null;
-  }
+  clearNamedInterval(HEALTH_MONITOR_INTERVAL);
+  clearNamedInterval(CRITICAL_HEALTH_MONITOR_INTERVAL);
   log.info('Stopped health monitoring');
 }
 
@@ -837,7 +833,7 @@ export function stopHealthMonitoring(): void {
  * Check if monitoring is running
  */
 export function isMonitoringActive(): boolean {
-  return monitoringInterval !== null;
+  return hasInterval(HEALTH_MONITOR_INTERVAL);
 }
 
 /**

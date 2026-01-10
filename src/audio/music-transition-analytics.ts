@@ -172,6 +172,139 @@ export interface TransitionOverrides {
   phraseStyle?: 'minimal' | 'standard' | 'warm';
 }
 
+/**
+ * A/B Test analysis with statistical significance
+ */
+export interface ABTestAnalysis {
+  /** Test name */
+  testName: string;
+
+  /** Per-variant stats */
+  variants: Record<string, TransitionStats>;
+
+  /** Is the difference statistically significant? (p < 0.05) */
+  isSignificant: boolean;
+
+  /** P-value from z-test for proportions */
+  pValue: number | null;
+
+  /** 95% confidence interval for the difference */
+  confidenceInterval: { lower: number; upper: number } | null;
+
+  /** Human-readable recommendation */
+  recommendation: string;
+
+  /** Whether sample size is adequate for conclusions */
+  sampleSizeAdequate: boolean;
+
+  /** Minimum sample size per variant */
+  minSampleSize: number;
+
+  /** Detailed comparison (if 2+ variants) */
+  comparison?: {
+    controlName: string;
+    treatmentName: string;
+    controlRate: number;
+    treatmentRate: number;
+    controlCount: number;
+    treatmentCount: number;
+    absoluteDifference: number;
+    relativeLift: number;
+  };
+}
+
+/**
+ * Result of statistical significance calculation
+ */
+interface SignificanceResult {
+  isSignificant: boolean;
+  pValue: number;
+  confidenceInterval: { lower: number; upper: number };
+}
+
+/**
+ * Calculate statistical significance for proportion comparison using z-test
+ *
+ * Uses a two-proportion z-test with pooled variance.
+ * Returns p-value and 95% confidence interval.
+ *
+ * @param p1 - Proportion for control group
+ * @param n1 - Sample size for control group
+ * @param p2 - Proportion for treatment group
+ * @param n2 - Sample size for treatment group
+ * @returns Statistical significance analysis
+ */
+function calculateProportionSignificance(
+  p1: number,
+  n1: number,
+  p2: number,
+  n2: number
+): SignificanceResult {
+  // Handle edge cases
+  if (n1 === 0 || n2 === 0) {
+    return {
+      isSignificant: false,
+      pValue: 1,
+      confidenceInterval: { lower: 0, upper: 0 },
+    };
+  }
+
+  // Pooled proportion
+  const pooledP = (p1 * n1 + p2 * n2) / (n1 + n2);
+
+  // Pooled standard error
+  const pooledSE = Math.sqrt(pooledP * (1 - pooledP) * (1 / n1 + 1 / n2));
+
+  // Handle edge case where SE is 0 (all successes or all failures)
+  if (pooledSE === 0) {
+    return {
+      isSignificant: false,
+      pValue: 1,
+      confidenceInterval: { lower: 0, upper: 0 },
+    };
+  }
+
+  // Z-statistic
+  const z = (p2 - p1) / pooledSE;
+
+  // Two-tailed p-value using normal CDF approximation
+  const pValue = 2 * (1 - normalCDF(Math.abs(z)));
+
+  // 95% confidence interval for difference
+  const diff = p2 - p1;
+  const seDiff = Math.sqrt((p1 * (1 - p1)) / n1 + (p2 * (1 - p2)) / n2);
+  const margin = 1.96 * seDiff;
+
+  return {
+    isSignificant: pValue < 0.05,
+    pValue,
+    confidenceInterval: {
+      lower: diff - margin,
+      upper: diff + margin,
+    },
+  };
+}
+
+/**
+ * Normal CDF approximation (Abramowitz and Stegun formula 7.1.26)
+ */
+function normalCDF(x: number): number {
+  const a1 = 0.254829592;
+  const a2 = -0.284496736;
+  const a3 = 1.421413741;
+  const a4 = -1.453152027;
+  const a5 = 1.061405429;
+  const p = 0.3275911;
+
+  const sign = x < 0 ? -1 : 1;
+  x = Math.abs(x) / Math.sqrt(2);
+
+  const t = 1 / (1 + p * x);
+  const y = 1 - ((((a5 * t + a4) * t + a3) * t + a2) * t + a1) * t * Math.exp(-x * x);
+
+  return 0.5 * (1 + sign * y);
+}
+
 // ============================================================================
 // ANALYTICS STORAGE
 // ============================================================================
@@ -460,6 +593,85 @@ class TransitionAnalyticsStore {
   }
 
   /**
+   * Get A/B test results with statistical significance
+   */
+  getTestResultsWithSignificance(testName: string): ABTestAnalysis | null {
+    const test = this.activeTests.get(testName);
+    if (!test) return null;
+
+    const results = this.getTestResults(testName);
+    if (!results) return null;
+
+    const variants = Object.keys(results);
+    if (variants.length < 2) {
+      return {
+        testName,
+        variants: results,
+        isSignificant: false,
+        pValue: null,
+        confidenceInterval: null,
+        recommendation: 'Not enough variants to compare',
+        sampleSizeAdequate: false,
+        minSampleSize: test.minSampleSize,
+      };
+    }
+
+    // Compare first two variants (typically control vs treatment)
+    const [controlName, treatmentName] = variants;
+    const control = results[controlName];
+    const treatment = results[treatmentName];
+
+    // Check sample size
+    const sampleSizeAdequate = control.count >= test.minSampleSize && treatment.count >= test.minSampleSize;
+
+    // Calculate statistical significance using z-test for proportions
+    const significance = calculateProportionSignificance(
+      control.positiveResponseRate,
+      control.count,
+      treatment.positiveResponseRate,
+      treatment.count
+    );
+
+    // Generate recommendation
+    let recommendation: string;
+    if (!sampleSizeAdequate) {
+      recommendation = `Need more data. Current: control=${control.count}, treatment=${treatment.count}. Required: ${test.minSampleSize} each.`;
+    } else if (significance.isSignificant) {
+      const winner = treatment.positiveResponseRate > control.positiveResponseRate ? treatmentName : controlName;
+      const lift = Math.abs(
+        ((treatment.positiveResponseRate - control.positiveResponseRate) / control.positiveResponseRate) * 100
+      ).toFixed(1);
+      recommendation = `${winner} wins with ${lift}% ${treatment.positiveResponseRate > control.positiveResponseRate ? 'improvement' : 'decline'} (p=${significance.pValue.toFixed(4)})`;
+    } else {
+      recommendation = `No significant difference detected (p=${significance.pValue.toFixed(4)}). Need more data or effect size is too small.`;
+    }
+
+    return {
+      testName,
+      variants: results,
+      isSignificant: significance.isSignificant,
+      pValue: significance.pValue,
+      confidenceInterval: significance.confidenceInterval,
+      recommendation,
+      sampleSizeAdequate,
+      minSampleSize: test.minSampleSize,
+      comparison: {
+        controlName,
+        treatmentName,
+        controlRate: control.positiveResponseRate,
+        treatmentRate: treatment.positiveResponseRate,
+        controlCount: control.count,
+        treatmentCount: treatment.count,
+        absoluteDifference: treatment.positiveResponseRate - control.positiveResponseRate,
+        relativeLift:
+          control.positiveResponseRate > 0
+            ? ((treatment.positiveResponseRate - control.positiveResponseRate) / control.positiveResponseRate) * 100
+            : 0,
+      },
+    };
+  }
+
+  /**
    * Export analytics data (for persistence)
    */
   export(): {
@@ -703,6 +915,124 @@ export function getBestTransitionType(
 }
 
 // ============================================================================
+// FIRESTORE PERSISTENCE FOR ANALYTICS
+// ============================================================================
+
+/**
+ * Firestore collection for analytics aggregates
+ * We store aggregated stats periodically, not individual events (too much data)
+ */
+const ANALYTICS_COLLECTION = 'music_transition_analytics';
+const ANALYTICS_DOC_ID = 'global_stats';
+
+// Track if we've loaded from Firestore
+let analyticsLoaded = false;
+let persistenceInterval: NodeJS.Timeout | null = null;
+
+/**
+ * Load analytics from Firestore on startup
+ */
+export async function loadAnalyticsFromFirestore(): Promise<void> {
+  if (analyticsLoaded) return;
+
+  try {
+    const admin = await import('firebase-admin');
+    const app = admin.apps.length > 0 ? admin.apps[0] : admin.initializeApp();
+    if (!app) return;
+
+    const firestore = admin.firestore();
+    const doc = await firestore.collection(ANALYTICS_COLLECTION).doc(ANALYTICS_DOC_ID).get();
+
+    if (doc.exists) {
+      const data = doc.data();
+      if (data?.globalStats) {
+        getTransitionAnalytics().import({ globalStats: data.globalStats });
+        log.info(
+          { statsCount: Object.keys(data.globalStats).length },
+          '📊 Analytics loaded from Firestore'
+        );
+      }
+    }
+    analyticsLoaded = true;
+  } catch (error) {
+    log.warn({ error: String(error) }, 'Failed to load analytics from Firestore (non-fatal)');
+  }
+}
+
+/**
+ * Persist analytics aggregates to Firestore
+ * We only save aggregated stats, not individual events (too expensive)
+ */
+export async function persistAnalyticsToFirestore(): Promise<void> {
+  try {
+    const analytics = getTransitionAnalytics();
+    const allStats = analytics.getAllStats();
+
+    if (allStats.size === 0) return;
+
+    const admin = await import('firebase-admin');
+    const app = admin.apps.length > 0 ? admin.apps[0] : null;
+    if (!app) return;
+
+    const firestore = admin.firestore();
+    const globalStats: Record<string, TransitionStats> = {};
+    for (const [type, stats] of allStats.entries()) {
+      globalStats[type] = stats;
+    }
+
+    await firestore
+      .collection(ANALYTICS_COLLECTION)
+      .doc(ANALYTICS_DOC_ID)
+      .set(
+        cleanForFirestore({
+          globalStats,
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          eventCount: analytics.getRecentEvents(1000).length,
+        }),
+        { merge: true }
+      );
+
+    log.debug({ statsCount: allStats.size }, '📊 Analytics persisted to Firestore');
+  } catch (error) {
+    log.warn({ error: String(error) }, 'Failed to persist analytics to Firestore (non-fatal)');
+  }
+}
+
+/**
+ * Start periodic analytics persistence (every 5 minutes)
+ */
+export function startAnalyticsPersistence(): void {
+  if (persistenceInterval) return;
+
+  // Load on startup
+  void loadAnalyticsFromFirestore();
+
+  // Persist every 5 minutes
+  persistenceInterval = setInterval(
+    () => {
+      void persistAnalyticsToFirestore();
+    },
+    5 * 60 * 1000
+  );
+
+  log.info('📊 Analytics persistence started (5 min interval)');
+}
+
+/**
+ * Stop analytics persistence and flush final data
+ */
+export async function stopAnalyticsPersistence(): Promise<void> {
+  if (persistenceInterval) {
+    clearInterval(persistenceInterval);
+    persistenceInterval = null;
+  }
+
+  // Final flush
+  await persistAnalyticsToFirestore();
+  log.info('📊 Analytics persistence stopped');
+}
+
+// ============================================================================
 // EXPORTS
 // ============================================================================
 
@@ -714,4 +1044,9 @@ export default {
   recordTransitionWithAnalytics,
   recordEngagementSignals,
   getBestTransitionType,
+  // Persistence
+  loadAnalyticsFromFirestore,
+  persistAnalyticsToFirestore,
+  startAnalyticsPersistence,
+  stopAnalyticsPersistence,
 };

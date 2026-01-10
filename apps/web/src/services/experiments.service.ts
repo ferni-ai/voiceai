@@ -24,6 +24,7 @@
  */
 
 import { createLogger } from '../utils/logger.js';
+import { apiGet, apiPost } from '../utils/api.js';
 
 const log = createLogger('Experiments');
 
@@ -184,19 +185,21 @@ async function getVariant(
       params.set('country', options.context.country);
     }
 
-    const response = await fetch(`${API_BASE}/${experimentId}/variant?${params}`);
+    const response = await apiGet<{ variantId?: string }>(
+      `${API_BASE}/${experimentId}/variant?${params}`
+    );
 
-    if (!response.ok) {
+    if (!response.ok || !response.data) {
       log.warn(`Failed to get variant for ${experimentId}:`, response.status);
       return null;
     }
 
-    const data = await response.json();
-
-    if (!data.variantId) {
+    if (!response.data.variantId) {
       log.debug(`User not in experiment ${experimentId}`);
       return null;
     }
+
+    const data = response.data;
 
     // Cache the assignment
     cacheAssignment({
@@ -280,11 +283,7 @@ async function flushEvents(): Promise<void> {
   eventQueue = [];
 
   try {
-    const response = await fetch(`${API_BASE}/track/batch`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ events }),
-    });
+    const response = await apiPost(`${API_BASE}/track/batch`, { events });
 
     if (!response.ok) {
       log.warn('Failed to flush events:', response.status);

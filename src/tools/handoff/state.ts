@@ -39,6 +39,27 @@ import type { AgentId } from '../../services/agent-bus.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import type { HandoffAnalytics, HandoffContext, HandoffRecord } from './types.js';
 
+// Redis Pub/Sub for cross-instance handoff notifications
+let pubsubBroadcast: ((from: string, to: string, reason: string) => void) | null = null;
+
+// Initialize Pub/Sub broadcasting (non-blocking)
+void (async () => {
+  try {
+    const { publishSessionEvent } = await import('../../services/redis-pubsub.js');
+    pubsubBroadcast = (from: string, to: string, reason: string) => {
+      publishSessionEvent('handoff', {
+        userId: 'broadcast', // Will be overridden by session context
+        sessionId: 'broadcast',
+        personaId: to,
+        metadata: { from, to, reason, timestamp: Date.now() },
+      }).catch(() => {});
+    };
+    getLogger().debug('Handoff Pub/Sub broadcasting enabled');
+  } catch {
+    // Pub/Sub not available
+  }
+})();
+
 // Re-export session-scoped state for new code
 export {
   getActiveSessionIds,
@@ -228,6 +249,7 @@ export function recordHandoffRecord(record: HandoffRecord): void {
 /**
  * Record a handoff in history (convenience version with separate params)
  * FIX BUG #2: Also updates rate limiting timestamp for single source of truth
+ * PERFORMANCE: Also broadcasts via Redis Pub/Sub for cross-instance notifications
  */
 export function recordHandoff(from: AgentId, to: AgentId, reason: string): void {
   const now = Date.now();
@@ -245,6 +267,12 @@ export function recordHandoff(from: AgentId, to: AgentId, reason: string): void 
   lastHandoffTimestamp = now;
 
   recordHandoffRecord(record);
+
+  // Broadcast handoff via Redis Pub/Sub for cross-instance notifications
+  // This enables real-time handoff tracking across all instances
+  if (pubsubBroadcast) {
+    pubsubBroadcast(from, to, reason);
+  }
 
   getLogger().debug({ handoff: record }, 'Handoff recorded');
 }

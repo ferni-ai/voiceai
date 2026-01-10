@@ -9,6 +9,7 @@
 
 import { updateLifeContextDashboard, setLifeContextLoading, setLifeContextError } from '../ui/life-context-dashboard.ui.js';
 import { getApiHeadersAsync } from '../utils/api-helpers.js';
+import { apiGet } from '../utils/api.js';
 import { createLogger } from '../utils/logger.js';
 
 const log = createLogger('LifeContextUpdates');
@@ -277,21 +278,20 @@ async function fetchLifeContext(userId: string): Promise<void> {
   try {
     setLifeContextLoading(true);
 
-    const headers = await getApiHeadersAsync();
-    const response = await fetch(`/api/life-context?userId=${userId}`, { headers });
+    const response = await apiGet<{ snapshot?: LifeContextSnapshot; triggers?: SynthesisTrigger[] }>(
+      `/api/life-context?userId=${userId}`
+    );
 
-    if (!response.ok) {
+    if (!response.ok || !response.data) {
       throw new Error(`HTTP ${response.status}`);
     }
 
-    const data = (await response.json()) as { snapshot?: LifeContextSnapshot; triggers?: SynthesisTrigger[] };
-
-    if (data.snapshot) {
-      lastSnapshot = data.snapshot;
-      lastTriggers = data.triggers ?? [];
+    if (response.data.snapshot) {
+      lastSnapshot = response.data.snapshot;
+      lastTriggers = response.data.triggers ?? [];
 
       // Map backend data to frontend types
-      const mappedData = mapSnapshotToFrontend(userId, data.snapshot, lastTriggers);
+      const mappedData = mapSnapshotToFrontend(userId, response.data.snapshot, lastTriggers);
       updateLifeContextDashboard(mappedData as Parameters<typeof updateLifeContextDashboard>[0]);
     }
 

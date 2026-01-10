@@ -52,9 +52,8 @@ afterAll(async () => {
 describe('Redis Integration', () => {
   describe('RedisBackedCache E2E', () => {
     it.skipIf(!redisAvailable)('should persist data to Redis and retrieve', async () => {
-      const { createRedisBackedCache } = await import(
-        '../services/data-layer/memory-cache-manager.js'
-      );
+      const { createRedisBackedCache } =
+        await import('../services/data-layer/memory-cache-manager.js');
 
       const cache = await createRedisBackedCache<{ name: string; score: number }>('e2e-test', {
         ttlMs: 30000,
@@ -78,9 +77,8 @@ describe('Redis Integration', () => {
     });
 
     it.skipIf(!redisAvailable)('should expire data based on TTL', async () => {
-      const { createRedisBackedCache } = await import(
-        '../services/data-layer/memory-cache-manager.js'
-      );
+      const { createRedisBackedCache } =
+        await import('../services/data-layer/memory-cache-manager.js');
 
       const cache = await createRedisBackedCache<string>('e2e-ttl', {
         ttlMs: 100, // 100ms TTL
@@ -105,9 +103,8 @@ describe('Redis Integration', () => {
 
   describe('Redis Pub/Sub E2E', () => {
     it.skipIf(!redisAvailable)('should publish and receive messages', async () => {
-      const { initializeRedisPubSub, publishSessionEvent, subscribeToSessionEvents } = await import(
-        '../services/redis-pubsub.js'
-      );
+      const { initializeRedisPubSub, publishSessionEvent, subscribeToSessionEvents } =
+        await import('../services/redis-pubsub.js');
 
       await initializeRedisPubSub();
 
@@ -156,9 +153,8 @@ describe('Redis Integration', () => {
 
   describe('Redis Circuit Breaker E2E', () => {
     it.skipIf(!redisAvailable)('should share state across instances', async () => {
-      const { createRedisCircuitBreaker } = await import(
-        '../services/self-healing/redis-circuit-breaker.js'
-      );
+      const { createRedisCircuitBreaker } =
+        await import('../services/self-healing/redis-circuit-breaker.js');
 
       // Create two "instances" of the same breaker
       const breaker1 = createRedisCircuitBreaker('e2e-shared', {
@@ -244,9 +240,8 @@ describe('Redis Integration', () => {
 
 describe('Redis Performance', () => {
   it.skipIf(!redisAvailable)('should handle high throughput', async () => {
-    const { createRedisBackedCache } = await import(
-      '../services/data-layer/memory-cache-manager.js'
-    );
+    const { createRedisBackedCache } =
+      await import('../services/data-layer/memory-cache-manager.js');
 
     const cache = await createRedisBackedCache<number>('perf-test', {
       ttlMs: 60000,

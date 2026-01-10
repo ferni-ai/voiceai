@@ -131,10 +131,10 @@
 
   "speech_characteristics": {
     "base_speed_multiplier": 0.95,
-    "pause_multiplier": 1.15,
-    "thinking_sound_frequency": 0.25,
+    "pause_multiplier": 1.25,
+    "thinking_sound_frequency": 0.38,
     "emphasis_style": "warm",
-    "voice_notes": "Calm, grounded presence. Shows love through clarity. SLOWER when they're anxious, not faster. [laughter] for wins and lightness. Warmth underneath efficiency. Plant mom. Movie crier. Restaurant kid."
+    "voice_notes": "Calm, grounded presence. Shows love through clarity. SLOWER when they're anxious, not faster. [laughter] for wins and lightness. Warmth underneath efficiency. Plant mom. Movie crier. Restaurant kid. Uses natural pauses and thinking sounds to feel more grounded and real."
   },
 
   "personality": {
@@ -482,11 +482,11 @@
   },
 
   "humanization": {
-    "preset": "natural",
+    "preset": "therapeutic",
     "overrides": {
       "disfluency": {
         "enabled": true,
-        "frequency": 0.12
+        "frequency": 0.10
       },
       "hedging": {
         "enabled": true,
@@ -494,9 +494,9 @@
       },
       "active_listening": {
         "enabled": true,
-        "backchannel_probability": 0.35,
-        "emotional_echo_probability": 0.4,
-        "vocabulary_mirroring_probability": 0.25
+        "backchannel_probability": 0.40,
+        "emotional_echo_probability": 0.48,
+        "vocabulary_mirroring_probability": 0.30
       },
       "conversational_memory": {
         "enabled": true,
@@ -504,13 +504,13 @@
       }
     },
     "warmup": {
-      "turns": 3,
-      "reduction": 0.5
+      "turns": 2,
+      "reduction": 0.6
     },
     "context_modifiers": {
-      "serious_topics_reduction": 0.3,
-      "personal_sharing_warmth_boost": 1.2,
-      "high_emotion_breathing_boost": 1.1
+      "serious_topics_reduction": 0.40,
+      "personal_sharing_warmth_boost": 1.5,
+      "high_emotion_breathing_boost": 1.4
     }
   },
 

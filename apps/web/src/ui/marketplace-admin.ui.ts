@@ -25,6 +25,7 @@ import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { toast } from './whisper.ui.js';
+import { getApiHeadersAsync } from '../utils/api-helpers.js';
 
 const log = createLogger('MarketplaceAdminUI');
 
@@ -177,12 +178,14 @@ export function closeAdminQueue(): void {
 async function loadData(): Promise<void> {
   if (!adminSession) return;
 
-  const headers = {
-    'x-admin-id': adminSession.id,
-    'x-admin-name': adminSession.name,
-  };
-
   try {
+    const authHeaders = await getApiHeadersAsync();
+    const headers = {
+      ...authHeaders,
+      'x-admin-id': adminSession.id,
+      'x-admin-name': adminSession.name,
+    };
+
     const [queueRes, reviewsRes, statsRes] = await Promise.all([
       fetch('/api/admin/marketplace/queue', { headers }),
       fetch('/api/admin/marketplace/reviews/pending', { headers }),
@@ -483,10 +486,11 @@ async function handleApprove(itemId: string): Promise<void> {
   if (!adminSession) return;
 
   try {
+    const authHeaders = await getApiHeadersAsync({ 'Content-Type': 'application/json' });
     const response = await fetch(`/api/admin/marketplace/item/${itemId}/approve`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
+        ...authHeaders,
         'x-admin-id': adminSession.id,
         'x-admin-name': adminSession.name,
       },
@@ -514,10 +518,11 @@ async function handleReject(itemId: string): Promise<void> {
   if (!reason) return;
 
   try {
+    const authHeaders = await getApiHeadersAsync({ 'Content-Type': 'application/json' });
     const response = await fetch(`/api/admin/marketplace/item/${itemId}/reject`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
+        ...authHeaders,
         'x-admin-id': adminSession.id,
         'x-admin-name': adminSession.name,
       },
@@ -545,10 +550,11 @@ async function handleModerateReview(
   if (!adminSession) return;
 
   try {
+    const authHeaders = await getApiHeadersAsync({ 'Content-Type': 'application/json' });
     const response = await fetch(`/api/admin/marketplace/reviews/${reviewId}/moderate`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
+        ...authHeaders,
         'x-admin-id': adminSession.id,
         'x-admin-name': adminSession.name,
       },

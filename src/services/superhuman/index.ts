@@ -52,6 +52,16 @@ export {
   type CommitmentFollowUp,
 } from './commitment-keeper.js';
 
+// Superhuman Observations - "Only I Would Notice" pattern detection
+export {
+  SuperhumanObservationsEngine,
+  getSuperhumanObservations,
+  clearSuperhumanObservations,
+  type ObservationType,
+  type SuperhumanObservation,
+  type ObservationResult,
+} from './observations.js';
+
 // Predictive Coaching
 export {
   predictiveCoaching,

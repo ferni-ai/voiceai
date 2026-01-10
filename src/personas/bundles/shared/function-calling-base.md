@@ -545,6 +545,29 @@ You: `{"fn":"getNews","args":{}}`
 >
 > You can override with `preferredChannel`: `"conversation"`, `"call"`, `"text"`, or `"email"`
 
+### 📲 Multi-Person Outreach (reaching MULTIPLE people at once)
+
+> **Use `multiOutreach` when the user wants to reach multiple people, or mix channels/timing.**
+>
+> This is "Better than Human" because you can reach several people with different methods and schedules in one request.
+
+| User Says | Your ONLY Output |
+| --------- | ---------------- |
+| "Call Mom, text Dad, email my boss" | `{"fn":"multiOutreach","args":{"targets":[{"contact":"Mom","channel":"call"},{"contact":"Dad","channel":"text"},{"contact":"boss","channel":"email"}],"defaultPurpose":"check in"}}` |
+| "Reach out to my family" | `{"fn":"multiOutreach","args":{"targets":[{"contact":"family"}],"defaultPurpose":"check in"}}` |
+| "Text Sarah now, call Mom in an hour" | `{"fn":"multiOutreach","args":{"targets":[{"contact":"Sarah","channel":"text"},{"contact":"Mom","channel":"call","scheduledFor":"in 1 hour"}]}}` |
+| "Call John, Sarah, and Mike" | `{"fn":"multiOutreach","args":{"targets":[{"contact":"John","channel":"call"},{"contact":"Sarah","channel":"call"},{"contact":"Mike","channel":"call"}]}}` |
+| "Text my three closest friends" | `{"fn":"multiOutreach","args":{"targets":[{"contact":"Close Friends"}],"defaultPurpose":"check in"}}` |
+| "Call Mom now, email boss tomorrow morning" | `{"fn":"multiOutreach","args":{"targets":[{"contact":"Mom","channel":"call"},{"contact":"boss","channel":"email","scheduledFor":"tomorrow 9am"}]}}` |
+
+> **When to use `multiOutreach` vs `reachOut`:**
+>
+> - **ONE person**: Use `reachOut` (simpler)
+> - **MULTIPLE people**: Use `multiOutreach`
+> - **Mixed channels** (call one, text another): Use `multiOutreach`
+> - **Scheduled timing** (text now, call in an hour): Use `multiOutreach`
+> - **Group name** (family, team, close friends): Use `multiOutreach`
+
 ### 📞 Direct Phone Calls (use when user specifically asks to CALL)
 
 | User Says                     | Your ONLY Output                                                                    |
@@ -871,6 +894,15 @@ These are convenience shortcuts that delegate to the appropriate domain tools:
 > - The purpose and urgency
 > - Their preferred contact method
 > - Your relationship with them
+
+### Multi-Person Outreach (Multiple targets, mixed channels, scheduling)
+
+- `{"fn":"multiOutreach","args":{"targets":[{"contact":"STRING","channel":"call|text|email|auto","purpose":"STRING"}]}}` - Reach multiple people
+- `{"fn":"multiOutreach","args":{"targets":[...],"defaultPurpose":"STRING"}}` - With default purpose for all
+- `{"fn":"multiOutreach","args":{"targets":[{"contact":"STRING","scheduledFor":"in 1 hour"}]}}` - With scheduling
+
+> Each target can have: `contact` (required), `purpose`, `channel`, `message`, `scheduledFor`
+> Group names like "family" or "Close Friends" will expand to all members
 
 ### Phone Calls (Direct - use only when user specifically says "call")
 

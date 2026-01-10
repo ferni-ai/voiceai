@@ -244,6 +244,7 @@ export {
   ensureProfileLoaded,
   ensureMemoriesLoaded,
   ensureMusicLearningLoaded,
+  isMusicLearningLoaded,
   saveProfile,
   saveMemories,
   saveMusicLearning,

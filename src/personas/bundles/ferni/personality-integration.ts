@@ -9,6 +9,12 @@
  * 3. Expression Composition - Generate appropriate response
  * 4. Resonance Learning - Track what works
  *
+ * MIGRATION NOTE (January 2026):
+ * Superhuman features (anticipation, vulnerability tracking, pattern detection)
+ * are being migrated to the Clean Architecture v2 system in src/personality/v2/.
+ * This file continues to handle expression composition and resonance learning.
+ * The v2 system runs in parallel via the personality-v2 context builder.
+ *
  * Usage:
  *   const personality = await processTurnPersonality(input);
  *   if (personality) {
@@ -24,11 +30,11 @@ import {
   composeExpression,
   type ComposedExpression,
   type PersonalityContext,
-} from './better-than-human-personality.js';
+} from '../../shared/better-than-human-personality.js';
 import {
   assemblePersonalityContext,
   type ContextAssemblerInput,
-} from './personality-context-assembler.js';
+} from '../../shared/personality-context-assembler.js';
 import {
   detectNoticing,
   shouldThrottleNoticing,
@@ -36,13 +42,13 @@ import {
   type NoticingInput,
   type NoticingResult,
   type NoticingType,
-} from './realtime-noticing.js';
+} from '../../shared/realtime-noticing.js';
 import {
   recordResonanceEvent,
   recordUserTopicMention,
   detectEngagement,
   prewarmResonanceCache,
-} from './personality-resonance-store.js';
+} from '../../shared/personality-resonance-store.js';
 import {
   getBestExpression,
   prewarmCache,
@@ -266,6 +272,7 @@ export async function processTurnPersonality(
     void recordResonanceEvent(input.userId, {
       theme: input.previousExpression.theme,
       engagement: previousEngagement,
+      personaId: 'ferni',
       context: {
         turnCount: input.turnCount,
         momentum: input.momentum || 'cruising',
@@ -308,22 +315,21 @@ export async function processTurnPersonality(
   // STEP 3: Assemble full context (SYNC - fast)
   // ═══════════════════════════════════════════════════════════════════════════
   const contextInput: ContextAssemblerInput = {
+    personaId: 'ferni',
     sessionId: input.sessionId,
     userId: input.userId,
     turnCount: input.turnCount,
-    emotion: input.textEmotion,
-    momentum: input.momentum,
-    topics: input.topics,
-    lastTopic: input.lastTopic,
-    userSpeechRate: input.speechRateWPM,
+    userTranscript: input.userTranscript || '',
+    textEmotion: input.textEmotion,
+    conversationMomentum: input.momentum,
+    currentTopics: input.topics,
+    lastTopics: input.lastTopic ? [input.lastTopic] : undefined,
+    speechRateWPM: input.speechRateWPM,
     pauseBeforeMs: input.pauseBeforeMs,
-    voiceEmotionConfidence: input.voiceEmotion?.confidence,
+    voiceEmotion: input.voiceEmotion,
     relationshipStage: input.relationshipStage,
     totalConversations: input.totalConversations,
     sharedVulnerabilities: input.sharedVulnerabilities,
-    userIntent: input.userIntent,
-    wasPersonalSharing: input.wasPersonalSharing,
-    isHeavyTopic: input.isHeavyTopic,
   };
 
   const context = assemblePersonalityContext(contextInput);
@@ -341,6 +347,7 @@ export async function processTurnPersonality(
   const noticingTimer = startTiming();
 
   const noticingInput: NoticingInput = {
+    personaId: 'ferni',
     sessionId: input.sessionId,
     turnCount: input.turnCount,
     currentTranscript: input.userTranscript,
@@ -393,6 +400,7 @@ export async function processTurnPersonality(
         compositionReason: `memory-${memoryCallback.type}`,
         shouldBeSubtle: false,
         timing: exprFromMemory.timing,
+        personaId: 'ferni',
       };
       expressionSource = 'memory';
       decisionReason = `Memory callback: ${memoryCallback.type}`;
@@ -447,6 +455,7 @@ export async function processTurnPersonality(
         compositionReason: `cross-persona-${pattern.sourcePersona}`,
         shouldBeSubtle: theme !== 'vulnerability',
         timing: voiceAdjustment.suggestedInjectionPoint || 'mid_response',
+        personaId: 'ferni',
       };
       expressionSource = 'cross-persona';
       decisionReason = `Cross-persona pattern from ${pattern.sourcePersona}`;
@@ -467,6 +476,7 @@ export async function processTurnPersonality(
           compositionReason: `${bestExpr.source}-generated`,
           shouldBeSubtle: voiceAdjustment.preferShorterExpressions || theme !== 'vulnerability',
           timing: voiceAdjustment.suggestedInjectionPoint || 'mid_response',
+          personaId: 'ferni',
         };
         expressionSource = bestExpr.source;
         decisionReason = `${bestExpr.source} expression for ${theme}`;
@@ -744,7 +754,7 @@ export function applyPersonalityToResponse(
 // CLEANUP
 // ============================================================================
 
-import { clearNoticingState } from './realtime-noticing.js';
+import { clearNoticingState } from '../../shared/realtime-noticing.js';
 import { clearSessionVariety } from './dynamic-personality.js';
 import { clearCache as clearLLMCache } from './llm-expression-generator.js';
 

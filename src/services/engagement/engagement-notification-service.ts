@@ -18,6 +18,7 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
+import { registerInterval, clearNamedInterval } from '../../utils/interval-manager.js';
 
 import { EventEmitter } from 'events';
 import { createPersistenceStore, type PersistenceStore } from '../persistence/index.js';
@@ -114,10 +115,11 @@ interface MayaNotificationData {
 // MAYA NOTIFICATION SERVICE
 // ============================================================================
 
+const MAYA_PROACTIVE_CHECK_INTERVAL = 'maya-notification-proactive-check';
+
 class MayaNotificationService extends EventEmitter {
   private scheduledNotifications = new Map<string, ScheduledReminder>();
   private userPreferences = new Map<string, MayaNotificationPreferences>();
-  private checkInterval: NodeJS.Timeout | null = null;
 
   // Persistence
   private persistenceStore: PersistenceStore<MayaNotificationData> | null = null;
@@ -143,10 +145,7 @@ class MayaNotificationService extends EventEmitter {
   }
 
   async shutdown(): Promise<void> {
-    if (this.checkInterval) {
-      clearInterval(this.checkInterval);
-      this.checkInterval = null;
-    }
+    clearNamedInterval(MAYA_PROACTIVE_CHECK_INTERVAL);
 
     // Flush all pending persistence
     if (this.persistenceStore) {
@@ -547,13 +546,14 @@ class MayaNotificationService extends EventEmitter {
   // ============================================================================
 
   private startProactiveCheckLoop(): void {
-    // Check every hour for proactive opportunities
-    this.checkInterval = setInterval(
+    // Check every hour for proactive opportunities using managed interval
+    registerInterval(
+      MAYA_PROACTIVE_CHECK_INTERVAL,
       () => {
         void this.runProactiveChecks();
       },
-      60 * 60 * 1000
-    ); // 1 hour
+      60 * 60 * 1000 // 1 hour
+    );
 
     // Also run immediately
     void this.runProactiveChecks();

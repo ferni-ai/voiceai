@@ -106,6 +106,23 @@ export function setShowTeamHuddleCallback(callback: () => void): void {
   showTeamHuddleCallback = callback;
 }
 
+// 🔄 Last agent response - for repeat functionality
+let lastAgentResponse: { text: string; personaId?: string; timestamp: number } | null = null;
+
+/**
+ * Get the last agent response for repeat functionality.
+ */
+export function getLastAgentResponse(): { text: string; personaId?: string } | null {
+  return lastAgentResponse;
+}
+
+/**
+ * Clear the last agent response (on session end).
+ */
+export function clearLastAgentResponse(): void {
+  lastAgentResponse = null;
+}
+
 /**
  * Handle incoming data messages from the agent.
  * Routes to appropriate handler based on message type.
@@ -250,11 +267,17 @@ export function handleDataMessage(message: DataMessage): void {
     case 'agent_transcript':
       // Track agent message for conversation history
       if (typeof message['text'] === 'string') {
-        conversationTracker.addMessage(
-          'agent',
-          message['text'],
-          message['personaId'] as string | undefined
-        );
+        const agentText = message['text'];
+        const personaId = message['personaId'] as string | undefined;
+
+        conversationTracker.addMessage('agent', agentText, personaId);
+
+        // 🔄 Store for repeat functionality
+        lastAgentResponse = {
+          text: agentText,
+          personaId,
+          timestamp: Date.now(),
+        };
       }
       break;
 
@@ -378,6 +401,21 @@ export function handleDataMessage(message: DataMessage): void {
     case 'on_behalf_call_complete':
       // 📞 ON-BEHALF CALL: Call completed, show result to user
       handleOnBehalfCallComplete(message as OnBehalfCallCompleteEvent);
+      break;
+
+    case 'game_started':
+      // 🎮 GAME BOARD: Voice game session started
+      handleGameStarted(message as GameStartedEvent);
+      break;
+
+    case 'game_state':
+      // 🎮 GAME BOARD: Game state update (moves, turns, scores)
+      handleGameState(message as GameStateEvent);
+      break;
+
+    case 'game_ended':
+      // 🎮 GAME BOARD: Game session ended
+      handleGameEnded(message as GameEndedEvent);
       break;
 
     case 'background_result_complete':
@@ -2405,6 +2443,138 @@ function getResultTypeIcon(type: BackgroundResultCompleteEvent['resultType']): s
     task_completed: '✓',
   };
   return icons[type] || '📋';
+}
+
+// ============================================================================
+// GAME STATE HANDLERS - Visual Game Board Updates
+// ============================================================================
+
+/**
+ * Game started event from backend
+ */
+interface GameStartedEvent extends DataMessage {
+  type: 'game_started';
+  gameId: string;
+  gameType: string;
+  gameName: string;
+  timestamp: number;
+}
+
+/**
+ * Game state event from backend
+ */
+interface GameStateEvent extends DataMessage {
+  type: 'game_state';
+  gameType: string;
+  status: 'active' | 'completed' | 'abandoned';
+  gameData: Record<string, unknown>;
+  timestamp: number;
+}
+
+/**
+ * Game ended event from backend
+ */
+interface GameEndedEvent extends DataMessage {
+  type: 'game_ended';
+  gameType: string;
+  result?: string;
+  timestamp: number;
+}
+
+/**
+ * Handle game started events from the backend.
+ *
+ * Dispatches a custom event that game-board.ui.ts listens for
+ * to show the visual game board.
+ */
+function handleGameStarted(event: GameStartedEvent): void {
+  log.info('🎮 Game started!', {
+    gameId: event.gameId,
+    gameType: event.gameType,
+    gameName: event.gameName,
+  });
+
+  // Play a subtle start sound
+  soundUI.play('message');
+
+  // Show a playful expression
+  ferniExpressions.setExpression('excited', 400, 1500);
+
+  // Dispatch custom event for the game board UI (document, not window - matches listener)
+  document.dispatchEvent(
+    new CustomEvent('ferni:game-started', {
+      detail: {
+        gameId: event.gameId,
+        gameType: event.gameType,
+        gameName: event.gameName,
+      },
+    })
+  );
+}
+
+/**
+ * Handle game state update events from the backend.
+ *
+ * Dispatches a custom event that game-board.ui.ts listens for
+ * to update the visual game board (moves, turns, scores).
+ */
+function handleGameState(event: GameStateEvent): void {
+  log.debug('🎮 Game state update', {
+    gameType: event.gameType,
+    status: event.status,
+  });
+
+  // Map backend state to frontend expected format
+  const gameState = {
+    gameType: event.gameType,
+    status: event.status,
+    ...event.gameData,
+  };
+
+  // Dispatch custom event for the game board UI (document, not window - matches listener)
+  document.dispatchEvent(
+    new CustomEvent('ferni:game-state-update', {
+      detail: gameState,
+    })
+  );
+
+  // If game completed, show appropriate expression
+  if (event.status === 'completed') {
+    const { playMicroExpression } = ferni;
+    playMicroExpression('delight_flash');
+    ferniExpressions.setExpression('pleased', 400, 2000);
+  }
+}
+
+/**
+ * Handle game ended events from the backend.
+ *
+ * Dispatches a custom event that game-board.ui.ts listens for
+ * to hide the visual game board.
+ */
+function handleGameEnded(event: GameEndedEvent): void {
+  log.info('🎮 Game ended!', {
+    gameType: event.gameType,
+    result: event.result,
+  });
+
+  // Show warm closing expression
+  ferniExpressions.setExpression('happy', 400, 2000);
+
+  // Dispatch custom event for the game board UI (document, not window - matches listener)
+  document.dispatchEvent(
+    new CustomEvent('ferni:game-ended', {
+      detail: {
+        gameType: event.gameType,
+        result: event.result,
+      },
+    })
+  );
+
+  // Show result message if provided
+  if (event.result) {
+    messageUI.show(event.result, 'info', 4000);
+  }
 }
 
 // ============================================================================

@@ -15,6 +15,7 @@ import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 import { toast } from './whisper.ui.js';
 import { t } from '../i18n/index.js';
+import { apiGet } from '../utils/api.js';
 
 const log = createLogger('OnboardingProgressUI');
 
@@ -857,7 +858,9 @@ export function cleanupOnboardingProgress(): void {
  */
 export async function fetchAndUpdateOnboardingProgress(userId: string): Promise<void> {
   try {
-    const response = await fetch(`/api/onboarding/progress?userId=${encodeURIComponent(userId)}`);
+    const response = await apiGet<OnboardingProgress>(
+      `/api/onboarding/progress?userId=${encodeURIComponent(userId)}`
+    );
 
     if (!response.ok) {
       if (response.status === 404) {
@@ -868,8 +871,9 @@ export async function fetchAndUpdateOnboardingProgress(userId: string): Promise<
       throw new Error(`HTTP ${response.status}`);
     }
 
-    const progress = (await response.json()) as OnboardingProgress;
-    showOnboardingProgress(progress);
+    if (response.data) {
+      showOnboardingProgress(response.data);
+    }
   } catch (error) {
     log.debug({ error: String(error) }, 'Failed to fetch onboarding progress');
   }

@@ -24,6 +24,7 @@ import type { Firestore as FirestoreType } from '@google-cloud/firestore';
 import { getFirestoreDatabase, getGCPProjectId } from '../../config/environment.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { registerInterval, clearNamedInterval } from '../../utils/interval-manager.js';
 
 const log = createLogger({ module: 'UnifiedTrustPersistence' });
 
@@ -136,7 +137,6 @@ const DEFAULT_CONFIG: PersistenceConfig = {
 let config = { ...DEFAULT_CONFIG };
 const pendingChanges = new Map<string, Set<string>>(); // userId -> set of system names
 const profileCache = new Map<string, UnifiedTrustProfile>();
-let syncInterval: NodeJS.Timeout | null = null;
 let isInitialized = false;
 
 // ============================================================================
@@ -154,10 +154,14 @@ export function initializeUnifiedPersistence(customConfig?: Partial<PersistenceC
 
   config = { ...DEFAULT_CONFIG, ...customConfig };
 
-  // Start batch sync interval
-  syncInterval = setInterval(() => {
-    void flushPendingChanges();
-  }, config.batchSyncIntervalMs);
+  // Start batch sync interval using managed interval
+  registerInterval(
+    'unified-trust-persistence-sync',
+    () => {
+      void flushPendingChanges();
+    },
+    config.batchSyncIntervalMs
+  );
 
   isInitialized = true;
   log.info({ config }, '✅ Unified trust persistence initialized');
@@ -167,10 +171,7 @@ export function initializeUnifiedPersistence(customConfig?: Partial<PersistenceC
  * Shutdown the persistence system
  */
 export async function shutdownUnifiedPersistence(): Promise<void> {
-  if (syncInterval) {
-    clearInterval(syncInterval);
-    syncInterval = null;
-  }
+  clearNamedInterval('unified-trust-persistence-sync');
 
   // Flush any remaining changes
   await flushPendingChanges();

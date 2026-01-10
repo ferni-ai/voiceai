@@ -717,16 +717,147 @@ const MOCK_MILESTONES: MilestoneData[] = [
   },
 ];
 
+// ============================================================================
+// DATA SEEDING FUNCTIONS
+// ============================================================================
+
+/**
+ * Seed initial founders data to Firestore
+ * This is idempotent - it won't overwrite existing data
+ */
+async function seedFoundersData(): Promise<{
+  seeded: { founders: number; stories: number; milestones: number; stats: boolean };
+  skipped: boolean;
+}> {
+  const db = getFirestore();
+  if (!db) {
+    return { seeded: { founders: 0, stories: 0, milestones: 0, stats: false }, skipped: true };
+  }
+
+  const result = { founders: 0, stories: 0, milestones: 0, stats: false };
+
+  try {
+    // Seed founder_stats if not exists
+    const statsDoc = await db.collection('founder_stats').doc('current').get();
+    if (!statsDoc.exists) {
+      await db.collection('founder_stats').doc('current').set({
+        totalFounders: MOCK_FOUNDER_STATS.totalFounders,
+        thisMonthFounders: MOCK_FOUNDER_STATS.thisMonthFounders,
+        conversationsSupported: MOCK_FOUNDER_STATS.conversationsSupported,
+        conversationsThisMonth: MOCK_FOUNDER_STATS.conversationsThisMonth,
+        featuresUnlocked: MOCK_FOUNDER_STATS.featuresUnlocked,
+        monthlyRecurring: MOCK_FOUNDER_STATS.monthlyRecurring,
+        lastUpdated: new Date(),
+      });
+      result.stats = true;
+      log.info('Seeded founder_stats');
+    }
+
+    // Seed founders collection
+    const foundersSnap = await db.collection('founders').limit(1).get();
+    if (foundersSnap.empty) {
+      const batch = db.batch();
+      for (const founder of MOCK_FOUNDERS) {
+        const docRef = db.collection('founders').doc(founder.id);
+        batch.set(docRef, {
+          ...founder,
+          joinedAt: new Date(founder.joinedAt),
+          createdAt: new Date(),
+        });
+        result.founders++;
+      }
+      await batch.commit();
+      log.info({ count: result.founders }, 'Seeded founders');
+    }
+
+    // Seed founder_stories collection
+    const storiesSnap = await db.collection('founder_stories').limit(1).get();
+    if (storiesSnap.empty) {
+      const batch = db.batch();
+      for (const story of MOCK_STORIES) {
+        const docRef = db.collection('founder_stories').doc(story.id);
+        batch.set(docRef, {
+          ...story,
+          approved: true,
+          createdAt: new Date(),
+        });
+        result.stories++;
+      }
+      await batch.commit();
+      log.info({ count: result.stories }, 'Seeded founder_stories');
+    }
+
+    // Seed community_milestones collection
+    const milestonesSnap = await db.collection('community_milestones').limit(1).get();
+    if (milestonesSnap.empty) {
+      const batch = db.batch();
+      for (const milestone of MOCK_MILESTONES) {
+        const docRef = db.collection('community_milestones').doc(milestone.id);
+        batch.set(docRef, {
+          ...milestone,
+          reachedAt: milestone.reachedAt ? new Date(milestone.reachedAt) : null,
+          createdAt: new Date(),
+        });
+        result.milestones++;
+      }
+      await batch.commit();
+      log.info({ count: result.milestones }, 'Seeded community_milestones');
+    }
+
+    return { seeded: result, skipped: false };
+  } catch (error) {
+    log.error({ error: String(error) }, 'Failed to seed founders data');
+    return { seeded: result, skipped: true };
+  }
+}
+
+/**
+ * Admin endpoint to seed founders data
+ * POST /api/garden/admin/seed
+ */
+async function handleSeedFoundersData(
+  req: IncomingMessage,
+  res: ServerResponse
+): Promise<void> {
+  // Verify admin access
+  const adminKey = req.headers['x-admin-key'] as string | undefined;
+  const configuredAdminKey = process.env.ADMIN_KEY;
+  const isDev = process.env.NODE_ENV === 'development';
+
+  const isAdmin =
+    (configuredAdminKey && adminKey === configuredAdminKey) || (isDev && adminKey === 'dev-mode');
+
+  if (!isAdmin) {
+    sendError(res, 'Unauthorized', 401);
+    return;
+  }
+
+  const result = await seedFoundersData();
+  sendJSON(res, {
+    success: !result.skipped,
+    ...result,
+    message: result.skipped
+      ? 'Seeding skipped (no database or already seeded)'
+      : 'Founders data seeded successfully',
+  });
+}
+
 /**
  * GET /api/garden/founder-stats
  * Public community stats for the founders journey
  */
 async function handleFounderStats(res: ServerResponse): Promise<void> {
+  const isDev = process.env.NODE_ENV === 'development';
+
   try {
     const db = getFirestore();
     if (!db) {
-      // Return mock data when database unavailable
-      sendJSON(res, MOCK_FOUNDER_STATS);
+      // Return mock data when database unavailable (dev only)
+      if (isDev) {
+        sendJSON(res, MOCK_FOUNDER_STATS);
+      } else {
+        sendJSON(res, { error: 'Service temporarily unavailable' }, 503);
+      }
       return;
     }
 
@@ -734,28 +865,43 @@ async function handleFounderStats(res: ServerResponse): Promise<void> {
     const statsDoc = await db.collection('founder_stats').doc('current').get();
 
     if (!statsDoc.exists) {
-      // No stats document yet - fallback to mock
-      log.debug('No founder_stats document, using defaults');
-      sendJSON(res, MOCK_FOUNDER_STATS);
+      // No stats document yet - seed data if in dev, return empty in prod
+      if (isDev) {
+        log.debug('No founder_stats document, seeding initial data');
+        await seedFoundersData();
+        sendJSON(res, MOCK_FOUNDER_STATS);
+      } else {
+        // Return empty stats in production (data should be seeded first)
+        sendJSON(res, {
+          totalFounders: 0,
+          thisMonthFounders: 0,
+          conversationsSupported: 0,
+          conversationsThisMonth: 0,
+          featuresUnlocked: [],
+          monthlyRecurring: 0,
+        });
+      }
       return;
     }
 
     const data = statsDoc.data()!;
     const stats: FounderStatsData = {
-      totalFounders: data.totalFounders ?? MOCK_FOUNDER_STATS.totalFounders,
-      thisMonthFounders: data.thisMonthFounders ?? MOCK_FOUNDER_STATS.thisMonthFounders,
-      conversationsSupported:
-        data.conversationsSupported ?? MOCK_FOUNDER_STATS.conversationsSupported,
-      conversationsThisMonth:
-        data.conversationsThisMonth ?? MOCK_FOUNDER_STATS.conversationsThisMonth,
-      featuresUnlocked: data.featuresUnlocked ?? MOCK_FOUNDER_STATS.featuresUnlocked,
-      monthlyRecurring: data.monthlyRecurring ?? MOCK_FOUNDER_STATS.monthlyRecurring,
+      totalFounders: data.totalFounders ?? 0,
+      thisMonthFounders: data.thisMonthFounders ?? 0,
+      conversationsSupported: data.conversationsSupported ?? 0,
+      conversationsThisMonth: data.conversationsThisMonth ?? 0,
+      featuresUnlocked: data.featuresUnlocked ?? [],
+      monthlyRecurring: data.monthlyRecurring ?? 0,
     };
 
     sendJSON(res, stats);
   } catch (error) {
     log.error({ error: String(error) }, 'Failed to get founder stats');
-    sendJSON(res, MOCK_FOUNDER_STATS); // Graceful fallback
+    if (isDev) {
+      sendJSON(res, MOCK_FOUNDER_STATS); // Graceful fallback in dev
+    } else {
+      sendJSON(res, { error: 'Failed to get founder stats' }, 500);
+    }
   }
 }
 
@@ -764,10 +910,16 @@ async function handleFounderStats(res: ServerResponse): Promise<void> {
  * Public founders gallery for the founders journey
  */
 async function handleFoundersWall(res: ServerResponse): Promise<void> {
+  const isDev = process.env.NODE_ENV === 'development';
+
   try {
     const db = getFirestore();
     if (!db) {
-      sendJSON(res, MOCK_FOUNDERS);
+      if (isDev) {
+        sendJSON(res, MOCK_FOUNDERS);
+      } else {
+        sendJSON(res, []);
+      }
       return;
     }
 
@@ -775,8 +927,13 @@ async function handleFoundersWall(res: ServerResponse): Promise<void> {
     const foundersSnap = await db.collection('founders').orderBy('joinedAt', 'asc').limit(50).get();
 
     if (foundersSnap.empty) {
-      log.debug('No founders in collection, using mock data');
-      sendJSON(res, MOCK_FOUNDERS);
+      if (isDev) {
+        log.debug('No founders in collection, seeding initial data');
+        await seedFoundersData();
+        sendJSON(res, MOCK_FOUNDERS);
+      } else {
+        sendJSON(res, []);
+      }
       return;
     }
 
@@ -800,7 +957,11 @@ async function handleFoundersWall(res: ServerResponse): Promise<void> {
     sendJSON(res, founders);
   } catch (error) {
     log.error({ error: String(error) }, 'Failed to get founders wall');
-    sendJSON(res, MOCK_FOUNDERS);
+    if (isDev) {
+      sendJSON(res, MOCK_FOUNDERS);
+    } else {
+      sendJSON(res, { error: 'Failed to get founders wall' }, 500);
+    }
   }
 }
 
@@ -809,10 +970,16 @@ async function handleFoundersWall(res: ServerResponse): Promise<void> {
  * Public testimonials for the founders journey
  */
 async function handleFounderStories(res: ServerResponse): Promise<void> {
+  const isDev = process.env.NODE_ENV === 'development';
+
   try {
     const db = getFirestore();
     if (!db) {
-      sendJSON(res, MOCK_STORIES);
+      if (isDev) {
+        sendJSON(res, MOCK_STORIES);
+      } else {
+        sendJSON(res, []);
+      }
       return;
     }
 
@@ -825,8 +992,13 @@ async function handleFounderStories(res: ServerResponse): Promise<void> {
       .get();
 
     if (storiesSnap.empty) {
-      log.debug('No founder stories in collection, using mock data');
-      sendJSON(res, MOCK_STORIES);
+      if (isDev) {
+        log.debug('No founder stories in collection, seeding initial data');
+        await seedFoundersData();
+        sendJSON(res, MOCK_STORIES);
+      } else {
+        sendJSON(res, []);
+      }
       return;
     }
 
@@ -844,7 +1016,11 @@ async function handleFounderStories(res: ServerResponse): Promise<void> {
     sendJSON(res, stories);
   } catch (error) {
     log.error({ error: String(error) }, 'Failed to get founder stories');
-    sendJSON(res, MOCK_STORIES);
+    if (isDev) {
+      sendJSON(res, MOCK_STORIES);
+    } else {
+      sendJSON(res, { error: 'Failed to get founder stories' }, 500);
+    }
   }
 }
 
@@ -853,10 +1029,16 @@ async function handleFounderStories(res: ServerResponse): Promise<void> {
  * Public community milestones for the founders journey
  */
 async function handleMilestones(res: ServerResponse): Promise<void> {
+  const isDev = process.env.NODE_ENV === 'development';
+
   try {
     const db = getFirestore();
     if (!db) {
-      sendJSON(res, MOCK_MILESTONES);
+      if (isDev) {
+        sendJSON(res, MOCK_MILESTONES);
+      } else {
+        sendJSON(res, []);
+      }
       return;
     }
 
@@ -867,8 +1049,13 @@ async function handleMilestones(res: ServerResponse): Promise<void> {
       .get();
 
     if (milestonesSnap.empty) {
-      log.debug('No milestones in collection, using mock data');
-      sendJSON(res, MOCK_MILESTONES);
+      if (isDev) {
+        log.debug('No milestones in collection, seeding initial data');
+        await seedFoundersData();
+        sendJSON(res, MOCK_MILESTONES);
+      } else {
+        sendJSON(res, []);
+      }
       return;
     }
 
@@ -889,7 +1076,11 @@ async function handleMilestones(res: ServerResponse): Promise<void> {
     sendJSON(res, milestones);
   } catch (error) {
     log.error({ error: String(error) }, 'Failed to get milestones');
-    sendJSON(res, MOCK_MILESTONES);
+    if (isDev) {
+      sendJSON(res, MOCK_MILESTONES);
+    } else {
+      sendJSON(res, { error: 'Failed to get milestones' }, 500);
+    }
   }
 }
 
@@ -1012,6 +1203,12 @@ export async function handleGardenRoutes(
   // GET /api/garden/status - Public endpoint (no auth required)
   if (pathname === '/api/garden/status' && method === 'GET') {
     await handleGetStatus(req, res);
+    return true;
+  }
+
+  // POST /api/garden/admin/seed - Admin endpoint to seed initial data
+  if (pathname === '/api/garden/admin/seed' && method === 'POST') {
+    await handleSeedFoundersData(req, res);
     return true;
   }
 

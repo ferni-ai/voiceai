@@ -13,6 +13,7 @@
 
 import { execSync } from 'child_process';
 import { createLogger } from '../../utils/safe-logger.js';
+import { registerInterval, clearNamedInterval, hasInterval } from '../../utils/interval-manager.js';
 import { SlackNotificationService } from '../slack-notifications.js';
 
 const log = createLogger({ module: 'ScheduledBackups' });
@@ -60,13 +61,14 @@ const DEFAULT_CONFIG: BackupConfig = {
 // STATE
 // ============================================================================
 
+const BACKUP_SCHEDULER_INTERVAL = 'backup-scheduler';
+
 interface BackupState {
   isSchedulerRunning: boolean;
   lastBackupAt: number | null;
   lastBackupSuccess: boolean;
   lastBackupPath: string | null;
   backupHistory: BackupRecord[];
-  schedulerTimer: ReturnType<typeof setInterval> | null;
 }
 
 interface BackupRecord {
@@ -85,7 +87,6 @@ const state: BackupState = {
   lastBackupSuccess: false,
   lastBackupPath: null,
   backupHistory: [],
-  schedulerTimer: null,
 };
 
 let config = { ...DEFAULT_CONFIG };
@@ -355,36 +356,37 @@ export function startBackupScheduler(userConfig?: Partial<BackupConfig>): void {
     '📅 Backup scheduler started'
   );
 
-  // Check every minute if it's time to backup
-  state.schedulerTimer = setInterval(() => {
-    const now = new Date();
-    if (
-      now.getUTCHours() === config.dailyBackupHour &&
-      now.getUTCMinutes() === config.dailyBackupMinute
-    ) {
-      // Check if we already backed up today
-      if (state.lastBackupAt) {
-        const lastBackupDate = new Date(state.lastBackupAt).toDateString();
-        const todayDate = now.toDateString();
-        if (lastBackupDate === todayDate) {
-          return; // Already backed up today
+  // Check every minute if it's time to backup using managed interval
+  registerInterval(
+    BACKUP_SCHEDULER_INTERVAL,
+    () => {
+      const now = new Date();
+      if (
+        now.getUTCHours() === config.dailyBackupHour &&
+        now.getUTCMinutes() === config.dailyBackupMinute
+      ) {
+        // Check if we already backed up today
+        if (state.lastBackupAt) {
+          const lastBackupDate = new Date(state.lastBackupAt).toDateString();
+          const todayDate = now.toDateString();
+          if (lastBackupDate === todayDate) {
+            return; // Already backed up today
+          }
         }
-      }
 
-      log.info('⏰ Scheduled backup time - triggering backup');
-      void createBackup().then(async () => cleanupOldBackups());
-    }
-  }, 60 * 1000); // Check every minute
+        log.info('⏰ Scheduled backup time - triggering backup');
+        void createBackup().then(async () => cleanupOldBackups());
+      }
+    },
+    60 * 1000 // Check every minute
+  );
 }
 
 /**
  * Stop the backup scheduler
  */
 export function stopBackupScheduler(): void {
-  if (state.schedulerTimer) {
-    clearInterval(state.schedulerTimer);
-    state.schedulerTimer = null;
-  }
+  clearNamedInterval(BACKUP_SCHEDULER_INTERVAL);
   state.isSchedulerRunning = false;
   log.info('Backup scheduler stopped');
 }

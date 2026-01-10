@@ -13,6 +13,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { registerInterval, clearNamedInterval } from '../../utils/interval-manager.js';
 import { SlackNotificationService } from '../slack-notifications.js';
 import { recordMetricValue } from '../predictive-alerting.js';
 
@@ -148,7 +149,6 @@ const sessions = new Map<string, CallSession>();
 const completedSessions: CallSession[] = [];
 const MAX_COMPLETED_SESSIONS = 10000;
 const lastAlerts = new Map<string, number>();
-let qualityCheckInterval: NodeJS.Timeout | null = null;
 let slackService: SlackNotificationService | null = null;
 let isRunning = false;
 
@@ -592,10 +592,14 @@ export function startCallQualityMonitor(userConfig?: Partial<CallQualityConfig>)
     }
   }
 
-  // Start quality check loop
-  qualityCheckInterval = setInterval(() => {
-    checkQualityAlerts().catch((e) => log.error({ error: String(e) }, 'Quality check failed'));
-  }, config.qualityCheckIntervalMs);
+  // Start quality check loop using managed interval
+  registerInterval(
+    'call-quality-monitor',
+    () => {
+      checkQualityAlerts().catch((e) => log.error({ error: String(e) }, 'Quality check failed'));
+    },
+    config.qualityCheckIntervalMs
+  );
 
   log.info('📞 Call quality monitor started');
 }
@@ -603,10 +607,7 @@ export function startCallQualityMonitor(userConfig?: Partial<CallQualityConfig>)
 export function stopCallQualityMonitor(): void {
   if (!isRunning) return;
 
-  if (qualityCheckInterval) {
-    clearInterval(qualityCheckInterval);
-    qualityCheckInterval = null;
-  }
+  clearNamedInterval('call-quality-monitor');
 
   isRunning = false;
   log.info('Call quality monitor stopped');

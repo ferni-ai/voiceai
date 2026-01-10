@@ -2082,7 +2082,10 @@ export class CallMusicPlayer {
         this.onMusicStateChangeCallback('stopped', stoppedTrack, wasAmbient);
       } catch (err) {
         // Best-effort - don't let callback errors block cleanup
-        log.debug({ error: String(err) }, '🎧 [DISPOSE] State callback error (expected if room closed)');
+        log.debug(
+          { error: String(err) },
+          '🎧 [DISPOSE] State callback error (expected if room closed)'
+        );
       }
     }
 

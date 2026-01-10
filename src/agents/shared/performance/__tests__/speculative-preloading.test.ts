@@ -15,6 +15,12 @@ vi.mock('../../../../utils/safe-logger.js', () => ({
     warn: vi.fn(),
     error: vi.fn(),
   }),
+  createLogger: () => ({
+    debug: vi.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+  }),
 }));
 
 // Mock persona insights cache
@@ -25,6 +31,11 @@ vi.mock('../../../../intelligence/context-builders/persona-insights-cache.js', (
 // Mock persona preloader
 vi.mock('../../../../personas/bundles/preloader.js', () => ({
   preloadAllBundles: vi.fn().mockResolvedValue(undefined),
+}));
+
+// Mock session warmup (warmHandoffCaches)
+vi.mock('../../../../services/session-warmup.js', () => ({
+  warmHandoffCaches: vi.fn().mockResolvedValue(undefined),
 }));
 
 // Import after mocks
@@ -42,11 +53,14 @@ describe('Speculative Persona Preloading', () => {
   beforeEach(() => {
     vi.useFakeTimers();
     vi.clearAllMocks();
+    // Clear ALL mock call history to prevent cross-test pollution
+    (preloadPersonaInsights as ReturnType<typeof vi.fn>).mockClear();
     clearSpeculativeState('test-session');
   });
 
   afterEach(() => {
     vi.useRealTimers();
+    vi.clearAllMocks();
     clearSpeculativeState('test-session');
   });
 
@@ -143,6 +157,13 @@ describe('Speculative Persona Preloading', () => {
         generatedAt: Date.now(),
       }),
     };
+
+    // Reset state before each test in this describe block
+    beforeEach(() => {
+      vi.clearAllMocks();
+      (preloadPersonaInsights as ReturnType<typeof vi.fn>).mockClear();
+      clearSpeculativeState('test-session');
+    });
 
     it('should debounce rapid calls', async () => {
       // Call multiple times rapidly

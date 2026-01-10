@@ -56,7 +56,8 @@
  * ```
  */
 
-import type { EventEmitter } from 'events';
+// EventEmitter type kept for documentation purposes
+type _EventEmitter = typeof import('events').EventEmitter;
 
 /**
  * Interface for objects that can have event listeners
@@ -135,6 +136,7 @@ export class CleanupManager {
     if (this.disposed) {
       throw new Error('CleanupManager already disposed');
     }
+    // eslint-disable-next-line no-restricted-globals -- CleanupManager IS the cleanup mechanism
     const id = setInterval(callback, ms);
     this.items.push({ type: 'interval', id });
     return id;

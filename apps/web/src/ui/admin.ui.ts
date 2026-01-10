@@ -15,6 +15,8 @@
 
 import { getColorsFromApiOrGenerate } from '../config/persona-colors.js';
 import { fetchAgents, type ApiAgent } from '../services/agents.service.js';
+import { apiGet, apiPost } from '../utils/api.js';
+import { getApiHeadersAsync } from '../utils/api-helpers.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { toast } from './whisper.ui.js';
@@ -375,12 +377,12 @@ async function loadTTSMonitoringStats(): Promise<void> {
   if (!container) return;
 
   try {
-    const response = await fetch('/api/v1/admin/tts-monitoring/stats');
-    if (!response.ok) {
+    const response = await apiGet<TTSStatsResponse>('/api/v1/admin/tts-monitoring/stats');
+    if (!response.ok || !response.data) {
       throw new Error('Failed to fetch TTS stats');
     }
 
-    const stats = await response.json();
+    const stats = response.data;
     container.innerHTML = renderTTSStatsContent(stats);
   } catch (err) {
     container.innerHTML = `
@@ -1160,11 +1162,13 @@ async function previewVoice(agentId: string): Promise<void> {
   toast.info(`Opening voice preview for ${agent.name}...`);
 
   try {
-    const response = await fetch(`/api/voice/preview/${agent.voiceId}`);
-    const data = await response.json();
+    const response = await apiGet<{ previewUrl: string }>(`/api/voice/preview/${agent.voiceId}`);
+    if (!response.ok || !response.data) {
+      throw new Error('Failed to get voice preview');
+    }
 
     // Open Cartesia playground in new tab
-    window.open(data.previewUrl, '_blank');
+    window.open(response.data.previewUrl, '_blank');
   } catch (err) {
     toast.error("Couldn't get voice URL");
   }
@@ -1172,15 +1176,12 @@ async function previewVoice(agentId: string): Promise<void> {
 
 async function toggleAgentEnabled(agentId: string, enabled: boolean): Promise<void> {
   try {
-    const response = await fetch(`/api/agents/${agentId}/enable`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ enabled }),
-    });
+    const response = await apiPost<{ success?: boolean }>(
+      `/api/agents/${agentId}/enable`,
+      { enabled }
+    );
 
-    const data = await response.json();
-
-    if (data.success) {
+    if (response.ok && response.data?.success) {
       toast.info(`${enabled ? 'Enabled' : 'Disabled'} ${agentId}`);
     } else {
       toast.error("Couldn't update agent");
@@ -1202,9 +1203,10 @@ async function saveAgentChanges(agentId: string): Promise<void> {
   });
 
   try {
+    const headers = await getApiHeadersAsync({ 'Content-Type': 'application/json' });
     const response = await fetch(`/api/agents/${agentId}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify(changes),
     });
 
@@ -1231,15 +1233,9 @@ async function saveNewOrder(): Promise<void> {
     .filter(Boolean);
 
   try {
-    const response = await fetch('/api/team/order', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ order }),
-    });
+    const response = await apiPost<{ success?: boolean }>('/api/team/order', { order });
 
-    const data = await response.json();
-
-    if (data.success) {
+    if (response.ok && response.data?.success) {
       toast.info('Team order saved');
     } else {
       toast.error("Couldn't save order");
@@ -1264,18 +1260,17 @@ async function validateAllAgents(): Promise<void> {
   toast.info('Validating all agents...');
 
   try {
-    const response = await fetch('/api/agents/validate', {
-      method: 'POST',
-    });
+    const response = await apiPost<{ success?: boolean; output?: string; errors?: string[] }>(
+      '/api/agents/validate',
+      {}
+    );
 
-    const data = await response.json();
-
-    if (data.success) {
+    if (response.ok && response.data?.success) {
       toast.success('All agents valid!');
     } else {
       toast.warning('Issues found (see console)');
-      log.debug('Validation output:', data.output);
-      if (data.errors) log.error('Validation errors:', data.errors);
+      log.debug('Validation output:', response.data?.output);
+      if (response.data?.errors) log.error('Validation errors:', response.data.errors);
     }
   } catch (err) {
     toast.error("Couldn't run validation");

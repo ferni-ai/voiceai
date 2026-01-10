@@ -10,6 +10,7 @@ import type { TrackInfo } from '../services/spotify.service.js';
 import { spotifyService } from '../services/spotify.service.js';
 import { getElementByIdOrNull, setText, addClass, removeClass, setClasses } from '../utils/dom.js';
 import { getDeviceId } from '../state/app.state.js';
+import { apiGet } from '../utils/api.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 
@@ -76,11 +77,12 @@ async function checkSpotifyStatus(): Promise<void> {
   if (!deviceId) return;
 
   try {
-    const response = await fetch(`/spotify/status?device_id=${encodeURIComponent(deviceId)}`);
-    if (response.ok) {
-      const data = await response.json();
-      spotifyConfigured = data.spotify_configured;
-      isSpotifyLinked = data.linked;
+    const response = await apiGet<{ spotify_configured?: boolean; linked?: boolean }>(
+      `/spotify/status?device_id=${encodeURIComponent(deviceId)}`
+    );
+    if (response.ok && response.data) {
+      spotifyConfigured = response.data.spotify_configured ?? false;
+      isSpotifyLinked = response.data.linked ?? false;
       updateLinkButton();
     }
   } catch (e) {
@@ -129,7 +131,7 @@ async function handleLinkClick(): Promise<void> {
   if (isSpotifyLinked) {
     // Unlink
     try {
-      await fetch(`/spotify/unlink?device_id=${encodeURIComponent(deviceId)}`);
+      await apiGet(`/spotify/unlink?device_id=${encodeURIComponent(deviceId)}`);
       isSpotifyLinked = false;
       updateLinkButton();
       showSpotifyStatus('Spotify disconnected', 'info');

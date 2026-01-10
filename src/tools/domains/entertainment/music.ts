@@ -26,6 +26,12 @@ import {
   isSpotifyConfigured,
 } from '../../../services/identity/spotify-auth.js';
 import {
+  detectMusicIntent as detectUnifiedIntent,
+  extractRoomFromQuery,
+  mentionsSonos,
+  mentionsSpotify,
+} from '../../../services/music/music-provider.js';
+import {
   getAirDJMoment,
   getDancingComment,
   getExcitedMusicReaction,
@@ -204,19 +210,37 @@ export function resetMusicConfig(): void {
  *    - Uses Spotify if linked + device available
  *    - Falls back to iTunes preview with helpful message
  *    - Example: "Play 'All Too Well' by Taylor Swift", "I want to hear..."
+ *
+ * 🔊 SONOS: For Sonos playback, use the playSonosMusic tool directly.
+ *    - The LLM should route "play on Sonos" requests to playSonosMusic tool
  */
 export async function playMusicUnified(query: string): Promise<string> {
   const log = getLogger();
   const intent = detectMusicIntent(query);
 
+  // Check for Sonos/room mentions - guide user to the right approach
+  const explicitSonos = mentionsSonos(query);
+  const roomName = extractRoomFromQuery(query);
+
   log.info(
     {
       query,
       intent,
+      explicitSonos,
+      roomName,
       spotifyLinked: musicConfig.spotifyLinked,
     },
     '🎵 Playing music (intent-based routing)'
   );
+
+  // 🔊 If user mentions Sonos but this tool was called, guide them
+  // Note: The LLM should route Sonos requests to playSonosMusic tool instead
+  if (explicitSonos || roomName) {
+    log.info({ query, roomName, explicitSonos }, '🎵 Sonos mentioned - LLM should use playSonosMusic');
+    // Return helpful message - this shouldn't happen if tools are configured correctly
+    // but provides fallback UX if it does
+    return `To play on Sonos, I'll use the playSonosMusic tool. Let me try that for "${query}"${roomName ? ` in ${roomName}` : ''}...`;
+  }
 
   // 🚨 CRITICAL: Check if music is available FIRST
   // This provides a clear error to the LLM so it knows music won't work this session

@@ -230,6 +230,16 @@ export async function ensureMusicLearningLoaded(userId: string): Promise<void> {
 }
 
 /**
+ * Check if music learning data is already loaded for a user (sync check)
+ *
+ * Use this to check before using learned preferences - if not loaded yet,
+ * the transition system will fall back to base behavior.
+ */
+export function isMusicLearningLoaded(userId: string): boolean {
+  return loadedProfileUsers.has(userId);
+}
+
+/**
  * Save user's transition profile (queued for batch write)
  */
 export function saveProfile(userId: string): void {

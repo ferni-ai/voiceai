@@ -17,11 +17,16 @@
  *    - Requires user to link their Premium account
  *    - Best for "I want to hear the whole song"
  *
+ * 4. **Sonos** - Play on Sonos speakers
+ *    - Searches user's favorites
+ *    - Plays on specified room or default room
+ *
  * ## Intent-Based Routing
  *
  * - "Play some jazz" → Ambient mode → iTunes previews (chains them like a DJ)
  * - "Play Taylor Swift" → Listening mode → Spotify first, iTunes fallback
  * - "Search Apple Music for..." → Direct Apple Music search
+ * - "Play jazz on living room Sonos" → Sonos mode → Play on Sonos speakers
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
@@ -29,8 +34,8 @@ import { getLogger } from '../../utils/safe-logger.js';
 const log = getLogger();
 
 // Types
-export type MusicIntent = 'ambient' | 'listening' | 'search';
-export type MusicSource = 'itunes' | 'apple_music' | 'spotify';
+export type MusicIntent = 'ambient' | 'listening' | 'search' | 'sonos';
+export type MusicSource = 'itunes' | 'apple_music' | 'spotify' | 'sonos';
 
 export interface MusicTrackInfo {
   name: string;
@@ -50,11 +55,169 @@ export interface PlayMusicResult {
   isPreview: boolean;
 }
 
+// ============================================================================
+// UNIFIED SOURCE CONFIGURATION
+// ============================================================================
+
+export interface MusicSourceConfig {
+  spotify: {
+    available: boolean;
+    premium: boolean;
+    deviceReady: boolean;
+  };
+  sonos: {
+    available: boolean;
+    rooms: string[];
+    defaultRoom?: string;
+  };
+  itunes: {
+    available: true; // Always available
+  };
+}
+
+/**
+ * Build a music source config from available services
+ */
+export function buildSourceConfig(options: {
+  spotifyLinked?: boolean;
+  spotifyPremium?: boolean;
+  spotifyDeviceReady?: boolean;
+  sonosLinked?: boolean;
+  sonosRooms?: string[];
+  sonosDefaultRoom?: string;
+}): MusicSourceConfig {
+  return {
+    spotify: {
+      available: options.spotifyLinked ?? false,
+      premium: options.spotifyPremium ?? false,
+      deviceReady: options.spotifyDeviceReady ?? false,
+    },
+    sonos: {
+      available: options.sonosLinked ?? false,
+      rooms: options.sonosRooms ?? [],
+      defaultRoom: options.sonosDefaultRoom,
+    },
+    itunes: {
+      available: true,
+    },
+  };
+}
+
+/**
+ * Select the best music source based on intent and configuration
+ *
+ * Priority:
+ * 1. Sonos (if user said "on Sonos" or has default room and intent is listening)
+ * 2. Spotify Connect (if Premium + device ready and intent is listening)
+ * 3. Sonos search+play (if available and intent is listening)
+ * 4. iTunes preview (always works)
+ */
+export function selectBestSource(
+  intent: MusicIntent,
+  config: MusicSourceConfig,
+  options?: {
+    explicitSonos?: boolean; // User explicitly said "on Sonos"
+    explicitSpotify?: boolean; // User explicitly said "on Spotify"
+    roomSpecified?: string; // User specified a room
+  }
+): MusicSource {
+  const { explicitSonos, explicitSpotify, roomSpecified } = options ?? {};
+
+  log.debug(
+    { intent, config, options },
+    '🎵 Selecting best music source'
+  );
+
+  // Explicit routing takes precedence
+  if (explicitSonos && config.sonos.available) {
+    log.info({ reason: 'explicit_sonos' }, '🎵 Using Sonos (explicit request)');
+    return 'sonos';
+  }
+
+  if (explicitSpotify && config.spotify.available && config.spotify.premium) {
+    log.info({ reason: 'explicit_spotify' }, '🎵 Using Spotify (explicit request)');
+    return 'spotify';
+  }
+
+  // Room specified implies Sonos
+  if (roomSpecified && config.sonos.available) {
+    const roomMatch = config.sonos.rooms.some(
+      (r) =>
+        r.toLowerCase().includes(roomSpecified.toLowerCase()) ||
+        roomSpecified.toLowerCase().includes(r.toLowerCase())
+    );
+    if (roomMatch) {
+      log.info({ reason: 'room_specified', room: roomSpecified }, '🎵 Using Sonos (room specified)');
+      return 'sonos';
+    }
+  }
+
+  // Sonos intent from detection
+  if (intent === 'sonos' && config.sonos.available) {
+    log.info({ reason: 'sonos_intent' }, '🎵 Using Sonos (intent detected)');
+    return 'sonos';
+  }
+
+  // Intent-based routing for other cases
+  switch (intent) {
+    case 'listening':
+      // For full songs, prefer Spotify if Premium + device ready
+      if (config.spotify.available && config.spotify.premium && config.spotify.deviceReady) {
+        log.info({ reason: 'spotify_ready' }, '🎵 Using Spotify (Premium + device ready)');
+        return 'spotify';
+      }
+      // Fall back to Sonos if available
+      if (config.sonos.available && config.sonos.rooms.length > 0) {
+        log.info({ reason: 'sonos_fallback' }, '🎵 Using Sonos (Spotify not ready)');
+        return 'sonos';
+      }
+      // Otherwise iTunes preview
+      log.info({ reason: 'itunes_fallback' }, '🎵 Using iTunes (fallback)');
+      return 'itunes';
+
+    case 'ambient':
+      // For background music, iTunes previews are perfect
+      // They chain nicely and don't require any auth
+      log.info({ reason: 'ambient_intent' }, '🎵 Using iTunes (ambient music)');
+      return 'itunes';
+
+    case 'search':
+      // For search, prefer Spotify if available (better results)
+      if (config.spotify.available) {
+        return 'spotify';
+      }
+      return 'itunes';
+
+    default:
+      log.info({ reason: 'default' }, '🎵 Using iTunes (default)');
+      return 'itunes';
+  }
+}
+
 /**
  * Detect user's intent from their music request
  */
 export function detectMusicIntent(query: string): MusicIntent {
   const lowerQuery = query.toLowerCase();
+
+  // Sonos-specific intent
+  const sonosIndicators = [
+    'sonos',
+    'on the speaker',
+    'in the living room',
+    'in the kitchen',
+    'in the bedroom',
+    'in the office',
+    'in the bathroom',
+    'in the dining room',
+    'on my speaker',
+    'whole house',
+    'all rooms',
+  ];
+
+  if (sonosIndicators.some((ind) => lowerQuery.includes(ind))) {
+    return 'sonos';
+  }
 
   // Explicit search intent
   if (lowerQuery.includes('search') || lowerQuery.includes('find')) {
@@ -104,40 +267,94 @@ export function detectMusicIntent(query: string): MusicIntent {
 }
 
 /**
- * Get the best music source for the user's intent
+ * Extract room name from a music query
+ * e.g., "play jazz in the living room" → "living room"
+ */
+export function extractRoomFromQuery(query: string): string | undefined {
+  const lowerQuery = query.toLowerCase();
+
+  // Common room patterns
+  const roomPatterns = [
+    /(?:in the|on the|in my|on my)\s+(\w+(?:\s+\w+)?)\s*(?:sonos|speaker|room)?/i,
+    /(\w+(?:\s+room)?)\s+sonos/i,
+  ];
+
+  for (const pattern of roomPatterns) {
+    const match = lowerQuery.match(pattern);
+    if (match && match[1]) {
+      const room = match[1].trim();
+      // Filter out generic words
+      if (!['some', 'the', 'my', 'a', 'an'].includes(room)) {
+        return room;
+      }
+    }
+  }
+
+  return undefined;
+}
+
+/**
+ * Check if query explicitly mentions Sonos
+ */
+export function mentionsSonos(query: string): boolean {
+  return query.toLowerCase().includes('sonos');
+}
+
+/**
+ * Check if query explicitly mentions Spotify
+ */
+export function mentionsSpotify(query: string): boolean {
+  return query.toLowerCase().includes('spotify');
+}
+
+/**
+ * Get the best music source for the user's intent (backward compatible)
+ * @deprecated Use selectBestSource with MusicSourceConfig instead
  */
 export function getBestSource(
   intent: MusicIntent,
   options: {
     spotifyLinked?: boolean;
+    spotifyPremium?: boolean;
+    spotifyDeviceReady?: boolean;
     appleMusicAvailable?: boolean;
+    sonosLinked?: boolean;
+    sonosRooms?: string[];
   } = {}
 ): MusicSource {
-  const { spotifyLinked = false, appleMusicAvailable = false } = options;
+  const {
+    spotifyLinked = false,
+    spotifyPremium = false,
+    spotifyDeviceReady = false,
+    appleMusicAvailable = false,
+    sonosLinked = false,
+    sonosRooms = [],
+  } = options;
 
-  switch (intent) {
-    case 'listening':
-      // For full songs, prefer Spotify if available
-      return spotifyLinked ? 'spotify' : 'itunes';
+  // Build config and use new selection logic
+  const config = buildSourceConfig({
+    spotifyLinked,
+    spotifyPremium,
+    spotifyDeviceReady,
+    sonosLinked,
+    sonosRooms,
+  });
 
-    case 'ambient':
-      // For background music, iTunes previews are perfect
-      // They chain nicely and don't require any auth
-      return 'itunes';
+  // Use new unified selection
+  const source = selectBestSource(intent, config);
 
-    case 'search':
-      // For search, use Apple Music if available (better results)
-      return appleMusicAvailable ? 'apple_music' : 'itunes';
-
-    default:
-      return 'itunes';
+  // Handle apple_music special case for backward compatibility
+  if (intent === 'search' && appleMusicAvailable) {
+    return 'apple_music';
   }
+
+  return source;
 }
 
 /**
  * Format a playback result for voice output
  */
-export function formatPlaybackResult(result: PlayMusicResult): string {
+export function formatPlaybackResult(result: PlayMusicResult, room?: string): string {
   if (!result.success) {
     return result.message;
   }
@@ -158,8 +375,22 @@ export function formatPlaybackResult(result: PlayMusicResult): string {
     return previewFrames[Math.floor(Math.random() * previewFrames.length)];
   }
 
-  // Full playback (Spotify)
-  return `Playing "${track.name}" by ${track.artist} on Spotify.`;
+  // Full playback based on source
+  switch (result.source) {
+    case 'spotify':
+      return `Playing "${track.name}" by ${track.artist} on Spotify.`;
+
+    case 'sonos':
+      if (room) {
+        return `Playing "${track.name}" by ${track.artist} on ${room}.`;
+      }
+      return `Playing "${track.name}" by ${track.artist} on Sonos.`;
+
+    case 'itunes':
+    case 'apple_music':
+    default:
+      return `Playing "${track.name}" by ${track.artist}.`;
+  }
 }
 
 /**
@@ -188,6 +419,11 @@ export function logMusicPlay(
 export default {
   detectMusicIntent,
   getBestSource,
+  selectBestSource,
+  buildSourceConfig,
   formatPlaybackResult,
   logMusicPlay,
+  extractRoomFromQuery,
+  mentionsSonos,
+  mentionsSpotify,
 };

@@ -29,6 +29,9 @@ import { spotifyConnectTools } from './spotify-connect.js';
 // Import movie tools
 import { createMovieTools } from './movies.js';
 
+// Import Sonos music tools
+import { createSonosMusicTools } from './sonos-music.js';
+
 const log = getLogger();
 
 // ============================================================================
@@ -351,6 +354,124 @@ function getSpotifyToolDefinitions(): ToolDefinition[] {
 }
 
 // ============================================================================
+// SONOS MUSIC TOOLS
+// ============================================================================
+
+function getSonosMusicToolDefinitions(): ToolDefinition[] {
+  return [
+    {
+      id: 'playSonosMusic',
+      name: 'Play Music on Sonos',
+      description:
+        'Play music on Sonos speakers by searching favorites. Use when user says "play jazz on Sonos", "play music in living room", etc.',
+      domain: 'entertainment',
+      tags: ['sonos', 'music', 'playback', 'smart-home'],
+      requiredServices: ['sonos'],
+      create: (ctx: ToolContext) => {
+        const tools = createSonosMusicTools(ctx.userId);
+        return tools.playSonosMusic;
+      },
+    },
+    {
+      id: 'playSonosFavorite',
+      name: 'Play Sonos Favorite',
+      description: 'Play a specific Sonos favorite by name.',
+      domain: 'entertainment',
+      tags: ['sonos', 'music', 'favorites'],
+      requiredServices: ['sonos'],
+      create: (ctx: ToolContext) => {
+        const tools = createSonosMusicTools(ctx.userId);
+        return tools.playSonosFavorite;
+      },
+    },
+    {
+      id: 'pauseSonos',
+      name: 'Pause Sonos',
+      description: 'Pause music playback on Sonos speakers.',
+      domain: 'entertainment',
+      tags: ['sonos', 'music', 'control'],
+      requiredServices: ['sonos'],
+      create: (ctx: ToolContext) => {
+        const tools = createSonosMusicTools(ctx.userId);
+        return tools.pauseSonos;
+      },
+    },
+    {
+      id: 'resumeSonos',
+      name: 'Resume Sonos',
+      description: 'Resume paused music on Sonos speakers.',
+      domain: 'entertainment',
+      tags: ['sonos', 'music', 'control'],
+      requiredServices: ['sonos'],
+      create: (ctx: ToolContext) => {
+        const tools = createSonosMusicTools(ctx.userId);
+        return tools.resumeSonos;
+      },
+    },
+    {
+      id: 'setSonosVolume',
+      name: 'Set Sonos Volume',
+      description: 'Set volume level on Sonos speakers.',
+      domain: 'entertainment',
+      tags: ['sonos', 'volume', 'control'],
+      requiredServices: ['sonos'],
+      create: (ctx: ToolContext) => {
+        const tools = createSonosMusicTools(ctx.userId);
+        return tools.setSonosVolume;
+      },
+    },
+    {
+      id: 'whatsSonosPlaying',
+      name: "What's Playing on Sonos",
+      description: 'Check what music is currently playing on Sonos.',
+      domain: 'entertainment',
+      tags: ['sonos', 'status'],
+      requiredServices: ['sonos'],
+      create: (ctx: ToolContext) => {
+        const tools = createSonosMusicTools(ctx.userId);
+        return tools.whatsSonosPlaying;
+      },
+    },
+    {
+      id: 'setSonosRoom',
+      name: 'Set Default Sonos Room',
+      description: 'Set the default Sonos room for music playback.',
+      domain: 'entertainment',
+      tags: ['sonos', 'room', 'config'],
+      requiredServices: ['sonos'],
+      create: (ctx: ToolContext) => {
+        const tools = createSonosMusicTools(ctx.userId);
+        return tools.setSonosRoom;
+      },
+    },
+    {
+      id: 'listSonosRooms',
+      name: 'List Sonos Rooms',
+      description: 'List all available Sonos rooms and speakers.',
+      domain: 'entertainment',
+      tags: ['sonos', 'rooms', 'discovery'],
+      requiredServices: ['sonos'],
+      create: (ctx: ToolContext) => {
+        const tools = createSonosMusicTools(ctx.userId);
+        return tools.listSonosRooms;
+      },
+    },
+    {
+      id: 'searchSonosFavorites',
+      name: 'Search Sonos Favorites',
+      description: 'Search the user\'s Sonos favorites.',
+      domain: 'entertainment',
+      tags: ['sonos', 'favorites', 'search'],
+      requiredServices: ['sonos'],
+      create: (ctx: ToolContext) => {
+        const tools = createSonosMusicTools(ctx.userId);
+        return tools.searchSonosFavorites;
+      },
+    },
+  ];
+}
+
+// ============================================================================
 // MOVIE TOOLS
 // ============================================================================
 
@@ -400,6 +521,7 @@ const entertainmentTools: ToolDefinition[] = [
   ...getSpotifyToolDefinitions(), // SECONDARY: Spotify-specific tools
   ...spotifyConnectTools, // Spotify Connect multi-room playback
   ...appleMusicTools, // Apple Music catalog search
+  ...getSonosMusicToolDefinitions(), // Sonos music playback
   ...getMovieToolDefinitions(), // Movie info and showtimes
 ];
 
@@ -420,6 +542,11 @@ export const { getToolDefinitions, domain, definitions } = createDomainExport(
   entertainmentTools
 );
 
-export { getUnifiedMusicToolDefinitions, getSpotifyToolDefinitions, getMovieToolDefinitions };
+export {
+  getUnifiedMusicToolDefinitions,
+  getSpotifyToolDefinitions,
+  getSonosMusicToolDefinitions,
+  getMovieToolDefinitions,
+};
 
 export default getToolDefinitions;

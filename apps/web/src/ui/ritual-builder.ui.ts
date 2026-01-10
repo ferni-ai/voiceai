@@ -24,6 +24,7 @@ import {
   renderBackButton,
   renderCloseButton,
 } from './engagement-components.js';
+import { apiGet } from '../utils/api.js';
 
 // ============================================================================
 // HELPERS
@@ -870,10 +871,11 @@ class RitualBuilderUI {
         frequency: this.ritual.frequency,
       });
 
-      const response = await fetch(`/api/practices/time-suggestions?${params}`);
-      if (response.ok) {
-        const data = await response.json();
-        this.timeSuggestions = data.suggestions || [];
+      const response = await apiGet<{ suggestions?: string[] }>(
+        `/api/practices/time-suggestions?${params}`
+      );
+      if (response.ok && response.data) {
+        this.timeSuggestions = response.data.suggestions || [];
       }
     } catch (err) {
       // Silently fail - suggestions are optional

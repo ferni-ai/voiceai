@@ -9,6 +9,7 @@
 
 import { EventEmitter } from 'events';
 import { createLogger } from '../utils/safe-logger.js';
+import { registerInterval, clearNamedInterval } from '../utils/interval-manager.js';
 import {
   aggregateLifeContext,
   generateSynthesisTriggers,
@@ -62,7 +63,7 @@ class LifeContextBroadcast extends EventEmitter {
    * Start real-time monitoring for a user
    */
   startMonitoring(userId: string): void {
-    if (this.scanIntervals.has(userId)) {
+    if (this.activeUsers.has(userId)) {
       log.debug({ userId }, 'Already monitoring user life context');
       return;
     }
@@ -72,22 +73,25 @@ class LifeContextBroadcast extends EventEmitter {
     // Do an initial scan
     void this.scanLifeContext(userId);
 
-    // Set up periodic scanning
-    const interval = setInterval(() => {
-      void this.scanLifeContext(userId);
-    }, this.scanIntervalMs);
+    // Set up periodic scanning using managed interval
+    registerInterval(
+      this.getIntervalName(userId),
+      () => {
+        void this.scanLifeContext(userId);
+      },
+      this.scanIntervalMs
+    );
 
-    this.scanIntervals.set(userId, interval);
+    this.activeUsers.add(userId);
   }
 
   /**
    * Stop real-time monitoring for a user
    */
   stopMonitoring(userId: string): void {
-    const interval = this.scanIntervals.get(userId);
-    if (interval) {
-      clearInterval(interval);
-      this.scanIntervals.delete(userId);
+    if (this.activeUsers.has(userId)) {
+      clearNamedInterval(this.getIntervalName(userId));
+      this.activeUsers.delete(userId);
       this.userPreviousSnapshot.delete(userId);
       this.userLastScan.delete(userId);
       log.info({ userId }, 'Stopped life context monitoring');
@@ -242,18 +246,18 @@ class LifeContextBroadcast extends EventEmitter {
    * Get monitoring status for a user
    */
   isMonitoring(userId: string): boolean {
-    return this.scanIntervals.has(userId);
+    return this.activeUsers.has(userId);
   }
 
   /**
    * Shutdown all monitoring
    */
   shutdown(): void {
-    for (const [userId, interval] of this.scanIntervals) {
-      clearInterval(interval);
+    for (const userId of this.activeUsers) {
+      clearNamedInterval(this.getIntervalName(userId));
       log.debug({ userId }, 'Stopped monitoring on shutdown');
     }
-    this.scanIntervals.clear();
+    this.activeUsers.clear();
     this.userPreviousSnapshot.clear();
     this.userLastScan.clear();
     this.removeAllListeners();

@@ -15,6 +15,7 @@
 import { createLogger } from '../utils/logger.js';
 import { toast } from './whisper.ui.js';
 import { t } from '../i18n/index.js';
+import { apiGet } from '../utils/api.js';
 
 const log = createLogger('BTHAnalyticsDashboard');
 
@@ -314,25 +315,19 @@ function formatDate(dateStr: string): string {
 
 async function fetchDashboardData(): Promise<DashboardData> {
   const [statsRes, topRes, trendRes] = await Promise.all([
-    fetch('/api/admin/bth-analytics/stats'),
-    fetch('/api/admin/bth-analytics/top?limit=5'),
-    fetch('/api/admin/bth-analytics/trend?days=7'),
+    apiGet<{ stats?: CapabilityStats[] }>('/api/admin/bth-analytics/stats'),
+    apiGet<{ capabilities?: CapabilityStats[] }>('/api/admin/bth-analytics/top?limit=5'),
+    apiGet<{ trend?: TrendPoint[] }>('/api/admin/bth-analytics/trend?days=7'),
   ]);
 
   if (!statsRes.ok || !topRes.ok || !trendRes.ok) {
     throw new Error('Failed to fetch analytics data');
   }
 
-  const [statsData, topData, trendData] = await Promise.all([
-    statsRes.json(),
-    topRes.json(),
-    trendRes.json(),
-  ]);
-
   return {
-    stats: statsData.stats || [],
-    topCapabilities: topData.capabilities || [],
-    trend: trendData.trend || [],
+    stats: statsRes.data?.stats || [],
+    topCapabilities: topRes.data?.capabilities || [],
+    trend: trendRes.data?.trend || [],
   };
 }
 

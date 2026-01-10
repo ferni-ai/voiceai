@@ -14,7 +14,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
-import type { GeneratedContent } from './llm-content-generator.js';
+import type { GeneratedContent, OutreachType } from './llm-content-generator.js';
 
 const log = createLogger({ module: 'UnifiedDelivery' });
 
@@ -37,7 +37,7 @@ export interface DeliveryRequest {
   scheduledFor?: Date;
 
   // Metadata
-  outreachType: string;
+  outreachType: OutreachType;
   triggerId?: string;
 }
 
@@ -218,7 +218,7 @@ async function deliverSMS(
   userId: string,
   phone: string | undefined,
   content: GeneratedContent,
-  outreachType: string,
+  outreachType: OutreachType,
   triggerId?: string
 ): Promise<DeliveryResult> {
   if (!phone) {
@@ -258,7 +258,7 @@ async function deliverEmail(
   userId: string,
   email: string | undefined,
   content: GeneratedContent,
-  outreachType: string,
+  outreachType: OutreachType,
   triggerId?: string
 ): Promise<DeliveryResult> {
   if (!email) {
@@ -329,7 +329,7 @@ async function deliverVoiceCall(
   userId: string,
   phone: string | undefined,
   content: GeneratedContent,
-  outreachType: string,
+  outreachType: OutreachType,
   triggerId?: string
 ): Promise<DeliveryResult> {
   if (!phone) {
@@ -390,7 +390,7 @@ async function deliverVoiceCall(
 async function deliverPush(
   userId: string,
   content: GeneratedContent,
-  outreachType: string,
+  outreachType: OutreachType,
   triggerId?: string
 ): Promise<DeliveryResult> {
   const creds = await loadCredentials();
@@ -471,7 +471,7 @@ async function deliverPush(
 async function deliverInApp(
   userId: string,
   content: GeneratedContent,
-  outreachType: string,
+  outreachType: OutreachType,
   triggerId?: string
 ): Promise<DeliveryResult> {
   try {
@@ -538,7 +538,7 @@ async function recordDelivery(
   userId: string,
   channel: string,
   messageId: string,
-  outreachType: string,
+  outreachType: OutreachType,
   triggerId?: string
 ): Promise<void> {
   try {

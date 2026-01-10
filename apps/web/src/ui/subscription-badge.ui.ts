@@ -21,6 +21,7 @@ import {
   showUpgradeModal,
   type SubscriptionStatus,
 } from './subscription.ui.js';
+import { apiGet } from '../utils/api.js';
 
 const log = createLogger('SubBadge');
 
@@ -205,12 +206,12 @@ async function refreshTrialStatus(): Promise<void> {
 
   try {
     const sessionTimeMs = sessionStartTime ? Date.now() - sessionStartTime : 0;
-    const response = await fetch(
+    const response = await apiGet<TrialStatus>(
       `/subscription/trial?userId=${encodeURIComponent(deviceId)}&sessionTime=${sessionTimeMs}`
     );
 
-    if (response.ok) {
-      currentTrialStatus = (await response.json()) as TrialStatus;
+    if (response.ok && response.data) {
+      currentTrialStatus = response.data;
       log.debug('Trial status fetched:', currentTrialStatus);
     }
   } catch (error) {

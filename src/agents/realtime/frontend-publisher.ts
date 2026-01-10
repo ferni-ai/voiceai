@@ -159,6 +159,38 @@ export interface SetLanguageMessage extends BaseMessage {
 }
 
 /**
+ * Game state message - real-time game board updates
+ *
+ * Sent when game state changes (move made, turn taken, etc.)
+ * The frontend renders visual game boards based on this data.
+ */
+export interface GameStateMessage extends BaseMessage {
+  type: 'game_state';
+  gameType: 'tic-tac-toe' | '20-questions' | 'word-association' | 'story-builder' | 'would-you-rather' | string;
+  status: 'active' | 'completed' | 'abandoned';
+  gameData: Record<string, unknown>;
+}
+
+/**
+ * Game started message - notify frontend to show game board
+ */
+export interface GameStartedMessage extends BaseMessage {
+  type: 'game_started';
+  gameId: string;
+  gameType: string;
+  gameName: string;
+}
+
+/**
+ * Game ended message - notify frontend to hide game board
+ */
+export interface GameEndedMessage extends BaseMessage {
+  type: 'game_ended';
+  gameType: string;
+  result?: string;
+}
+
+/**
  * All possible message types
  */
 export type FrontendMessage =
@@ -171,7 +203,10 @@ export type FrontendMessage =
   | CelebrationMessage
   | MusicStateMessage
   | EngagementDataMessage
-  | SetLanguageMessage;
+  | SetLanguageMessage
+  | GameStateMessage
+  | GameStartedMessage
+  | GameEndedMessage;
 
 /**
  * Publisher configuration
@@ -560,6 +595,67 @@ export class FrontendPublisher {
     return this.send<SetLanguageMessage>({
       type: 'set_language',
       language,
+    });
+  }
+
+  // ============================================================================
+  // GAME STATE MESSAGES
+  // ============================================================================
+
+  /**
+   * Send game started notification to frontend
+   *
+   * Triggers the game board UI to appear with the appropriate game type.
+   */
+  async sendGameStarted(
+    gameId: string,
+    gameType: string,
+    gameName: string
+  ): Promise<boolean> {
+    this.logger.info({ gameId, gameType, gameName }, '🎮 Game started');
+
+    return this.send<GameStartedMessage>({
+      type: 'game_started',
+      gameId,
+      gameType,
+      gameName,
+    });
+  }
+
+  /**
+   * Send game state update to frontend
+   *
+   * Updates the visual game board with current state (moves, scores, turns).
+   */
+  async sendGameState(
+    gameType: GameStateMessage['gameType'],
+    status: GameStateMessage['status'],
+    gameData: Record<string, unknown>
+  ): Promise<boolean> {
+    if (this.config.verbose) {
+      this.logger.debug({ gameType, status }, '🎮 Sending game state update');
+    }
+
+    return this.send<GameStateMessage>({
+      type: 'game_state',
+      gameType,
+      status,
+      gameData,
+    });
+  }
+
+  /**
+   * Send game ended notification to frontend
+   *
+   * Triggers the game board UI to show results and then hide.
+   */
+  async sendGameEnded(gameType: string, result?: string): Promise<boolean> {
+    this.logger.info({ gameType, result }, '🎮 Game ended');
+
+    return this.send<GameEndedMessage>({
+      type: 'game_ended',
+      gameType,
+      result,
     });
   }
 

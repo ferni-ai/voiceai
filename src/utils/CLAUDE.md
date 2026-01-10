@@ -233,6 +233,84 @@ const service = await expensiveService();
 
 **Note:** The `lazyServices` registry has moved to `src/services/lazy-registry.ts`.
 
+### ID Generation
+
+```typescript
+import { generateId, generateShortId, getIdPrefix, hasIdPrefix, ID_PREFIXES } from '../utils/index.js';
+
+// Generate a unique ID with optional prefix
+const entityId = generateId('ent'); // "ent_a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+
+// Generate a short ID (8 chars) for session-scoped data
+const shortId = generateShortId('sess'); // "sess_a1b2c3d4"
+
+// Check ID prefixes
+const prefix = getIdPrefix(entityId); // "ent"
+const isEntity = hasIdPrefix(entityId, 'ent'); // true
+
+// Standard prefixes
+// ID_PREFIXES.ENTITY, .RELATIONSHIP, .FACT, .MENTION, .CORRELATION, etc.
+```
+
+### Async Singleton
+
+```typescript
+import { createAsyncSingleton, createNullableAsyncSingleton } from '../utils/index.js';
+
+// Thread-safe async singleton - prevents race conditions during init
+const getVertexClient = createAsyncSingleton(
+  async () => {
+    const { VertexAI } = await import('@google-cloud/vertexai');
+    return new VertexAI({ project: 'my-project' });
+  },
+  { name: 'VertexAI' }
+);
+
+// All concurrent calls share the same initialization
+const [client1, client2] = await Promise.all([
+  getVertexClient(),
+  getVertexClient(),
+]);
+// client1 === client2
+
+// Nullable version - returns null on failure instead of throwing
+const getOptionalClient = createNullableAsyncSingleton(
+  async () => {
+    const apiKey = process.env.API_KEY;
+    if (!apiKey) return null;
+    return new Client({ apiKey });
+  },
+  { name: 'OptionalClient' }
+);
+```
+
+### Validation & Sanitization
+
+```typescript
+import {
+  isValidEmail, validateEmail, sanitizeEmailForLog,
+  isValidPhone, validatePhone, normalizePhone, sanitizePhoneForLog,
+  sanitizePlainText, sanitizeForSql,
+  isValidStockSymbol, normalizeStockSymbol,
+} from '../utils/index.js';
+
+// Email validation
+if (isValidEmail(email)) { ... }
+const result = validateEmail(email); // { valid: boolean, error?: string }
+const safeLog = sanitizeEmailForLog(email); // "jo***@example.com"
+
+// Phone validation (E.164 format)
+const normalized = normalizePhone('+1 555-123-4567'); // "+15551234567"
+const safePrint = sanitizePhoneForLog(phone); // "+15****67"
+
+// Text sanitization (prevent injection)
+const cleanText = sanitizePlainText(userInput); // Removes control chars, angle brackets
+const sqlSafe = sanitizeForSql(text); // Escapes single quotes
+
+// Stock symbol validation
+const symbol = normalizeStockSymbol('aapl'); // "AAPL"
+```
+
 ### Firestore Utilities
 
 ```typescript

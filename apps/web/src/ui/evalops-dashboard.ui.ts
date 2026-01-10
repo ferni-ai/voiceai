@@ -14,6 +14,7 @@
  */
 
 import { t } from '../i18n/index.js';
+import { getApiHeadersAsync } from '../utils/api-helpers.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
@@ -154,16 +155,15 @@ async function fetchDashboardData(): Promise<void> {
   const adminKey = getAdminKey();
   
   try {
+    const authHeaders = await getApiHeadersAsync();
+    const headers = { ...authHeaders, 'x-admin-key': adminKey };
+
     // Fetch health data
-    const healthRes = await fetch('/api/evalops/health', {
-      headers: { 'x-admin-key': adminKey },
-    });
+    const healthRes = await fetch('/api/evalops/health', { headers });
     const healthData = await healthRes.json();
 
     // Fetch scenarios
-    const scenariosRes = await fetch('/api/evalops/scenarios/stats', {
-      headers: { 'x-admin-key': adminKey },
-    });
+    const scenariosRes = await fetch('/api/evalops/scenarios/stats', { headers });
     const scenariosData = await scenariosRes.json();
 
     // Generate mock persona health from fingerprint data
@@ -205,17 +205,15 @@ async function fetchDashboardData(): Promise<void> {
 
 async function runQuickCheck(personaId: string, response: string): Promise<void> {
   try {
+    const authHeaders = await getApiHeadersAsync({ 'Content-Type': 'application/json' });
     const res = await fetch('/api/evalops/quick-check', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-admin-key': getAdminKey(),
-      },
+      headers: { ...authHeaders, 'x-admin-key': getAdminKey() },
       body: JSON.stringify({ persona_id: personaId, response }),
     });
     const data = await res.json();
     log.info('Quick check result:', data);
-    
+
     // Update UI with toast
     toast.info(`Voice score: ${data.score}% (${data.status})`);
   } catch (error) {

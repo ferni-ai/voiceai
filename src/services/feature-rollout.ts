@@ -25,6 +25,7 @@
  */
 
 import { createLogger } from '../utils/safe-logger.js';
+import { registerInterval, clearNamedInterval } from '../utils/interval-manager.js';
 import { getFeatureFlags } from './feature-flags.js';
 import { notifyRollout } from './slack-notifications.js';
 
@@ -433,11 +434,15 @@ export class FeatureRolloutService {
   // ============================================================================
 
   private startMonitoring(): void {
-    this.checkIntervalId = setInterval(() => {
-      this.checkAllRollouts().catch((err) => {
-        log.error({ error: err }, 'Error checking rollouts');
-      });
-    }, this.checkIntervalMs);
+    registerInterval(
+      FEATURE_ROLLOUT_INTERVAL,
+      () => {
+        this.checkAllRollouts().catch((err) => {
+          log.error({ error: err }, 'Error checking rollouts');
+        });
+      },
+      this.checkIntervalMs
+    );
   }
 
   private async checkAllRollouts(): Promise<void> {
@@ -653,9 +658,7 @@ export class FeatureRolloutService {
    * Cleanup
    */
   shutdown(): void {
-    if (this.checkIntervalId) {
-      clearInterval(this.checkIntervalId);
-    }
+    clearNamedInterval(FEATURE_ROLLOUT_INTERVAL);
   }
 }
 

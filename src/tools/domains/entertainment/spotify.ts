@@ -27,6 +27,7 @@ import {
   startAutoRefresh,
   stopAutoRefresh,
 } from '../../../services/identity/spotify-auth.js';
+import { findTrack as findItunesTrack } from '../../../services/itunes.js';
 import { getMusicReaction, shouldReactToMusic } from '../../../speech/music-reactions.js';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { getMusicCommentary, hasArtistInfo } from './music-commentary.js';
@@ -44,6 +45,22 @@ const SPOTIFY_API_BASE = 'https://api.spotify.com/v1';
 
 // Web player device ID (set by frontend via ui-server)
 let webPlayerDeviceId: string | null = null;
+
+// ============================================================================
+// DEVICE CACHING & LAST-USED TRACKING
+// ============================================================================
+
+interface DeviceCache {
+  devices: Array<{ id: string; name: string; type: string; is_active: boolean }>;
+  timestamp: number;
+}
+
+let deviceCache: DeviceCache | null = null;
+const DEVICE_CACHE_TTL_MS = 30000; // 30 seconds cache
+
+// Track the last successfully used device
+let lastUsedDeviceId: string | null = null;
+let lastUsedDeviceName: string | null = null;
 
 /**
  * Get the web player device ID from the shared file
@@ -63,52 +80,228 @@ function getWebPlayerDeviceId(): string | null {
 }
 
 /**
+ * Clear the device cache (call when playback fails due to device issues)
+ */
+function clearDeviceCache(): void {
+  deviceCache = null;
+  getLogger().debug('🎵 Device cache cleared');
+}
+
+/**
+ * Record a successfully used device for future preference
+ */
+function recordSuccessfulDevice(deviceId: string, deviceName: string): void {
+  lastUsedDeviceId = deviceId;
+  lastUsedDeviceName = deviceName;
+  getLogger().debug({ deviceId, deviceName }, '🎵 Recorded last-used device');
+}
+
+/**
  * Get available Spotify devices (for phone users who have Spotify open)
+ * Uses caching to reduce API calls
  */
 async function getAvailableDevices(): Promise<
   Array<{ id: string; name: string; type: string; is_active: boolean }>
 > {
+  // Check cache first
+  if (deviceCache && Date.now() - deviceCache.timestamp < DEVICE_CACHE_TTL_MS) {
+    getLogger().debug(
+      { deviceCount: deviceCache.devices.length },
+      '🎵 Using cached device list'
+    );
+    return deviceCache.devices;
+  }
+
   try {
     const result = (await spotifyRequest('/me/player/devices')) as {
       devices: Array<{ id: string; name: string; type: string; is_active: boolean }>;
     };
-    return result.devices || [];
+    const devices = result.devices || [];
+
+    // Update cache
+    deviceCache = {
+      devices,
+      timestamp: Date.now(),
+    };
+
+    getLogger().debug({ deviceCount: devices.length }, '🎵 Fetched fresh device list');
+    return devices;
   } catch (error) {
-    getLogger().error({ error }, 'Failed to get Spotify devices');
+    getLogger().warn(
+      { error: error instanceof Error ? error.message : error },
+      '🎵 Failed to get Spotify devices - user may need to open Spotify app'
+    );
+    // Return empty array but log the actual reason for debugging
+    // This is expected when user hasn't opened Spotify yet
     return [];
   }
 }
 
-// Check if user has Spotify Premium (required for Web Playback SDK)
+/**
+ * Try to wake an inactive device by transferring playback to it
+ * Some devices (like phones) need a "wake up" call before they can play
+ *
+ * Uses retry logic with verification:
+ * 1. Transfer playback to device (without playing)
+ * 2. Wait for device to respond
+ * 3. Verify device is now active
+ * 4. Retry up to 3 times with exponential backoff
+ */
+async function wakeDevice(deviceId: string): Promise<boolean> {
+  const MAX_RETRIES = 3;
+  const BASE_DELAY_MS = 500;
+
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      getLogger().debug({ deviceId, attempt }, '🎵 Attempting to wake device');
+
+      // Transfer playback to device (don't start playing yet)
+      await spotifyRequest('/me/player', 'PUT', {
+        device_ids: [deviceId],
+        play: false,
+      });
+
+      // Clear cache so next request gets fresh state
+      clearDeviceCache();
+
+      // Wait for device to wake up (exponential backoff)
+      const delay = BASE_DELAY_MS * Math.pow(2, attempt - 1);
+      await sleep(delay);
+
+      // Verify device is now active
+      const devices = await getAvailableDevices();
+      const targetDevice = devices.find((d) => d.id === deviceId);
+
+      if (targetDevice?.is_active) {
+        getLogger().info(
+          { deviceId, deviceName: targetDevice.name, attempts: attempt },
+          '🎵 ✅ Device woke up successfully'
+        );
+        return true;
+      }
+
+      // Device still not active, might need more time
+      if (attempt < MAX_RETRIES) {
+        getLogger().debug(
+          { deviceId, attempt },
+          '🎵 Device not yet active, retrying...'
+        );
+      }
+    } catch (error) {
+      getLogger().debug(
+        { error, deviceId, attempt },
+        '🎵 Wake attempt failed'
+      );
+
+      // On last attempt, don't retry
+      if (attempt >= MAX_RETRIES) {
+        break;
+      }
+    }
+  }
+
+  // Final check - even if device isn't active, it might still work
+  getLogger().debug({ deviceId }, '🎵 Device did not confirm active state after retries');
+  return false;
+}
+
+/**
+ * Try to wake multiple devices and return the first one that responds
+ * This is useful when we have several devices but none are active
+ */
+async function wakeAnyDevice(
+  devices: Array<{ id: string; name: string }>
+): Promise<{ deviceId: string; deviceName: string } | null> {
+  getLogger().info(
+    { deviceCount: devices.length },
+    '🎵 Attempting to wake any available device'
+  );
+
+  // Try to wake devices in parallel (faster)
+  const wakePromises = devices.slice(0, 3).map(async (device) => {
+    const woke = await wakeDevice(device.id);
+    return woke ? device : null;
+  });
+
+  const results = await Promise.all(wakePromises);
+  const wokenDevice = results.find((d) => d !== null);
+
+  if (wokenDevice) {
+    getLogger().info(
+      { deviceId: wokenDevice.id, deviceName: wokenDevice.name },
+      '🎵 ✅ Successfully woke a device'
+    );
+    return { deviceId: wokenDevice.id, deviceName: wokenDevice.name };
+  }
+
+  return null;
+}
+
+// Check if user has Spotify Premium (required for Web Playback SDK and full playback)
 let hasPremium: boolean | null = null;
+let premiumCheckTimestamp: number = 0;
+const PREMIUM_CHECK_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes - re-check periodically
 
 // Sleep timer reference for music auto-stop
 let sleepTimerRef: ReturnType<typeof setTimeout> | null = null;
 
+/**
+ * Check if user has Spotify Premium account
+ * Results are cached for 5 minutes
+ */
 async function checkPremiumStatus(): Promise<boolean> {
-  if (hasPremium !== null) return hasPremium;
+  // Return cached value if fresh
+  if (hasPremium !== null && Date.now() - premiumCheckTimestamp < PREMIUM_CHECK_CACHE_TTL_MS) {
+    return hasPremium;
+  }
 
   try {
     const user = (await spotifyRequest('/me')) as { product?: string };
     hasPremium = user.product === 'premium';
+    premiumCheckTimestamp = Date.now();
+
     if (!hasPremium) {
-      getLogger().info('Spotify account is not Premium - Web Playback SDK will not work');
+      getLogger().info(
+        '🎵 Spotify account is not Premium - will use iTunes previews for in-call music'
+      );
+    } else {
+      getLogger().info('🎵 Spotify Premium confirmed - full playback available');
     }
     return hasPremium;
-  } catch {
+  } catch (error) {
+    getLogger().debug({ error }, '🎵 Could not check Premium status');
     return false;
   }
 }
 
 /**
+ * Get Premium status without making API call (uses cache only)
+ * Returns null if status is unknown
+ */
+function getPremiumStatusCached(): boolean | null {
+  if (hasPremium !== null && Date.now() - premiumCheckTimestamp < PREMIUM_CHECK_CACHE_TTL_MS) {
+    return hasPremium;
+  }
+  return null;
+}
+
+/**
+ * Clear Premium status cache (e.g., when user re-authenticates)
+ */
+function clearPremiumCache(): void {
+  hasPremium = null;
+  premiumCheckTimestamp = 0;
+}
+
+/**
  * Find the best device to play on
- * Priority: 1. Web player (play where you're talking!), 2. Active device, 3. Any available device
+ * Priority: 1. Web player, 2. Last-used device, 3. Active device, 4. Any available (try to wake)
  * Note: Web Playback SDK requires Spotify Premium!
  */
 async function getBestPlaybackDevice(): Promise<{
   deviceId: string | null;
   deviceName: string | null;
-  source: 'web' | 'active' | 'available' | 'none';
+  source: 'web' | 'last_used' | 'active' | 'available' | 'woken' | 'none';
   otherDevices: Array<{ id: string; name: string }>;
 }> {
   // Get available devices from Spotify
@@ -139,7 +332,29 @@ async function getBestPlaybackDevice(): Promise<{
     }
   }
 
-  // PRIORITY 2: Active device (user's phone/computer)
+  // PRIORITY 2: Last-used device (if still available)
+  if (lastUsedDeviceId) {
+    const lastDevice = devices.find((d) => d.id === lastUsedDeviceId);
+    if (lastDevice) {
+      devices.forEach((d) => {
+        if (d.id !== lastUsedDeviceId) {
+          otherDevices.push({ id: d.id, name: d.name });
+        }
+      });
+      getLogger().info(
+        { deviceId: lastUsedDeviceId, deviceName: lastDevice.name },
+        '🎵 Using last-used device'
+      );
+      return {
+        deviceId: lastDevice.id,
+        deviceName: lastDevice.name,
+        source: 'last_used',
+        otherDevices,
+      };
+    }
+  }
+
+  // PRIORITY 3: Active device (user's phone/computer)
   const activeDevice = devices.find((d) => d.is_active);
   if (activeDevice) {
     devices.forEach((d) => {
@@ -155,12 +370,34 @@ async function getBestPlaybackDevice(): Promise<{
     };
   }
 
-  // PRIORITY 3: Any available device
+  // PRIORITY 4: Try to wake any available device
   if (devices.length > 0) {
-    const firstDevice = devices[0];
-    devices.slice(1).forEach((d) => {
-      otherDevices.push({ id: d.id, name: d.name });
+    // Build other devices list
+    devices.forEach((d, i) => {
+      if (i > 0) {
+        otherDevices.push({ id: d.id, name: d.name });
+      }
     });
+
+    // Try to wake any device (tries multiple in parallel if needed)
+    const wokenDevice = await wakeAnyDevice(devices.map((d) => ({ id: d.id, name: d.name })));
+
+    if (wokenDevice) {
+      return {
+        deviceId: wokenDevice.deviceId,
+        deviceName: wokenDevice.deviceName,
+        source: 'woken',
+        otherDevices: otherDevices.filter((d) => d.id !== wokenDevice.deviceId),
+      };
+    }
+
+    // Even if wake failed, try to use the first device anyway
+    // (sometimes devices work even without showing as "active")
+    const firstDevice = devices[0];
+    getLogger().info(
+      { deviceId: firstDevice.id, deviceName: firstDevice.name },
+      '🎵 No device responded to wake, trying first available anyway'
+    );
     return {
       deviceId: firstDevice.id,
       deviceName: firstDevice.name,
@@ -420,10 +657,60 @@ export async function searchTracksWithPreviews(
 }
 
 /**
+ * Fallback to iTunes previews when Spotify isn't available
+ * Returns a user-friendly message with the result
+ */
+async function playViaItunesFallback(query: string): Promise<string> {
+  const log = getLogger();
+  log.info({ query }, '🎵 Attempting iTunes fallback');
+
+  try {
+    const itunesResult = await findItunesTrack(query);
+
+    if (!itunesResult.found || !itunesResult.track) {
+      return `Couldn't find "${query}" on iTunes either. Try a different song or artist?`;
+    }
+
+    const track = itunesResult.track;
+    const musicPlayer = getMusicPlayer();
+
+    // Wait for music player initialization
+    if (!musicPlayer.isInitialized()) {
+      log.debug('🎵 Music player not ready for iTunes fallback, waiting...');
+      const initialized = await musicPlayer.waitForInitialization(5000);
+      if (!initialized) {
+        return `Found "${track.name}" by ${track.artist}, but the audio system isn't ready. Try again in a moment!`;
+      }
+    }
+
+    const musicTrack: MusicTrack = {
+      name: track.name,
+      artist: track.artist,
+      previewUrl: track.previewUrl,
+      duration: track.duration,
+    };
+
+    const success = await musicPlayer.playFromUrl(track.previewUrl, musicTrack);
+
+    if (success) {
+      log.info({ track: track.name, artist: track.artist }, '🎵 Playing via iTunes fallback');
+      return `Here's "${track.name}" by ${track.artist} - it's a preview, but I hope you enjoy it!`;
+    }
+
+    return `Found "${track.name}" but had trouble playing it. Try again?`;
+  } catch (error) {
+    log.error({ error, query }, '🎵 iTunes fallback failed');
+    return `Couldn't play "${query}" right now. Maybe try again in a moment?`;
+  }
+}
+
+/**
  * Play a track, album, or playlist
  * Supports two modes:
- * 1. Spotify Connect - Control user's Spotify app/device
+ * 1. Spotify Connect - Control user's Spotify app/device (requires Premium)
  * 2. Stream into call - Play 30-second preview directly into the call
+ *
+ * Auto-fallback: If Premium not available, uses iTunes previews
  */
 async function playMusic(query: string, streamIntoCallOverride?: boolean): Promise<string> {
   const log = getLogger();
@@ -444,6 +731,9 @@ async function playMusic(query: string, streamIntoCallOverride?: boolean): Promi
     '🎵 ===== PLAY MUSIC CALLED ====='
   );
   const shouldStreamIntoCall = streamIntoCallOverride ?? streamIntoCall;
+
+  // Check Premium status early (cached call, very fast)
+  const isPremium = await checkPremiumStatus();
 
   try {
     getLogger().info(
@@ -527,47 +817,50 @@ async function playMusic(query: string, streamIntoCallOverride?: boolean): Promi
     );
 
     if (!deviceId) {
-      // No device available - try streaming preview instead
-      const previewUrl = (track as SpotifyTrack & { preview_url?: string }).preview_url;
+      // No Spotify device available - try fallback options
+      getLogger().info({ isPremium }, '🎵 No Spotify device available, trying fallbacks');
 
+      // First, try Spotify's preview URL if available
+      const previewUrl = (track as SpotifyTrack & { preview_url?: string }).preview_url;
       if (previewUrl) {
-        getLogger().info('No device - falling back to preview stream');
         const musicPlayer = getMusicPlayer();
 
-        // 🐛 FIX: Wait for music player initialization for fallback preview
         if (!musicPlayer.isInitialized()) {
-          getLogger().debug('🎵 [Spotify] Music player not ready for fallback, waiting...');
+          getLogger().debug('🎵 Music player not ready for preview fallback, waiting...');
           const initialized = await musicPlayer.waitForInitialization(5000);
-          if (!initialized) {
-            getLogger().error('🎵 [Spotify] Music player not initialized for fallback preview!');
-            // Fall through to device guidance below
-          }
-        }
+          if (initialized) {
+            const musicTrack: MusicTrack = {
+              name: track.name,
+              artist: artists,
+              uri: track.uri,
+              previewUrl: previewUrl,
+              duration: SPOTIFY_PREVIEW_DURATION_MS,
+            };
 
-        if (musicPlayer.isInitialized()) {
+            const success = await musicPlayer.playFromUrl(previewUrl, musicTrack);
+            if (success) {
+              return `Playing a preview of "${track.name}" by ${artists} right here!`;
+            }
+          }
+        } else {
           const musicTrack: MusicTrack = {
             name: track.name,
             artist: artists,
             uri: track.uri,
             previewUrl: previewUrl,
-            // 🐛 FIX: Use preview duration (30s), NOT full track duration
             duration: SPOTIFY_PREVIEW_DURATION_MS,
           };
 
           const success = await musicPlayer.playFromUrl(previewUrl, musicTrack);
           if (success) {
-            return `I'll play a preview of "${track.name}" by ${artists} right here in our call!`;
+            return `Playing a preview of "${track.name}" by ${artists} right here!`;
           }
-          getLogger().warn({ track: track.name }, '🎵 [Spotify] Fallback preview playback failed');
         }
       }
 
-      // No device available - give helpful guidance
-      const isPremium = await checkPremiumStatus();
-      if (!isPremium) {
-        return "I found the song! To play it, open your Spotify app on your phone or computer and start playing any song briefly. Then ask me again and I'll take over from there!";
-      }
-      return "I found the song but can't play it yet! If you're on a phone, open your Spotify app first. If you're on the web, refresh the page to connect the player.";
+      // If no Spotify preview, try iTunes fallback
+      getLogger().info({ query }, '🎵 No Spotify preview, trying iTunes');
+      return await playViaItunesFallback(query);
     }
 
     // Build the play endpoint with device_id
@@ -578,6 +871,11 @@ async function playMusic(query: string, streamIntoCallOverride?: boolean): Promi
     await spotifyRequest(playEndpoint, 'PUT', {
       uris: [track.uri],
     });
+
+    // Record successful device for future use
+    if (deviceId && deviceName) {
+      recordSuccessfulDevice(deviceId, deviceName);
+    }
 
     getLogger().info(
       { track: track.name, artists, deviceId, deviceName, source },
@@ -626,11 +924,15 @@ async function playMusic(query: string, streamIntoCallOverride?: boolean): Promi
       errorMsg.includes('404') ||
       errorMsg.includes('DEVICE_NOT_FOUND')
     ) {
+      // Clear device cache on device errors so next request fetches fresh
+      clearDeviceCache();
       return "I can't reach your Spotify right now. If you're on a phone, make sure Spotify is open. If you're on the web, try refreshing the page! I can also play music through iTunes if you prefer.";
     }
 
     if (errorMsg.includes('PREMIUM_REQUIRED')) {
-      return 'Playing on Spotify requires Premium, but I can play 30-second previews through iTunes instead! Want me to try that?';
+      // Auto-fallback to iTunes
+      getLogger().info({ query }, '🎵 Premium required - falling back to iTunes');
+      return await playViaItunesFallback(query);
     }
 
     if (errorMsg.includes('Token expired') || errorMsg.includes('401')) {

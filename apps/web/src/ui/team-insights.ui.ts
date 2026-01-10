@@ -411,8 +411,8 @@ function createPanel(): HTMLElement {
         <div class="team-insights-header-left">
           <span class="team-insights-icon">${ICONS.users}</span>
           <div>
-            <p class="team-insights-eyebrow">TEAM INTELLIGENCE</p>
-            <h2 id="team-insights-title" class="team-insights-title">What We Notice</h2>
+            <p class="team-insights-eyebrow">YOUR INNER CIRCLE</p>
+            <h2 id="team-insights-title" class="team-insights-title">What we've been thinking...</h2>
           </div>
         </div>
         <div class="team-insights-header-actions" role="button" tabindex="0">
@@ -428,11 +428,11 @@ function createPanel(): HTMLElement {
       <div class="team-insights-body">
         <div class="team-insights-loading">
           <div class="team-insights-spinner"></div>
-          <p>Gathering insights from the team...</p>
+          <p>Gathering thoughts from the team...</p>
         </div>
         
         <div class="team-insights-error" style="display: none;">
-          <p>Couldn't load insights right now. The team is still here.</p>
+          <p>Couldn't gather thoughts right now. We're still here.</p>
         </div>
         
         <div class="team-insights-list" style="display: none;"></div>
@@ -499,77 +499,56 @@ function createPanel(): HTMLElement {
           
           <!-- Title & Message -->
           <div class="team-insights-empty__hero">
-            <h3 class="team-insights-empty__title">Six minds, thinking of you</h3>
+            <h3 class="team-insights-empty__title">We're getting to know you</h3>
             <p class="team-insights-empty__message">
-              Your inner circle is always working behind the scenes—spotting patterns, tracking progress, finding wisdom. When something matters, they'll surface it here.
+              The more we talk, the more we notice. Share what's on your mind, and we'll start connecting dots you might miss.
             </p>
           </div>
           
-          <!-- Team Specialties - What They Watch For -->
-          <div class="team-insights-empty__specialties">
-            <div class="team-insights-empty__specialty" style="--delay: 0ms; --accent: var(--persona-peter, #3a6b73);">
-              <div class="team-insights-empty__specialty-bar"></div>
-              <div class="team-insights-empty__specialty-content">
-                <span class="team-insights-empty__specialty-name">Peter</span>
-                <span class="team-insights-empty__specialty-focus">watches your patterns</span>
+          <!-- What We're Curious About - Invitation to Share -->
+          <div class="team-insights-empty__curious">
+            <p class="team-insights-empty__curious-intro">Things we'd love to learn about you:</p>
+            <div class="team-insights-empty__curious-items">
+              <div class="team-insights-empty__curious-item" style="--delay: 0ms;">
+                <span class="team-insights-empty__curious-quote">"What's something you've always wanted to do?"</span>
+                <span class="team-insights-empty__curious-why">— so Nayan can help keep that dream alive</span>
               </div>
-            </div>
-            <div class="team-insights-empty__specialty" style="--delay: 60ms; --accent: var(--persona-maya, #a67a6a);">
-              <div class="team-insights-empty__specialty-bar"></div>
-              <div class="team-insights-empty__specialty-content">
-                <span class="team-insights-empty__specialty-name">Maya</span>
-                <span class="team-insights-empty__specialty-focus">tracks your habits</span>
+              <div class="team-insights-empty__curious-item" style="--delay: 80ms;">
+                <span class="team-insights-empty__curious-quote">"Who are the important people in your life?"</span>
+                <span class="team-insights-empty__curious-why">— so we can remember them with you</span>
               </div>
-            </div>
-            <div class="team-insights-empty__specialty" style="--delay: 120ms; --accent: var(--persona-jordan, #c4856a);">
-              <div class="team-insights-empty__specialty-bar"></div>
-              <div class="team-insights-empty__specialty-content">
-                <span class="team-insights-empty__specialty-name">Jordan</span>
-                <span class="team-insights-empty__specialty-focus">celebrates milestones</span>
-              </div>
-            </div>
-            <div class="team-insights-empty__specialty" style="--delay: 180ms; --accent: var(--persona-alex, #5a6b8a);">
-              <div class="team-insights-empty__specialty-bar"></div>
-              <div class="team-insights-empty__specialty-content">
-                <span class="team-insights-empty__specialty-name">Alex</span>
-                <span class="team-insights-empty__specialty-focus">spots opportunities</span>
-              </div>
-            </div>
-            <div class="team-insights-empty__specialty" style="--delay: 240ms; --accent: var(--persona-nayan, #8a7a6a);">
-              <div class="team-insights-empty__specialty-bar"></div>
-              <div class="team-insights-empty__specialty-content">
-                <span class="team-insights-empty__specialty-name">Nayan</span>
-                <span class="team-insights-empty__specialty-focus">finds deeper meaning</span>
+              <div class="team-insights-empty__curious-item" style="--delay: 160ms;">
+                <span class="team-insights-empty__curious-quote">"What do you want to get better at?"</span>
+                <span class="team-insights-empty__curious-why">— so Maya can cheer your progress</span>
               </div>
             </div>
           </div>
           
-          <!-- Sample Insight Preview -->
+          <!-- What This Will Look Like -->
           <div class="team-insights-empty__preview">
             <div class="team-insights-empty__preview-label">
               <span class="team-insights-empty__preview-pulse"></span>
-              What team insights look like
+              What you'll see here
             </div>
             <div class="team-insights-empty__preview-card">
-              <div class="team-insights-empty__preview-source" style="color: var(--persona-peter, #3a6b73);">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>
-                Peter noticed
+              <div class="team-insights-empty__preview-avatar" style="background: var(--persona-maya, #a67a6a);">M</div>
+              <div class="team-insights-empty__preview-bubble">
+                <span class="team-insights-empty__preview-name">Maya</span>
+                <p class="team-insights-empty__preview-text">"I noticed you've been consistent with your morning routine for 12 days now. That's you showing up for yourself."</p>
               </div>
-              <p class="team-insights-empty__preview-text">"Your energy dips every Sunday evening. This pattern appeared 6 times in the last 2 months."</p>
-              <span class="team-insights-empty__preview-action">Suggested action: plan something you love for Sunday nights</span>
             </div>
           </div>
           
-          <!-- Promise -->
+          <!-- Promise - warmer -->
           <div class="team-insights-empty__promise">
             <span class="team-insights-empty__promise-icon">${ICONS.sparkles}</span>
-            <span>Better than human. Always watching out for you.</span>
+            <span>We remember what matters. Even when you forget.</span>
           </div>
         </div>
       </div>
       
       <footer class="team-insights-footer">
-        <p class="team-insights-footer-text">Six minds, one purpose: helping you grow.</p>
+        <p class="team-insights-footer-text">Your friends, thinking of you.</p>
       </footer>
     </div>
   `;
@@ -621,25 +600,31 @@ function renderInsightsList(): void {
     return;
   }
 
-  // Render insights
+  // Render insights - as personal observations from team members
   listEl.style.display = 'flex';
   listEl.innerHTML = state.insights
-    .map((insight) => {
+    .map((insight, index) => {
       const style = PERSONA_STYLES[insight.source] ?? DEFAULT_STYLE;
       const priorityClass = insight.priority === 'high' || insight.priority === 'critical' 
         ? 'insight-high-priority' 
         : '';
       const newClass = insight.isNew ? 'insight-new' : '';
+      const initial = insight.source.charAt(0).toUpperCase();
 
       return `
-        <article class="team-insight-card ${priorityClass} ${newClass}" data-insight-id="${insight.id}">
-          <div class="insight-source" style="color: ${style.color}">
-            <span class="insight-source-icon">${style.icon}</span>
-            <span class="insight-source-name">${capitalize(insight.source)}</span>
+        <article class="team-insight-card ${priorityClass} ${newClass}" data-insight-id="${insight.id}" style="--stagger-delay: ${index * 60}ms;">
+          <div class="insight-avatar" style="background: ${style.color};">
+            <span class="insight-avatar-initial">${initial}</span>
+            <span class="insight-avatar-pulse"></span>
           </div>
-          <h3 class="insight-summary">${escapeHtml(insight.summary)}</h3>
-          <p class="insight-content">${escapeHtml(insight.content)}</p>
-          <time class="insight-time">${formatRelativeTime(insight.createdAt)}</time>
+          <div class="insight-bubble">
+            <div class="insight-header">
+              <span class="insight-source-name" style="color: ${style.color}">${capitalize(insight.source)}</span>
+              <time class="insight-time">${formatRelativeTime(insight.createdAt)}</time>
+            </div>
+            <p class="insight-content">"${escapeHtml(insight.content)}"</p>
+            ${insight.summary !== insight.content ? `<p class="insight-context">${escapeHtml(insight.summary)}</p>` : ''}
+          </div>
         </article>
       `;
     })
@@ -1189,7 +1174,56 @@ function injectStyles(): void {
       color: var(--color-text-secondary);
     }
     
-    /* Sample Preview */
+    /* Curious Section - Invitation to Share */
+    .team-insights-empty__curious {
+      margin-bottom: var(--space-lg, 26px);
+    }
+    
+    .team-insights-empty__curious-intro {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--color-text-muted);
+      margin: 0 0 var(--space-sm, 12px) 0;
+    }
+    
+    .team-insights-empty__curious-items {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-sm, 10px);
+    }
+    
+    .team-insights-empty__curious-item {
+      padding: var(--space-sm, 12px) var(--space-md, 16px);
+      background: var(--color-bg-secondary, rgba(44, 37, 32, 0.03));
+      border-radius: var(--radius-md, 12px);
+      opacity: 0;
+      transform: translateY(8px);
+      animation: curiousItemEnter ${DURATION.MODERATE}ms ${EASING.SPRING} forwards;
+      animation-delay: var(--delay, 0ms);
+    }
+    
+    @keyframes curiousItemEnter {
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    .team-insights-empty__curious-quote {
+      display: block;
+      font-size: 14px;
+      font-style: italic;
+      color: var(--color-text-primary);
+      margin-bottom: var(--space-xs, 4px);
+    }
+    
+    .team-insights-empty__curious-why {
+      display: block;
+      font-size: 12px;
+      color: var(--color-text-muted);
+    }
+    
+    /* Sample Preview - Chat Bubble Style */
     .team-insights-empty__preview {
       margin-bottom: var(--space-lg, 26px);
     }
@@ -1220,40 +1254,43 @@ function injectStyles(): void {
     }
     
     .team-insights-empty__preview-card {
+      display: flex;
+      gap: var(--space-sm, 12px);
       padding: var(--space-md, 16px);
-      background: linear-gradient(
-        135deg,
-        rgba(58, 107, 115, 0.08),
-        var(--color-bg-secondary, rgba(44, 37, 32, 0.02))
-      );
+      background: var(--color-bg-secondary, rgba(44, 37, 32, 0.03));
       border-radius: var(--radius-lg, 12px);
-      border: 1px solid rgba(58, 107, 115, 0.15);
-      border-left: 3px solid var(--persona-peter, #3a6b73);
     }
     
-    .team-insights-empty__preview-source {
+    .team-insights-empty__preview-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
       display: flex;
       align-items: center;
-      gap: var(--space-xs, 4px);
-      font-size: 11px;
+      justify-content: center;
+      font-size: 13px;
       font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      margin-bottom: var(--space-sm, 8px);
+      color: white;
+      flex-shrink: 0;
+    }
+    
+    .team-insights-empty__preview-bubble {
+      flex: 1;
+    }
+    
+    .team-insights-empty__preview-name {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--persona-maya, #a67a6a);
+      margin-bottom: var(--space-xs, 4px);
     }
     
     .team-insights-empty__preview-text {
       font-size: 14px;
       color: var(--color-text-primary);
       line-height: 1.5;
-      margin: 0 0 var(--space-sm, 8px) 0;
-      opacity: 0.9;
-    }
-    
-    .team-insights-empty__preview-action {
-      display: block;
-      font-size: 12px;
-      color: var(--persona-peter, #3a6b73);
+      margin: 0;
       font-style: italic;
     }
     
@@ -1294,7 +1331,7 @@ function injectStyles(): void {
       margin-top: var(--space-xs);
     }
     
-    /* Insights List */
+    /* Insights List - Chat-like design */
     .team-insights-list {
       display: flex;
       flex-direction: column;
@@ -1302,66 +1339,103 @@ function injectStyles(): void {
     }
     
     .team-insight-card {
-      background: var(--color-bg-secondary);
-      border-radius: var(--radius-lg, 16px);
-      padding: var(--space-md, 16px);
-      transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
+      display: flex;
+      gap: var(--space-sm, 12px);
+      opacity: 0;
+      transform: translateY(8px);
+      animation: insightFadeIn ${DURATION.NORMAL}ms ${EASING.SPRING} forwards;
+      animation-delay: var(--stagger-delay, 0ms);
     }
     
-    .team-insight-card:hover {
-      background: var(--color-bg-tertiary);
+    @keyframes insightFadeIn {
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
     }
     
-    .team-insight-card.insight-high-priority {
+    .team-insight-card.insight-high-priority .insight-bubble {
       border-left: 3px solid var(--color-warning, #b8956a);
+      padding-left: var(--space-md, 16px);
     }
     
-    .team-insight-card.insight-new {
-      animation: pulse-glow 2s ease-out;
+    .team-insight-card.insight-new .insight-avatar-pulse {
+      animation: avatarPulse 2s ease-out;
     }
     
-    @keyframes pulse-glow {
-      0% { box-shadow: 0 0 0 0 var(--persona-tint, rgba(74, 103, 65, 0.3)); }
-      70% { box-shadow: 0 0 0 8px transparent; }
-      100% { box-shadow: 0 0 0 0 transparent; }
+    @keyframes avatarPulse {
+      0% { box-shadow: 0 0 0 0 currentColor; opacity: 0.4; }
+      70% { box-shadow: 0 0 0 12px currentColor; opacity: 0; }
+      100% { box-shadow: 0 0 0 0 currentColor; opacity: 0; }
     }
     
-    .insight-source {
+    /* Avatar - feels alive */
+    .insight-avatar {
+      position: relative;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
       display: flex;
       align-items: center;
-      gap: var(--space-xs, 4px);
-      margin-bottom: var(--space-sm, 8px);
+      justify-content: center;
+      flex-shrink: 0;
+      animation: avatarBreathing 4s ease-in-out infinite;
     }
     
-    .insight-source-icon {
-      width: 16px;
-      height: 16px;
+    @keyframes avatarBreathing {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.03); }
+    }
+    
+    .insight-avatar-initial {
+      font-size: 14px;
+      font-weight: 600;
+      color: white;
+    }
+    
+    .insight-avatar-pulse {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      pointer-events: none;
+    }
+    
+    /* Bubble - like a chat message */
+    .insight-bubble {
+      flex: 1;
+      min-width: 0;
+    }
+    
+    .insight-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: var(--space-xs, 6px);
     }
     
     .insight-source-name {
-      font-size: 12px;
+      font-size: 13px;
       font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-    }
-    
-    .insight-summary {
-      font-size: 15px;
-      font-weight: 600;
-      color: var(--color-text-primary);
-      margin: 0 0 var(--space-xs) 0;
     }
     
     .insight-content {
-      font-size: 14px;
-      color: var(--color-text-secondary);
-      margin: 0 0 var(--space-sm) 0;
-      line-height: 1.5;
+      font-size: 15px;
+      color: var(--color-text-primary);
+      margin: 0 0 var(--space-xs, 6px) 0;
+      line-height: 1.55;
+      font-style: italic;
+    }
+    
+    .insight-context {
+      font-size: 13px;
+      color: var(--color-text-muted);
+      margin: 0;
+      line-height: 1.4;
     }
     
     .insight-time {
-      font-size: 12px;
-      color: var(--color-text-muted);
+      font-size: 11px;
+      color: var(--color-text-dimmed);
     }
     
     /* Footer */

@@ -8,6 +8,7 @@
  */
 
 import { createLogger } from '../utils/safe-logger.js';
+import { registerInterval, clearNamedInterval, hasInterval } from '../utils/interval-manager.js';
 import {
   getGlobalPerformanceSummary,
   PERFORMANCE_THRESHOLDS,
@@ -70,9 +71,10 @@ const DEFAULT_CONFIG: Required<AlertConfig> = {
 // ALERTING SERVICE
 // ============================================================================
 
+const PERFORMANCE_ALERT_INTERVAL = 'performance-alerts-check';
+
 class PerformanceAlertingService {
   private config: Required<AlertConfig>;
-  private checkInterval: ReturnType<typeof setInterval> | null = null;
   private lastAlerts = new Map<string, number>(); // Alert type -> last sent timestamp
 
   constructor(config: AlertConfig = {}) {
@@ -83,16 +85,20 @@ class PerformanceAlertingService {
    * Start monitoring performance
    */
   start(): void {
-    if (this.checkInterval) {
+    if (hasInterval(PERFORMANCE_ALERT_INTERVAL)) {
       log.warn({}, 'Performance alerting already running');
       return;
     }
 
     log.info({ config: this.sanitizeConfig() }, '🚨 Starting performance alerting');
 
-    this.checkInterval = setInterval(() => {
-      void this.checkAndAlert();
-    }, this.config.checkIntervalMs);
+    registerInterval(
+      PERFORMANCE_ALERT_INTERVAL,
+      () => {
+        void this.checkAndAlert();
+      },
+      this.config.checkIntervalMs
+    );
 
     // Initial check
     void this.checkAndAlert();
@@ -102,11 +108,8 @@ class PerformanceAlertingService {
    * Stop monitoring
    */
   stop(): void {
-    if (this.checkInterval) {
-      clearInterval(this.checkInterval);
-      this.checkInterval = null;
-      log.info({}, '🛑 Performance alerting stopped');
-    }
+    clearNamedInterval(PERFORMANCE_ALERT_INTERVAL);
+    log.info({}, '🛑 Performance alerting stopped');
   }
 
   /**
@@ -474,7 +477,7 @@ https://console.cloud.google.com/monitoring
     recentAlerts: Array<{ type: string; lastSent: Date }>;
   } {
     return {
-      running: this.checkInterval !== null,
+      running: hasInterval(PERFORMANCE_ALERT_INTERVAL),
       lastCheck: new Date(),
       recentAlerts: Array.from(this.lastAlerts.entries()).map(([type, ts]) => ({
         type,

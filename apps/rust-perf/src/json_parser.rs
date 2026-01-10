@@ -59,6 +59,7 @@ pub struct ScanResult {
 }
 
 /// Register a known tool name for faster detection
+#[allow(dead_code)]
 pub fn register_tool_name(name: &str) {
     KNOWN_TOOLS.lock().unwrap().insert(name.to_lowercase());
 }

@@ -97,6 +97,10 @@ import {
   type BetterThanHumanAnalysis,
 } from './advanced/index.js';
 
+// Emotion and trajectory-based tool boost (E2E integration)
+import { applyEmotionBoosts, type EmotionContext } from './emotion-routing-boost.js';
+import { applyTrajectoryBoosts, type EmotionalArc } from './trajectory-routing-boost.js';
+
 const log = createLogger({ module: 'semantic-router:voice' });
 
 // ============================================================================
@@ -765,6 +769,47 @@ export async function routeVoiceInput(
 
   // Full routing
   const routingResult = await activeRouter.route(inputText, context);
+
+  // ============================================================================
+  // E2E INTEGRATION: Apply emotion and trajectory boosts to routing scores
+  // These boosts adjust tool confidence based on detected emotional state
+  // ============================================================================
+  if (routingResult.matches.length > 0 && context.detectedEmotion) {
+    const emotionContext: EmotionContext = {
+      primary: context.detectedEmotion.emotion,
+      intensity: context.detectedEmotion.intensity,
+      valence: context.detectedEmotion.valence,
+      source: context.detectedEmotion.source,
+    };
+    
+    // Apply emotion-based boosts to tool matches
+    routingResult.matches = applyEmotionBoosts(routingResult.matches, emotionContext);
+    
+    log.debug(
+      { emotion: emotionContext.primary, matchCount: routingResult.matches.length },
+      '🎭 Applied emotion-based tool boosts'
+    );
+  }
+
+  // Apply trajectory boosts if emotional arc is available
+  if (routingResult.matches.length > 0 && emotionalArc) {
+    const trajectoryArc: EmotionalArc = {
+      id: `${context.sessionId}_arc`,
+      type: 'mood',
+      direction: emotionalArc.trend === 'improving' ? 'rising' :
+                 emotionalArc.trend === 'declining' ? 'falling' : 'stable',
+      intensity: emotionalArc.needsAttention ? 'high' : 'medium',
+      durationDays: 1,
+      startedAt: new Date().toISOString(),
+    };
+    
+    routingResult.matches = applyTrajectoryBoosts(routingResult.matches, [trajectoryArc]);
+    
+    log.debug(
+      { trajectory: trajectoryArc.direction, needsAttention: emotionalArc.needsAttention },
+      '📈 Applied trajectory-based tool boosts'
+    );
+  }
 
   // Enhance with learning (user vocabulary, calibration, time patterns)
   learningContext.routingResult = routingResult;

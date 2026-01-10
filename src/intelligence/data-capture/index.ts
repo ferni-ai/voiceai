@@ -495,23 +495,113 @@ export async function processDataCapture(context: DataCaptureContext): Promise<D
 // DEFINITION-BASED DATA CAPTURE ROUTER
 // ============================================================================
 
+// ============================================================================
+// DATA CAPTURE CONFIG
+// ============================================================================
+
+interface DataCaptureConfig {
+  enabled: boolean;
+  enabledCaptures: string[];
+  disabledCaptures: string[];
+}
+
+let dataCaptureConfig: DataCaptureConfig | null = null;
+
+async function loadDataCaptureConfig(): Promise<DataCaptureConfig> {
+  if (dataCaptureConfig) return dataCaptureConfig;
+
+  try {
+    const fs = await import('fs/promises');
+    const path = await import('path');
+    const configPath = path.resolve(process.cwd(), 'data/model-config.json');
+    const configText = await fs.readFile(configPath, 'utf-8');
+    const config = JSON.parse(configText);
+
+    dataCaptureConfig = {
+      enabled: config.dataCaptureDefaults?.enabled ?? true,
+      enabledCaptures: config.dataCaptureDefaults?.enabledCaptures ?? [],
+      disabledCaptures: config.dataCaptureDefaults?.disabledCaptures ?? [],
+    };
+
+    log.debug(
+      {
+        enabled: dataCaptureConfig.enabled,
+        enabledCount: dataCaptureConfig.enabledCaptures.length,
+        disabledCount: dataCaptureConfig.disabledCaptures.length,
+      },
+      '📋 Data capture config loaded'
+    );
+  } catch (error) {
+    log.debug({ error: String(error) }, 'Using default data capture config');
+    dataCaptureConfig = {
+      enabled: true,
+      enabledCaptures: [],
+      disabledCaptures: [],
+    };
+  }
+
+  return dataCaptureConfig;
+}
+
+/**
+ * Check if a specific capture definition is enabled
+ */
+function isCaptureEnabled(captureId: string, config: DataCaptureConfig): boolean {
+  // If data capture is globally disabled, nothing is enabled
+  if (!config.enabled) return false;
+
+  // If enabledCaptures is specified, only those are enabled
+  if (config.enabledCaptures.length > 0) {
+    return config.enabledCaptures.includes(captureId);
+  }
+
+  // Otherwise, check if it's in the disabled list
+  return !config.disabledCaptures.includes(captureId);
+}
+
 /**
  * Definition-based data capture router.
  * Uses DataCaptureDefinitions to detect and extract data patterns.
  * This extends the hardcoded approach above with configurable definitions.
+ * Respects dataCaptureDefaults config for enabling/disabling specific captures.
  */
 class DefinitionBasedRouter {
   private definitions: DataCaptureDefinition[] = [];
   private initialized = false;
+  private config: DataCaptureConfig | null = null;
 
   async initialize(): Promise<void> {
     if (this.initialized) return;
 
     try {
+      // Load config first
+      this.config = await loadDataCaptureConfig();
+
+      // Load all definitions
       const { allDataCaptureDefinitions } = await import('./definitions/index.js');
-      this.definitions = allDataCaptureDefinitions;
+
+      // Filter based on config
+      this.definitions = allDataCaptureDefinitions.filter((def) => {
+        // Extract capture category from definition ID (e.g., "capture_contacts" -> "contacts")
+        const captureId = def.category || def.id.replace('capture_', '');
+        const enabled = isCaptureEnabled(captureId, this.config!);
+
+        if (!enabled) {
+          log.debug({ captureId, defId: def.id }, '⏭️ Data capture disabled by config');
+        }
+
+        return enabled;
+      });
+
       this.initialized = true;
-      log.info({ count: this.definitions.length }, '🧠 Definition-based data capture initialized');
+      log.info(
+        {
+          total: allDataCaptureDefinitions.length,
+          enabled: this.definitions.length,
+          disabled: allDataCaptureDefinitions.length - this.definitions.length,
+        },
+        '🧠 Definition-based data capture initialized'
+      );
     } catch (error) {
       log.warn({ error: String(error) }, 'Failed to load data capture definitions');
     }

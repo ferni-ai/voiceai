@@ -252,7 +252,8 @@ impl SignalPatterns {
 pub struct SignalExtractionResult {
     /// All extracted signals
     pub signals: Vec<ExtractedSignal>,
-    /// Count by signal type
+    /// Count by signal type (used internally for statistics)
+    #[allow(dead_code)]
     pub counts: HashMap<String, u32>,
     /// Has any signals
     pub has_signals: bool,
@@ -422,6 +423,7 @@ pub fn extract_date_signals(text: &str) -> Vec<ExtractedSignal> {
 }
 
 /// Extract only relationship signals
+#[allow(dead_code)]
 pub fn extract_relationship_signals(text: &str) -> Vec<ExtractedSignal> {
     let patterns = &*SIGNAL_PATTERNS;
     let mut signals = Vec::new();

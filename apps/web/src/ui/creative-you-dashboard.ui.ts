@@ -13,6 +13,7 @@
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 import { t } from '../i18n/index.js';
+import { apiGet } from '../utils/api.js';
 
 const log = createLogger('CreativeYouDashboard');
 
@@ -324,18 +325,17 @@ export class CreativeYouDashboard {
    */
   private async loadIntelligentRecommendations(baseUrl: string): Promise<void> {
     const topicsParam = encodeURIComponent(this.userTopics.join(','));
-    const url = `${baseUrl}/api/creative/intelligent?userId=${this.userId}&topics=${topicsParam}&count=4`;
+    const url = `/api/creative/intelligent?userId=${this.userId}&topics=${topicsParam}&count=4`;
 
     try {
-      const res = await fetch(url);
-      if (!res.ok) {
+      const res = await apiGet<{ recommendations?: IntelligentRecommendation[] }>(url);
+      if (!res.ok || !res.data) {
         log.warn('Intelligent recommendations failed, falling back to daily picks');
         await this.loadDailyPicks(baseUrl);
         return;
       }
 
-      const data = await res.json();
-      const recommendations = data.recommendations || [];
+      const recommendations = res.data.recommendations || [];
 
       // Find first video and podcast recommendation
       const videoRec = recommendations.find((r: IntelligentRecommendation) => r.contentType === 'video');
@@ -663,14 +663,13 @@ export class CreativeYouDashboard {
 
     // Fetch episode details from API
     try {
-      const response = await fetch(`/api/creative/podcasts/${episodeId}`);
-      if (!response.ok) {
+      const response = await apiGet<{ episode?: unknown }>(`/api/creative/podcasts/${episodeId}`);
+      if (!response.ok || !response.data) {
         log.error('Failed to fetch episode:', response.status);
         return;
       }
 
-      const data = await response.json();
-      const episode = data.episode;
+      const episode = response.data.episode;
 
       if (!episode) {
         log.error('Episode not found:', episodeId);
@@ -906,7 +905,7 @@ export class CreativeYouDashboard {
     if (!this.creativeDNA) return;
 
     try {
-      const response = await fetch('/api/creative/dna/card?userId=' + this.userId);
+      const response = await apiGet<unknown>('/api/creative/dna/card?userId=' + this.userId);
       if (response.ok) {
         // Use native share if available
         if (navigator.share) {

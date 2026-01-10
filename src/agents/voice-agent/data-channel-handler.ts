@@ -166,6 +166,21 @@ export function setupDataChannelHandler(ctx: DataChannelContext): DataChannelRes
       if (message.type === 'dev_mode_sync') {
         await handleDevModeSync(message, ctx);
       }
+
+      // 🎵 MUSIC CONTROL: Frontend play/pause buttons
+      if (message.type === 'music_control') {
+        await handleMusicControl(message, ctx);
+      }
+
+      // 🔄 REPEAT LAST: Replay last agent response via TTS
+      if (message.type === 'repeat_last') {
+        await handleRepeatLast(message, ctx);
+      }
+
+      // 🎭 USER REACTION: Handle quick reaction buttons from frontend
+      if (message.type === 'user_reaction') {
+        await handleUserReaction(message, ctx);
+      }
     } catch {
       // Not JSON or not a valid request - this is expected for non-data-channel uses
       // Silently ignore as data channel is used for multiple message types
@@ -753,6 +768,249 @@ If it's an error, help them understand and fix it.`,
   } catch (contextErr) {
     getLogger().warn({ error: String(contextErr) }, 'Failed to process macOS context');
   }
+}
+
+// ============================================================================
+// MUSIC CONTROL HANDLER
+// ============================================================================
+
+/**
+ * Handle music_control messages - user clicked controls in Now Playing UI
+ *
+ * Message format:
+ * {
+ *   type: 'music_control',
+ *   action: 'pause' | 'resume' | 'skip' | 'volume' | 'favorite',
+ *   volume?: number,       // 0-100 for volume action
+ *   track?: { name: string; artist: string },  // for favorite action
+ *   timestamp: number
+ * }
+ */
+async function handleMusicControl(
+  message: {
+    action: string;
+    volume?: number;
+    track?: { name: string; artist: string };
+    timestamp?: number;
+  },
+  ctx: DataChannelContext
+): Promise<void> {
+  const { room, sessionId, userId } = ctx;
+  const { action, volume, track } = message;
+
+  getLogger().info({ action, sessionId, volume, track }, '🎵 Music control request from UI');
+
+  try {
+    const { getMusicPlayer } = await import('../../audio/music-player.js');
+    const musicPlayer = getMusicPlayer();
+
+    switch (action) {
+      case 'pause':
+        musicPlayer.pause();
+        getLogger().info('🎵 Music paused via UI button');
+        break;
+
+      case 'resume':
+      case 'play':
+        await musicPlayer.resume();
+        getLogger().info('🎵 Music resumed via UI button');
+        break;
+
+      case 'skip':
+        await musicPlayer.skip();
+        getLogger().info('🎵 Music skipped via UI button');
+        break;
+
+      case 'volume':
+        if (typeof volume === 'number') {
+          // Volume is 0-100 from UI, convert to 0-1 for music player
+          musicPlayer.setVolume(volume / 100);
+          getLogger().info({ volume }, '🎵 Music volume adjusted via UI');
+        }
+        break;
+
+      case 'favorite':
+        if (track) {
+          // Log favorite for analytics - can be stored in Firestore later
+          // The music learning system is for transition learning, not track favorites
+          getLogger().info(
+            {
+              userId: userId ?? 'anonymous',
+              sessionId,
+              trackName: track.name,
+              artist: track.artist,
+              action: 'favorite',
+            },
+            '🎵 Track favorited via UI button'
+          );
+        }
+        break;
+
+      default:
+        getLogger().warn({ action }, '🎵 Unknown music control action');
+    }
+
+    // Send acknowledgment back to frontend
+    const ackMessage = JSON.stringify({
+      type: 'music_control_ack',
+      action,
+      success: true,
+      timestamp: Date.now(),
+    });
+    await room.localParticipant?.publishData(new TextEncoder().encode(ackMessage), {
+      reliable: true,
+    });
+  } catch (err) {
+    getLogger().error({ error: String(err), action }, '🎵 Music control failed');
+
+    // Send failure response
+    const errorMessage = JSON.stringify({
+      type: 'music_control_ack',
+      action,
+      success: false,
+      error: String(err),
+      timestamp: Date.now(),
+    });
+    await room.localParticipant?.publishData(new TextEncoder().encode(errorMessage), {
+      reliable: true,
+    });
+  }
+}
+
+// ============================================================================
+// REPEAT LAST HANDLER
+// ============================================================================
+
+/**
+ * Handle repeat_last messages - replay the last agent response via TTS.
+ *
+ * This allows users to hear the last response again if they missed it.
+ * Uses coordinatedSay for proper speech coordination.
+ */
+async function handleRepeatLast(
+  message: {
+    text: string;
+    personaId?: string;
+    timestamp?: number;
+  },
+  ctx: DataChannelContext
+): Promise<void> {
+  const { room, sessionId } = ctx;
+  const { text, personaId } = message;
+
+  if (!text) {
+    getLogger().warn({ sessionId }, '🔄 Repeat last request with no text');
+    return;
+  }
+
+  getLogger().info(
+    { sessionId, personaId, textLength: text.length },
+    '🔄 Repeat last response requested'
+  );
+
+  try {
+    // Use coordinated speech to replay the text
+    coordinatedSay(sessionId, text, { allowInterruptions: true });
+
+    // Send acknowledgment back to frontend
+    const ackMessage = JSON.stringify({
+      type: 'repeat_last_ack',
+      success: true,
+      timestamp: Date.now(),
+    });
+    await room.localParticipant?.publishData(new TextEncoder().encode(ackMessage), {
+      reliable: true,
+    });
+
+    getLogger().info({ sessionId }, '🔄 Repeat last response completed');
+  } catch (err) {
+    getLogger().error({ error: String(err), sessionId }, '🔄 Repeat last failed');
+
+    // Send failure response
+    const errorMessage = JSON.stringify({
+      type: 'repeat_last_ack',
+      success: false,
+      error: String(err),
+      timestamp: Date.now(),
+    });
+    await room.localParticipant?.publishData(new TextEncoder().encode(errorMessage), {
+      reliable: true,
+    });
+  }
+}
+
+// ============================================================================
+// USER REACTION HANDLER
+// ============================================================================
+
+/**
+ * Handle user_reaction messages - quick reaction buttons from frontend.
+ *
+ * Reactions are emotional feedback that can:
+ * 1. Be logged for analytics (engagement tracking)
+ * 2. Inform the agent's understanding of user sentiment
+ * 3. Trigger visual feedback on the frontend (handled there)
+ *
+ * Message format:
+ * {
+ *   type: 'user_reaction',
+ *   reactionId: 'thumbs_up' | 'heart' | 'sparkles' | 'lightbulb' | 'smile' | 'clap',
+ *   label: string,
+ *   timestamp: number
+ * }
+ */
+async function handleUserReaction(
+  message: {
+    reactionId: string;
+    label?: string;
+    timestamp?: number;
+  },
+  ctx: DataChannelContext
+): Promise<void> {
+  const { room, sessionId, sessionPersona, userId } = ctx;
+  const { reactionId, label, timestamp } = message;
+
+  getLogger().info(
+    {
+      sessionId,
+      reactionId,
+      label,
+      userId,
+      personaId: sessionPersona?.id,
+    },
+    '🎭 User sent reaction'
+  );
+
+  // Track engagement event for analytics (fire and forget)
+  // Reactions are logged to understand user sentiment and engagement
+  fireAndForget(async () => {
+    try {
+      // Log the reaction for analytics - could be extended to store in Firestore
+      getLogger().debug(
+        {
+          sessionId,
+          userId,
+          reactionId,
+          personaId: sessionPersona?.id,
+          timestamp: timestamp || Date.now(),
+        },
+        '🎭 Reaction tracked for analytics'
+      );
+    } catch (err) {
+      getLogger().warn({ error: String(err), sessionId }, '🎭 Failed to record reaction');
+    }
+  }, 'user_reaction_tracking');
+
+  // Send acknowledgment back to frontend
+  const ackMessage = JSON.stringify({
+    type: 'user_reaction_ack',
+    reactionId,
+    success: true,
+    timestamp: Date.now(),
+  });
+  await room.localParticipant?.publishData(new TextEncoder().encode(ackMessage), {
+    reliable: true,
+  });
 }
 
 // ============================================================================

@@ -17,6 +17,7 @@
 
 import { t } from '../i18n/index.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
+import { apiGet, apiPost } from '../utils/api.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { toast } from './whisper.ui.js';
@@ -703,11 +704,14 @@ async function fetchOrgData(orgId: string): Promise<{
   onboardingChecklist: OnboardingItem[];
 }> {
   try {
-    const response = await fetch(
-      `/api/monetization/b2b/organization?orgId=${orgId}&userId=${currentUserId}`
-    );
-    if (!response.ok) throw new Error('Failed to fetch organization data');
-    return response.json();
+    const response = await apiGet<{
+      organization: Organization;
+      usageStats: OrgUsageStats;
+      roiEstimate: ROIEstimate;
+      onboardingChecklist: OnboardingItem[];
+    }>(`/api/monetization/b2b/organization?orgId=${orgId}&userId=${currentUserId}`);
+    if (!response.ok || !response.data) throw new Error('Failed to fetch organization data');
+    return response.data;
   } catch (error) {
     log.error({ error: String(error) }, 'Failed to fetch org data');
     // Return mock data for demo
@@ -770,15 +774,11 @@ async function fetchOrgData(orgId: string): Promise<{
 
 async function sendInvite(email: string, role: 'admin' | 'member'): Promise<boolean> {
   try {
-    const response = await fetch('/api/monetization/b2b/invite', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        orgId: currentOrg?.id,
-        email,
-        role,
-        invitedBy: currentUserId,
-      }),
+    const response = await apiPost('/api/monetization/b2b/invite', {
+      orgId: currentOrg?.id,
+      email,
+      role,
+      invitedBy: currentUserId,
     });
     return response.ok;
   } catch {

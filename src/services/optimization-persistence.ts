@@ -24,6 +24,7 @@ import type {
 } from '../types/optimization-types.js';
 import { removeUndefined, cleanForFirestore } from '../utils/firestore-utils.js';
 import { getLogger } from '../utils/safe-logger.js';
+import { registerInterval, clearNamedInterval } from '../utils/interval-manager.js';
 
 // ============================================================================
 // TYPES
@@ -130,22 +131,23 @@ class OptimizationPersistenceService {
       }
     }
 
-    // Start periodic flush
-    this.flushInterval = setInterval(() => {
-      this.flushAll().catch((err) =>
-        getLogger().warn({ err }, 'Failed to flush optimization buffers')
-      );
-    }, this.FLUSH_INTERVAL_MS);
+    // Start periodic flush using managed interval
+    registerInterval(
+      OPTIMIZATION_PERSISTENCE_INTERVAL,
+      () => {
+        this.flushAll().catch((err) =>
+          getLogger().warn({ err }, 'Failed to flush optimization buffers')
+        );
+      },
+      this.FLUSH_INTERVAL_MS
+    );
 
     this.initialized = true;
     getLogger().info('🗄️ Optimization persistence initialized');
   }
 
   async shutdown(): Promise<void> {
-    if (this.flushInterval) {
-      clearInterval(this.flushInterval);
-      this.flushInterval = null;
-    }
+    clearNamedInterval(OPTIMIZATION_PERSISTENCE_INTERVAL);
 
     await this.flushAll();
     getLogger().info('🗄️ Optimization persistence shut down');

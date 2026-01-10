@@ -545,6 +545,135 @@ export function clearArcCache(userId?: string): void {
 }
 
 // ============================================================================
+// EMOTIONAL CONTEXT - For Predictive Intelligence
+// ============================================================================
+
+/**
+ * Emotional context result for proactive intelligence.
+ * Used by session-init-handler Phase 6.6 for predictive emotional state.
+ */
+export interface EmotionalContextResult {
+  /** Currently active emotional arcs */
+  activeArcs: EmotionalArc[];
+  /** The dominant emotional trajectory theme */
+  dominantTrajectory?: string;
+  /** Predicted phase for the dominant arc */
+  predictedPhase?: ArcPhase;
+  /** Recommendation for how to approach the user */
+  recommendation?: string;
+  /** Overall emotional trend direction */
+  trend?: 'improving' | 'declining' | 'stable' | 'volatile';
+  /** Intensity level (0-1) */
+  intensity?: number;
+}
+
+/**
+ * Get emotional context for proactive intelligence.
+ * Analyzes active emotional arcs to predict user's emotional state
+ * and provide recommendations for engagement.
+ *
+ * @param userId - The user ID
+ * @returns Emotional context with arcs, trajectory, and recommendations
+ */
+export async function getEmotionalContext(userId: string): Promise<EmotionalContextResult> {
+  try {
+    const activeArcs = await getActiveArcs(userId);
+
+    if (activeArcs.length === 0) {
+      return {
+        activeArcs: [],
+        recommendation: 'No active emotional patterns detected. Approach normally.',
+      };
+    }
+
+    // Find the dominant arc (most recent or most intense)
+    const rankedArcs = activeArcs
+      .map((arc) => {
+        const recentIntensity = arc.waypoints.slice(-3).reduce((a, b) => a + b.intensity, 0) / 3;
+        const recency = 1 / (1 + (Date.now() - arc.lastUpdated) / (24 * 60 * 60 * 1000)); // Decay over days
+        return {
+          arc,
+          score: recentIntensity * 0.6 + recency * 0.4,
+        };
+      })
+      .sort((a, b) => b.score - a.score);
+
+    const dominantArc = rankedArcs[0]?.arc;
+    const dominantTrajectory = dominantArc?.theme;
+    const predictedPhase = dominantArc?.phase;
+
+    // Calculate overall intensity
+    const avgIntensity =
+      rankedArcs.reduce((sum, { arc }) => {
+        const recent = arc.waypoints.slice(-3);
+        return sum + recent.reduce((a, b) => a + b.intensity, 0) / recent.length;
+      }, 0) / rankedArcs.length;
+
+    // Determine overall trend
+    let trend: 'improving' | 'declining' | 'stable' | 'volatile' = 'stable';
+    if (dominantArc) {
+      switch (dominantArc.trend) {
+        case 'rising':
+          // Rising intensity with negative valence = declining emotional state
+          const avgValence =
+            dominantArc.waypoints.slice(-3).reduce((a, b) => a + b.valence, 0) / 3;
+          trend = avgValence < 0 ? 'declining' : 'stable';
+          break;
+        case 'falling':
+          trend = 'improving';
+          break;
+        case 'volatile':
+          trend = 'volatile';
+          break;
+        default:
+          trend = 'stable';
+      }
+    }
+
+    // Generate recommendation based on state
+    let recommendation: string;
+
+    if (avgIntensity > 0.7) {
+      if (trend === 'declining' || trend === 'volatile') {
+        recommendation = `High emotional intensity detected around "${dominantTrajectory}". Approach with extra care and validation.`;
+      } else {
+        recommendation = `Strong emotions active around "${dominantTrajectory}". Be present and acknowledge their journey.`;
+      }
+    } else if (avgIntensity > 0.4) {
+      if (predictedPhase === 'resolving') {
+        recommendation = `"${dominantTrajectory}" appears to be resolving. Celebrate progress gently.`;
+      } else if (predictedPhase === 'recurring') {
+        recommendation = `"${dominantTrajectory}" has returned. Reference previous navigation of this pattern.`;
+      } else {
+        recommendation = `Active emotional arc around "${dominantTrajectory}". Stay attuned to shifts.`;
+      }
+    } else {
+      recommendation = 'Emotional state appears stable. Normal engagement appropriate.';
+    }
+
+    // Add warning for peak phase
+    if (predictedPhase === 'peak') {
+      recommendation += ' ⚠️ At peak intensity - prioritize emotional safety.';
+    }
+
+    return {
+      activeArcs,
+      dominantTrajectory,
+      predictedPhase,
+      recommendation,
+      trend,
+      intensity: avgIntensity,
+    };
+  } catch (error) {
+    log.warn({ error: String(error), userId }, 'Failed to get emotional context');
+    return {
+      activeArcs: [],
+      recommendation: 'Unable to analyze emotional patterns. Proceed with care.',
+    };
+  }
+}
+
+// ============================================================================
 // EXPORTS
 // ============================================================================
 
@@ -554,4 +683,5 @@ export const emotionalTrajectories = {
   getRelevantArcs,
   buildContext: buildEmotionalTrajectoryContext,
   clearCache: clearArcCache,
+  getEmotionalContext,
 };

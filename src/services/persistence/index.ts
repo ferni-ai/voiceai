@@ -16,6 +16,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
+import { registerInterval, clearNamedInterval } from '../../utils/interval-manager.js';
 import type { Firestore as FirestoreType } from '@google-cloud/firestore';
 
 const log = createLogger({ module: 'PersistenceLayer' });
@@ -136,22 +137,22 @@ export function createPersistenceStore<T>(config: PersistenceConfig): Persistenc
   // In-memory cache
   const cache = new Map<string, T>();
   const dirty = new Set<string>();
-  let syncTimer: NodeJS.Timeout | null = null;
+  const intervalName = `persistence-sync-${collection}`;
   let isShutdown = false;
 
-  // Start sync interval
+  // Start sync interval using managed interval
   const startSyncInterval = () => {
-    if (syncTimer) return;
-    syncTimer = setInterval(() => {
-      void flushAll();
-    }, syncIntervalMs);
+    registerInterval(
+      intervalName,
+      () => {
+        void flushAll();
+      },
+      syncIntervalMs
+    );
   };
 
   const stopSyncInterval = () => {
-    if (syncTimer) {
-      clearInterval(syncTimer);
-      syncTimer = null;
-    }
+    clearNamedInterval(intervalName);
   };
 
   // Flush all dirty data

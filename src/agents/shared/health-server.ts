@@ -9,6 +9,7 @@
  * Endpoints:
  * - GET /health - Liveness check (always returns 200 if server is up)
  * - GET /health/ready - Readiness check (200 only when workers can accept calls)
+ * - GET /health/workers - Background worker stats (trust, analytics, predictions, etc.)
  * - GET /health/crash-analytics - Crash analytics summary
  * - GET /api/cognitive - Current cognitive state (for dashboard)
  * - GET /api/cognitive/history - Recent cognitive events
@@ -745,6 +746,57 @@ export function startHealthCheckServer(serviceName = 'voice-agent'): void {
             timestamp: new Date().toISOString(),
           })
         );
+        return;
+      }
+
+      // Worker health check - Aggregated stats from all background workers
+      if (url === '/health/workers') {
+        try {
+          const { getWorkerStats } = await import('../../workers/index.js');
+          const { AsyncEvents } = await import('../../services/async-events/index.js');
+
+          const workerStats = getWorkerStats();
+          const asyncStats = AsyncEvents.getStats();
+
+          // Determine overall worker health
+          let status: 'healthy' | 'degraded' | 'unhealthy' = 'healthy';
+
+          // Check for degraded conditions
+          if (asyncStats.queueLength > 500) {
+            status = 'degraded';
+          }
+          if (asyncStats.queueLength > 900 || asyncStats.dropped > 100) {
+            status = 'unhealthy';
+          }
+
+          const statusCode = status === 'unhealthy' ? 503 : 200;
+
+          res.writeHead(statusCode, { 'Content-Type': 'application/json' });
+          res.end(
+            JSON.stringify({
+              status,
+              service: serviceName,
+              workers: workerStats,
+              asyncEvents: {
+                queueLength: asyncStats.queueLength,
+                emitted: asyncStats.emitted,
+                processed: asyncStats.processed,
+                errors: asyncStats.errors,
+                dropped: asyncStats.dropped,
+              },
+              timestamp: new Date().toISOString(),
+            })
+          );
+        } catch (error) {
+          res.writeHead(503, { 'Content-Type': 'application/json' });
+          res.end(
+            JSON.stringify({
+              status: 'unavailable',
+              error: 'Workers not initialized',
+              timestamp: new Date().toISOString(),
+            })
+          );
+        }
         return;
       }
 

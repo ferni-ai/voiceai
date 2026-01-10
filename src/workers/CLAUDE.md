@@ -151,15 +151,28 @@ if (queue.length >= MAX_QUEUE_DEPTH) {
 
 ## Worker Types
 
-| Worker                | Purpose                      | Queue                 |
-| --------------------- | ---------------------------- | --------------------- |
-| `EmbeddingWorker`     | Generate vector embeddings   | `embedding-queue`     |
-| `SummarizationWorker` | Summarize conversations      | `summarization-queue` |
-| `AnalyticsWorker`     | Process usage analytics      | `analytics-queue`     |
-| `OutreachWorker`      | Deliver proactive messages   | `outreach-queue`      |
-| `PredictionsWorker`   | Generate predictive insights | `predictions-queue`   |
-| `TrustWorker`         | Calculate trust metrics      | `trust-queue`         |
-| `AudioAnalysisPool`   | Analyze audio for emotion    | In-memory pool        |
+### Persistent Workers (Event-Driven)
+
+These workers run continuously, subscribing to AsyncEvents and processing in real-time:
+
+| Worker                | Purpose                      | Queue                 | Started With |
+| --------------------- | ---------------------------- | --------------------- | ------------ |
+| `EmbeddingWorker`     | Generate vector embeddings   | `embedding-queue`     | `startAllWorkers()` |
+| `SummarizationWorker` | Summarize conversations      | `summarization-queue` | `startAllWorkers()` |
+| `AnalyticsWorker`     | Process usage analytics      | `analytics-queue`     | `startAllWorkers()` |
+| `PredictionsWorker`   | Generate predictive insights | `predictions-queue`   | `startAllWorkers()` |
+| `TrustWorker`         | Calculate trust metrics      | `trust-queue`         | `startAllWorkers()` |
+| `AudioAnalysisPool`   | Analyze audio for emotion    | In-memory pool        | `startAllWorkers()` |
+
+### Batch Workers (Cloud Run Jobs)
+
+These workers run on a schedule, process a batch, then exit:
+
+| Worker                | Purpose                      | Schedule              | Entry Point |
+| --------------------- | ---------------------------- | --------------------- | ----------- |
+| `OutreachWorker`      | Deliver proactive messages   | Every 5 min (cron)    | `processPendingTriggers()` |
+
+**Important**: Batch workers are NOT started by `startAllWorkers()`. They run as separate Cloud Run Jobs triggered by Cloud Scheduler.
 
 ---
 
@@ -175,7 +188,7 @@ resilienceMetrics.recordWorkerEvent('embedding-worker', 'job_processed');
 resilienceMetrics.recordWorkerEvent('embedding-worker', 'job_failed');
 ```
 
-### Health Endpoint
+### Health Endpoints
 
 ```
 GET /health/ready
@@ -185,6 +198,27 @@ GET /health/ready
   "readyWorkerCount": 3,
   "uptime": 45000
 }
+
+GET /health/workers
+{
+  "status": "healthy",
+  "workers": {
+    "trust": { "messagesReceived": 100, "messagesProcessed": 98, "messagesFailed": 2 },
+    "analytics": { "messagesReceived": 500, "messagesProcessed": 500, "messagesFailed": 0 },
+    "predictions": { "messagesReceived": 200, "messagesProcessed": 195, "messagesFailed": 5 },
+    "embedding": { "messagesReceived": 1000, "messagesProcessed": 1000, "messagesFailed": 0 },
+    "summarization": { "messagesReceived": 50, "messagesProcessed": 48, "messagesFailed": 2 }
+  },
+  "asyncEvents": {
+    "queueLength": 15,
+    "emitted": 1850,
+    "processed": 1835,
+    "errors": 7,
+    "dropped": 0
+  }
+}
+
+GET /api/workers/stats (detailed stats via API routes)
 ```
 
 ---

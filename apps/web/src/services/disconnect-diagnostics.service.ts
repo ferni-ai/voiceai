@@ -8,6 +8,7 @@
  */
 
 import { createLogger } from '../utils/logger.js';
+import { apiPost } from '../utils/api.js';
 
 const log = createLogger('DisconnectDiagnostics');
 
@@ -437,15 +438,10 @@ async function getRTCStats(pc: RTCPeerConnection): Promise<RTCStatsSnapshot> {
  */
 async function sendDiagnosticToBackend(diagnostic: DisconnectDiagnostic): Promise<void> {
   try {
-    const response = await fetch('/api/disconnect-diagnostic', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(diagnostic),
-    });
+    const response = await apiPost<{ id: string }>('/api/disconnect-diagnostic', diagnostic);
 
-    if (response.ok) {
-      const result = await response.json();
-      log.info({ diagnosticId: result.id }, 'Diagnostic sent to backend');
+    if (response.ok && response.data) {
+      log.info({ diagnosticId: response.data.id }, 'Diagnostic sent to backend');
     }
   } catch (err) {
     log.warn({ error: String(err) }, 'Failed to send diagnostic to backend - storing locally');

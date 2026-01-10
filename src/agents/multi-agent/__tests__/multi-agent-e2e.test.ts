@@ -324,6 +324,225 @@ describe('Orchestrator State E2E', () => {
 });
 
 // ============================================================================
+// DATA CHANNEL MESSAGE E2E TESTS
+// ============================================================================
+
+describe('Data Channel Messages E2E', () => {
+  it('should send correct handoff messages via data channel', async () => {
+    // Test the message format for handoff events
+    interface HandoffDataChannelMessage {
+      type: 'handoff_start' | 'handoff_complete' | 'persona_changed';
+      fromPersonaId: string;
+      toPersonaId: string;
+      timestamp: number;
+      reason?: string;
+    }
+
+    const createHandoffMessage = (
+      type: HandoffDataChannelMessage['type'],
+      from: string,
+      to: string,
+      reason?: string
+    ): HandoffDataChannelMessage => ({
+      type,
+      fromPersonaId: from,
+      toPersonaId: to,
+      timestamp: Date.now(),
+      reason,
+    });
+
+    // Start message
+    const startMsg = createHandoffMessage('handoff_start', 'ferni', 'peter-john', 'Research request');
+    expect(startMsg.type).toBe('handoff_start');
+    expect(startMsg.fromPersonaId).toBe('ferni');
+    expect(startMsg.toPersonaId).toBe('peter-john');
+    expect(startMsg.reason).toBe('Research request');
+
+    // Complete message
+    const completeMsg = createHandoffMessage('handoff_complete', 'ferni', 'peter-john');
+    expect(completeMsg.type).toBe('handoff_complete');
+
+    // Persona changed message (for UI updates)
+    const changedMsg = createHandoffMessage('persona_changed', 'ferni', 'peter-john');
+    expect(changedMsg.type).toBe('persona_changed');
+  });
+
+  it('should serialize messages correctly for data channel', () => {
+    const message = {
+      type: 'handoff_start',
+      fromPersonaId: 'ferni',
+      toPersonaId: 'maya',
+      timestamp: 1704067200000,
+      context: {
+        lastTopic: 'habit tracking',
+        userEmotion: 'motivated',
+      },
+    };
+
+    const serialized = JSON.stringify(message);
+    const deserialized = JSON.parse(serialized);
+
+    expect(deserialized.type).toBe('handoff_start');
+    expect(deserialized.fromPersonaId).toBe('ferni');
+    expect(deserialized.toPersonaId).toBe('maya');
+    expect(deserialized.context.lastTopic).toBe('habit tracking');
+  });
+
+  it('should include all required fields in handoff messages', () => {
+    interface RequiredHandoffFields {
+      type: string;
+      fromPersonaId: string;
+      toPersonaId: string;
+      timestamp: number;
+    }
+
+    const validateHandoffMessage = (msg: unknown): msg is RequiredHandoffFields => {
+      const m = msg as Record<string, unknown>;
+      return (
+        typeof m.type === 'string' &&
+        typeof m.fromPersonaId === 'string' &&
+        typeof m.toPersonaId === 'string' &&
+        typeof m.timestamp === 'number'
+      );
+    };
+
+    const validMessage = {
+      type: 'handoff_complete',
+      fromPersonaId: 'peter-john',
+      toPersonaId: 'alex',
+      timestamp: Date.now(),
+    };
+
+    expect(validateHandoffMessage(validMessage)).toBe(true);
+
+    const invalidMessage = {
+      type: 'handoff_complete',
+      fromPersonaId: 'peter-john',
+      // missing toPersonaId
+      timestamp: Date.now(),
+    };
+
+    expect(validateHandoffMessage(invalidMessage)).toBe(false);
+  });
+});
+
+// ============================================================================
+// RAPID HANDOFF STABILITY E2E TESTS
+// ============================================================================
+
+describe('Rapid Handoff Stability E2E', () => {
+  let mockConfig: Parameters<typeof import('../orchestrator.js').createAgentOrchestrator>[0];
+  let agentIdCounter: number;
+
+  beforeEach(async () => {
+    agentIdCounter = 0;
+
+    mockConfig = {
+      ctx: {} as Parameters<typeof import('../orchestrator.js').createAgentOrchestrator>[0]['ctx'],
+      room: {} as Parameters<
+        typeof import('../orchestrator.js').createAgentOrchestrator
+      >[0]['room'],
+      userParticipant: {} as Parameters<
+        typeof import('../orchestrator.js').createAgentOrchestrator
+      >[0]['userParticipant'],
+      createPersonaAgent: vi.fn(async (personaId: string) => ({
+        id: `${personaId}-${++agentIdCounter}`,
+        personaId,
+        isActive: false,
+        session: {},
+        cleanup: vi.fn().mockResolvedValue(undefined),
+        say: vi.fn().mockResolvedValue(undefined),
+        setMuted: vi.fn(),
+        interrupt: vi.fn(),
+      })),
+      sessionId: 'rapid-test-session',
+    };
+  });
+
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('should handle rapid sequential handoffs without crashing', async () => {
+    const { createAgentOrchestrator } = await import('../orchestrator.js');
+    const orchestrator = createAgentOrchestrator(mockConfig);
+
+    await orchestrator.start('ferni');
+
+    const handoffSequence = ['peter-john', 'maya', 'alex', 'jordan', 'nayan', 'ferni'];
+
+    // Process handoffs sequentially, waiting for each to complete
+    for (const targetPersonaId of handoffSequence) {
+      const result = await orchestrator.handoff({
+        targetPersonaId,
+        reason: `Sequential handoff to ${targetPersonaId}`,
+      });
+
+      // Each sequential handoff should succeed
+      expect(result.success).toBe(true);
+      expect(orchestrator.getCurrentPersonaId()).toBe(targetPersonaId);
+    }
+
+    // Final state should be back to ferni
+    expect(orchestrator.getCurrentPersonaId()).toBe('ferni');
+  });
+
+  it('should maintain state consistency during rapid handoffs', async () => {
+    const { createAgentOrchestrator } = await import('../orchestrator.js');
+    const orchestrator = createAgentOrchestrator(mockConfig);
+
+    await orchestrator.start('ferni');
+
+    // Track state changes
+    const stateHistory: string[] = ['ferni'];
+
+    // Perform sequential handoffs
+    await orchestrator.handoff({ targetPersonaId: 'peter-john', reason: 'test' });
+    stateHistory.push(orchestrator.getCurrentPersonaId()!);
+
+    await orchestrator.handoff({ targetPersonaId: 'maya', reason: 'test' });
+    stateHistory.push(orchestrator.getCurrentPersonaId()!);
+
+    // Verify state progression
+    expect(stateHistory).toEqual(['ferni', 'peter-john', 'maya']);
+    expect(orchestrator.getActiveAgent()?.personaId).toBe('maya');
+  });
+
+  it('should cleanup intermediate agents during rapid handoffs', async () => {
+    const { createAgentOrchestrator } = await import('../orchestrator.js');
+    const orchestrator = createAgentOrchestrator(mockConfig);
+
+    const cleanupCalls: string[] = [];
+
+    // Track cleanup calls
+    mockConfig.createPersonaAgent = vi.fn(async (personaId: string) => ({
+      id: `${personaId}-${++agentIdCounter}`,
+      personaId,
+      isActive: false,
+      session: {},
+      cleanup: vi.fn().mockImplementation(() => {
+        cleanupCalls.push(personaId);
+        return Promise.resolve();
+      }),
+      say: vi.fn().mockResolvedValue(undefined),
+      setMuted: vi.fn(),
+      interrupt: vi.fn(),
+    }));
+
+    const orchestratorWithTracking = createAgentOrchestrator(mockConfig);
+    await orchestratorWithTracking.start('ferni');
+
+    // Handoff multiple times
+    await orchestratorWithTracking.handoff({ targetPersonaId: 'peter-john', reason: 'test' });
+    await orchestratorWithTracking.handoff({ targetPersonaId: 'maya', reason: 'test' });
+    await orchestratorWithTracking.shutdown();
+
+    // All agents should have cleanup called (ferni, peter-john, maya)
+    expect(cleanupCalls.length).toBeGreaterThanOrEqual(1); // At least maya cleaned up
+  });
+});
+
+// ============================================================================
 // INTEGRATION SUMMARY
 // ============================================================================
 

@@ -20,6 +20,11 @@ import {
 } from '../services/landing-intelligence/optimization-agent.js';
 import { getFirestore } from 'firebase-admin/firestore';
 import { parseBody } from './helpers.js';
+import {
+  createWebExperiment,
+  startWebExperiment,
+  type WebExperimentVariant,
+} from '../services/experiments/index.js';
 
 const log = createLogger({ module: 'LandingOptimizationHandler' });
 
@@ -245,15 +250,89 @@ export async function handleLandingOptimizationRoutes(
 
       const experimentId = pathname.split('/')[5];
 
-      // TODO: Integrate with existing experiments system
-      // For now, just log and return success
-      log.info({ experimentId }, 'Experiment approved');
+      try {
+        const body = await parseBody<{
+          scheduledStart?: string;
+          trafficPercentage?: number;
+        }>(req);
 
-      sendJSON(res, {
-        success: true,
-        experimentId,
-        message: 'Experiment approved and scheduled',
-      });
+        // Get the suggested experiment from the latest report
+        const db = getFirestore();
+        const reportsRef = db.collection('landing_optimization_reports');
+        const latestReport = await reportsRef.orderBy('generatedAt', 'desc').limit(1).get();
+
+        if (latestReport.empty) {
+          sendError(res, 'No reports found with experiment suggestions', 404);
+          return true;
+        }
+
+        const report = latestReport.docs[0].data() as AgentReport;
+        const suggestedExperiment = report.experiments?.find((e) => e.id === experimentId);
+
+        if (!suggestedExperiment) {
+          sendError(res, 'Experiment not found in suggestions', 404);
+          return true;
+        }
+
+        // Create the actual web experiment
+        const variants: WebExperimentVariant[] = [
+          {
+            id: 'control',
+            name: 'Control',
+            weight: 50,
+          },
+          {
+            id: 'treatment',
+            name: suggestedExperiment.name || 'Treatment',
+            weight: 50,
+          },
+        ];
+
+        const experiment = await createWebExperiment({
+          name: suggestedExperiment.name || `Landing Optimization ${experimentId}`,
+          description: suggestedExperiment.hypothesis || 'Auto-generated from landing optimization',
+          variants,
+          primaryGoal: 'conversion_rate',
+          minimumSamples: 1000,
+        });
+
+        // Start immediately (scheduling would require additional state management)
+        if (!body.scheduledStart) {
+          await startWebExperiment(experiment.id);
+          log.info({ experimentId: experiment.id }, 'Experiment started immediately');
+        } else {
+          // Store the scheduled start time for manual activation
+          log.info({
+            experimentId: experiment.id,
+            scheduledStart: body.scheduledStart,
+          }, 'Experiment created, scheduled for manual activation');
+        }
+
+        // Save the approval to Firestore for tracking
+        await db.collection('approved_experiments').doc(experiment.id).set({
+          originalSuggestionId: experimentId,
+          reportId: report.id,
+          experimentId: experiment.id,
+          approvedBy: 'admin',
+          approvedAt: new Date(),
+          scheduledStart: body.scheduledStart || null,
+          status: body.scheduledStart ? 'scheduled' : 'running',
+        });
+
+        sendJSON(res, {
+          success: true,
+          experimentId: experiment.id,
+          originalSuggestionId: experimentId,
+          status: body.scheduledStart ? 'scheduled' : 'running',
+          scheduledStart: body.scheduledStart || null,
+          message: body.scheduledStart
+            ? `Experiment scheduled for ${body.scheduledStart}`
+            : 'Experiment approved and started',
+        });
+      } catch (error) {
+        log.error({ error: String(error), experimentId }, 'Failed to approve experiment');
+        sendError(res, 'Failed to approve experiment', 500);
+      }
       return true;
     }
 

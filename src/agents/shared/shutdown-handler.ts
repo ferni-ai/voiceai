@@ -305,6 +305,15 @@ export async function gracefulShutdown(signal: string): Promise<void> {
       // Interval manager not initialized
     }
 
+    // 1b. Clear DDoS protection state (rate limit maps, etc.)
+    try {
+      const { stopDDoSProtection } = await import('../../utils/ddos-protection.js');
+      stopDDoSProtection();
+      diag.debug('DDoS protection state cleared');
+    } catch {
+      // DDoS protection not initialized
+    }
+
     // 2. Shutdown memory monitor
     try {
       const { stopMemoryMonitoring } = await import('../../services/memory/memory-monitor.js');
@@ -322,7 +331,30 @@ export async function gracefulShutdown(signal: string): Promise<void> {
       // Session data manager not initialized
     }
 
-    // 4. Shutdown services to flush all productivity data
+    // 4. Shutdown music learning persistence (flush pending writes)
+    try {
+      const { flushAllMusicLearning, shutdownMusicLearningPersistence } = await import(
+        '../../audio/music-learning-persistence.js'
+      );
+      await flushAllMusicLearning();
+      await shutdownMusicLearningPersistence();
+      diag.info('Music learning persistence shutdown complete');
+    } catch {
+      // Music learning not initialized
+    }
+
+    // 4b. Shutdown music analytics persistence (flush aggregates)
+    try {
+      const { stopAnalyticsPersistence } = await import(
+        '../../audio/music-transition-analytics.js'
+      );
+      await stopAnalyticsPersistence();
+      diag.info('Music analytics persistence shutdown complete');
+    } catch {
+      // Music analytics not initialized
+    }
+
+    // 5. Shutdown services to flush all productivity data
     const { shutdownServices } = await import('../../services/index.js');
     await shutdownServices();
     diag.info('Services shutdown complete');

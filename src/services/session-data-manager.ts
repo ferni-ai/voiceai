@@ -15,6 +15,7 @@
 
 import * as v8 from 'v8';
 import { createLogger } from '../utils/safe-logger.js';
+import { registerInterval, clearNamedInterval, hasInterval } from '../utils/interval-manager.js';
 
 const log = createLogger({ module: 'SessionDataManager' });
 
@@ -75,11 +76,13 @@ const DEFAULT_CONFIG: ManagerConfig = {
 // SESSION DATA MANAGER
 // ============================================================================
 
+const EVICTION_INTERVAL = 'session-data-manager-eviction';
+const MEMORY_CHECK_INTERVAL = 'session-data-manager-memory';
+
 class SessionDataManagerImpl {
   private services = new Map<string, SessionDataService>();
   private sessions = new Map<string, TrackedSession>();
   private config: ManagerConfig;
-  private evictionTimer: ReturnType<typeof setInterval> | null = null;
   private isShuttingDown = false;
 
   constructor(config: Partial<ManagerConfig> = {}) {
@@ -215,13 +218,17 @@ class SessionDataManagerImpl {
    * This is a safety net for sessions that disconnect without proper cleanup.
    */
   startAutoEviction(): void {
-    if (this.evictionTimer) {
+    if (hasInterval(EVICTION_INTERVAL)) {
       return; // Already running
     }
 
-    this.evictionTimer = setInterval(() => {
-      void this.evictStaleSessions();
-    }, this.config.evictionCheckInterval);
+    registerInterval(
+      EVICTION_INTERVAL,
+      () => {
+        void this.evictStaleSessions();
+      },
+      this.config.evictionCheckInterval
+    );
 
     log.info(
       { intervalMs: this.config.evictionCheckInterval, maxAgeMs: this.config.maxSessionAge },
@@ -233,10 +240,7 @@ class SessionDataManagerImpl {
    * Stop auto-eviction (for shutdown)
    */
   stopAutoEviction(): void {
-    if (this.evictionTimer) {
-      clearInterval(this.evictionTimer);
-      this.evictionTimer = null;
-    }
+    clearNamedInterval(EVICTION_INTERVAL);
   }
 
   /**
@@ -389,25 +393,24 @@ class SessionDataManagerImpl {
    * Start periodic memory pressure monitoring.
    * Checks more frequently than session eviction.
    */
-  private memoryCheckTimer: ReturnType<typeof setInterval> | null = null;
-
   startMemoryMonitoring(intervalMs = 30000): void {
-    if (this.memoryCheckTimer) {
+    if (hasInterval(MEMORY_CHECK_INTERVAL)) {
       return;
     }
 
-    this.memoryCheckTimer = setInterval(() => {
-      void this.checkMemoryPressure();
-    }, intervalMs);
+    registerInterval(
+      MEMORY_CHECK_INTERVAL,
+      () => {
+        void this.checkMemoryPressure();
+      },
+      intervalMs
+    );
 
     log.info({ intervalMs }, '🧠 Memory pressure monitoring started');
   }
 
   stopMemoryMonitoring(): void {
-    if (this.memoryCheckTimer) {
-      clearInterval(this.memoryCheckTimer);
-      this.memoryCheckTimer = null;
-    }
+    clearNamedInterval(MEMORY_CHECK_INTERVAL);
   }
 
   /**

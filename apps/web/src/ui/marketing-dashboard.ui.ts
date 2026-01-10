@@ -14,6 +14,7 @@
 import { createLogger } from '../utils/logger.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { t } from '../i18n/index.js';
+import { apiGet } from '../utils/api.js';
 
 const log = createLogger('MarketingDashboard');
 
@@ -106,26 +107,24 @@ export class MarketingDashboard {
 
     try {
       // Load accounts
-      const accountsRes = await fetch('/api/marketing/accounts');
-      if (accountsRes.ok) {
-        const data = await accountsRes.json();
-        this.accounts = data.accounts;
+      const accountsRes = await apiGet<{ accounts: SocialAccount[] }>('/api/marketing/accounts');
+      if (accountsRes.ok && accountsRes.data) {
+        this.accounts = accountsRes.data.accounts;
       }
 
       // Load scheduled posts
-      const postsRes = await fetch('/api/marketing/posts?limit=5');
-      if (postsRes.ok) {
-        const data = await postsRes.json();
-        this.posts = data.posts.map((p: ScheduledPost) => ({
+      const postsRes = await apiGet<{ posts: ScheduledPost[] }>('/api/marketing/posts?limit=5');
+      if (postsRes.ok && postsRes.data) {
+        this.posts = postsRes.data.posts.map((p: ScheduledPost) => ({
           ...p,
           scheduledAt: new Date(p.scheduledAt),
         }));
       }
 
       // Load analytics
-      const analyticsRes = await fetch('/api/marketing/analytics?period=week');
-      if (analyticsRes.ok) {
-        this.analytics = await analyticsRes.json();
+      const analyticsRes = await apiGet<MarketingAnalytics>('/api/marketing/analytics?period=week');
+      if (analyticsRes.ok && analyticsRes.data) {
+        this.analytics = analyticsRes.data;
       }
     } catch (error) {
       log.error({ error: String(error) }, 'Failed to load marketing data');

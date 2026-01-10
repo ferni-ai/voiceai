@@ -935,13 +935,18 @@ async function doInitializeMemorySystem(config?: MemorySystemConfig): Promise<Me
       const { getEmbeddingCache } = await import('./embedding-cache.js');
       const embeddingCache = getEmbeddingCache({
         persistentCache: true,
-        redisUrl: process.env.REDIS_URL || `redis://${process.env.REDIS_HOST || 'localhost'}:${process.env.REDIS_PORT || '6379'}`,
+        redisUrl:
+          process.env.REDIS_URL ||
+          `redis://${process.env.REDIS_HOST || 'localhost'}:${process.env.REDIS_PORT || '6379'}`,
         ttlMs: 24 * 60 * 60 * 1000, // 24 hours - embeddings don't change
         maxSize: 15000, // Increased for production traffic
       });
       getLogger().info('🚀 Embedding cache persistence enabled via Redis');
     } catch (error) {
-      getLogger().debug({ error: String(error) }, 'Embedding cache Redis persistence not available');
+      getLogger().debug(
+        { error: String(error) },
+        'Embedding cache Redis persistence not available'
+      );
     }
   }
 

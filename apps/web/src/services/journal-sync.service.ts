@@ -9,6 +9,7 @@
 
 import { createLogger } from '../utils/logger.js';
 import { getApiHeadersAsync } from '../utils/api-helpers.js';
+import { apiGet } from '../utils/api.js';
 
 const log = createLogger('JournalSync');
 
@@ -221,14 +222,12 @@ async function pollForUpdates(): Promise<void> {
   if (!currentUserId || !currentAgentId) return;
 
   try {
-    const headers = await getApiHeadersAsync();
     const url = `/api/custom-agents/${currentAgentId}/memories?type=journalEntry&since=${lastSyncTimestamp}`;
-    const response = await fetch(url, { headers });
+    const response = await apiGet<{ memories?: JournalEntrySync[] }>(url);
 
-    if (!response.ok) return;
+    if (!response.ok || !response.data) return;
 
-    const data = await response.json();
-    const entries = data.memories || [];
+    const entries = response.data.memories || [];
 
     if (entries.length > 0) {
       lastSyncTimestamp = Date.now();

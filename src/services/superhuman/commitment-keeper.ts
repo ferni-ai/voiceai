@@ -810,6 +810,167 @@ export async function buildCommitmentContextForLLM(userId: string): Promise<stri
 export const buildCommitmentContext = buildCommitmentContextForLLM;
 
 // ============================================================================
+// ACTION TRACKER INTEGRATION (Two-Way Linking)
+// ============================================================================
+
+/**
+ * Map action types to commitment types that indicate similar intent.
+ * Used for smart matching when action doesn't have explicit commitmentId.
+ */
+const ACTION_TO_COMMITMENT_KEYWORDS: Record<string, string[]> = {
+  call: ['call', 'phone', 'ring', 'talk to', 'speak with', 'reach out'],
+  text: ['text', 'message', 'sms', 'send a text'],
+  email: ['email', 'write to', 'send an email', 'mail'],
+  calendar: ['schedule', 'meeting', 'appointment', 'calendar'],
+  reminder: ['remind', 'remember', 'don\'t forget'],
+};
+
+/**
+ * Find a commitment that matches a completed action.
+ * Uses fuzzy matching on target person and action type.
+ *
+ * @param userId - User to search commitments for
+ * @param actionType - Type of action (call, text, email, etc.)
+ * @param target - Who the action was directed at (e.g., "Mom", "John")
+ * @param withinDays - Only match commitments created within this many days (default: 14)
+ */
+export async function findMatchingCommitment(
+  userId: string,
+  actionType: string,
+  target?: string,
+  withinDays: number = 14
+): Promise<Commitment | null> {
+  try {
+    const commitments = await loadUserCommitments(userId);
+    if (commitments.length === 0) return null;
+
+    const keywords = ACTION_TO_COMMITMENT_KEYWORDS[actionType] || [];
+    const cutoffTime = Date.now() - withinDays * 24 * 60 * 60 * 1000;
+    const targetLower = target?.toLowerCase();
+
+    // Score each commitment for match quality
+    let bestMatch: Commitment | null = null;
+    let bestScore = 0;
+
+    for (const commitment of commitments) {
+      // Skip if too old
+      if (commitment.createdAt < cutoffTime) continue;
+
+      // Skip if not active
+      if (commitment.status !== 'active') continue;
+
+      let score = 0;
+
+      // Check if commitment mentions the target person
+      if (targetLower && commitment.personInvolved?.toLowerCase() === targetLower) {
+        score += 50; // Strong match on person
+      } else if (targetLower && commitment.summary.toLowerCase().includes(targetLower)) {
+        score += 30; // Partial match on person in summary
+      }
+
+      // Check if commitment type matches action keywords
+      const summaryLower = commitment.summary.toLowerCase();
+      for (const keyword of keywords) {
+        if (summaryLower.includes(keyword)) {
+          score += 20;
+          break;
+        }
+      }
+
+      // Prefer more recent commitments
+      const daysOld = (Date.now() - commitment.createdAt) / (24 * 60 * 60 * 1000);
+      score += Math.max(0, 10 - daysOld); // Up to 10 points for recency
+
+      // Prefer higher emotional weight (more significant commitments)
+      score += commitment.emotionalWeight * 10;
+
+      if (score > bestScore && score >= 30) {
+        // Minimum threshold of 30 to match
+        bestScore = score;
+        bestMatch = commitment;
+      }
+    }
+
+    if (bestMatch) {
+      log.debug(
+        { userId, actionType, target, commitmentId: bestMatch.id, score: bestScore },
+        '🔗 Found matching commitment for action'
+      );
+    }
+
+    return bestMatch;
+  } catch (error) {
+    log.error({ error: String(error), userId }, 'Failed to find matching commitment');
+    return null;
+  }
+}
+
+/**
+ * Hook called when an action completes.
+ * Automatically closes matching commitments.
+ *
+ * This is the key integration point between actions and commitments:
+ * - If action has commitmentId, directly update that commitment
+ * - Otherwise, use smart matching to find related commitment
+ *
+ * @param userId - User who completed the action
+ * @param actionType - Type of action (call, text, email, etc.)
+ * @param target - Who the action was directed at
+ * @param commitmentId - Optional explicit commitment ID
+ * @param success - Whether the action succeeded
+ */
+export async function onActionCompleted(params: {
+  userId: string;
+  actionType: string;
+  target?: string;
+  commitmentId?: string;
+  success: boolean;
+  resultSummary?: string;
+}): Promise<void> {
+  const { userId, actionType, target, commitmentId, success, resultSummary } = params;
+
+  // Only close commitments for successful actions
+  if (!success) {
+    log.debug({ userId, actionType }, 'Action failed, not closing commitment');
+    return;
+  }
+
+  try {
+    let commitment: Commitment | null = null;
+
+    // If explicit commitmentId, load that commitment
+    if (commitmentId) {
+      const commitments = await loadUserCommitments(userId);
+      commitment = commitments.find((c) => c.id === commitmentId) || null;
+    }
+
+    // Otherwise, try smart matching
+    if (!commitment) {
+      commitment = await findMatchingCommitment(userId, actionType, target);
+    }
+
+    if (commitment) {
+      // Update commitment status to completed
+      await updateCommitmentStatus(userId, commitment.id, 'completed');
+
+      log.info(
+        {
+          userId,
+          commitmentId: commitment.id,
+          actionType,
+          target,
+          summary: commitment.summary,
+        },
+        '🎉 Commitment closed via action completion'
+      );
+    }
+  } catch (error) {
+    // Non-critical - log and continue
+    log.error({ error: String(error), userId }, 'Failed to close commitment from action');
+  }
+}
+
+// ============================================================================
 // EXPORTS
 // ============================================================================
 
@@ -824,4 +985,7 @@ export const commitmentKeeper = {
   validateFeasibility: validateCommitmentFeasibility,
   createCalendarBlocks: createCalendarBlocksForCommitment,
   buildCalendarContext: buildCommitmentCalendarContext,
+  // Action tracker integration (Two-Way Linking)
+  findMatchingCommitment,
+  onActionCompleted,
 };

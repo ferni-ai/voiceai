@@ -247,6 +247,8 @@ export {
   checkAndAlertDDoS,
   startDDoSMonitoring,
   handleSecurityMonitoring,
+  stopDDoSProtection,
+  resetDDoSProtection,
   type ParseBodyOptions,
   type ParseBodyResult,
 } from './ddos-protection.js';
@@ -256,6 +258,51 @@ export {
 // ============================================================================
 
 export { stripSSML, containsSSML, normalizeForComparison, looksLikeName } from './text-utils.js';
+
+// ============================================================================
+// ID GENERATION
+// ============================================================================
+
+export {
+  generateId,
+  generateShortId,
+  getIdPrefix,
+  hasIdPrefix,
+  ID_PREFIXES,
+} from './id-generator.js';
+
+// ============================================================================
+// ASYNC SINGLETON
+// ============================================================================
+
+export {
+  createAsyncSingleton,
+  createNullableAsyncSingleton,
+  createResettableAsyncSingleton,
+  type AsyncSingletonOptions,
+} from './async-singleton.js';
+
+// ============================================================================
+// VALIDATION & SANITIZATION
+// ============================================================================
+
+export {
+  // Email validation
+  isValidEmail,
+  validateEmail,
+  sanitizeEmailForLog,
+  // Phone validation
+  isValidPhone,
+  validatePhone,
+  normalizePhone,
+  sanitizePhoneForLog,
+  // Text sanitization
+  sanitizePlainText,
+  sanitizeForSql,
+  // Stock validation
+  isValidStockSymbol,
+  normalizeStockSymbol,
+} from './validation.js';
 
 // ============================================================================
 // DEFAULT EXPORTS

@@ -19,7 +19,11 @@ import {
   makeConversationalCall,
   type OutboundCallContext,
 } from './conversational-calls.js';
-import { generatePersonalizedContent, type UserContext } from './llm-content-generator.js';
+import {
+  generatePersonalizedContent,
+  type UserContext,
+  type OutreachType,
+} from './llm-content-generator.js';
 
 const log = createLogger({ module: 'ProactiveCallScheduler' });
 
@@ -31,7 +35,7 @@ export interface ProactiveCallRequest {
   userId: string;
   phoneNumber: string;
   userContext: UserContext;
-  outreachType: string;
+  outreachType: OutreachType;
   personaId?: string;
   reason?: string;
   scheduledFor?: Date;
@@ -138,12 +142,7 @@ export async function scheduleProactiveCall(
     }
 
     // Generate personalized content using LLM
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const content = await generatePersonalizedContent(
-      userContext,
-      outreachType as any,
-      'voice_call'
-    );
+    const content = await generatePersonalizedContent(userContext, outreachType, 'voice_call');
 
     // Enhance SSML for natural delivery
     const enhancedSSML = enhanceSSMLForCall(content.ssml, personaId);
@@ -152,8 +151,7 @@ export async function scheduleProactiveCall(
     const callContext: OutboundCallContext = {
       trigger: {
         id: `proactive-${Date.now()}`,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        type: outreachType as any,
+        type: outreachType,
         reason: content.reason,
         urgency: 'low',
       },
@@ -177,8 +175,7 @@ export async function scheduleProactiveCall(
         primaryGoal: content.reason,
         maxDuration: Math.floor(maxDuration / 60), // Convert to minutes
       },
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      persona: personaId as any,
+      persona: personaId,
     };
 
     // Schedule or initiate the call
@@ -225,13 +222,10 @@ function getRelationshipStage(ctx: UserContext): 'new' | 'building' | 'establish
   return 'deep';
 }
 
-function getToneForOutreachType(
-  type: string
-): 'celebratory' | 'supportive' | 'accountability' | 'casual' | 'urgent' {
-  const toneMap: Record<
-    string,
-    'celebratory' | 'supportive' | 'accountability' | 'casual' | 'urgent'
-  > = {
+type OutreachTone = 'celebratory' | 'supportive' | 'accountability' | 'casual' | 'urgent';
+
+function getToneForOutreachType(type: OutreachType): OutreachTone {
+  const toneMap: Partial<Record<OutreachType, OutreachTone>> = {
     win_celebration: 'celebratory',
     two_week_celebration: 'celebratory',
     setback_support: 'supportive',

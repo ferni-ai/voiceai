@@ -8,6 +8,7 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
+import { registerInterval, clearNamedInterval, hasInterval } from '../../utils/interval-manager.js';
 import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
 import type { FirestoreInstance } from './types.js';
 import { RECOVERY_INTERVAL_MS, MAX_RECOVERY_ATTEMPTS, FIRESTORE_BATCH_SIZE } from './types.js';
@@ -15,10 +16,11 @@ import type { FallbackCache } from './fallback-cache.js';
 
 const log = getLogger();
 
+const RECOVERY_INTERVAL_NAME = 'firestore-vector-store-recovery';
+
 export interface RecoveryState {
   recoveryAttemptCount: number;
   lastRecoveryAttempt: number;
-  recoveryTimer: ReturnType<typeof setInterval> | null;
 }
 
 export interface RecoveryCallbacks {
@@ -34,7 +36,6 @@ export class RecoveryManager {
   private state: RecoveryState = {
     recoveryAttemptCount: 0,
     lastRecoveryAttempt: 0,
-    recoveryTimer: null,
   };
 
   private callbacks: RecoveryCallbacks;
@@ -54,16 +55,20 @@ export class RecoveryManager {
    * Schedule periodic recovery attempts.
    */
   scheduleRecoveryAttempt(): void {
-    if (this.state.recoveryTimer || this.state.recoveryAttemptCount >= MAX_RECOVERY_ATTEMPTS) {
+    if (hasInterval(RECOVERY_INTERVAL_NAME) || this.state.recoveryAttemptCount >= MAX_RECOVERY_ATTEMPTS) {
       return;
     }
 
-    this.state.recoveryTimer = setInterval(() => {
-      this.attemptRecovery().catch((error) => {
-        log.error({ error: String(error) }, 'Unhandled error in recovery attempt');
-        this.cleanupTimer();
-      });
-    }, RECOVERY_INTERVAL_MS);
+    registerInterval(
+      RECOVERY_INTERVAL_NAME,
+      () => {
+        this.attemptRecovery().catch((error) => {
+          log.error({ error: String(error) }, 'Unhandled error in recovery attempt');
+          this.cleanupTimer();
+        });
+      },
+      RECOVERY_INTERVAL_MS
+    );
   }
 
   /**
@@ -123,10 +128,7 @@ export class RecoveryManager {
    * Clean up recovery timer.
    */
   cleanupTimer(): void {
-    if (this.state.recoveryTimer) {
-      clearInterval(this.state.recoveryTimer);
-      this.state.recoveryTimer = null;
-    }
+    clearNamedInterval(RECOVERY_INTERVAL_NAME);
   }
 
   /**

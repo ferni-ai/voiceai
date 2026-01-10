@@ -679,6 +679,39 @@ function combineAndSortMatches(scoreMap: ScoreMap, config: SemanticRouterConfig)
     } else if (scores.pattern >= 0.95) {
       // Regex pattern match (0.95) should also be very high confidence
       confidence = Math.max(confidence, 0.95);
+    } else {
+      // IMPROVED CONFIDENCE SCORING (January 2026)
+      // Apply penalties for ambiguous matches to reduce misfires on conversational text
+
+      // Penalty 1: Mixed signals penalty
+      // If we have keyword matches but no pattern match, reduce confidence
+      // This catches "I want to play" (conversational) vs "play jazz music" (clear intent)
+      if (scores.keyword > 0 && scores.pattern < 0.5) {
+        const mixedSignalPenalty = 0.15;
+        confidence = Math.max(0, confidence - mixedSignalPenalty);
+      }
+
+      // Penalty 2: Low embedding confidence
+      // Embeddings < 0.6 suggest the text isn't clearly a tool invocation
+      if (scores.embedding > 0 && scores.embedding < 0.6) {
+        const lowEmbeddingPenalty = 0.1;
+        confidence = Math.max(0, confidence - lowEmbeddingPenalty);
+      }
+
+      // Penalty 3: Single weak signal
+      // If only one layer matched and it's not pattern, reduce confidence
+      const matchingLayers = scores.matchedBy.length;
+      if (matchingLayers === 1 && !scores.matchedBy.includes('pattern')) {
+        const singleLayerPenalty = 0.1;
+        confidence = Math.max(0, confidence - singleLayerPenalty);
+      }
+
+      // Bonus: Multiple strong signals
+      // If multiple layers agree (pattern + keyword, or keyword + embedding), boost slightly
+      if (matchingLayers >= 2 && scores.pattern >= 0.7 && scores.keyword >= 0.5) {
+        const multiLayerBonus = 0.05;
+        confidence = Math.min(0.99, confidence + multiLayerBonus); // Cap below 1.0 for non-perfect matches
+      }
     }
 
     if (confidence >= config.thresholds.minimum) {

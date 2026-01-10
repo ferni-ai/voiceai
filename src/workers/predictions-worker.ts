@@ -31,9 +31,10 @@ import {
   type PatternType,
 } from '../services/superhuman/predictive-coaching.js';
 
-// Superhuman observations
-import { getSuperhumanObservations } from '../conversation/superhuman/superhuman-observations.js';
 // cleanForFirestore removed - not used in this worker
+
+// Superhuman observations - now in services layer for proper architecture compliance
+import { getSuperhumanObservations } from '../services/superhuman/observations.js';
 
 const log = createLogger({ module: 'PredictionsWorker' });
 
@@ -195,7 +196,7 @@ export class PredictionsWorker extends LocalWorker {
 
     switch (type) {
       case 'prediction:observation':
-        this.handleObservation(userId, sessionId, data);
+        await this.handleObservation(userId, sessionId, data);
         break;
 
       case 'prediction:pattern-update':
@@ -207,11 +208,11 @@ export class PredictionsWorker extends LocalWorker {
         break;
 
       case 'prediction:surface':
-        this.handleSurfacePrediction(userId, sessionId, data);
+        await this.handleSurfacePrediction(userId, sessionId, data);
         break;
 
       case 'conversation:turn':
-        this.handleConversationTurn(userId, sessionId, data);
+        await this.handleConversationTurn(userId, sessionId, data);
         break;
 
       case 'conversation:end':
@@ -227,11 +228,11 @@ export class PredictionsWorker extends LocalWorker {
    * Handle observation recording.
    * Adds to batch for efficient Firestore writes.
    */
-  private handleObservation(
+  private async handleObservation(
     userId: string,
     sessionId: string | undefined,
     data: Record<string, unknown>
-  ): void {
+  ): Promise<void> {
     const observationData = data as unknown as ObservationData;
 
     this.log.debug(
@@ -327,33 +328,78 @@ export class PredictionsWorker extends LocalWorker {
 
   /**
    * Handle prediction surfacing.
-   * Records when a prediction was surfaced and tracks outcome.
+   * Records when a prediction was surfaced and tracks outcome for accuracy learning.
    */
-  private handleSurfacePrediction(
+  private async handleSurfacePrediction(
     userId: string,
-    _sessionId: string | undefined,
+    sessionId: string | undefined,
     data: Record<string, unknown>
-  ): void {
+  ): Promise<void> {
+    const { predictionId, outcome, resonance, patternId } = data as {
+      predictionId?: string;
+      outcome?: 'helpful' | 'neutral' | 'unhelpful';
+      resonance?: number; // 0-1 scale
+      patternId?: string;
+    };
+
     this.log.debug(
-      { userId, predictionId: data.predictionId, outcome: data.outcome },
+      { userId, predictionId, outcome, resonance },
       'Recording prediction surface'
     );
 
-    // TODO: Track prediction accuracy for learning
-    // - Was the prediction helpful?
-    // - Did the user resonate with it?
-    // - Should we adjust confidence?
+    // Track prediction accuracy for learning
+    try {
+      if (patternId && outcome) {
+        // Update pattern confidence based on outcome
+        if (outcome === 'helpful' && (resonance === undefined || resonance > 0.6)) {
+          // User resonated - boost confidence
+          await confirmPrediction(userId, patternId);
+          this.log.info(
+            { userId, patternId, outcome, resonance },
+            '✅ Prediction confirmed - pattern strengthened'
+          );
+        } else if (outcome === 'unhelpful' || (resonance !== undefined && resonance < 0.3)) {
+          // Prediction was off - reduce confidence
+          await invalidatePrediction(userId, patternId);
+          this.log.info(
+            { userId, patternId, outcome, resonance },
+            '❌ Prediction invalidated - pattern weakened'
+          );
+        }
+        // 'neutral' outcome - no adjustment (need more data)
+
+        // Clear cache to force refresh
+        await clearPatternCache(userId);
+      }
+
+      // Also emit an analytics event for tracking
+      if (sessionId) {
+        const { AsyncEvents } = await import('../services/async-events/index.js');
+        AsyncEvents.emit('analytics:interaction', {
+          interactionType: 'prediction_surface',
+          predictionId,
+          outcome,
+          resonance,
+          patternId,
+        }, { userId, sessionId });
+      }
+    } catch (error) {
+      this.log.warn(
+        { userId, predictionId, error: String(error) },
+        'Failed to track prediction accuracy'
+      );
+    }
   }
 
   /**
    * Handle conversation turn.
    * Process patterns from each turn in the background.
    */
-  private handleConversationTurn(
+  private async handleConversationTurn(
     userId: string,
     sessionId: string | undefined,
     data: Record<string, unknown>
-  ): void {
+  ): Promise<void> {
     const { message, topic, emotion, dayOfWeek, hourOfDay } = data as {
       message?: string;
       topic?: string;

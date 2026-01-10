@@ -19,6 +19,7 @@ import { DURATION } from '../config/animation-constants.js';
 import { getPersona, isKnownPersonaId } from '../config/personas.js';
 import { t } from '../i18n/index.js';
 import { marketplaceService, type MarketplaceAgent } from '../services/marketplace.service.js';
+import { apiGet, apiPost } from '../utils/api.js';
 import { addTapListener, cleanupTapListeners } from '../utils/ios-touch.js';
 import {
   rosterPreferences,
@@ -2062,10 +2063,11 @@ async function showAgentDetail(agentId: string): Promise<void> {
  */
 async function fetchAgentReviews(agentId: string): Promise<AgentReview[]> {
   try {
-    const response = await fetch(`/api/marketplace/reviews/${agentId}?limit=10&status=approved`);
-    if (!response.ok) return [];
-    const data = await response.json();
-    return data.reviews || [];
+    const response = await apiGet<{ reviews?: AgentReview[] }>(
+      `/api/marketplace/reviews/${agentId}?limit=10&status=approved`
+    );
+    if (!response.ok || !response.data) return [];
+    return response.data.reviews || [];
   } catch {
     return [];
   }
@@ -2075,22 +2077,19 @@ async function fetchAgentReviews(agentId: string): Promise<AgentReview[]> {
  * Fetch review stats for an agent
  */
 async function fetchAgentReviewStats(agentId: string): Promise<ReviewStats> {
+  const defaultStats: ReviewStats = {
+    totalReviews: 0,
+    averageRating: 0,
+    ratingDistribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
+  };
   try {
-    const response = await fetch(`/api/marketplace/reviews/${agentId}/stats`);
-    if (!response.ok) {
-      return {
-        totalReviews: 0,
-        averageRating: 0,
-        ratingDistribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
-      };
-    }
-    return await response.json();
+    const response = await apiGet<ReviewStats>(
+      `/api/marketplace/reviews/${agentId}/stats`
+    );
+    if (!response.ok || !response.data) return defaultStats;
+    return response.data;
   } catch {
-    return {
-      totalReviews: 0,
-      averageRating: 0,
-      ratingDistribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
-    };
+    return defaultStats;
   }
 }
 
@@ -2437,26 +2436,18 @@ async function submitReview(
   submitBtn.textContent = t('ui.marketplace.submitting');
 
   try {
-    const response = await fetch('/api/marketplace/reviews', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-firebase-uid': userId,
-      },
-      body: JSON.stringify({
-        itemId: agentId,
-        itemType: 'agent',
-        userId,
-        userName: authState.displayName || undefined,
-        rating,
-        title,
-        body,
-      }),
+    const response = await apiPost<{ error?: string }>('/api/marketplace/reviews', {
+      itemId: agentId,
+      itemType: 'agent',
+      userId,
+      userName: authState.displayName || undefined,
+      rating,
+      title,
+      body,
     });
 
     if (!response.ok) {
-      const data = await response.json();
-      throw new Error(data.error || 'Failed to submit review');
+      throw new Error(response.error || 'Failed to submit review');
     }
 
     toast.success(t('toasts.thanksForYourReview'));

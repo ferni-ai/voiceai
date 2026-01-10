@@ -110,7 +110,7 @@ export {
 export {
   clearSuperhumanObservations,
   getSuperhumanObservations,
-} from './superhuman-observations.js';
+} from '../../services/superhuman/observations.js';
 export { clearTeamCoherence, getTeamCoherence } from './team-coherence.js';
 export { clearTemporalEmotional, getTemporalEmotional } from './temporal-emotional.js';
 
@@ -226,7 +226,7 @@ import { clearEvolvingJokes } from './evolving-jokes.js';
 import { clearLinguisticMirroring } from './linguistic-mirroring.js';
 import { clearMetaRelationship, clearSomaticPresence } from './meta-relationship.js';
 import { clearDelightEngines } from './spontaneous-delight.js';
-import { clearSuperhumanObservations } from './superhuman-observations.js';
+import { clearSuperhumanObservations } from '../../services/superhuman/observations.js';
 import { clearTeamCoherence } from './team-coherence.js';
 import { clearTemporalEmotional } from './temporal-emotional.js';
 import { clearVulnerabilityStates, resetSessionVulnerability } from './vulnerability-matching.js';

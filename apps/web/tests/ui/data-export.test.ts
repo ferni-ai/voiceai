@@ -13,6 +13,22 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 // ============================================================================
+// MOCKS - Set up before dynamic imports
+// ============================================================================
+
+// Mock i18n
+vi.mock('../../src/i18n/index.js', () => ({
+  t: (key: string, fallback?: string) => fallback || key,
+}));
+
+// Mock animation constants
+vi.mock('../../src/config/animation-constants.js', () => ({
+  DURATION: { FAST: 150, NORMAL: 200, SLOW: 300 },
+  EASING: { EXPO_OUT: 'ease-out', SPRING: 'ease-out' },
+}));
+
+// ============================================================================
+// CALLBACK MOCKS
 // ============================================================================
 
 const mockCallbacks = {
@@ -91,13 +107,25 @@ function findCloseButton(): HTMLElement | null {
 // ============================================================================
 
 describe('Data Export UI', () => {
-  beforeEach(() => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let getDataExportUI: any;
+
+  beforeEach(async () => {
+    // Reset DOM
+    document.body.textContent = '';
+    document.head.textContent = '';
+
     vi.clearAllMocks();
-    document.body.innerHTML = '';
+
+    // Reset module to get fresh singleton each time
+    vi.resetModules();
+    const module = await import('../../src/ui/data-export.ui.js');
+    getDataExportUI = module.getDataExportUI;
   });
 
   afterEach(() => {
     document.querySelectorAll('.data-export').forEach((el) => el.remove());
+    document.querySelectorAll('#data-export-styles').forEach((el) => el.remove());
   });
 
   describe('Modal Lifecycle', () => {

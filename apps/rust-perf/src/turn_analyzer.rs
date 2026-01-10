@@ -10,6 +10,10 @@
 //!
 //! Expected performance: 2-4x faster than JavaScript iteration
 
+// Allow dead_code for internal automaton structures and helper functions
+// (patterns field stored for potential debugging/inspection, helper functions for future use)
+#![allow(dead_code)]
+
 use aho_corasick::{AhoCorasick, MatchKind};
 use rayon::prelude::*;
 

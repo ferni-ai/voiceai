@@ -39,48 +39,48 @@ export {
   type PersonalityTurnResult,
 } from '../personality-integration.js';
 
-// Expression composition
+// Expression composition (using shared version)
 export {
   composeExpression,
   composeRealtimeNoticing,
   composeTemporalExpression,
   composeConnectionCallback,
-  betterThanHumanPersonality,
+  sharedBetterThanHumanPersonality as betterThanHumanPersonality,
   type ComposedExpression,
   type PersonalityContext,
   type UserResonanceProfile,
-} from '../better-than-human-personality.js';
+} from '../../../shared/better-than-human-personality.js';
 
-// Context assembly
+// Context assembly (using shared version)
 export {
   assemblePersonalityContext,
-  personalityContextAssembler,
+  sharedContextAssembler as personalityContextAssembler,
   type ContextAssemblerInput,
-} from '../personality-context-assembler.js';
+} from '../../../shared/personality-context-assembler.js';
 
-// Real-time noticing
+// Real-time noticing (using shared version)
 export {
   detectNoticing,
   shouldThrottleNoticing,
   recordNoticing,
   clearNoticingState,
-  realtimeNoticing,
+  sharedRealtimeNoticing as realtimeNoticing,
   type NoticingInput,
   type NoticingResult,
-} from '../realtime-noticing.js';
+} from '../../../shared/realtime-noticing.js';
 
 // Re-export NoticingType separately since it's a type-only export
-export type { NoticingType } from '../realtime-noticing.js';
+export type { NoticingType } from '../../../shared/realtime-noticing.js';
 
-// Cross-session resonance learning
+// Cross-session resonance learning (using shared version)
 export {
   loadResonanceProfile,
   recordResonanceEvent,
   recordUserTopicMention,
   recordVulnerabilityResponse,
   detectEngagement,
-  personalityResonanceStore,
-} from '../personality-resonance-store.js';
+  sharedPersonalityResonanceStore as personalityResonanceStore,
+} from '../../../shared/personality-resonance-store.js';
 
 // LLM-powered expression generation (async, non-blocking)
 export {

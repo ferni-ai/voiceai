@@ -12,6 +12,7 @@
 
 import { showOutreach, type ProactiveOutreachData } from '../ui/proactive-outreach.ui.js';
 import { getApiHeadersAsync } from '../utils/api-helpers.js';
+import { apiGet } from '../utils/api.js';
 import { createLogger } from '../utils/logger.js';
 
 const log = createLogger('CrossTeamNotifications');
@@ -397,13 +398,13 @@ export async function startInsightsPolling(userId: string): Promise<void> {
 
   const pollForInsights = async () => {
     try {
-      // Get authenticated headers (includes X-User-Id and Firebase token)
-      const headers = await getApiHeadersAsync();
-      const response = await fetch(`/api/team-insights?userId=${userId}&limit=5`, { headers });
-      if (!response.ok) return;
+      // apiGet handles authentication automatically
+      const response = await apiGet<{ insights?: CrossTeamInsight[] }>(
+        `/api/team-insights?userId=${userId}&limit=5`
+      );
+      if (!response.ok || !response.data) return;
 
-      const data = await response.json();
-      const insights: CrossTeamInsight[] = data.insights || [];
+      const insights: CrossTeamInsight[] = response.data.insights || [];
 
       // Show the best unacknowledged insight
       const unacknowledged = insights.filter(i => !i.acknowledged);

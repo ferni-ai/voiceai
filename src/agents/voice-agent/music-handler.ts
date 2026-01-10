@@ -58,6 +58,10 @@ import {
   markMusicEnded,
   clearMusicFeedbackRecorder,
 } from '../../audio/music-feedback-manager.js';
+// 🎵 Music Learning Persistence - pre-warm user learning data at session start
+import { ensureMusicLearningLoaded } from '../../audio/music-learning-persistence.js';
+// 📊 Music Analytics Persistence - start persistence on first session
+import { startAnalyticsPersistence } from '../../audio/music-transition-analytics.js';
 import { isMusicEnabled } from '../../config/environment.js';
 import type { PersonaConfig } from '../../personas/types.js';
 import type { ConversationManager } from '../../services/conversation-manager.js';
@@ -250,6 +254,22 @@ export async function setupMusicHandler(ctx: MusicHandlerContext): Promise<Music
     userData,
     userId,
   } = ctx;
+
+  // 📊 START: Analytics persistence (only needs to run once globally)
+  // This loads historical analytics from Firestore and starts periodic saves
+  startAnalyticsPersistence();
+
+  // 🎵 WARMUP: Pre-load user's music learning data from Firestore
+  // This ensures Thompson Sampling preferences are available before first music transition
+  // Fire-and-forget but with logged warning on failure
+  if (userId) {
+    ensureMusicLearningLoaded(userId).catch((err) => {
+      diag.warn('🎵 Music learning warmup failed (transitions will use defaults)', {
+        error: String(err),
+        userId,
+      });
+    });
+  }
 
   // Track last transition for feedback recording
   let lastTransitionResult: EnhancedTransitionResult | null = null;

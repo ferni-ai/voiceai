@@ -310,8 +310,10 @@ if (!nativeBinding) {
   throw new Error(`Failed to load native binding`)
 }
 
-const { getLibraryInfo, NativeAudioProcessor, getOrCreateProcessor, processSessionFrame, getSessionFullFeatures, resetSessionProcessor, removeSessionProcessor, getActiveProcessorCount, clearAllProcessors, convertI16ToF32, computeEnergyDb, isSpeech, computeRms, computeZcr, computeVariance, computeMean, computeStdDev, estimatePitch, extractFrameFeatures, fftF32, applyHanningWindow, getMagnitudeSpectrum, getPowerSpectrumDb, analyzeSpectrum, clearFftCaches, getDefaultPostTtsConfig, enhanceTtsAudio, enhanceTtsAudioInplace, applySoftAttack, applySoftRelease, applyWarmth, applyPresence, applyCompression, injectBreathSounds, NativePostTtsProcessor, NativePreSttProcessor, applyAgc, resetAgc, removeAgc } = nativeBinding
+const { estimatePitchYin, batchEstimatePitchYin, getLibraryInfo, NativeAudioProcessor, getOrCreateProcessor, processSessionFrame, getSessionFullFeatures, resetSessionProcessor, removeSessionProcessor, getActiveProcessorCount, clearAllProcessors, convertI16ToF32, computeEnergyDb, isSpeech, computeRms, computeZcr, computeVariance, computeMean, computeStdDev, estimatePitch, extractFrameFeatures, fftF32, applyHanningWindow, getMagnitudeSpectrum, getPowerSpectrumDb, analyzeSpectrum, clearFftCaches, getDefaultPostTtsConfig, enhanceTtsAudio, enhanceTtsAudioInplace, applySoftAttack, applySoftRelease, applyWarmth, applyPresence, applyCompression, injectBreathSounds, NativePostTtsProcessor, NativePreSttProcessor, applyAgc, resetAgc, removeAgc } = nativeBinding
 
+module.exports.estimatePitchYin = estimatePitchYin
+module.exports.batchEstimatePitchYin = batchEstimatePitchYin
 module.exports.getLibraryInfo = getLibraryInfo
 module.exports.NativeAudioProcessor = NativeAudioProcessor
 module.exports.getOrCreateProcessor = getOrCreateProcessor

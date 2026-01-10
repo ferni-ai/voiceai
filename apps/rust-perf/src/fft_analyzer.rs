@@ -163,7 +163,6 @@ impl FftProcessor {
     /// Get spectral centroid (brightness measure).
     /// Higher values = brighter/higher frequency content.
     pub fn get_spectral_centroid(&self, sample_rate: f32) -> f32 {
-        let num_bins = self.magnitudes.len();
         let bin_width = sample_rate / (self.fft_size as f32);
 
         let mut weighted_sum = 0.0f32;

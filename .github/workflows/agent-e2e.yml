@@ -243,6 +243,62 @@ jobs:
           echo "Performance budgets validated successfully." >> $GITHUB_STEP_SUMMARY
 
   # ==========================================================================
+  # MULTI-AGENT E2E TESTS
+  # ==========================================================================
+  multi-agent-e2e:
+    name: Multi-Agent E2E Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: unit-tests
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run multi-agent E2E tests
+        run: |
+          pnpm vitest run src/agents/multi-agent/__tests__/multi-agent-e2e.test.ts \
+            --reporter=verbose \
+            --coverage.enabled=true \
+            --coverage.reporter=text
+
+      - name: Run multi-agent orchestrator tests
+        run: |
+          pnpm vitest run src/agents/multi-agent/__tests__/orchestrator.test.ts \
+            --reporter=verbose
+
+      - name: Run turn processor integration tests
+        run: |
+          pnpm vitest run src/agents/processors/__tests__/turn-processor-integration.test.ts \
+            --reporter=verbose
+
+      - name: Generate multi-agent report
+        run: |
+          echo "## Multi-Agent E2E Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Component | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Orchestrator | ✅ Tested |" >> $GITHUB_STEP_SUMMARY
+          echo "| Handoff Flow | ✅ Tested |" >> $GITHUB_STEP_SUMMARY
+          echo "| Context Preservation | ✅ Tested |" >> $GITHUB_STEP_SUMMARY
+          echo "| Data Channel Messages | ✅ Tested |" >> $GITHUB_STEP_SUMMARY
+          echo "| Rapid Handoff Stability | ✅ Tested |" >> $GITHUB_STEP_SUMMARY
+
+  # ==========================================================================
   # CHAOS TESTS
   # ==========================================================================
   chaos-tests:
@@ -291,6 +347,7 @@ jobs:
       - integration-tests
       - contract-tests
       - snapshot-tests
+      - multi-agent-e2e
       - performance-tests
       - chaos-tests
     if: always()
@@ -306,6 +363,7 @@ jobs:
           echo "| Integration Tests | ${{ needs.integration-tests.result == 'success' && '✅ Passed' || needs.integration-tests.result == 'skipped' && '⏭️ Skipped' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Contract Tests | ${{ needs.contract-tests.result == 'success' && '✅ Passed' || needs.contract-tests.result == 'skipped' && '⏭️ Skipped' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Snapshot Tests | ${{ needs.snapshot-tests.result == 'success' && '✅ Passed' || needs.snapshot-tests.result == 'skipped' && '⏭️ Skipped' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Multi-Agent E2E | ${{ needs.multi-agent-e2e.result == 'success' && '✅ Passed' || needs.multi-agent-e2e.result == 'skipped' && '⏭️ Skipped' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Performance Tests | ${{ needs.performance-tests.result == 'success' && '✅ Passed' || needs.performance-tests.result == 'skipped' && '⏭️ Skipped' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Chaos Tests | ${{ needs.chaos-tests.result == 'success' && '✅ Passed' || needs.chaos-tests.result == 'skipped' && '⏭️ Skipped' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
 
@@ -314,7 +372,8 @@ jobs:
           needs.unit-tests.result != 'success' ||
           needs.integration-tests.result != 'success' ||
           needs.contract-tests.result != 'success' ||
-          needs.snapshot-tests.result != 'success'
+          needs.snapshot-tests.result != 'success' ||
+          needs.multi-agent-e2e.result != 'success'
         run: |
           echo "Some required tests failed"
           exit 1

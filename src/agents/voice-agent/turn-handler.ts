@@ -95,6 +95,13 @@ import {
 // "Better Than Human" data capture - passive learning from conversation
 import { captureDataBetterThanHuman } from '../../intelligence/data-capture/index.js';
 
+// Redis cache for real-time state (emotional state, voice biomarkers)
+import { getRedisCache } from '../../memory/redis-cache.js';
+
+// Note: Live superhuman injections are handled by the turn-processor pipeline
+// via src/agents/processors/live-superhuman-injections.ts
+// No need to duplicate here - the processor runs those injections
+
 // Re-export cleanupPersonalityState for backwards compatibility
 export { cleanupPersonalityState } from './turn-personality.js';
 
@@ -709,6 +716,58 @@ Voice signals detected: ${allSignals.join(', ') || 'subtle vocal cues'}`,
     }
 
     // ================================================================
+    // 💾 REDIS CACHE: Emotional State & Voice Biomarkers
+    // Cache real-time emotional state for outreach timing intelligence
+    // and cross-system awareness (e.g., don't send check-in during crisis)
+    // ================================================================
+    if (services.userId && (voiceEmotion || result.emotional)) {
+      fireAndForget(async () => {
+        const redis = getRedisCache();
+
+        // Cache emotional state (text + voice combined)
+        const emotionalState = {
+          primary: result.emotional?.primary || voiceEmotion?.primary || 'neutral',
+          secondary: result.emotional?.secondary,
+          intensity: result.emotional?.intensity || voiceEmotion?.confidence || 0.5,
+          valence: result.emotional?.valence ?? (voiceEmotion as { valence?: number })?.valence ?? 0,
+          distressLevel: result.emotional?.distressLevel,
+          source: voiceEmotion ? 'voice+text' : 'text',
+        };
+        await redis.setEmotionalState(services.userId!, emotionalState);
+
+        // Cache voice biomarkers if prosody available
+        if (voiceEmotion?.prosody) {
+          const prosody = voiceEmotion.prosody;
+          await redis.setVoiceBiomarker(services.userId!, {
+            fatigue: prosody.energyMean ? Math.max(0, 1 - (prosody.energyMean + 60) / 60) : 0,
+            stress: calculateStressFromProsody(prosody),
+            pitch: prosody.pitchMean
+              ? prosody.pitchMean < 100
+                ? 'low'
+                : prosody.pitchMean > 200
+                  ? 'high'
+                  : 'normal'
+              : undefined,
+            pace:
+              prosody.speechRate && prosody.speechRate > 180
+                ? 'fast'
+                : prosody.speechRate && prosody.speechRate < 120
+                  ? 'slow'
+                  : 'normal',
+            strain: (prosody.jitter || 0) > 0.02 || (prosody.shimmer || 0) > 0.15,
+          });
+        }
+
+        diag.state('💾 Redis: Cached emotional state', {
+          userId: services.userId,
+          emotion: emotionalState.primary,
+          intensity: emotionalState.intensity,
+          hasVoice: !!voiceEmotion,
+        });
+      }, 'redis-emotional-state-cache');
+    }
+
+    // ================================================================
     // 🚨 SAFETY FIRST: Crisis Detection & Override
     // ================================================================
     if (result.crisis?.shouldOverrideLLM && result.crisis.suggestedResponse) {
@@ -1108,6 +1167,8 @@ You are their lifeline right now. Be fully present.`,
     // ================================================================
     // PERFORMANCE: Mark context building complete
     // ================================================================
+    // Note: Live superhuman injections are handled by the turn-processor pipeline
+    // via src/agents/processors/live-superhuman-injections.ts which runs in Tier 2
     markTurnCheckpoint(services.sessionId, turnNumber, 'contextBuildComplete');
 
     // ================================================================

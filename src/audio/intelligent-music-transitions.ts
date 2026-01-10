@@ -31,29 +31,29 @@ import type { MusicSessionContext, MusicStartReason } from './music-session-cont
 
 // Import enhanced systems
 import {
-  getTransitionAnalytics,
-  recordTransitionWithAnalytics,
-  type TransitionEvent,
-  type EngagementSignals,
-} from './music-transition-analytics.js';
-import {
-  selectTransitionWithLearning,
-  updateUserLearning,
-  getUserPreferredTransition,
-  addMusicMemory,
-} from './music-user-learning.js';
-import {
-  storeMusicHelpedMemory,
   generateMusicCallback,
   shouldMentionMusicMemory,
+  storeMusicHelpedMemory,
   type MusicCallbackPhrase,
 } from './music-memory-integration.js';
+import {
+  getTransitionAnalytics,
+  recordTransitionWithAnalytics,
+  type EngagementSignals,
+  type TransitionEvent,
+} from './music-transition-analytics.js';
+import {
+  getUserPreferredTransition,
+  selectTransitionWithLearning,
+  updateUserLearning,
+} from './music-user-learning.js';
 
 // Persistence hooks for Firestore backup
 import {
-  onTransitionFeedbackRecorded,
-  onMusicMemoryStored,
   ensureMusicLearningLoaded,
+  isMusicLearningLoaded,
+  onMusicMemoryStored,
+  onTransitionFeedbackRecorded,
 } from './music-learning-persistence.js';
 
 const log = createLogger({ module: 'IntelligentMusicTransitions' });
@@ -848,11 +848,17 @@ export function getMusicTransition(input: TransitionInput): EnhancedTransitionRe
     };
   }
 
-  // 📊 Ensure user's learning data is loaded from Firestore (async, fire and forget)
-  // This won't block the transition - data will be available for next time if not loaded yet
-  void ensureMusicLearningLoaded(userId).catch(() => {
-    // Silently ignore - learning will work without persistence
-  });
+  // 📊 Check if user's learning data is loaded from Firestore
+  // The data should be pre-warmed at session start (setupMusicHandler)
+  // If not loaded yet, trigger load and use base behavior for this transition
+  const learningDataReady = isMusicLearningLoaded(userId);
+  if (!learningDataReady) {
+    // Trigger async load for next time (don't block this transition)
+    void ensureMusicLearningLoaded(userId).catch(() => {
+      // Silently ignore - learning will work without persistence
+    });
+    log.debug({ userId }, '🎵 Learning data not loaded yet, using base transition');
+  }
 
   // Check A/B test assignment
   const analytics = getTransitionAnalytics();
@@ -877,19 +883,21 @@ export function getMusicTransition(input: TransitionInput): EnhancedTransitionRe
     };
   }
 
-  // Check for user preferences first
-  const userPreferred = getUserPreferredTransition(userId, {
-    startReason: musicContext?.startReason,
-    emotionalTone: musicContext?.emotionalToneBeforeMusic,
-    isLateNight,
-  });
+  // Check for user preferences first (only if learning data is loaded)
+  const userPreferred = learningDataReady
+    ? getUserPreferredTransition(userId, {
+        startReason: musicContext?.startReason,
+        emotionalTone: musicContext?.emotionalToneBeforeMusic,
+        isLateNight,
+      })
+    : null;
 
   let result: TransitionResult;
   let explorationRate = 0;
   let usedUserLearning = false;
 
-  // If user has a strong preference, honor it (with some exploration)
-  if (userPreferred && Math.random() < 0.8) {
+  // If user has a strong preference and data is loaded, honor it (with some exploration)
+  if (learningDataReady && userPreferred && Math.random() < 0.8) {
     result = generateTransitionOfType(userPreferred, personaId, musicContext, relationshipStage);
     usedUserLearning = true;
     explorationRate = 0.2;
@@ -1260,9 +1268,9 @@ export function logTransitionDecision(
 // ============================================================================
 
 export {
+  type EngagementSignals,
   // Re-export types from other modules for convenience
   type TransitionEvent,
-  type EngagementSignals,
 };
 
 export default {

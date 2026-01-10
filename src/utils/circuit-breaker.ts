@@ -193,7 +193,6 @@ export class CircuitBreaker {
 
     if (this.state === 'half-open') {
       if (this.successes >= this.successThreshold) {
-        const previousState = this.state;
         this.state = 'closed';
         this.failures = 0;
         this.successes = 0;
@@ -310,9 +309,8 @@ export async function getRedisCircuitBreakerAsync(
 
   try {
     // Try to create Redis-backed breaker
-    const { createRedisCircuitBreaker } = await import(
-      '../services/self-healing/redis-circuit-breaker.js'
-    );
+    const { createRedisCircuitBreaker } =
+      await import('../services/self-healing/redis-circuit-breaker.js');
 
     const redisBreaker = createRedisCircuitBreaker(name, {
       failureThreshold: options?.failureThreshold ?? 5,

@@ -19,6 +19,7 @@ import { DURATION, EASING, prefersReducedMotion } from '../config/animation-cons
 import { t } from '../i18n/index.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
+import { apiGet, apiPost } from '../utils/api.js';
 
 // Import types and icons from modular structure
 import type {
@@ -81,18 +82,19 @@ class MusicDashboardUI {
 
       // Fetch both the legacy insights and new Musical You profile in parallel
       const [insightsResponse, profileResponse] = await Promise.all([
-        fetch(`/api/games/insights?userId=${encodeURIComponent(userId)}`),
-        fetch(`/api/musical/profile?userId=${encodeURIComponent(userId)}`).catch(() => null),
+        apiGet<{ success?: boolean; insights?: MusicInsights }>(
+          `/api/games/insights?userId=${encodeURIComponent(userId)}`
+        ),
+        apiGet<{ success?: boolean; profile?: MusicalYouProfile }>(
+          `/api/musical/profile?userId=${encodeURIComponent(userId)}`
+        ).catch(() => null),
       ]);
 
-      const result = await insightsResponse.json();
+      const result = insightsResponse.ok && insightsResponse.data ? insightsResponse.data : { success: false };
 
       // Try to get profile data (may not be available)
-      if (profileResponse?.ok) {
-        const profileResult = await profileResponse.json();
-        if (profileResult.success) {
-          this.profileData = profileResult.profile;
-        }
+      if (profileResponse?.ok && profileResponse.data?.success) {
+        this.profileData = profileResponse.data.profile ?? null;
       }
 
       if (result.success && result.insights) {
@@ -869,8 +871,10 @@ class MusicDashboardUI {
   private async connectAppleMusic(): Promise<void> {
     try {
       // First, get the developer token from our server
-      const tokenResponse = await fetch('/api/musical/apple/token');
-      const tokenResult = await tokenResponse.json();
+      const tokenResponse = await apiGet<{ success?: boolean; developerToken?: string }>(
+        '/api/musical/apple/token'
+      );
+      const tokenResult = tokenResponse.ok && tokenResponse.data ? tokenResponse.data : { success: false };
 
       if (!tokenResult.success || !tokenResult.developerToken) {
         log.warn('Apple Music not configured on server');
@@ -901,16 +905,12 @@ class MusicDashboardUI {
 
         // Send user token to our server to sync library
         const userId = localStorage.getItem('ferni_user_id') || 'dev-user';
-        const connectResponse = await fetch('/api/musical/apple/connect', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            userId,
-            userToken,
-          }),
-        });
+        const connectResponse = await apiPost<{ success?: boolean; error?: string }>(
+          '/api/musical/apple/connect',
+          { userId, userToken }
+        );
 
-        const connectResult = await connectResponse.json();
+        const connectResult = connectResponse.ok && connectResponse.data ? connectResponse.data : { success: false };
 
         if (connectResult.success) {
           window.dispatchEvent(

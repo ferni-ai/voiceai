@@ -15,6 +15,7 @@
 
 import { createLogger } from '../utils/logger.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
+import { apiGet } from '../utils/api.js';
 import { soundUI } from './sound.ui.js';
 import { messageUI } from './message.ui.js';
 import { getAuthState } from '../services/firebase-auth.service.js';
@@ -111,16 +112,16 @@ async function fetchHubData(): Promise<HubData> {
 
   try {
     // Fetch background results
-    const resultsResponse = await fetch(`/api/background-results/pending?userId=${userId}&limit=10`);
-    const resultsData = resultsResponse.ok ? await resultsResponse.json() : { results: [] };
+    const resultsResponse = await apiGet<{ results?: unknown[] }>(`/api/background-results/pending?userId=${userId}&limit=10`);
+    const resultsData = resultsResponse.ok && resultsResponse.data ? resultsResponse.data : { results: [] };
 
     // Fetch open threads (conversation threads API)
-    const threadsResponse = await fetch(`/api/conversations/threads?userId=${userId}&status=open&limit=5`);
-    const threadsData = threadsResponse.ok ? await threadsResponse.json() : { threads: [] };
+    const threadsResponse = await apiGet<{ threads?: unknown[] }>(`/api/conversations/threads?userId=${userId}&status=open&limit=5`);
+    const threadsData = threadsResponse.ok && threadsResponse.data ? threadsResponse.data : { threads: [] };
 
     // Fetch tracked items (commitments, goals)
-    const trackedResponse = await fetch(`/api/commitments?userId=${userId}&status=pending&limit=8`);
-    const trackedData = trackedResponse.ok ? await trackedResponse.json() : { items: [] };
+    const trackedResponse = await apiGet<{ items?: unknown[] }>(`/api/commitments?userId=${userId}&status=pending&limit=8`);
+    const trackedData = trackedResponse.ok && trackedResponse.data ? trackedResponse.data : { items: [] };
 
     return {
       backgroundResults: resultsData.results || [],

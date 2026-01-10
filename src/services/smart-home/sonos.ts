@@ -4,6 +4,11 @@
  * Controls Sonos speakers for vibe and music playback.
  * Uses Sonos Cloud API (OAuth 2.0) for control.
  *
+ * Features:
+ * - Auto-refresh tokens on 401 errors
+ * - Circuit breaker to prevent cascading failures
+ * - Graceful degradation when Sonos is unavailable
+ *
  * Setup: https://developer.sonos.com/
  * 1. Create app at developer.sonos.com
  * 2. Get OAuth credentials
@@ -13,6 +18,119 @@
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'sonos-service' });
+
+// ============================================================================
+// CIRCUIT BREAKER
+// ============================================================================
+
+interface CircuitBreakerState {
+  failures: number;
+  lastFailure: number;
+  isOpen: boolean;
+  nextRetry: number;
+}
+
+const circuitBreaker: CircuitBreakerState = {
+  failures: 0,
+  lastFailure: 0,
+  isOpen: false,
+  nextRetry: 0,
+};
+
+const CIRCUIT_BREAKER_THRESHOLD = 5; // Open after 5 failures
+const CIRCUIT_BREAKER_RESET_MS = 60_000; // 1 minute cooldown
+const CIRCUIT_BREAKER_HALF_OPEN_MS = 30_000; // Try again after 30 seconds
+
+/**
+ * Check if circuit breaker allows requests
+ */
+function isCircuitOpen(): boolean {
+  if (!circuitBreaker.isOpen) return false;
+
+  // Check if we should try again (half-open state)
+  if (Date.now() >= circuitBreaker.nextRetry) {
+    log.info('🔌 Sonos circuit breaker half-open, allowing test request');
+    return false;
+  }
+
+  return true;
+}
+
+/**
+ * Record a successful request (resets circuit breaker)
+ */
+function recordSuccess(): void {
+  if (circuitBreaker.failures > 0 || circuitBreaker.isOpen) {
+    log.info('🔌 Sonos circuit breaker reset after successful request');
+  }
+  circuitBreaker.failures = 0;
+  circuitBreaker.isOpen = false;
+  circuitBreaker.lastFailure = 0;
+  circuitBreaker.nextRetry = 0;
+}
+
+/**
+ * Record a failed request
+ */
+function recordFailure(): void {
+  circuitBreaker.failures++;
+  circuitBreaker.lastFailure = Date.now();
+
+  if (circuitBreaker.failures >= CIRCUIT_BREAKER_THRESHOLD) {
+    circuitBreaker.isOpen = true;
+    circuitBreaker.nextRetry = Date.now() + CIRCUIT_BREAKER_HALF_OPEN_MS;
+    log.warn(
+      { failures: circuitBreaker.failures, nextRetryMs: CIRCUIT_BREAKER_HALF_OPEN_MS },
+      '🔌 Sonos circuit breaker OPEN - too many failures'
+    );
+  }
+}
+
+/**
+ * Get circuit breaker status (for diagnostics)
+ */
+export function getSonosCircuitBreakerStatus(): {
+  isOpen: boolean;
+  failures: number;
+  nextRetryIn: number | null;
+} {
+  return {
+    isOpen: circuitBreaker.isOpen,
+    failures: circuitBreaker.failures,
+    nextRetryIn: circuitBreaker.isOpen ? Math.max(0, circuitBreaker.nextRetry - Date.now()) : null,
+  };
+}
+
+/**
+ * Reset circuit breaker (for testing/admin)
+ */
+export function resetSonosCircuitBreaker(): void {
+  circuitBreaker.failures = 0;
+  circuitBreaker.isOpen = false;
+  circuitBreaker.lastFailure = 0;
+  circuitBreaker.nextRetry = 0;
+  log.info('🔌 Sonos circuit breaker manually reset');
+}
+
+// ============================================================================
+// TOKEN REFRESH CALLBACK
+// ============================================================================
+
+/**
+ * Callback type for when tokens are refreshed
+ * This allows the caller to persist the new tokens
+ */
+export type TokenRefreshCallback = (newCredentials: SonosCredentials) => Promise<void>;
+
+// Global callback registry (set by sonos-music.ts or tools)
+let tokenRefreshCallback: TokenRefreshCallback | null = null;
+
+/**
+ * Register a callback to be called when tokens are refreshed
+ */
+export function setTokenRefreshCallback(callback: TokenRefreshCallback): void {
+  tokenRefreshCallback = callback;
+}
 
 // ============================================================================
 // TYPES
@@ -63,34 +181,146 @@ export interface SonosTrack {
 const SONOS_API_BASE = 'https://api.ws.sonos.com/control/api/v1';
 
 /**
+ * Sonos API error with status code
+ */
+export class SonosApiError extends Error {
+  constructor(
+    message: string,
+    public statusCode: number,
+    public endpoint: string
+  ) {
+    super(message);
+    this.name = 'SonosApiError';
+  }
+}
+
+/**
  * Make authenticated request to Sonos API
+ * Includes circuit breaker and automatic token refresh on 401
  */
 async function sonosRequest<T>(
   credentials: SonosCredentials,
   endpoint: string,
   method: 'GET' | 'POST' | 'PUT' | 'DELETE' = 'GET',
-  body?: unknown
+  body?: unknown,
+  isRetry = false
 ): Promise<T> {
-  const url = `${SONOS_API_BASE}${endpoint}`;
-
-  log.debug({ endpoint, method }, 'Sonos API request');
-
-  const response = await fetch(url, {
-    method,
-    headers: {
-      Authorization: `Bearer ${credentials.accessToken}`,
-      'Content-Type': 'application/json',
-    },
-    body: body ? JSON.stringify(body) : undefined,
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    log.error({ status: response.status, error: errorText, endpoint }, 'Sonos API error');
-    throw new Error(`Sonos API error: ${response.status} - ${errorText}`);
+  // Check circuit breaker
+  if (isCircuitOpen()) {
+    throw new SonosApiError(
+      'Sonos service temporarily unavailable (circuit breaker open)',
+      503,
+      endpoint
+    );
   }
 
-  return response.json() as Promise<T>;
+  const url = `${SONOS_API_BASE}${endpoint}`;
+
+  log.debug({ endpoint, method, isRetry }, 'Sonos API request');
+
+  try {
+    const response = await fetch(url, {
+      method,
+      headers: {
+        Authorization: `Bearer ${credentials.accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: body ? JSON.stringify(body) : undefined,
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+
+      // Handle 401 - try to refresh token and retry
+      if (response.status === 401 && !isRetry) {
+        log.info({ endpoint }, '🔄 Sonos token expired, attempting refresh...');
+
+        const refreshed = await attemptTokenRefresh(credentials);
+        if (refreshed) {
+          // Retry with new credentials
+          return sonosRequest<T>(refreshed, endpoint, method, body, true);
+        }
+
+        // Refresh failed
+        recordFailure();
+        throw new SonosApiError(
+          'Sonos authentication failed - please reconnect your account',
+          401,
+          endpoint
+        );
+      }
+
+      // Record failure for circuit breaker
+      if (response.status >= 500) {
+        recordFailure();
+      }
+
+      log.error({ status: response.status, error: errorText, endpoint }, 'Sonos API error');
+      throw new SonosApiError(`Sonos API error: ${response.status} - ${errorText}`, response.status, endpoint);
+    }
+
+    // Success - reset circuit breaker
+    recordSuccess();
+
+    return response.json() as Promise<T>;
+  } catch (error) {
+    // Network errors count toward circuit breaker
+    if (!(error instanceof SonosApiError)) {
+      recordFailure();
+      throw new SonosApiError(
+        `Sonos network error: ${String(error)}`,
+        0,
+        endpoint
+      );
+    }
+    throw error;
+  }
+}
+
+/**
+ * Attempt to refresh the token using stored refresh token
+ */
+async function attemptTokenRefresh(credentials: SonosCredentials): Promise<SonosCredentials | null> {
+  const clientId = process.env.SONOS_CLIENT_ID;
+  const clientSecret = process.env.SONOS_CLIENT_SECRET;
+
+  if (!clientId || !clientSecret) {
+    log.warn('Cannot refresh Sonos token - missing client credentials');
+    return null;
+  }
+
+  if (!credentials.refreshToken) {
+    log.warn('Cannot refresh Sonos token - no refresh token available');
+    return null;
+  }
+
+  try {
+    const result = await refreshAccessToken(credentials.refreshToken, clientId, clientSecret);
+
+    const newCredentials: SonosCredentials = {
+      ...credentials,
+      accessToken: result.accessToken,
+      refreshToken: result.refreshToken,
+      tokenExpiry: Date.now() + result.expiresIn * 1000,
+    };
+
+    log.info('✅ Sonos token refreshed successfully');
+
+    // Notify callback to persist new credentials
+    if (tokenRefreshCallback) {
+      try {
+        await tokenRefreshCallback(newCredentials);
+        log.debug('Sonos token refresh callback executed');
+      } catch (callbackError) {
+        log.error({ error: callbackError }, 'Failed to execute token refresh callback');
+      }
+    }
+
+    return newCredentials;
+  } catch (error) {
+    log.error({ error }, '❌ Failed to refresh Sonos token');
+    return null;
+  }
 }
 
 // ============================================================================

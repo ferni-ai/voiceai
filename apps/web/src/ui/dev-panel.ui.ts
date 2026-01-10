@@ -21,6 +21,7 @@
 import type { VoiceEmotion } from '@design-system/tokens';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { t } from '../i18n/index.js';
+import { apiGet, apiPost } from '../utils/api.js';
 import { modalCoordinator } from '../services/modal-coordinator.service.js';
 import {
   relationshipStageService,
@@ -3245,14 +3246,10 @@ async function updateServerSubscription(tier: 'free' | 'friend' | 'partner'): Pr
   if (!deviceId) return;
 
   try {
-    await fetch('/subscription/upgrade', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        device_id: deviceId,
-        tier,
-        admin_key: 'dev-mode',
-      }),
+    await apiPost('/subscription/upgrade', {
+      device_id: deviceId,
+      tier,
+      admin_key: 'dev-mode',
     });
   } catch (e) {
     log.warn('Could not update server subscription:', e);
@@ -4340,13 +4337,10 @@ interface MusicStatus {
 async function fetchMusicStatus(): Promise<MusicStatus | null> {
   try {
     // Use the API endpoint to get music status
-    const response = await fetch('/api/music/status', {
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json' },
-    });
+    const response = await apiGet<MusicStatus>('/api/music/status');
 
-    if (response.ok) {
-      return await response.json();
+    if (response.ok && response.data) {
+      return response.data;
     }
 
     // If API not available, return null (we'll show "Not Connected")
@@ -4445,8 +4439,11 @@ async function handleMusicStatusAction(action: string): Promise<void> {
 
     case 'test-itunes':
       try {
-        const response = await fetch('/api/music/test-itunes', { method: 'POST' });
-        const result = await response.json();
+        const response = await apiPost<{ success?: boolean; track?: { name: string; artist: string }; error?: string }>(
+          '/api/music/test-itunes',
+          {}
+        );
+        const result = response.ok && response.data ? response.data : { success: false };
         if (result.success) {
           log.info({ track: result.track }, '${ICONS.check} iTunes API working');
           alert(`${ICONS.check} iTunes API working!\n\nFound: ${result.track?.name} by ${result.track?.artist}`);
@@ -4462,8 +4459,10 @@ async function handleMusicStatusAction(action: string): Promise<void> {
 
     case 'test-spotify':
       try {
-        const response = await fetch('/spotify/status');
-        const result = await response.json();
+        const response = await apiGet<{ configured?: boolean; linked?: boolean; deviceConnected?: boolean }>(
+          '/spotify/status'
+        );
+        const result = response.ok && response.data ? response.data : {};
         const statusLines = [
           `Configured: ${result.configured ? '${ICONS.check}' : '${ICONS.x}'}`,
           `Linked: ${result.linked ? '${ICONS.check}' : '${ICONS.x}'}`,

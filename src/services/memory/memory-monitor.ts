@@ -12,6 +12,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { registerInterval, clearNamedInterval } from '../../utils/interval-manager.js';
 
 const log = createLogger({ module: 'MemoryMonitor' });
 
@@ -106,21 +107,22 @@ export class MemoryMonitor {
     // Initial check (fire and forget, errors are logged internally)
     void this.check();
 
-    // Schedule periodic checks
-    this.checkTimer = setInterval(() => {
-      void this.check();
-    }, this.config.checkIntervalMs);
+    // Schedule periodic checks using managed interval
+    registerInterval(
+      MEMORY_MONITOR_INTERVAL,
+      () => {
+        void this.check();
+      },
+      this.config.checkIntervalMs
+    );
   }
 
   /**
    * Stop monitoring
    */
   stop(): void {
-    if (this.checkTimer) {
-      clearInterval(this.checkTimer);
-      this.checkTimer = null;
-      log.info('Memory monitor stopped');
-    }
+    clearNamedInterval(MEMORY_MONITOR_INTERVAL);
+    log.info('Memory monitor stopped');
   }
 
   /**

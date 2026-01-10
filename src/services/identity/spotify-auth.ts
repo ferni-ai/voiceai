@@ -14,6 +14,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { getLogger } from '../../utils/safe-logger.js';
+import { registerInterval, clearNamedInterval } from '../../utils/interval-manager.js';
 import { getCircuitBreaker } from '../../utils/circuit-breaker.js';
 
 // File to store tokens (gitignored)
@@ -97,10 +98,10 @@ function saveTokens(tokens: TokenData): void {
 }
 
 /**
- * Check if token is expired (with 5 min buffer)
+ * Check if token is expired (with 10 min buffer for proactive refresh)
  */
 function isTokenExpired(tokens: TokenData): boolean {
-  const bufferMs = 5 * 60 * 1000; // 5 minutes
+  const bufferMs = 10 * 60 * 1000; // 10 minutes - proactive refresh
   return Date.now() >= tokens.expires_at - bufferMs;
 }
 
@@ -273,60 +274,109 @@ export function getSpotifyTokenStatus(): {
 }
 
 /**
+ * Validate token by making an actual API call
+ * Returns true if token is valid and working
+ */
+export async function validateSpotifyToken(): Promise<boolean> {
+  const token = await getSpotifyAccessToken();
+  if (!token) {
+    getLogger().warn('🎵 No Spotify token available for validation');
+    return false;
+  }
+
+  try {
+    const response = await fetch('https://api.spotify.com/v1/me', {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    if (response.ok) {
+      getLogger().info('🎵 Spotify token validated successfully');
+      return true;
+    }
+
+    if (response.status === 401) {
+      getLogger().warn('🎵 Spotify token validation failed (401) - will force refresh');
+      // Force refresh and try again
+      const newToken = await getSpotifyAccessToken(true);
+      if (!newToken) return false;
+
+      const retryResponse = await fetch('https://api.spotify.com/v1/me', {
+        headers: { Authorization: `Bearer ${newToken}` },
+      });
+      return retryResponse.ok;
+    }
+
+    getLogger().warn({ status: response.status }, '🎵 Spotify token validation failed');
+    return false;
+  } catch (error) {
+    getLogger().error({ error }, '🎵 Spotify token validation error');
+    return false;
+  }
+}
+
+/**
  * Proactively refresh token if it will expire soon
  * Call this periodically (e.g., every 5 minutes) to ensure token is always fresh
  */
 export async function ensureTokenFresh(): Promise<boolean> {
   const status = getSpotifyTokenStatus();
 
+  if (status.minutesRemaining > 15) {
+    // Token is still very fresh, no need to refresh
+    return true;
+  }
+
   if (status.minutesRemaining > 10) {
-    // Token is still fresh, no need to refresh
+    // Token is moderately fresh, just validate it
+    getLogger().debug({ minutesRemaining: status.minutesRemaining }, '🎵 Token moderately fresh');
     return true;
   }
 
   getLogger().info(
     { valid: status.valid, minutesRemaining: status.minutesRemaining },
-    'Token expiring - proactively refreshing'
+    '🎵 Token expiring soon - proactively refreshing'
   );
 
-  const token = await getSpotifyAccessToken();
+  const token = await getSpotifyAccessToken(true); // Force refresh
   return !!token;
 }
 
-// Background refresh interval
-let refreshInterval: NodeJS.Timeout | null = null;
+// Background refresh interval name
+const SPOTIFY_AUTO_REFRESH_INTERVAL = 'spotify-auto-refresh';
 
 /**
- * Start background token refresh (checks every 5 minutes)
+ * Start background token refresh (validates on startup, then checks every 5 minutes)
  */
 export function startAutoRefresh(): void {
-  if (refreshInterval) {
-    return; // Already running
-  }
+  // Validate immediately on startup
+  void (async () => {
+    const isValid = await validateSpotifyToken();
+    if (!isValid) {
+      getLogger().warn(
+        '🎵 Spotify token validation failed on startup - attempting refresh'
+      );
+      await getSpotifyAccessToken(true); // Force refresh
+    }
+  })();
 
-  // Check immediately
-  void ensureTokenFresh();
-
-  // Then check every 5 minutes
-  refreshInterval = setInterval(
+  // Then check every 5 minutes using managed interval
+  registerInterval(
+    SPOTIFY_AUTO_REFRESH_INTERVAL,
     () => {
       void ensureTokenFresh();
     },
     5 * 60 * 1000
   );
 
-  getLogger().info('Spotify auto-refresh started (checks every 5 min)');
+  getLogger().info('🎵 Spotify auto-refresh started (validates on startup, checks every 5 min)');
 }
 
 /**
  * Stop background refresh
  */
 export function stopAutoRefresh(): void {
-  if (refreshInterval) {
-    clearInterval(refreshInterval);
-    refreshInterval = null;
-    getLogger().info('Spotify auto-refresh stopped');
-  }
+  clearNamedInterval(SPOTIFY_AUTO_REFRESH_INTERVAL);
+  getLogger().info('Spotify auto-refresh stopped');
 }
 
 /**

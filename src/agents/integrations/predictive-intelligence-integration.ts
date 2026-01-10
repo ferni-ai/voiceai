@@ -54,7 +54,7 @@ import {
 import {
   getSuperhumanObservations,
   type SuperhumanObservationsEngine,
-} from '../../conversation/superhuman/superhuman-observations.js';
+} from '../../services/superhuman/observations.js';
 import {
   detectPatternsInTranscript,
   type PatternType as CoachingPatternType,

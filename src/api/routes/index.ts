@@ -47,6 +47,9 @@ export {
 // Team routes
 export { handleGetHuddles, handleTeamRoutes } from './team.js';
 
+// Team insights routes (What We Notice - cross-persona intelligence)
+export { handleTeamInsightsRoutes } from './team-insights.js';
+
 // Data export/delete routes
 export {
   handleDataRoutes,
@@ -88,3 +91,6 @@ export { handleGroupCoachingRoutes } from './group-coaching.js';
 
 // Landing page AI routes (AI-powered landing features)
 export { handleLandingAIRoutes } from './landing-ai.js';
+
+// Marketplace reviews routes
+export { handleReviewsRoutes as handleMarketplaceReviewsRoutes } from './marketplace-reviews.js';

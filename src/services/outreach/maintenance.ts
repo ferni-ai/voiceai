@@ -9,6 +9,7 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
+import { registerInterval, clearNamedInterval } from '../../utils/interval-manager.js';
 import { clearUserChannelData } from './channel-selector.js';
 import { pruneOldData as pruneContextData } from './context-aggregator.js';
 import { getOutreachDecisionEngine } from './decision-engine.js';
@@ -51,7 +52,8 @@ export interface MaintenanceStats {
 // STATE
 // ============================================================================
 
-let maintenanceInterval: NodeJS.Timeout | null = null;
+const OUTREACH_MAINTENANCE_INTERVAL = 'outreach-maintenance';
+
 let config: MaintenanceConfig = {
   weeklyResetDay: 0, // Sunday
   weeklyResetHour: 3, // 3 AM
@@ -374,18 +376,17 @@ async function runMaintenance(): Promise<void> {
  * Start the maintenance scheduler
  */
 export function startMaintenanceScheduler(intervalMs = 60 * 60 * 1000): void {
-  if (maintenanceInterval) {
-    log.warn('Maintenance scheduler already running');
-    return;
-  }
-
   // Run once on startup
   void runMaintenance();
 
-  // Then schedule periodic runs
-  maintenanceInterval = setInterval(() => {
-    void runMaintenance();
-  }, intervalMs);
+  // Then schedule periodic runs using managed interval
+  registerInterval(
+    OUTREACH_MAINTENANCE_INTERVAL,
+    () => {
+      void runMaintenance();
+    },
+    intervalMs
+  );
 
   log.info({ intervalMs }, '🔧 Outreach maintenance scheduler started');
 }
@@ -394,11 +395,8 @@ export function startMaintenanceScheduler(intervalMs = 60 * 60 * 1000): void {
  * Stop the maintenance scheduler
  */
 export function stopMaintenanceScheduler(): void {
-  if (maintenanceInterval) {
-    clearInterval(maintenanceInterval);
-    maintenanceInterval = null;
-    log.info('🛑 Outreach maintenance scheduler stopped');
-  }
+  clearNamedInterval(OUTREACH_MAINTENANCE_INTERVAL);
+  log.info('🛑 Outreach maintenance scheduler stopped');
 }
 
 /**

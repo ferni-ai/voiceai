@@ -885,6 +885,74 @@ export interface UserProfile {
     userReaction?: string;
   }>;
 
+  // ============================================================================
+  // PROACTIVE INSIGHT GENERATION DATA
+  // For session-init-handler Phase 6.5 - Proactive Intelligence
+  // ============================================================================
+
+  /**
+   * Recent topics discussed across sessions (for proactive insight generation)
+   * Tracks frequency and sentiment to detect patterns worth surfacing
+   */
+  recentTopics?: Array<{
+    /** The topic discussed */
+    topic: string;
+    /** How many times this topic has come up */
+    frequency: number;
+    /** When this topic was last mentioned */
+    lastMentioned: Date;
+    /** Overall sentiment when discussing this topic */
+    sentiment?: 'positive' | 'negative' | 'neutral';
+    /** Which personas this topic came up with */
+    personaIds?: string[];
+  }>;
+
+  /**
+   * Emotional trend over recent sessions (for predictive emotional state)
+   * Enables anticipating user's emotional needs
+   */
+  emotionalTrend?: {
+    /** Overall direction of emotional state */
+    direction: 'improving' | 'declining' | 'stable';
+    /** Rate of change (-1 to 1, negative = declining) */
+    velocity: number;
+    /** Most frequent emotion in recent sessions */
+    dominantEmotion: string;
+    /** When this trend was calculated */
+    calculatedAt: Date;
+    /** Number of sessions used to calculate trend */
+    sampleSize: number;
+    /** Secondary emotions observed */
+    secondaryEmotions?: string[];
+  };
+
+  /**
+   * Open commitments user has made (for commitment tracking)
+   * Ferni can gently remind and support follow-through
+   */
+  openCommitments?: Array<{
+    /** Unique identifier */
+    id: string;
+    /** What the user committed to */
+    description: string;
+    /** When the commitment was made */
+    madeAt: Date;
+    /** Optional deadline */
+    dueDate?: Date;
+    /** Current status */
+    status: 'open' | 'in_progress' | 'completed' | 'missed' | 'abandoned';
+    /** Which persona was told about this commitment */
+    personaId?: string;
+    /** How important this commitment seems */
+    priority?: 'low' | 'medium' | 'high';
+    /** Context about why this matters to the user */
+    context?: string;
+    /** Number of times we've followed up */
+    followUpCount?: number;
+    /** Last time we checked in about this */
+    lastFollowUp?: Date;
+  }>;
+
   // Financial Journey - Long-term progress tracking
   financialJourney?: {
     startedAt: Date;

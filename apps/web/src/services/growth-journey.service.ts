@@ -11,6 +11,7 @@
  */
 
 import { createLogger } from '../utils/logger.js';
+import { apiPost } from '../utils/api.js';
 
 const log = createLogger('GrowthJourney');
 
@@ -671,15 +672,13 @@ export function getReadyMilestones(): JourneyMilestone[] {
  */
 export async function becomeCompanion(): Promise<{ success: boolean; error?: string }> {
   try {
-    const response = await fetch('/api/monetization/journey/companion', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ seasonId: CURRENT_SEASON.id }),
-    });
+    const response = await apiPost<{ message?: string }>(
+      '/api/monetization/journey/companion',
+      { seasonId: CURRENT_SEASON.id }
+    );
 
     if (!response.ok) {
-      const error = await response.json();
-      return { success: false, error: error.message || 'Could not process' };
+      return { success: false, error: response.error || 'Could not process' };
     }
 
     journeyProgress.isCompanion = true;

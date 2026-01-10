@@ -29,6 +29,7 @@ import { t } from '../i18n/index.js';
 import { modalCoordinator } from '../services/modal-coordinator.service.js';
 import { teamUnlockService } from '../services/team-unlock.service.js';
 import { appState } from '../state/app.state.js';
+import { apiGet, apiPost } from '../utils/api.js';
 import { getApiHeadersAsync } from '../utils/api-helpers.js';
 import { addTapListener, addTapListeners, cleanupTapListeners } from '../utils/ios-touch.js';
 import { createLogger } from '../utils/logger.js';
@@ -259,8 +260,10 @@ async function verifyPaymentAndCelebrate(tier: string, sessionId: string | null)
         ...(sessionId && { session_id: sessionId }),
       });
 
-      const response = await fetch(`/subscription/verify-session?${params}`);
-      const result = await response.json();
+      const response = await apiGet<{ verified?: boolean; tier?: string }>(
+        `/subscription/verify-session?${params}`
+      );
+      const result = response.ok && response.data ? response.data : { verified: false };
 
       if (result.verified) {
         // Payment confirmed! Show celebration
@@ -430,9 +433,9 @@ function announceToScreenReader(message: string): void {
 
 async function loadConfig(): Promise<void> {
   try {
-    const response = await fetch('/subscription/config');
-    if (response.ok) {
-      config = await response.json();
+    const response = await apiGet<typeof config>('/subscription/config');
+    if (response.ok && response.data) {
+      config = response.data;
       log.debug('Subscription config loaded:', config);
     }
   } catch (error) {
@@ -481,9 +484,11 @@ export async function loadStatus(): Promise<SubscriptionStatus | null> {
   }
 
   try {
-    const response = await fetch(`/subscription/status?userId=${encodeURIComponent(deviceId)}`);
-    if (response.ok) {
-      status = await response.json();
+    const response = await apiGet<SubscriptionStatus>(
+      `/subscription/status?userId=${encodeURIComponent(deviceId)}`
+    );
+    if (response.ok && response.data) {
+      status = response.data;
       log.debug('Subscription status loaded:', status);
 
       // FIX: Sync subscription tier to team unlock service
@@ -847,19 +852,18 @@ async function handleUpgrade(tier: string): Promise<void> {
   sessionStorage.setItem('ferni_upgrade_tier', tier);
 
   try {
-    const response = await fetch('/subscription/checkout', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
+    const response = await apiPost<{ url?: string; error?: string }>(
+      '/subscription/checkout',
+      {
         userId: deviceId,
         device_id: deviceId,
         tier,
         successUrl: window.location.origin + '?upgrade=success&tier=' + tier,
         cancelUrl: window.location.origin + '?upgrade=cancel',
-      }),
-    });
+      }
+    );
 
-    const result = await response.json();
+    const result = response.ok && response.data ? response.data : {};
 
     if (response.ok && result.url) {
       // Redirect to Stripe checkout

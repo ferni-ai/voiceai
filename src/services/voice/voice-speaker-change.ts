@@ -19,6 +19,7 @@ import { extractSpeakerEmbedding, type SpeakerEmbedding } from '../voice-memory-
 import { identifyHouseholdSpeaker, updateSessionSpeaker } from './voice-household.js';
 // Centralized cosine similarity - uses optimized implementation from rust-accelerator
 import { cosineSimilarity } from '../../memory/rust-accelerator.js';
+import { registerInterval, clearNamedInterval, hasInterval } from '../../utils/interval-manager.js';
 
 const log = pino({ name: 'speaker-change' });
 
@@ -82,9 +83,12 @@ export class SpeakerChangeDetector extends EventEmitter {
   private config: SpeakerChangeConfig;
   private state: SpeakerState;
   private deviceId: string;
-  private checkInterval: ReturnType<typeof setInterval> | null = null;
   private audioBuffer: Float32Array[] = [];
   private isMonitoring = false;
+
+  private getIntervalName(): string {
+    return `speaker-change-detector-${this.deviceId}`;
+  }
 
   constructor(deviceId: string, config: Partial<SpeakerChangeConfig> = {}) {
     super();
@@ -117,10 +121,14 @@ export class SpeakerChangeDetector extends EventEmitter {
       'Speaker change detection started'
     );
 
-    // Start periodic check
-    this.checkInterval = setInterval(() => {
-      void this.processAudioBuffer();
-    }, this.config.checkIntervalMs);
+    // Start periodic check using managed interval
+    registerInterval(
+      this.getIntervalName(),
+      () => {
+        void this.processAudioBuffer();
+      },
+      this.config.checkIntervalMs
+    );
   }
 
   /**
@@ -128,12 +136,7 @@ export class SpeakerChangeDetector extends EventEmitter {
    */
   stop(): void {
     this.isMonitoring = false;
-
-    if (this.checkInterval) {
-      clearInterval(this.checkInterval);
-      this.checkInterval = null;
-    }
-
+    clearNamedInterval(this.getIntervalName());
     this.audioBuffer = [];
 
     log.info({ deviceId: this.deviceId }, 'Speaker change detection stopped');

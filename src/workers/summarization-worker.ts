@@ -202,7 +202,7 @@ export class SummarizationWorker extends LocalWorker {
           break;
 
         case 'memory_consolidation':
-          result = this.consolidateMemories(job);
+          result = await this.consolidateMemoriesAsync(job);
           break;
 
         case 'topic_thread':
@@ -331,25 +331,117 @@ export class SummarizationWorker extends LocalWorker {
   /**
    * Consolidate user memories using the MemoryConsolidator.
    * Merges related memories into richer representations.
-   *
-   * NOTE: Full implementation requires integration with memory orchestrator.
-   * This is a placeholder that logs the request for now.
    */
-  private consolidateMemories(job: SummarizationJob & { jobId: string }): SummarizationResult {
+  private async consolidateMemoriesAsync(
+    job: SummarizationJob & { jobId: string }
+  ): Promise<SummarizationResult> {
     const startTime = Date.now();
 
-    // Log the consolidation request
-    log.info({ userId: job.userId, jobId: job.jobId }, 'Memory consolidation requested');
+    log.info({ userId: job.userId, jobId: job.jobId }, 'Starting memory consolidation');
 
-    // TODO: Full implementation:
-    // 1. Load user's memory index via getConversationPrimingMemories
-    // 2. Pass to MemoryConsolidator.runConsolidationPass
-    // 3. Save consolidated memories back to Firestore
+    try {
+      // 1. Load user's memory index
+      const { getConversationPrimingMemories } = await import('../memory/advanced-retrieval.js');
+      const memories = getConversationPrimingMemories(job.userId, 'ferni');
+
+      if (memories.length < 5) {
+        log.debug({ userId: job.userId, memoryCount: memories.length }, 'Too few memories to consolidate');
+        return {
+          jobId: job.jobId,
+          summary: 'Insufficient memories for consolidation',
+          durationMs: Date.now() - startTime,
+        };
+      }
+
+      // 2. Run consolidation pass
+      const { getMemoryConsolidator } = await import('../memory/memory-consolidator.js');
+      const consolidator = getMemoryConsolidator();
+
+      // Convert to MemoryItem format expected by consolidator
+      // Note: The consolidator expects MemoryItem[] but we work with what we have
+      const memoryItems = memories.map((m) => ({
+        id: m.id,
+        type: 'moment' as const,
+        content: m.content,
+        timestamp: m.timestamp || new Date(),
+        emotionalWeight: m.emotionalWeight,
+        relevanceDecay: 0.8,
+        baseImportance: m.emotionalWeight,
+        embedding: m.embedding || [],
+      }));
+
+      // Cast to satisfy type - consolidator uses duck typing internally
+      const result = await consolidator.runConsolidationPass(memoryItems as never);
+
+      // 3. Save consolidated memories to Firestore
+      if (result.consolidated.length > 0) {
+        try {
+          const { getFirestore } = await import('firebase-admin/firestore');
+          const db = getFirestore();
+          const batch = db.batch();
+
+          for (const consolidated of result.consolidated) {
+            const docRef = db
+              .collection('bogle_users')
+              .doc(job.userId)
+              .collection('consolidated_memories')
+              .doc(consolidated.id);
+
+            batch.set(docRef, removeUndefined({
+              topic: consolidated.topic,
+              consolidatedContent: consolidated.consolidatedContent,
+              sourceMemoryIds: consolidated.sourceMemoryIds,
+              consolidatedAt: consolidated.consolidatedAt,
+              frequency: consolidated.frequency,
+              emotionalSignature: consolidated.emotionalSignature,
+              themes: consolidated.themes,
+              evolution: consolidated.evolution,
+            }));
+          }
+
+          await batch.commit();
+        } catch (saveError) {
+          log.warn({ error: String(saveError) }, 'Failed to save consolidated memories');
+        }
+      }
+
+      log.info(
+        {
+          userId: job.userId,
+          consolidated: result.consolidated.length,
+          processed: result.memoriesProcessed,
+          durationMs: result.durationMs,
+        },
+        'Memory consolidation complete'
+      );
+
+      return {
+        jobId: job.jobId,
+        summary: `Consolidated ${result.consolidated.length} memory groups from ${result.memoriesProcessed} memories`,
+        topics: result.consolidated.map((c) => c.topic),
+        durationMs: Date.now() - startTime,
+      };
+    } catch (error) {
+      log.warn({ userId: job.userId, error: String(error) }, 'Memory consolidation failed');
+      return {
+        jobId: job.jobId,
+        summary: `Consolidation error: ${String(error)}`,
+        durationMs: Date.now() - startTime,
+      };
+    }
+  }
+
+  /**
+   * Sync wrapper for consolidateMemories (backwards compatible).
+   */
+  private consolidateMemories(job: SummarizationJob & { jobId: string }): SummarizationResult {
+    // Fire async consolidation and return immediately
+    void this.consolidateMemoriesAsync(job);
 
     return {
       jobId: job.jobId,
-      summary: 'Memory consolidation scheduled',
-      durationMs: Date.now() - startTime,
+      summary: 'Memory consolidation started (async)',
+      durationMs: 0,
     };
   }
 

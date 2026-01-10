@@ -152,12 +152,12 @@ async function handleUserStats(
 /**
  * GET /api/admin/music-analytics/ab-test
  *
- * Returns A/B test results
+ * Returns A/B test results WITH statistical significance analysis
  */
 async function handleABTestResults(req: IncomingMessage, res: ServerResponse): Promise<void> {
   try {
     const analytics = getTransitionAnalytics();
-    const results = analytics.getTestResults('intelligent_transitions_v1');
+    const analysis = analytics.getTestResultsWithSignificance('intelligent_transitions_v1');
 
     sendJson(res, {
       timestamp: new Date().toISOString(),
@@ -173,7 +173,20 @@ async function handleABTestResults(req: IncomingMessage, res: ServerResponse): P
           weight: 0.8,
         },
       },
-      results: results || { note: 'Not enough data yet' },
+      // Statistical significance analysis
+      analysis: analysis
+        ? {
+            isSignificant: analysis.isSignificant,
+            pValue: analysis.pValue,
+            confidenceInterval: analysis.confidenceInterval,
+            recommendation: analysis.recommendation,
+            sampleSizeAdequate: analysis.sampleSizeAdequate,
+            minSampleSizeRequired: analysis.minSampleSize,
+            comparison: analysis.comparison,
+          }
+        : { note: 'Not enough data yet' },
+      // Raw stats for debugging
+      rawStats: analysis?.variants || null,
     });
   } catch (error) {
     log.error({ error }, 'Failed to get A/B test results');

@@ -14,7 +14,7 @@
 import { t } from '../i18n/index.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
-import { apiGet, apiPost, apiDelete } from '../utils/api.js';
+import { apiGet, apiPost, apiDelete, getApiHeadersAsync } from '../utils/api.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { toast } from './whisper.ui.js';
 
@@ -1346,11 +1346,12 @@ async function handleSettingChange(setting: keyof Household['settings'], value: 
       // Other settings can be added here as needed
     };
 
+    const headers = await getApiHeadersAsync();
     const response = await fetch(`/api/household/${userId}/settings`, {
       method: 'PATCH',
       headers: {
+        ...headers,
         'Content-Type': 'application/json',
-        'X-User-Id': userId,
       },
       body: JSON.stringify(backendSettings),
     });

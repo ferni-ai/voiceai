@@ -37,7 +37,7 @@ async function loadPersonalityBuildingBlocks(): Promise<void> {
   if (PERSONALITY_CONNECTORS) return;
 
   try {
-    const personality = await import('../personas/bundles/ferni/better-than-human-personality.js');
+    const personality = await import('../personas/shared/better-than-human-personality.js');
     // Access the CONNECTORS if exported, otherwise use defaults
     if ('CONNECTORS' in personality) {
       PERSONALITY_CONNECTORS = personality.CONNECTORS as Record<string, string[]>;

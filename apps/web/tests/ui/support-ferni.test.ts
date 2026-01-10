@@ -30,17 +30,22 @@ const mockToast = {
   warning: vi.fn(),
 };
 
-const mockSubscriptionStatus = {
-  tier: 'free' as const,
-  status: 'active' as const,
-  provider: 'none' as const,
+const mockSubscriptionStatus: {
+  tier: 'free' | 'friend' | 'partner';
+  status: 'active' | 'inactive';
+  provider: 'none' | 'stripe' | 'apple';
+} = {
+  tier: 'free',
+  status: 'active',
+  provider: 'none',
 };
 
 vi.mock('../../src/state/app.state.js', () => ({
   appState: mockAppState,
 }));
 
-vi.mock('../../src/ui/toast.ui.js', () => ({
+// Mock toast - source imports from whisper.ui.js, NOT toast.ui.js
+vi.mock('../../src/ui/whisper.ui.js', () => ({
   toast: mockToast,
 }));
 
@@ -324,7 +329,7 @@ describe('Support Ferni UI', () => {
         '/subscription/checkout',
         expect.objectContaining({
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: expect.objectContaining({ 'Content-Type': 'application/json' }),
         })
       );
     });

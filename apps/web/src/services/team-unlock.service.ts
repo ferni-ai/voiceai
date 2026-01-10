@@ -12,6 +12,7 @@
  */
 
 import { createLogger } from '../utils/logger.js';
+import { apiGet } from '../utils/api.js';
 import { relationshipStageService, type RelationshipStage } from './relationship-stage.service.js';
 
 const log = createLogger('TeamUnlock');
@@ -298,17 +299,18 @@ async function syncWithBackend(userIdOverride?: string): Promise<void> {
     }
 
     const url = `${TEAM_UNLOCK_API}?userId=${userId}`;
-    const response = await fetch(url, {
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-    });
+    const response = await apiGet<{
+      bypassMode?: string;
+      tier?: string;
+      unlockedTeamMembers?: string[];
+    }>(url);
 
-    if (!response.ok) {
+    if (!response.ok || !response.data) {
       log.warn('Failed to sync team unlocks from backend:', response.status);
       return;
     }
 
-    const data = await response.json();
+    const data = response.data;
 
     // Update bypass mode from backend
     if (data.bypassMode !== undefined) {
@@ -793,6 +795,25 @@ export function isBypassModeActive(): boolean {
  */
 export function getBypassMode(): null | 'all' | TeamMemberId[] {
   return bypassMode;
+}
+
+// ============================================================================
+// TESTING UTILITIES
+// ============================================================================
+
+/**
+ * Reset module state for testing. ONLY use in test files.
+ * @internal
+ */
+export function _resetForTesting(): void {
+  currentState = null;
+  bypassMode = null;
+  subscriptionTier = 'free';
+  _hasSyncedWithBackend = false;
+  unlockListeners.clear();
+  memberUnlockListeners.clear();
+  almostThereListeners.clear();
+  almostThereShown.clear();
 }
 
 // ============================================================================

@@ -12,6 +12,7 @@
 
 import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
 import { getLogger } from '../../utils/safe-logger.js';
+import { registerInterval, clearNamedInterval } from '../../utils/interval-manager.js';
 
 // ============================================================================
 // TYPES
@@ -116,9 +117,10 @@ const statsCache = new Map<string, ToolStats>();
 // ANALYTICS SERVICE
 // ============================================================================
 
+const TOOL_ANALYTICS_FLUSH_INTERVAL = 'tool-usage-analytics-flush';
+
 class ToolUsageAnalyticsService {
   private db: FirestoreDB | null = null;
-  private flushInterval: NodeJS.Timeout | null = null;
   private initialized = false;
 
   // Firestore collections
@@ -153,12 +155,16 @@ class ToolUsageAnalyticsService {
       }
     }
 
-    // Start periodic flush
-    this.flushInterval = setInterval(() => {
-      this.flushBuffer().catch((err) =>
-        getLogger().warn({ err }, 'Failed to flush tool analytics buffer')
-      );
-    }, BUFFER_FLUSH_INTERVAL_MS);
+    // Start periodic flush using managed interval
+    registerInterval(
+      TOOL_ANALYTICS_FLUSH_INTERVAL,
+      () => {
+        this.flushBuffer().catch((err) =>
+          getLogger().warn({ err }, 'Failed to flush tool analytics buffer')
+        );
+      },
+      BUFFER_FLUSH_INTERVAL_MS
+    );
 
     // Load existing stats into cache
     await this.loadStatsCache();
@@ -171,10 +177,7 @@ class ToolUsageAnalyticsService {
    * Shutdown and flush remaining data
    */
   async shutdown(): Promise<void> {
-    if (this.flushInterval) {
-      clearInterval(this.flushInterval);
-      this.flushInterval = null;
-    }
+    clearNamedInterval(TOOL_ANALYTICS_FLUSH_INTERVAL);
 
     await this.flushBuffer();
     getLogger().info('Tool usage analytics shut down');

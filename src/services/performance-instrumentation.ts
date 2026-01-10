@@ -20,6 +20,7 @@
  */
 
 import { getLogger } from '../utils/safe-logger.js';
+import { registerInterval, clearNamedInterval, hasInterval } from '../utils/interval-manager.js';
 
 const log = getLogger();
 
@@ -132,7 +133,6 @@ export class PerformanceInstrumentation {
   private static readonly MAX_COMPLETED_PHASES = 500;
   private static readonly MAX_TOOL_LOAD_METRICS = 200;
   private static readonly MAX_MEMORY_ALERTS = 100;
-  private autoCheckInterval: ReturnType<typeof setInterval> | null = null;
   private lastAlertLevel: 'none' | 'warning' | 'critical' = 'none';
 
   constructor() {
@@ -403,13 +403,17 @@ export class PerformanceInstrumentation {
    * Start automatic memory monitoring
    */
   startAutoMonitoring(): void {
-    if (this.autoCheckInterval) {
+    if (hasInterval(PERF_INSTRUMENTATION_INTERVAL)) {
       return; // Already running
     }
 
-    this.autoCheckInterval = setInterval(() => {
-      this.checkMemoryThresholds();
-    }, this.alertConfig.checkIntervalMs);
+    registerInterval(
+      PERF_INSTRUMENTATION_INTERVAL,
+      () => {
+        this.checkMemoryThresholds();
+      },
+      this.alertConfig.checkIntervalMs
+    );
 
     log.info(
       { intervalMs: this.alertConfig.checkIntervalMs },
@@ -421,11 +425,8 @@ export class PerformanceInstrumentation {
    * Stop automatic memory monitoring
    */
   stopAutoMonitoring(): void {
-    if (this.autoCheckInterval) {
-      clearInterval(this.autoCheckInterval);
-      this.autoCheckInterval = null;
-      log.info('⏹️ Automatic memory monitoring stopped');
-    }
+    clearNamedInterval(PERF_INSTRUMENTATION_INTERVAL);
+    log.info('⏹️ Automatic memory monitoring stopped');
   }
 
   /**

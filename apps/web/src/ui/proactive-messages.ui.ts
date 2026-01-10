@@ -15,6 +15,7 @@
  * @module ProactiveMessagesUI
  */
 
+import { apiGet, apiPost } from '../utils/api.js';
 import { createLogger } from '../utils/logger.js';
 
 const log = createLogger('ProactiveMessagesUI');
@@ -346,14 +347,15 @@ async function loadMessages(): Promise<void> {
       return;
     }
 
-    const response = await fetch(`/api/outreach/pending-messages?userId=${userId}`);
-    if (!response.ok) {
+    const response = await apiGet<{ messages?: PendingMessage[] }>(
+      `/api/outreach/pending-messages?userId=${userId}`
+    );
+    if (!response.ok || !response.data) {
       log.warn('Failed to fetch messages', { status: response.status });
       return;
     }
 
-    const data = await response.json();
-    state.messages = data.messages || [];
+    state.messages = response.data.messages || [];
     state.hasUnread = state.messages.length > 0;
 
     updateIndicator();
@@ -520,9 +522,7 @@ async function dismissMessage(): Promise<void> {
   // Mark as read in backend
   try {
     const userId = getUserId();
-    await fetch(`/api/outreach/messages/${message.id}/read?userId=${userId}`, {
-      method: 'POST',
-    });
+    await apiPost(`/api/outreach/messages/${message.id}/read?userId=${userId}`, {});
   } catch (error) {
     log.warn({ error: String(error) }, 'Failed to mark message as read');
   }

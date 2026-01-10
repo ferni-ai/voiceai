@@ -88,7 +88,7 @@ declare module '@xenova/transformers' {
   }
 
   export type Pipeline = (
-    inputs: string | string[] | { text: string; text_pair: string }[]
+    inputs: string | string[] | Array<{ text: string; text_pair: string }>
   ) => Promise<PipelineResult[] | PipelineResult[][]>;
 
   export function pipeline(

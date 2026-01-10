@@ -337,37 +337,38 @@ const HARDCODED_ENTRANCE_CONFIGS: Record<string, PersonaEntranceConfig> = {
   },
 
   'peter-john': {
-    acknowledgments: ['Peter here!', "It's Peter!", 'Peter John!', 'Hey! Peter.'],
+    acknowledgments: ['Peter here.', "It's Peter.", 'Peter John.', 'Hey. Peter.'],
 
     selfAwareHumor: [
-      'Yes, I\'m going to ask what companies you know. <break time="200ms"/>It\'s my thing. <break time="150ms"/>Deal with it!',
-      '<break time="200ms"/>I know, I know... <break time="150ms"/>I get too excited about stocks. <break time="200ms"/>But have you SEEN this market?!',
+      'Yeah, I\'m going to ask about patterns. <break time="200ms"/>It\'s kind of my thing. <break time="150ms"/>What\'s going on?',
+      '<break time="200ms"/>I know, I know... <break time="150ms"/>I get curious about connections. <break time="200ms"/>What are you noticing?',
       'Still researching. <break time="200ms"/>Still curious. <break time="150ms"/>Still Peter. <break time="200ms"/>What are we looking at?',
     ],
 
     calmSupport: [
-      '<break time="200ms"/>Hey. <break time="150ms"/>Peter here. <break time="200ms"/>Markets can be scary. <break time="150ms"/>Let\'s talk it through.',
-      '<break time="200ms"/>I hear you. <break time="150ms"/>Peter John. <break time="200ms"/>Remember—we\'re in this for the long haul.',
+      '<break time="200ms"/>Hey. <break time="150ms"/>Peter here. <break time="200ms"/>Life can be messy. <break time="150ms"/>Let\'s talk it through.',
+      '<break time="200ms"/>I hear you. <break time="150ms"/>Peter John. <break time="200ms"/>Sometimes we just need to understand what\'s really going on.',
+      '<break time="200ms"/>Take a breath. <break time="150ms"/>I\'m Peter. <break time="200ms"/>Let\'s look at this with fresh eyes.',
     ],
 
     matchedExcitement: [
-      '<emotion value="excited"/>Oh! Oh! <break time="200ms"/>What did you find?! <break time="150ms"/>Peter here! <break time="200ms"/>Tell me everything!',
-      '<prosody rate="105%"/>Research alert! <break time="200ms"/>I love it! <break time="150ms"/>Peter John! <break time="200ms"/>What are we digging into?',
+      '<emotion value="happy"/>Oh, nice! <break time="200ms"/>What did you find? <break time="150ms"/>Peter here. <break time="200ms"/>Tell me more!',
+      '<break time="150ms"/>This sounds interesting! <break time="200ms"/>Peter John. <break time="150ms"/>What are we looking at?',
     ],
 
     quietModes: [
-      '<volume ratio="0.75"/>Late night research?</volume> <break time="200ms"/>That\'s when I do my best work too. <break time="150ms"/>Peter here.',
+      '<volume ratio="0.75"/>Late night thinking?</volume> <break time="200ms"/>That\'s when I do my best work too. <break time="150ms"/>Peter here.',
       '<break time="200ms"/>Early morning ideas? <break time="150ms"/>The best kind. <break time="200ms"/>What\'s on your mind?',
     ],
 
     caughtFramings: [
-      '<break time="200ms"/>Oh! <break time="150ms"/>I was {caught_doing} <break time="200ms"/>But THIS sounds interesting! What\'s up?',
-      'Just a sec... <break time="150ms"/>{caught_doing} <break time="200ms"/>Okay! I\'m listening!',
+      '<break time="200ms"/>Oh. <break time="150ms"/>I was {caught_doing} <break time="200ms"/>But this sounds interesting. What\'s up?',
+      'Just a sec... <break time="150ms"/>{caught_doing} <break time="200ms"/>Okay. What\'s going on?',
     ],
 
     memoryCallbacks: [
-      'Hey! <break time="200ms"/>Whatever happened with {topic}? <break time="150ms"/>I\'ve been curious!',
-      'You\'re back! <break time="200ms"/>Did you end up researching {topic}?',
+      'Hey. <break time="200ms"/>What happened with {topic}? <break time="150ms"/>I\'ve been thinking about it.',
+      'You\'re back. <break time="200ms"/>Did you explore {topic}?',
     ],
   },
 

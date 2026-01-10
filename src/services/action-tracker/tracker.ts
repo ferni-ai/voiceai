@@ -11,7 +11,10 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { registerInterval, clearNamedInterval, hasInterval } from '../../utils/interval-manager.js';
 import { getFirestoreDb, cleanForFirestore } from '../superhuman/firestore-utils.js';
+// Two-way integration: Close commitments when actions complete
+import { onActionCompleted as notifyCommitmentKeeperOfAction } from '../superhuman/commitment-keeper.js';
 import type {
   FerniAction,
   ActionType,
@@ -251,6 +254,17 @@ export class ActionTracker {
       { actionId, success: options.success, resultSummary: options.resultSummary },
       'Action execution completed'
     );
+
+    // Two-way integration: Notify commitment keeper to close matching commitments
+    // Fire-and-forget - don't block on commitment updates
+    void notifyCommitmentKeeperOfAction({
+      userId: action.userId,
+      actionType: action.type,
+      target: action.request.target,
+      commitmentId: action.request.commitmentId,
+      success: options.success,
+      resultSummary: options.resultSummary,
+    });
 
     return action;
   }
@@ -635,12 +649,39 @@ export class ActionTracker {
 
 let trackerInstance: ActionTracker | null = null;
 
+/** Cleanup interval: 6 hours (run 4x per day) */
+const CLEANUP_INTERVAL_MS = 6 * 60 * 60 * 1000;
+const CLEANUP_INTERVAL_NAME = 'action-tracker-cleanup';
+
 /**
  * Get the singleton ActionTracker instance.
  */
 export function getActionTracker(): ActionTracker {
   if (!trackerInstance) {
     trackerInstance = new ActionTracker();
+
+    // Schedule periodic cleanup (90-day TTL)
+    if (!hasInterval(CLEANUP_INTERVAL_NAME)) {
+      // Run initial cleanup after 1 minute (let other systems initialize first)
+      setTimeout(() => {
+        trackerInstance?.cleanupOldActions().catch((err) => {
+          log.debug({ error: String(err) }, 'Initial action cleanup failed');
+        });
+      }, 60000);
+
+      // Schedule recurring cleanup every 6 hours using managed interval
+      registerInterval(
+        CLEANUP_INTERVAL_NAME,
+        () => {
+          trackerInstance?.cleanupOldActions().catch((err) => {
+            log.debug({ error: String(err) }, 'Scheduled action cleanup failed');
+          });
+        },
+        CLEANUP_INTERVAL_MS
+      );
+
+      log.info('Action tracker TTL cleanup scheduled (every 6 hours)');
+    }
   }
   return trackerInstance;
 }
@@ -653,4 +694,7 @@ export function resetActionTracker(): void {
     trackerInstance.clearCache();
   }
   trackerInstance = null;
+
+  // Clear cleanup interval
+  clearNamedInterval(CLEANUP_INTERVAL_NAME);
 }

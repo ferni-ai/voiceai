@@ -67,6 +67,8 @@ export const CHANNELS = {
   PRESENCE: 'ferni:presence',
   /** Predictive coaching triggers */
   PREDICTIONS: 'ferni:predictions',
+  /** User events (theme changes, navigation, etc.) */
+  USER_EVENTS: 'ferni:user-events',
 } as const;
 
 export type Channel = (typeof CHANNELS)[keyof typeof CHANNELS];
@@ -401,8 +403,14 @@ export async function shutdownRedisPubSub(): Promise<void> {
  * Publish a session event
  */
 export async function publishSessionEvent(
-  event: 'handoff' | 'end' | 'presence',
-  data: { userId: string; sessionId: string; personaId?: string; [key: string]: unknown }
+  event: 'handoff' | 'end' | 'presence' | 'session_start' | 'session_end',
+  data: {
+    userId: string;
+    sessionId: string;
+    personaId?: string;
+    metadata?: Record<string, unknown>;
+    [key: string]: unknown;
+  }
 ): Promise<boolean> {
   const pubsub = getRedisPubSub();
   return pubsub.publish(CHANNELS.SESSION, { event, ...data });

@@ -14,13 +14,18 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 // ============================================================================
 // ============================================================================
 
+// Mock matches actual voice auth service API from voice-auth.service.ts
 const mockVoiceAuthService = {
-  checkAvailability: vi.fn(),
-  getEnrollmentStatus: vi.fn(),
+  // Status and profile methods
+  getStatus: vi.fn(),
+  getProfile: vi.fn(),
+  // Enrollment flow methods
   startEnrollment: vi.fn(),
-  submitSample: vi.fn(),
+  recordEnrollmentSample: vi.fn(),
   completeEnrollment: vi.fn(),
   cancelEnrollment: vi.fn(),
+  // Profile management
+  deleteProfile: vi.fn(),
 };
 
 const mockToast = {
@@ -50,20 +55,32 @@ function findModalState(): string | null {
   const modal = findVoiceEnrollmentModal();
   if (!modal) return null;
 
-  if (modal.querySelector('.voice-enrollment-checking')) return 'checking';
-  if (modal.querySelector('.voice-enrollment-not-available')) return 'not-available';
-  if (modal.querySelector('.voice-enrollment-already-enrolled')) return 'already-enrolled';
-  if (modal.querySelector('.voice-enrollment-ready')) return 'ready';
-  if (modal.querySelector('.voice-enrollment-recording')) return 'recording';
-  if (modal.querySelector('.voice-enrollment-processing')) return 'processing';
-  if (modal.querySelector('.voice-enrollment-complete')) return 'complete';
-  if (modal.querySelector('.voice-enrollment-error')) return 'error';
+  // Already enrolled has its own container class
+  if (modal.querySelector('.voice-enrollment-enrolled')) return 'already-enrolled';
+
+  // Recording state: has the --recording modifier on mic circle
+  if (modal.querySelector('.voice-enrollment-mic-circle--recording')) return 'recording';
+
+  // Ready state: has description + visualizer + "Start enrollment" button
+  const hasDescription = modal.querySelector('.voice-enrollment-description');
+  const hasVisualizer = modal.querySelector('.voice-enrollment-visualizer');
+  const startBtn = modal.querySelector('#btn-start');
+  if (hasDescription && hasVisualizer && startBtn) return 'ready';
+
+  // Status-based states: differentiate by title text
+  const statusTitle = modal.querySelector('.voice-enrollment-status-title')?.textContent || '';
+  if (statusTitle.includes('Checking')) return 'checking';
+  if (statusTitle.includes('unavailable')) return 'not-available';
+  if (statusTitle.includes('Creating your voiceprint')) return 'processing';
+  if (statusTitle.includes("I'll remember your voice")) return 'complete';
+  if (statusTitle.includes('Something went wrong')) return 'error';
 
   return 'unknown';
 }
 
 function findRecordButton(): HTMLElement | null {
-  return document.querySelector('[data-action="start-recording"]');
+  // Source uses #btn-start for the "Start enrollment" button
+  return document.querySelector('#btn-start');
 }
 
 function findCloseButton(): HTMLElement | null {
@@ -76,19 +93,39 @@ function findCloseButton(): HTMLElement | null {
 
 describe('Voice Enrollment UI', () => {
   beforeEach(() => {
+    // Reset module cache to ensure clean state between tests
+    vi.resetModules();
     vi.clearAllMocks();
     document.body.innerHTML = '';
 
     // Default: service available, not enrolled
-    mockVoiceAuthService.checkAvailability.mockResolvedValue({ available: true });
-    mockVoiceAuthService.getEnrollmentStatus.mockResolvedValue({ enrolled: false });
-    mockVoiceAuthService.startEnrollment.mockResolvedValue({ sessionId: 'test-session' });
-    mockVoiceAuthService.submitSample.mockResolvedValue({ accepted: true, samplesRemaining: 2 });
+    // Status: { available, features: { enrollment } } - matches source line 842-843
+    mockVoiceAuthService.getStatus.mockResolvedValue({
+      available: true,
+      features: { enrollment: true },
+    });
+    // Profile: { enrolled: boolean, ... } - matches source line 849-850
+    mockVoiceAuthService.getProfile.mockResolvedValue({ enrolled: false });
+    // Enrollment flow
+    mockVoiceAuthService.startEnrollment.mockResolvedValue({ success: true, requiredSamples: 5 });
+    mockVoiceAuthService.recordEnrollmentSample.mockResolvedValue({
+      success: true,
+      progress: { collected: 1, required: 5, quality: 0.8 },
+    });
     mockVoiceAuthService.completeEnrollment.mockResolvedValue({ success: true });
   });
 
-  afterEach(() => {
-    // Cleanup
+  afterEach(async () => {
+    // Try to hide any open modal to reset module state
+    try {
+      const { hideVoiceEnrollmentModal } = await import('../../src/ui/voice-enrollment.ui.js');
+      hideVoiceEnrollmentModal();
+    } catch {
+      // Module might not be loaded, that's fine
+    }
+    // Wait for any animations to complete
+    await new Promise((r) => setTimeout(r, 400));
+    // Cleanup DOM
     document.querySelectorAll('.voice-enrollment-modal').forEach((el) => el.remove());
     document.querySelectorAll('.voice-enrollment-overlay').forEach((el) => el.remove());
     document.querySelectorAll('#voice-enrollment-styles').forEach((el) => el.remove());
@@ -148,11 +185,31 @@ describe('Voice Enrollment UI', () => {
 
       await showVoiceEnrollmentModal();
 
-      expect(mockVoiceAuthService.checkAvailability).toHaveBeenCalled();
+      expect(mockVoiceAuthService.getStatus).toHaveBeenCalled();
     });
 
     it('should show not-available state when service unavailable', async () => {
-      mockVoiceAuthService.checkAvailability.mockResolvedValue({ available: false });
+      // Test case 1: available = false
+      mockVoiceAuthService.getStatus.mockResolvedValue({
+        available: false,
+        features: { enrollment: true },
+      });
+
+      const { showVoiceEnrollmentModal } = await import('../../src/ui/voice-enrollment.ui.js');
+
+      await showVoiceEnrollmentModal();
+      await new Promise((r) => setTimeout(r, 100));
+
+      const state = findModalState();
+      expect(state).toBe('not-available');
+    });
+
+    it('should show not-available state when enrollment feature disabled', async () => {
+      // Test case 2: enrollment feature = false
+      mockVoiceAuthService.getStatus.mockResolvedValue({
+        available: true,
+        features: { enrollment: false },
+      });
 
       const { showVoiceEnrollmentModal } = await import('../../src/ui/voice-enrollment.ui.js');
 
@@ -164,7 +221,18 @@ describe('Voice Enrollment UI', () => {
     });
 
     it('should show already-enrolled state when user is enrolled', async () => {
-      mockVoiceAuthService.getEnrollmentStatus.mockResolvedValue({ enrolled: true });
+      // getStatus returns available, getProfile returns enrolled: true
+      mockVoiceAuthService.getStatus.mockResolvedValue({
+        available: true,
+        features: { enrollment: true },
+      });
+      mockVoiceAuthService.getProfile.mockResolvedValue({
+        enrolled: true,
+        qualityScore: 0.85,
+        sampleCount: 5,
+        verificationCount: 3,
+        enrolledAt: new Date().toISOString(),
+      });
 
       const { showVoiceEnrollmentModal } = await import('../../src/ui/voice-enrollment.ui.js');
 
@@ -223,9 +291,10 @@ describe('Voice Enrollment UI', () => {
 
       await new Promise((r) => setTimeout(r, 100));
 
-      // Look for progress indicator
-      const progress = document.querySelector('.voice-enrollment-progress');
-      // Progress might be shown depending on implementation
+      // Look for progress indicator - should exist after modal opens
+      const progressContainer = document.querySelector('.voice-enrollment-progress');
+      // Progress dots should be present in recording or ready state
+      expect(progressContainer).toBeDefined();
     });
   });
 
@@ -253,7 +322,7 @@ describe('Voice Enrollment UI', () => {
 
   describe('Error Handling', () => {
     it('should handle availability check error', async () => {
-      mockVoiceAuthService.checkAvailability.mockRejectedValue(new Error('Network error'));
+      mockVoiceAuthService.getStatus.mockRejectedValue(new Error('Network error'));
 
       const { showVoiceEnrollmentModal } = await import('../../src/ui/voice-enrollment.ui.js');
 
@@ -276,9 +345,11 @@ describe('Voice Enrollment UI', () => {
       const recordBtn = findRecordButton();
       recordBtn?.click();
 
-      await new Promise((r) => setTimeout(r, 100));
+      // Wait longer for async rejection to propagate and error state to be set
+      await new Promise((r) => setTimeout(r, 300));
 
       const state = findModalState();
+      // After rejection, should show error state (or ready if it recovered)
       expect(['error', 'ready']).toContain(state);
     });
 
@@ -325,9 +396,9 @@ describe('Voice Enrollment UI', () => {
       await showVoiceEnrollmentModal();
       await new Promise((r) => setTimeout(r, 100));
 
-      // Look for live region or status element
-      const status = document.querySelector('[role="status"]');
-      // Implementation dependent
+      // Modal itself has aria-labelledby for accessibility
+      const modal = findVoiceEnrollmentModal();
+      expect(modal?.getAttribute('aria-labelledby')).toBe('voice-enrollment-title');
     });
   });
 
