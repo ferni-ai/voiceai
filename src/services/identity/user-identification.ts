@@ -121,7 +121,7 @@ export function formatPhoneForDisplay(phone: string): string {
 // ============================================================================
 
 export interface IdentificationSource {
-  type: 'phone' | 'web_auth' | 'firebase' | 'device' | 'anonymous';
+  type: 'phone' | 'web_auth' | 'firebase' | 'device' | 'anonymous' | 'sponsored';
   identifier: string;
   metadata?: Record<string, string>;
 }
@@ -134,11 +134,22 @@ export interface IdentificationResult {
   profile: UserProfile | null;
   source: IdentificationSource;
   linkedIdentifiers: string[]; // Other identifiers linked to this user
+  /** For sponsored identities: the sponsor's user ID */
+  sponsorUserId?: string;
+  /** For sponsored identities: the identity ID */
+  sponsoredIdentityId?: string;
+  /** For sponsored identities: whether voice is enrolled */
+  voiceEnrolled?: boolean;
 }
 
 /**
  * Identify user from phone number
  * Uses persistent phone cache for O(1) lookups after restart
+ *
+ * Priority:
+ * 1. Sponsored identities (family members created by sponsors)
+ * 2. Linked phone numbers (web users who linked their phone)
+ * 3. New user
  */
 export async function identifyByPhone(phoneNumber: string): Promise<IdentificationResult> {
   const normalized = normalizePhoneNumber(phoneNumber);
@@ -146,6 +157,56 @@ export async function identifyByPhone(phoneNumber: string): Promise<Identificati
 
   getLogger().info({ phone: normalized }, 'Identifying user by phone number');
 
+  // Priority 1: Check sponsored identities first (family members)
+  try {
+    const { lookupByPhone } = await import('./sponsored-identity.js');
+    const sponsoredLookup = await lookupByPhone(normalized);
+
+    if (sponsoredLookup.found && sponsoredLookup.identity) {
+      const identity = sponsoredLookup.identity;
+
+      getLogger().info(
+        {
+          phone: normalized,
+          identityId: identity.id,
+          displayName: identity.displayName,
+          sponsorUserId: identity.sponsorUserId,
+        },
+        '🎉 Identified sponsored identity by phone'
+      );
+
+      // For sponsored identities, we use the identity ID as the user ID
+      // This gives them their own profile and conversation history
+      const sponsoredUserId = identity.id;
+      const profile = await store.getProfile(sponsoredUserId);
+
+      return {
+        userId: createUserId(sponsoredUserId),
+        isNew: !profile,
+        isReturning: profile ? profile.totalConversations > 0 : false,
+        profile,
+        source: {
+          type: 'sponsored',
+          identifier: normalized,
+          metadata: {
+            displayName: identity.displayName,
+            relationship: identity.relationship,
+          },
+        },
+        linkedIdentifiers: [],
+        sponsorUserId: identity.sponsorUserId,
+        sponsoredIdentityId: identity.id,
+        voiceEnrolled: identity.voiceEnrolled,
+      };
+    }
+  } catch (error) {
+    getLogger().debug(
+      { error: String(error), phone: normalized },
+      'Error checking sponsored identities (continuing with regular lookup)'
+    );
+  }
+
+  // Priority 2: Check linked phone numbers (web users)
   // Import memory management for persistent phone cache
   const { getCachedPhoneMapping, savePhoneMapping } =
     await import('../memory/memory-management.js');
@@ -183,7 +244,7 @@ export async function identifyByPhone(phoneNumber: string): Promise<Identificati
     };
   }
 
-  // New user - create ID from phone number
+  // Priority 3: New user - create ID from phone number
   const newUserId = createUserId(`phone:${normalized}`);
   await savePhoneMapping(normalized, newUserId);
 
@@ -241,6 +302,9 @@ export async function identifyByWebAuth(
  * 1. Explicit user ID (from authenticated context)
  * 2. Firebase UID (primary for web users)
  * 3. Phone number (from SIP/telephony)
+ *    3a. First checks sponsored identities (family members)
+ *    3b. Then checks linked phone numbers (web users)
+ *    3c. Creates new user if unknown
  * 4. Auth token (legacy)
  * 5. Device ID (fallback, for migration)
  * 6. Anonymous session (truly unknown users)

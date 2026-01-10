@@ -253,6 +253,7 @@ export const BUILDER_MANIFEST: Record<BuilderCategory, string[]> = {
   // pacing control that cannot be misinterpreted. Legacy builder disabled.
   [BuilderCategory.CONTEXT]: [
     'outbound-call-context', // On-behalf call purpose, script, compliance (runs early for outbound calls)
+    'inbound-call-context', // Inbound phone call identity, recognition status, sponsored identity context
     'domain-fluency', // CONCEPTUAL capability awareness - what Ferni can help with (human-level)
     'tool-capabilities', // TECHNICAL tool capabilities (JSON format, function names)
     'dynamic-tool-guidance', // High priority - injects tool hints based on user request
@@ -267,6 +268,7 @@ export const BUILDER_MANIFEST: Record<BuilderCategory, string[]> = {
     'trust-context',
     'relationship-behaviors',
     'session-flow',
+    'natural-discovery', // Gentle prompts to learn about dreams, values, goals
     'calendar-awareness',
     'contact-awareness',
     'message-review-awareness', // Alex: injects calendar snapshot for scheduling context

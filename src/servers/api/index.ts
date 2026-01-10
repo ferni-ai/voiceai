@@ -115,6 +115,7 @@ import { handleVoiceHumanizationRoutes } from '../../api/voice-humanization-rout
 import { handleLifeContextRoutes } from '../../api/life-context-routes.js';
 import { handleSpeechMetricsRoutes } from '../../api/speech-metrics-routes.js';
 import { handleVoiceAuthRoutes } from '../../api/voice-auth.routes.js';
+import { handleSponsoredIdentityRoutes } from '../../api/sponsored-identity-routes.js';
 import { handleUserRoutes } from '../../api/user-routes.js';
 import { handleWaitlistRoutes } from '../../api/waitlist-routes.js';
 import { handleHabitRoutes } from '../../api/habit-routes.js';
@@ -122,6 +123,18 @@ import { handleWellbeingRoutes } from '../../api/wellbeing.routes.js';
 import { handleYourStoryRoutes } from '../../api/your-story-routes.js';
 import { handlePredictiveInsightsRequest } from '../../api/predictive-insights-routes.js';
 import { handleIntelligenceRoutes } from '../../api/routes/intelligence-routes.js';
+import { handleTeamInsightsRoutes } from '../../api/routes/team-insights.js';
+import { handleCommitmentsRoutes } from '../../api/routes/commitments.js';
+import { handleConversationThreadsRoutes } from '../../api/routes/conversation-threads.js';
+import { handleConversationsRoutes } from '../../api/routes/conversations.js';
+import { handleGroupCoachingRoutes } from '../../api/routes/group-coaching.js';
+import { handleGrowthRoutes } from '../../api/routes/growth.js';
+import { handleVideoSessionRoutes } from '../../api/routes/video-sessions.js';
+import { handleWearableRoutes } from '../../api/routes/wearable.js';
+import { handleMemoriesRoutes } from '../../api/routes/memories.js';
+import { handleReviewsRoutes as handleMarketplaceReviewsRoutes } from '../../api/routes/marketplace-reviews.js';
+import { handleLandingAIRoutes } from '../../api/routes/landing-ai.js';
+import { handleSanctuaryRoutes } from '../../api/sanctuary-routes.js';
 import { handleScheduledJobsRoutes } from '../../api/scheduled-jobs.routes.js';
 import { handleEvalOpsRoutes } from '../../api/evalops.routes.js';
 import { handleHouseholdRoutes } from '../../api/household-routes.js';
@@ -184,6 +197,12 @@ import {
   initLifeContextWebSocket,
   shutdownLifeContextWebSocket,
 } from '../../services/life-context-websocket.js';
+
+// WebSocket for user events (voice-triggered theme/navigation changes)
+import {
+  initUserEventsWebSocket,
+  shutdownUserEventsWebSocket,
+} from '../../services/user-events-websocket.js';
 import { handleMarketplaceRoutes } from '../../api/marketplace-routes.js';
 // SECURITY: Uses new modular version with Firebase auth (no x-user-id)
 import { handleCustomAgentRoutes } from '../../api/custom-agent/index.js';
@@ -913,6 +932,12 @@ const server = http.createServer(async (req, res) => {
       if (handled) return;
     }
 
+    // Sponsored identity routes (phone-based family member management)
+    if (pathname.startsWith('/api/sponsored-identities')) {
+      const handled = await handleSponsoredIdentityRoutes(req, res, pathname);
+      if (handled) return;
+    }
+
     // User routes
     if (pathname.startsWith('/api/user')) {
       const handled = await handleUserRoutes(req, res, pathname, parsedUrl);
@@ -1047,6 +1072,78 @@ const server = http.createServer(async (req, res) => {
     // Intelligence routes (Better Than Human)
     if (pathname.startsWith('/api/intelligence')) {
       const handled = await handleIntelligenceRoutes(req, res, pathname, parsedUrl);
+      if (handled) return;
+    }
+
+    // Team insights routes (What We Notice - cross-persona intelligence)
+    if (pathname.startsWith('/api/team-insights')) {
+      const handled = await handleTeamInsightsRoutes(req, res, pathname, parsedUrl);
+      if (handled) return;
+    }
+
+    // Commitments routes (Better Than Human - never forget promises)
+    if (pathname.startsWith('/api/commitments')) {
+      const handled = await handleCommitmentsRoutes(req, res, pathname, parsedUrl);
+      if (handled) return;
+    }
+
+    // Conversation threads routes (Better Than Human - track topics)
+    if (pathname.startsWith('/api/conversations/threads')) {
+      const handled = await handleConversationThreadsRoutes(req, res, pathname, parsedUrl);
+      if (handled) return;
+    }
+
+    // Conversations routes
+    if (pathname.startsWith('/api/conversations')) {
+      const handled = await handleConversationsRoutes(req, res, pathname, parsedUrl);
+      if (handled) return;
+    }
+
+    // Group coaching routes (multi-participant sessions)
+    if (pathname.startsWith('/api/group')) {
+      const handled = await handleGroupCoachingRoutes(req, res, pathname, parsedUrl);
+      if (handled) return;
+    }
+
+    // Growth visibility routes
+    if (pathname.startsWith('/api/growth')) {
+      const handled = await handleGrowthRoutes(req, res, pathname, parsedUrl);
+      if (handled) return;
+    }
+
+    // Video session routes
+    if (pathname.startsWith('/api/video')) {
+      const handled = await handleVideoSessionRoutes(req, res, pathname, parsedUrl);
+      if (handled) return;
+    }
+
+    // Wearable integration routes
+    if (pathname.startsWith('/api/wearable')) {
+      const handled = await handleWearableRoutes(req, res, pathname, parsedUrl);
+      if (handled) return;
+    }
+
+    // Cognitive memories routes
+    if (pathname.startsWith('/api/cognitive')) {
+      const handled = await handleMemoriesRoutes(req, res, pathname, parsedUrl);
+      if (handled) return;
+    }
+
+    // Marketplace reviews routes
+    if (pathname.startsWith('/api/marketplace/reviews')) {
+      const handled = await handleMarketplaceReviewsRoutes(req, res, pathname);
+      if (handled) return;
+    }
+
+    // Landing AI routes
+    if (pathname.startsWith('/api/landing/ai')) {
+      const handled = await handleLandingAIRoutes(req, res, pathname, parsedUrl);
+      if (handled) return;
+    }
+
+    // Sanctuary routes (mindfulness, practices)
+    if (pathname.startsWith('/api/sanctuary')) {
+      const handled = await handleSanctuaryRoutes(req, res, pathname);
       if (handled) return;
     }
 
@@ -1290,6 +1387,10 @@ log.info('Insights WebSocket server initialized on /ws/insights');
 initLifeContextWebSocket(server);
 log.info('Life Context WebSocket server initialized on /ws/life-context');
 
+// Initialize WebSocket server for user events (voice-triggered UI changes)
+initUserEventsWebSocket(server);
+log.info('User Events WebSocket server initialized on /ws/user-events');
+
 // Register DDoS alerting to Slack
 registerDDoSAlertCallback(async (details) => {
   await notifyDDoSAlert(details);
@@ -1378,6 +1479,7 @@ async function gracefulShutdown(): Promise<void> {
   // Shutdown WebSocket servers first
   shutdownInsightsWebSocket();
   shutdownLifeContextWebSocket();
+  shutdownUserEventsWebSocket();
 
   // Stop proactive scheduler
   stopProactiveScheduler();

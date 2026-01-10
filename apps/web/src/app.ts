@@ -156,6 +156,11 @@ import {
   disposeCrossTeamNotifications,
   initCrossTeamNotifications as _initCrossTeamNotifications,
 } from './services/cross-team-notifications.service.js';
+// Voice Events - Real-time voice-triggered UI changes (theme, navigation)
+import {
+  disposeVoiceEvents,
+  initVoiceEvents as _initVoiceEvents,
+} from './services/voice-events.service.js';
 // Avatar Soul - Pixar-quality "Better Than Human" visual animation system
 import { avatarSoul as _avatarSoul, disposeAvatarSoul, initAvatarSoul as _initAvatarSoul } from './ui/avatar-soul.ui.js';
 // Avatar Lamp - Luxo Jr. level body language animation
@@ -190,6 +195,7 @@ import { shouldUseDemoData } from './utils/environment.js';
 import accentSettingsUI from './ui/accent-settings.ui.js';
 import { initAnalyticsDashboardUI } from './ui/analytics-dashboard.ui.js';
 import { initCognitiveInsightsUI } from './ui/cognitive-insights.ui.js';
+import { initGameBoard, destroyGameBoard } from './ui/game-board.ui.js';
 import { getCommandsPanelUI, setCommandsPersonaId } from './ui/commands.ui.js';
 import { getSanctuaryUI } from './ui/sanctuary.ui.js';
 import { initConversationHistoryUI } from './ui/conversation-history.ui.js';
@@ -198,6 +204,11 @@ import { initPredictionTrackerUI } from './ui/prediction-tracker.ui.js';
 import { getRitualBuilderUI, initRitualBuilderUI } from './ui/ritual-builder.ui.js';
 import { getSettingsMenuUI, initSettingsMenuUI } from './ui/settings-menu.ui.js';
 import { initActivityUI, showActivity } from './ui/activity.ui.js';
+// New feature UIs - Memory Lane, Knowledge Quiz, Growth Journal, Pattern Insights
+import { memoryLaneUI } from './ui/memory-lane.ui.js';
+import { openKnowledgeQuiz } from './ui/knowledge-quiz.ui.js';
+import { openGrowthJournal } from './ui/growth-journal.ui.js';
+import { patternInsightsUI } from './ui/pattern-insights.ui.js';
 // Services for feature persistence
 import {
   conversationTracker,
@@ -261,6 +272,7 @@ import { initVoiceIdBadge } from './ui/voice-id-badge.ui.js';
 import { initSpeakerChangeIndicator } from './ui/speaker-change-indicator.ui.js';
 // Household Manager - Multi-user voice household management
 import { initHouseholdManager, showHouseholdManager } from './ui/household-manager.ui.js';
+import { FamilyIdentities } from './ui/family-identities.ui.js';
 // Conversation Memory Browser - Browse past conversations and memories
 import { initConversationMemory, showConversationMemory } from './ui/conversation-memory.ui.js';
 // Wellbeing Dashboard - "State of Me" visualization
@@ -402,6 +414,7 @@ import {
   handleDataMessage,
   handleEngagementTrigger,
   setShowTeamHuddleCallback,
+  getLastAgentResponse,
 } from './app/data-message-handlers.js';
 
 // ============================================================================
@@ -865,6 +878,9 @@ class VoiceAIApp {
     transcriptUI.hide();
     engagementTriggerUI.hide();
 
+    // Clean up game board UI
+    destroyGameBoard();
+
     // End session stats - get duration before ending
     const sessionStats = statsUI.getStats();
     const durationMinutes = sessionStats.startTime
@@ -1238,6 +1254,27 @@ class VoiceAIApp {
           void this.disconnect();
         },
         onMuteToggle: () => this.toggleMute(),
+        onRepeat: () => {
+          const lastResponse = getLastAgentResponse();
+          if (!lastResponse) {
+            messageUI.show("Nothing to repeat yet", 'info', 1500);
+            return;
+          }
+          // Send repeat request to backend via data channel
+          const room = connectionService.getRoom();
+          if (room?.localParticipant) {
+            const message = JSON.stringify({
+              type: 'repeat_last',
+              text: lastResponse.text,
+              personaId: lastResponse.personaId,
+            });
+            void room.localParticipant.publishData(
+              new TextEncoder().encode(message),
+              { reliable: true }
+            );
+            log.info('🔄 Repeat last response requested', { text: lastResponse.text.slice(0, 50) + '...' });
+          }
+        },
       })
     );
 
@@ -1279,6 +1316,26 @@ class VoiceAIApp {
       const { initCelebrationsUI } = await import('./ui/celebrations.ui.js');
       initCelebrationsUI();
     });
+    // 🎭 Quick Reactions - floating panel for sending reactions during calls
+    this.deferredInit('QuickReactionsUI', 300, async () => {
+      const { initQuickReactionsUI } = await import('./ui/quick-reactions.ui.js');
+      initQuickReactionsUI();
+    });
+    // 📜 Music History - slide-out drawer showing recently played tracks
+    this.deferredInit('MusicHistoryUI', 300, async () => {
+      const { initMusicHistoryUI } = await import('./ui/music-history.ui.js');
+      initMusicHistoryUI();
+    });
+    // 🔖 Bookmark - double-tap avatar to save moments
+    this.deferredInit('BookmarkUI', 300, async () => {
+      const { initBookmarkUI } = await import('./ui/bookmark.ui.js');
+      initBookmarkUI();
+    });
+    // 🔥 Streak - daily usage streak visualization near avatar
+    this.deferredInit('StreakUI', 300, async () => {
+      const { initStreakUI } = await import('./ui/streak.ui.js');
+      initStreakUI();
+    });
     this.deferredInit('StatsUI', 300, async () => {
       const { initStatsUI } = await import('./ui/stats.ui.js');
       initStatsUI();
@@ -1299,7 +1356,72 @@ class VoiceAIApp {
       const { initEasterEggsUI } = await import('./ui/easter-eggs.ui.js');
       initEasterEggsUI();
     });
-    
+    // 🎂 Ferni Birthday - special celebration on June 15
+    this.deferredInit('FerniBirthdayUI', 500, async () => {
+      const { initFerniBirthdayUI } = await import('./ui/ferni-birthday.ui.js');
+      initFerniBirthdayUI();
+    });
+    // 🎨 Mood Backgrounds - subtle color shifts based on emotional mood
+    this.deferredInit('MoodBackgroundsUI', 200, async () => {
+      const { initMoodBackgroundsUI } = await import('./ui/mood-backgrounds.ui.js');
+      initMoodBackgroundsUI();
+    });
+    // 👆 Avatar Tap Reactions - tap avatar for laugh/wink reactions
+    this.deferredInit('AvatarTapReactionsUI', 400, async () => {
+      const { initAvatarTapReactionsUI } = await import('./ui/avatar-tap-reactions.ui.js');
+      initAvatarTapReactionsUI();
+    });
+    // 😴 Sleep Mode - gentle resting animation when idle
+    this.deferredInit('SleepModeUI', 1000, async () => {
+      const { initSleepModeUI } = await import('./ui/sleep-mode.ui.js');
+      initSleepModeUI();
+    });
+    // 📸 Memory Lane - "On This Day" memories and highlights
+    this.deferredInit('MemoryLaneUI', 500, async () => {
+      const { initMemoryLaneUI } = await import('./ui/memory-lane.ui.js');
+      initMemoryLaneUI();
+    });
+    // 📊 Pattern Insights - behavioral patterns visualization
+    this.deferredInit('PatternInsightsUI', 600, async () => {
+      const { initPatternInsightsUI } = await import('./ui/pattern-insights.ui.js');
+      initPatternInsightsUI();
+    });
+    // 💭 Check-in Badge - shows when Ferni is thinking of you
+    this.deferredInit('CheckinBadgeUI', 700, async () => {
+      const { initCheckinBadgeUI } = await import('./ui/checkin-badge.ui.js');
+      initCheckinBadgeUI();
+
+      // Listen for check-in acknowledgment to start conversation with context
+      window.addEventListener('ferni:checkin-acknowledged', ((event: CustomEvent<{ checkinId: string; message: string; type: string }>) => {
+        const { message, type } = event.detail;
+        log.info({ type, message: message.slice(0, 50) }, '💭 Check-in acknowledged, starting conversation');
+
+        // Store check-in context in sessionStorage for the conversation to pick up
+        if (message) {
+          try {
+            sessionStorage.setItem('ferni_checkin_context', JSON.stringify({ message, type }));
+          } catch {
+            // Ignore storage errors
+          }
+        }
+
+        // Start the connection if not already connected
+        if (!connectionService.isConnected()) {
+          void this.connect();
+        }
+      }) as EventListener);
+    });
+    // 🧠 Knowledge Quiz - "How Well Do You Know Me?" game
+    this.deferredInit('KnowledgeQuizUI', 800, async () => {
+      const { initKnowledgeQuizUI } = await import('./ui/knowledge-quiz.ui.js');
+      initKnowledgeQuizUI();
+    });
+    // 📔 Growth Journal - auto-generated reflections on your journey
+    this.deferredInit('GrowthJournalUI', 900, async () => {
+      const { initGrowthJournalUI } = await import('./ui/growth-journal.ui.js');
+      initGrowthJournalUI();
+    });
+
     // Relationship features - load after 400ms
     this.deferredInit('YourPeopleUI', 400, async () => {
       const { initYourPeopleUI } = await import('./ui/your-people.ui.js');
@@ -1399,7 +1521,8 @@ class VoiceAIApp {
       const { initProactiveOutreachUI } = await import('./ui/proactive-outreach.ui.js');
       const { initTeamInsightsUI } = await import('./ui/team-insights.ui.js');
       const { initCrossTeamNotifications } = await import('./services/cross-team-notifications.service.js');
-      
+      const { initVoiceEvents } = await import('./services/voice-events.service.js');
+
       initFerniEQ();
       initHumanizationBridge();
       initProactiveOutreachUI();
@@ -1409,6 +1532,7 @@ class VoiceAIApp {
       const userId = appState.get('deviceId');
       if (userId) {
         initCrossTeamNotifications(userId);
+        initVoiceEvents(userId);
       }
 
       // Set up gentle check-in handler for significant concern detection
@@ -1680,6 +1804,8 @@ class VoiceAIApp {
     this.safeInit('RelationshipProgressUI', () => initRelationshipProgressUI());
     // 🎙️ Group Conversations - Team Roundtables and Conference Calls with external people
     this.safeInit('GroupConversationUI', () => initGroupConversationUI());
+    // 🎮 Game Board - Visual game state display for voice games
+    this.safeInit('GameBoardUI', () => initGameBoard());
     // Proactive Messages - In-app messages from intelligent outreach
     this.deferredInit('ProactiveMessagesUI', 500, async () => {
       initProactiveMessages();
@@ -1837,6 +1963,7 @@ class VoiceAIApp {
         onSubscriptionClick: () => void supportFerniUI.open(),
         onBillingPortalClick: () => void this.openBillingPortal(),
         onHouseholdClick: () => void showHouseholdManager(),
+        onFamilyCallersClick: () => void FamilyIdentities.show(),
         onConversationMemoryClick: () => void showConversationMemory(),
         onWellbeingClick: () => void showWellbeingDashboard(),
         onLifeContextClick: () => void showLifeContextDashboard(),
@@ -1894,19 +2021,6 @@ class VoiceAIApp {
           void openCreativeYouDashboard(userId);
         },
         onDiscoverAgentsClick: () => void openMarketplace(),
-        onPageBuilderClick: () => {
-          // Lazy-load the page builder
-          void import('./ui/agent-page-builder.ui.js').then(({ showPageBuilder }) => {
-            showPageBuilder({
-              onClose: () => {
-                /* Settings menu closes automatically */
-              },
-              onDeployed: (url: string) => {
-                toast.success(`Deployed! ${url}`);
-              },
-            });
-          });
-        },
         onJournalClick: () => void openChronicle(),
         onHubClick: () => {
           // Open Ferni Hub - "Your Day with Ferni"
@@ -1938,6 +2052,17 @@ class VoiceAIApp {
             });
           });
         },
+        // New feature callbacks
+        onMemoryLaneClick: () => void memoryLaneUI.open(),
+        onPatternInsightsClick: () => {
+          // Show pattern insights in a modal container
+          const container = document.querySelector('.app-shell') as HTMLElement | null;
+          if (container) {
+            void patternInsightsUI.show(container);
+          }
+        },
+        onKnowledgeQuizClick: () => void openKnowledgeQuiz(),
+        onGrowthJournalClick: () => void openGrowthJournal(),
       });
 
       // Wire up Spotify state changes to menu
@@ -2242,6 +2367,35 @@ class VoiceAIApp {
     this.addTrackedListener(window, 'ferni:request-connect', () => {
       if (appState.get('connection') === 'disconnected') {
         void this.connect();
+      }
+    });
+
+    // ⌨️ Keyboard Shortcuts - Global hotkeys for power users
+    this.addTrackedListener(window, 'ferni:toggle-mute', () => {
+      if (appState.get('connection') === 'connected') {
+        this.toggleMute();
+      }
+    });
+
+    this.addTrackedListener(window, 'ferni:toggle-call', () => {
+      const connectionState = appState.get('connection');
+      if (connectionState === 'connected') {
+        void this.disconnect();
+      } else if (connectionState === 'disconnected') {
+        void this.connect();
+      }
+    });
+
+    this.addTrackedListener(window, 'ferni:escape', () => {
+      // First check if any modal is open (they have their own escape handlers)
+      const openModal = document.querySelector('[role="dialog"][aria-modal="true"]');
+      if (openModal) {
+        // Let the modal handle escape itself
+        return;
+      }
+      // If connected and no modal, end the call
+      if (appState.get('connection') === 'connected') {
+        void this.disconnect();
       }
     });
 
@@ -2831,6 +2985,80 @@ class VoiceAIApp {
               nowPlayingUI.updateState('playing');
               waveformUI.setMusicPlaying(true);
 
+              // 🎵 Set up music control callbacks
+              nowPlayingUI.setCallbacks({
+                onPause: () => {
+                  log.info('🎵 User clicked pause button');
+                  // Send pause command to backend
+                  const room = connectionService.getRoom();
+                  if (room?.localParticipant) {
+                    const message = JSON.stringify({ type: 'music_control', action: 'pause' });
+                    void room.localParticipant.publishData(
+                      new TextEncoder().encode(message),
+                      { reliable: true }
+                    );
+                    // Update UI immediately for responsiveness
+                    nowPlayingUI.updateState('paused');
+                  }
+                },
+                onResume: () => {
+                  log.info('🎵 User clicked play button');
+                  // Send resume command to backend
+                  const room = connectionService.getRoom();
+                  if (room?.localParticipant) {
+                    const message = JSON.stringify({ type: 'music_control', action: 'resume' });
+                    void room.localParticipant.publishData(
+                      new TextEncoder().encode(message),
+                      { reliable: true }
+                    );
+                    // Update UI immediately for responsiveness
+                    nowPlayingUI.updateState('playing');
+                  }
+                },
+                onSkip: () => {
+                  log.info('🎵 User clicked skip button');
+                  // Send skip command to backend
+                  const room = connectionService.getRoom();
+                  if (room?.localParticipant) {
+                    const message = JSON.stringify({ type: 'music_control', action: 'skip' });
+                    void room.localParticipant.publishData(
+                      new TextEncoder().encode(message),
+                      { reliable: true }
+                    );
+                    // Hide current UI - new track will trigger new show()
+                    nowPlayingUI.hide();
+                  }
+                },
+                onVolumeChange: (volume: number) => {
+                  log.info('🎵 User adjusted volume', { volume });
+                  // Send volume command to backend
+                  const room = connectionService.getRoom();
+                  if (room?.localParticipant) {
+                    const message = JSON.stringify({ type: 'music_control', action: 'volume', volume });
+                    void room.localParticipant.publishData(
+                      new TextEncoder().encode(message),
+                      { reliable: true }
+                    );
+                  }
+                },
+                onFavorite: (track) => {
+                  log.info('🎵 User favorited track', { track: track.name, artist: track.artist });
+                  // Send favorite command to backend
+                  const room = connectionService.getRoom();
+                  if (room?.localParticipant) {
+                    const message = JSON.stringify({
+                      type: 'music_control',
+                      action: 'favorite',
+                      track: { name: track.name, artist: track.artist },
+                    });
+                    void room.localParticipant.publishData(
+                      new TextEncoder().encode(message),
+                      { reliable: true }
+                    );
+                  }
+                },
+              });
+
               // Start avatar dancing
               avatarFeedback.musicPresence();
               expressiveEyes.startDancing(); // 👀 Eyes groove to the beat!
@@ -3323,7 +3551,8 @@ class VoiceAIApp {
     disposeProactiveOutreach();
     disposeTeamInsightsUI();
     disposeCrossTeamNotifications();
-    
+    disposeVoiceEvents();
+
     // 🔍 Insights Debug Panel cleanup
     import('./ui/insights-debug-panel.ui.js')
       .then(({ disposeInsightsDebugPanel }) => disposeInsightsDebugPanel())

@@ -29,6 +29,10 @@
  * - GET  /api/voice/memory/context         - Get context for new conversation
  * - GET  /api/voice/memory/conversations   - Get recent conversations
  *
+ * Inbound Call Endpoints (Phone-based):
+ * - POST /api/voice/inbound          - Twilio webhook for incoming calls
+ * - POST /api/voice/inbound/status   - Call status updates
+ *
  * Security Features:
  * - Liveness detection (replay attack prevention)
  * - Anti-spoofing (deepfake/TTS detection)
@@ -45,6 +49,7 @@ import { handleEnrollmentRoutes } from './enrollment-routes.js';
 import { handleVerificationRoutes } from './verification-routes.js';
 import { handleHouseholdRoutes } from './household-routes.js';
 import { handleMemoryRoutes } from './memory-routes.js';
+import { handleInboundCallRoutes } from './inbound-call-routes.js';
 import { sendJson } from './helpers.js';
 
 const log = getLogger().child({ module: 'VoiceAuthHandler' });
@@ -102,6 +107,11 @@ export async function handleVoiceAuthRoutes(
     // Memory routes
     if (route.startsWith('/memory')) {
       return handleMemoryRoutes(req, res, route);
+    }
+
+    // Inbound call routes (for phone-based calling)
+    if (route.startsWith('/inbound')) {
+      return handleInboundCallRoutes(req, res, route);
     }
 
     // Route not found under /api/voice

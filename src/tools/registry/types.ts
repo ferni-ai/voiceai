@@ -36,6 +36,7 @@ export type ToolDomain =
   | 'wisdom' // Quotes, principles, educational content
   | 'handoff' // Agent-to-agent handoff tools
   | 'telephony' // Phone calls, callbacks
+  | 'voice-enrollment' // Voice enrollment for phone callers
   | 'grief' // Grief support and processing tools
   | 'meaning' // Meaning and purpose exploration tools
   | 'relationships' // Relationship guidance and support tools
@@ -120,6 +121,7 @@ export type ToolDomain =
   | 'concierge' // AI-powered outreach: hotel quotes, restaurant reservations, appointments
   | 'travel' // Travel planning, flights, hotels, trip suggestions
   | 'settings' // User preferences: language, voice, session settings
+  | 'insights' // Analytics summaries, progress tracking, weekly reviews
   | 'nayan-wisdom' // Nayan's superhuman wisdom: paradox keeper, mortality perspective, koans, enough tracker
   | 'maya-coaching' // Maya's superhuman coaching: habit DNA, friction mapping, tendencies, keystones, identity shifts
   | 'superhuman-communication' // Alex's 10 superhuman communication capabilities
@@ -146,6 +148,7 @@ export const ALL_TOOL_DOMAINS: readonly ToolDomain[] = [
   'wisdom',
   'handoff',
   'telephony',
+  'voice-enrollment',
   'grief',
   'meaning',
   'relationships',
@@ -230,6 +233,7 @@ export const ALL_TOOL_DOMAINS: readonly ToolDomain[] = [
   'concierge',
   'travel',
   'settings',
+  'insights',
   // Nayan's Superhuman Wisdom
   'nayan-wisdom',
   // Maya's Superhuman Coaching
@@ -270,6 +274,7 @@ export const DOMAIN_TO_CATEGORY: Record<ToolDomain, ToolCategory> = {
   productivity: 'productivity',
   communication: 'communication',
   telephony: 'communication',
+  'voice-enrollment': 'core', // Voice enrollment for phone callers
   habits: 'lifestyle',
   wellness: 'lifestyle',
   'life-planning': 'lifestyle',
@@ -364,6 +369,7 @@ export const DOMAIN_TO_CATEGORY: Record<ToolDomain, ToolCategory> = {
   concierge: 'communication', // AI-powered outreach: hotels, restaurants, appointments
   travel: 'lifestyle', // Travel planning, flights, hotels
   settings: 'core', // User preferences: language, voice, session settings
+  insights: 'core', // Analytics summaries, progress tracking, weekly reviews
   // Nayan's Superhuman Wisdom
   'nayan-wisdom': 'information', // Nayan's superhuman wisdom tools (paradox keeper, mortality perspective, etc.)
   'maya-coaching': 'lifestyle', // Maya's superhuman coaching tools (habit DNA, friction mapping, etc.)
@@ -385,6 +391,7 @@ export type ExternalService =
   | 'google-calendar' // Google Calendar API
   | 'google-contacts' // Google Contacts API
   | 'spotify' // Music streaming
+  | 'sonos' // Sonos speakers
   | 'sendgrid' // Email service
   | 'twilio' // SMS/phone service
   | 'openweather' // Weather API
@@ -814,6 +821,7 @@ export class EnvironmentServiceRegistry implements ServiceRegistry {
     'google-calendar': () => !!process.env.GOOGLE_CALENDAR_CREDENTIALS,
     'google-contacts': () => !!process.env.GOOGLE_CONTACTS_CREDENTIALS,
     spotify: () => !!(process.env.SPOTIFY_CLIENT_ID && process.env.SPOTIFY_CLIENT_SECRET),
+    sonos: () => !!(process.env.SONOS_CLIENT_ID && process.env.SONOS_CLIENT_SECRET),
     sendgrid: () => !!process.env.SENDGRID_API_KEY,
     openweather: () => !!process.env.OPENWEATHER_API_KEY,
     newsapi: () => !!process.env.NEWS_API_KEY,

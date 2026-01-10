@@ -33,6 +33,8 @@ const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 import { renderSeedsSettingsCard } from './seeds-display.ui.js';
 // Transcript UI - for toggling live transcription
 import { transcriptUI } from './transcript.ui.js';
+// Sound effects service for UI feedback sounds
+import { soundUI } from './sound.ui.js';
 // i18n for translations
 import { getLocale, setLocale, SUPPORTED_LOCALES, t, type SupportedLocale } from '../i18n/index.js';
 import { createLogger } from '../utils/logger.js';
@@ -81,6 +83,7 @@ export interface SettingsMenuUICallbacks {
   onSubscriptionClick?: () => void;
   onBillingPortalClick?: () => void;
   onHouseholdClick?: () => void;
+  onFamilyCallersClick?: () => void;
   onConversationMemoryClick?: () => void;
   onWellbeingClick?: () => void;
   onLifeContextClick?: () => void;
@@ -106,7 +109,11 @@ export interface SettingsMenuUICallbacks {
   onJournalClick?: () => void;
   onHubClick?: () => void;
   onLinkedInClick?: () => void;
-  onPageBuilderClick?: () => void;
+  // New feature callbacks
+  onMemoryLaneClick?: () => void;
+  onPatternInsightsClick?: () => void;
+  onKnowledgeQuizClick?: () => void;
+  onGrowthJournalClick?: () => void;
   onClose?: () => void;
   // Warm menu callbacks
   onTogetherSessionsClick?: () => void;
@@ -184,6 +191,9 @@ const ICONS = {
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="2" y="7" width="8" height="10" rx="1"/><rect x="14" y="7" width="8" height="10" rx="1"/><path d="M10 12h4"/></svg>',
   music:
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>',
+  // Speaker/volume icon for sound effects toggle
+  speaker:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>',
 
   // Rituals & Practices
   ritual:
@@ -254,10 +264,6 @@ const ICONS = {
   // Digital Twin / Journal
   journal:
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/><path d="M8 7h6"/><path d="M8 11h8"/></svg>',
-
-  // Agent Page Builder
-  pageBuilder:
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M12 2L2 7l10 5 10-5-10-5Z"/><path d="m2 17 10 5 10-5"/><path d="m2 12 10 5 10-5"/></svg>',
 
   // New icons for restructured menu
   phone:
@@ -767,6 +773,9 @@ class SettingsMenuUI {
             ${this.renderMenuItem('conversation-memory', ICONS.memory, t('menu.items.memoryBrowser'))}
             ${this.renderMenuItem('history', ICONS.history, t('menu.items.conversationHistory'))}
             ${this.renderMenuItemWithBadge('activity', ICONS.activity, t('menu.items.activity') || 'Activity', t('common.new'))}
+            ${this.renderMenuItemWithBadge('memory-lane', ICONS.calendar, t('menu.items.memoryLane') || 'On This Day', t('common.new'))}
+            ${this.renderMenuItemWithBadge('pattern-insights', ICONS.analytics, t('menu.items.patternInsights') || 'Your Patterns', t('common.new'))}
+            ${this.renderMenuItemWithBadge('growth-journal', ICONS.seedling, t('menu.items.growthJournal') || 'Growth Journal', t('common.new'))}
           `
                 )
               : ''
@@ -784,11 +793,11 @@ class SettingsMenuUI {
             ${this.renderMenuItemWithBadge('smart-home', ICONS.home, t('menu.items.yourHome') || 'Your Home', t('common.new'))}
             ${this.renderMenuItemWithBadge('journal', ICONS.journal, t('menu.items.journaling'), t('common.new'))}
             ${this.renderMenuItem('play-games', ICONS.sparkles, t('menu.items.playGames'))}
+            ${this.renderMenuItemWithBadge('knowledge-quiz', ICONS.lightbulb, t('menu.items.knowledgeQuiz') || 'How Well Do You Know Me?', t('common.new'))}
             ${this.renderMenuItemWithBadge('music-dashboard', ICONS.music, t('menu.items.musicalYou'), t('common.updated'))}
             ${this.renderMenuItemWithBadge('creative-you', ICONS.creative, t('menu.items.creativeYou'), t('common.new'))}
             ${this.renderMenuItem('video-call-settings', ICONS.video, t('menu.items.videoSessions'))}
             ${this.renderMenuItem('discover-agents', ICONS.compass, t('menu.items.discoverAgents'))}
-            ${this.renderMenuItemWithBadge('page-builder', ICONS.pageBuilder, 'Create Agent Page', t('common.new'))}
             ${this.renderMenuItem('together-sessions', ICONS.users, t('menu.items.togetherSessions'))}
           `
                 )
@@ -805,6 +814,7 @@ class SettingsMenuUI {
                   `
             ${this.renderMenuItem('contacts', ICONS.users, t('menu.items.contacts'))}
             ${this.renderMenuItem('household-members', ICONS.home, t('menu.items.householdMembers'))}
+            ${this.renderMenuItem('family-callers', ICONS.phone, t('menu.items.familyCallers'))}
           `
                 )
               : ''
@@ -837,6 +847,7 @@ class SettingsMenuUI {
             ${this.renderMenuItem('accent-settings', ICONS.globe, t('menu.items.voiceAccent'))}
             ${this.renderMenuItem('theme', ICONS.theme, t('menu.items.themeLanguage'))}
             ${this.renderToggleItem('toggle-transcription', ICONS.transcript, t('menu.items.showTranscript') || 'Show Transcript', transcriptUI.isEnabled())}
+            ${this.renderToggleItem('toggle-sounds', ICONS.speaker, t('menu.items.soundEffects') || 'Sound Effects', !soundUI.getMuted())}
             ${this.renderMenuItem('voice-id-settings', ICONS.fingerprint, t('menu.items.voiceId'))}
             ${this.renderMenuItem('contact-settings', ICONS.contact, t('menu.items.contactInfo'))}
             ${this.renderMenuItem('support-ferni', ICONS.heart, t('menu.items.supportFerniExpanded'))}
@@ -1043,7 +1054,6 @@ class SettingsMenuUI {
       'music-dashboard': { icon: ICONS.music, label: t('menu.items.musicalYou') },
       'creative-you': { icon: ICONS.creative, label: t('menu.items.creativeYou') },
       'discover-agents': { icon: ICONS.compass, label: t('menu.items.discoverAgents') },
-      'page-builder': { icon: ICONS.pageBuilder, label: 'Create Agent Page' },
       journal: { icon: ICONS.journal, label: t('menu.items.journaling') },
       personalize: { icon: ICONS.palette, label: t('menu.items.personalize') },
       'accent-settings': { icon: ICONS.globe, label: t('menu.items.voiceAccent') },
@@ -1057,6 +1067,7 @@ class SettingsMenuUI {
       'support-ferni': { icon: ICONS.heart, label: t('menu.items.supportFerniExpanded') },
       'voice-enrollment': { icon: ICONS.fingerprint, label: t('menu.items.voiceId') },
       household: { icon: ICONS.users, label: t('menu.items.householdMembers') },
+      'family-callers': { icon: ICONS.phone, label: t('menu.items.familyCallers') },
       'contact-settings': { icon: ICONS.contact, label: t('menu.items.contactInfo') },
       export: { icon: ICONS.download, label: t('menu.items.exportData') },
       'share-ferni': { icon: ICONS.share, label: t('menu.items.shareFerni') },
@@ -1306,6 +1317,9 @@ class SettingsMenuUI {
       case 'household-members':
         this.callbacks.onHouseholdClick?.();
         break;
+      case 'family-callers':
+        this.callbacks.onFamilyCallersClick?.();
+        break;
       case 'conversation-memory':
         this.callbacks.onConversationMemoryClick?.();
         break;
@@ -1374,9 +1388,6 @@ class SettingsMenuUI {
       case 'discover-agents':
         this.callbacks.onDiscoverAgentsClick?.();
         break;
-      case 'page-builder':
-        this.callbacks.onPageBuilderClick?.();
-        break;
       case 'journal':
         this.callbacks.onJournalClick?.();
         break;
@@ -1403,6 +1414,19 @@ class SettingsMenuUI {
       case 'all-connections':
         this.callbacks.onAllConnectionsClick?.();
         break;
+      // New feature actions
+      case 'memory-lane':
+        this.callbacks.onMemoryLaneClick?.();
+        break;
+      case 'pattern-insights':
+        this.callbacks.onPatternInsightsClick?.();
+        break;
+      case 'knowledge-quiz':
+        this.callbacks.onKnowledgeQuizClick?.();
+        break;
+      case 'growth-journal':
+        this.callbacks.onGrowthJournalClick?.();
+        break;
       // Quick Add actions
     }
   }
@@ -1417,9 +1441,16 @@ class SettingsMenuUI {
         // Toggle transcription visibility
         const newState = !transcriptUI.isEnabled();
         transcriptUI.setEnabled(newState);
-        
+
         // Update button UI
         btnElement.classList.toggle('settings-menu__item--toggle-on', newState);
+        break;
+      }
+      case 'toggle-sounds': {
+        // Toggle sound effects (mute/unmute)
+        const newState = soundUI.toggleMute();
+        // newState = true means muted, so toggle-on should be !newState
+        btnElement.classList.toggle('settings-menu__item--toggle-on', !newState);
         break;
       }
     }

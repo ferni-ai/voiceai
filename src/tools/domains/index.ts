@@ -105,6 +105,9 @@ export { getToolDefinitions as getGamesToolDefinitions } from './games/index.js'
 // Telephony domain - phone calls, callbacks
 export { getToolDefinitions as getTelephonyToolDefinitions } from './telephony/index.js';
 
+// Voice Enrollment domain - voice enrollment for phone callers, sponsored identities
+export { getToolDefinitions as getVoiceEnrollmentToolDefinitions } from './voice-enrollment/index.js';
+
 // Human Transfer domain - escalation to human professionals (therapy, crisis, legal, financial)
 export { getToolDefinitions as getHumanTransferToolDefinitions } from './human-transfer/index.js';
 
@@ -376,6 +379,9 @@ export { getToolDefinitions as getBooksToolDefinitions } from './books/index.js'
 // Settings domain - language preferences, user settings
 export { getToolDefinitions as getSettingsToolDefinitions } from './settings/index.js';
 
+// Insights domain - analytics summaries, progress tracking, weekly reviews
+export { getToolDefinitions as getInsightsToolDefinitions } from './insights/index.js';
+
 // ============================================================================
 // LEGACY DOMAIN EXPORTS (for backwards compatibility)
 // These will be deprecated once all consumers migrate to registry-based system
@@ -424,6 +430,8 @@ export async function getAllDomainToolDefinitions(): Promise<ToolDefinition[]> {
     import('./vibe/index.js').then(async (m) => m.getToolDefinitions()),
     import('./games/index.js').then(async (m) => m.getToolDefinitions()),
     import('./telephony/index.js').then(async (m) => m.getToolDefinitions()),
+    // Voice Enrollment domain - voice enrollment for phone callers
+    import('./voice-enrollment/index.js').then(async (m) => m.getToolDefinitions()),
     // Human Transfer domain - escalation to human professionals
     import('./human-transfer/index.js').then(async (m) => m.getToolDefinitions()),
     // Cameo domain - team member pop-ins
@@ -527,6 +535,8 @@ export async function getAllDomainToolDefinitions(): Promise<ToolDefinition[]> {
     import('./ambient-mode/index.js').then(async (m) => m.getToolDefinitions()),
     // Settings domains - user preferences
     import('./settings/index.js').then(async (m) => m.getToolDefinitions()),
+    // Insights domain - analytics summaries, progress tracking
+    import('./insights/index.js').then(async (m) => m.getToolDefinitions()),
   ]);
 
   // Collect successful results
@@ -1058,6 +1068,12 @@ export const DOMAIN_METADATA = {
     name: 'Settings',
     description: 'User preferences - language, voice, and session settings',
     icon: '⚙️',
+    status: 'active',
+  },
+  insights: {
+    name: 'Insights',
+    description: 'Analytics summaries, progress tracking, and weekly reviews',
+    icon: '📊',
     status: 'active',
   },
 } as const;

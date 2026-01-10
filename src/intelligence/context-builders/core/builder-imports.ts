@@ -157,6 +157,7 @@ export const BUILDER_IMPORTS: Record<string, BuilderImporter> = {
   // ============================================================================
   'conversation-forward': async () => import('../session/conversation-forward.js'),
   'session-flow': async () => import('../session/session-flow.js'),
+  'natural-discovery': async () => import('../session/natural-discovery.js'), // Dreams, values, goals discovery
   intent: async () => import('../session/intent-context.js'),
   topics: async () => import('../session/topics-context.js'),
   discovery: async () => import('../session/discovery-context.js'),
@@ -193,6 +194,7 @@ export const BUILDER_IMPORTS: Record<string, BuilderImporter> = {
   'personal-journey': async () => import('../external/personal-journey.js'),
   'macos-context': async () => import('../external/macos-context.js'),
   'outbound-call-context': async () => import('../external/outbound-call-context.js'),
+  'inbound-call-context': async () => import('../external/inbound-call-context.js'),
   'pending-call-results': async () => import('../external/pending-call-results.js'),
 
   // ============================================================================

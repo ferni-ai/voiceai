@@ -330,13 +330,19 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     let metadata: Record<string, unknown> = {};
 
     // DEBUG: Log raw job metadata to trace persona_id flow
-    process.stderr.write(`[voice-agent-entry] 🔍 DEBUG: Raw job.metadata = ${ctx.job.metadata || '(empty)'}\n`);
-    process.stderr.write(`[voice-agent-entry] 🔍 DEBUG: Raw room.metadata = ${ctx.job.room?.metadata || '(empty)'}\n`);
+    process.stderr.write(
+      `[voice-agent-entry] 🔍 DEBUG: Raw job.metadata = ${ctx.job.metadata || '(empty)'}\n`
+    );
+    process.stderr.write(
+      `[voice-agent-entry] 🔍 DEBUG: Raw room.metadata = ${ctx.job.room?.metadata || '(empty)'}\n`
+    );
 
     if (ctx.job.metadata) {
       try {
         metadata = JSON.parse(ctx.job.metadata);
-        process.stderr.write(`[voice-agent-entry] 🔍 DEBUG: Parsed job metadata keys: ${Object.keys(metadata).join(', ')}\n`);
+        process.stderr.write(
+          `[voice-agent-entry] 🔍 DEBUG: Parsed job metadata keys: ${Object.keys(metadata).join(', ')}\n`
+        );
       } catch (e) {
         process.stderr.write(`[voice-agent-entry] Failed to parse job.metadata: ${e}\n`);
       }
@@ -353,12 +359,81 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     }
 
     // =========================================================================
+    // CALL TYPE DETECTION (INBOUND OR ON-BEHALF)
+    // =========================================================================
+    const callType = metadata.type as string | undefined;
+
+    // =========================================================================
+    // INBOUND CALL DETECTION
+    // =========================================================================
+    // If this is an inbound call (someone calling Ferni via phone),
+    // set up the inbound call context with caller identity.
+    // The inbound-call-context builder will inject caller info, recognition status, etc.
+    if (callType === 'inbound_call') {
+      process.stderr.write(
+        `[voice-agent-entry] 📞 INBOUND CALL DETECTED - setting up caller context\n`
+      );
+      process.stderr.write(
+        `[voice-agent-entry] 📞 Caller context: ${JSON.stringify({
+          callSid: metadata.callSid,
+          callerPhone: metadata.callerPhone ? `${String(metadata.callerPhone).slice(0, 4)}****` : 'unknown',
+          callerName: metadata.callerName,
+          isKnownCaller: metadata.isKnownCaller,
+          isSponsored: !!metadata.sponsoredIdentityId,
+        })}\n`
+      );
+
+      // Set up inbound call context for the context builder to pick up
+      try {
+        const { setInboundCallContext } = await import(
+          '../intelligence/context-builders/external/inbound-call-context.js'
+        );
+
+        const inboundContext = {
+          callSid: (metadata.callSid as string) || '',
+          callerPhone: (metadata.callerPhone as string) || '',
+          callerName: metadata.callerName as string | undefined,
+          userId: metadata.userId as string | undefined,
+          sponsoredIdentityId: metadata.sponsoredIdentityId as string | undefined,
+          sponsorUserId: metadata.sponsorUserId as string | undefined,
+          isKnownCaller: (metadata.isKnownCaller as boolean) || false,
+          isVoiceEnrolled: (metadata.isVoiceEnrolled as boolean) || false,
+          relationship: metadata.relationship as string | undefined,
+          notes: metadata.notes as string | undefined,
+          accessLevel: metadata.accessLevel as 'full' | 'limited' | 'supervised' | undefined,
+          allowedPersonas: metadata.allowedPersonas as string[] | undefined,
+        };
+
+        // Store with sessionId for context builder lookup
+        setInboundCallContext(sessionId, inboundContext);
+
+        // Also store with room name for fallback
+        const roomName = ctx.job.room?.name;
+        if (roomName) {
+          setInboundCallContext(roomName, inboundContext);
+        }
+
+        process.stderr.write(
+          `[voice-agent-entry] 📞 Inbound call context set for sessionId: ${sessionId}\n`
+        );
+
+        // Override user identification if we have a sponsored identity
+        if (metadata.userId) {
+          metadata.user_id = metadata.userId;
+        }
+      } catch (error) {
+        process.stderr.write(`[voice-agent-entry] ⚠️ Failed to set inbound context: ${error}\n`);
+        // Continue anyway - the agent will still work, just without specialized context
+      }
+      // Continue with standard voice agent flow - don't return early
+    }
+
+    // =========================================================================
     // ON-BEHALF CALL DETECTION
     // =========================================================================
     // If this is an on-behalf call (calling someone on behalf of user),
     // set up the outbound call context and let the standard voice agent handle it.
     // The outbound-call-context builder will inject call purpose, script, etc.
-    const callType = metadata.type as string | undefined;
     if (callType === 'on_behalf_call') {
       process.stderr.write(
         `[voice-agent-entry] 📞 ON-BEHALF CALL DETECTED - using standard agent with outbound context\n`
@@ -1277,8 +1352,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
 
     // Store userLocation in userData so it flows through to TTS context
     // This enables weather tool to use IP-detected location as fallback
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (userData as any).userLocation = userLocation;
+    userData.userLocation = userLocation;
 
     // Get tools from orchestrator
     // ⚡ FAST PATH: Skip semantic router on session start - we have no user input yet!
