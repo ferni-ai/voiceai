@@ -55,7 +55,13 @@
       "expressNeeds",
       "setClearBoundary",
       "endCall",
-      "transferToHuman"
+      "transferToHuman",
+      "groundingForTrauma",
+      "windowOfTolerance",
+      "triggerAwareness",
+      "diagnosisShock",
+      "chronicIllnessLife",
+      "triggerWebhook"
     ],
     "logToolSchemas": true,
     "logToolResults": true,

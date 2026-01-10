@@ -414,6 +414,61 @@ export {
 } from './shortcuts.semantic.js';
 
 // ============================================================================
+// PHASE 6: NEW DOMAINS (January 2026)
+// ============================================================================
+
+// Health Diagnosis (SAFETY-CRITICAL: processing medical diagnoses)
+export {
+  healthDiagnosisTools,
+  diagnosisShockTool,
+  chronicIllnessLifeTool,
+  invisibleIllnessTool,
+  tellingOthersTool,
+} from './health-diagnosis.semantic.js';
+
+// Concierge (AI calls businesses on your behalf)
+export {
+  conciergeTools,
+  requestHotelQuotesTool,
+  makeRestaurantReservationTool,
+  scheduleHealthcareAppointmentTool,
+  getServiceQuotesTool,
+  checkConciergeStatusTool,
+} from './concierge.semantic.js';
+
+// Webhooks (voice-controlled automations)
+export {
+  webhooksTools,
+  triggerWebhookTool,
+  listWebhooksTool,
+  getWebhookStatusTool,
+} from './webhooks.semantic.js';
+
+// Marketing (social media management)
+export {
+  marketingTools,
+  generateSocialContentTool,
+  postToTwitterTool,
+  postToLinkedInTool,
+  listScheduledPostsTool,
+  getMarketingAnalyticsTool,
+} from './marketing.semantic.js';
+
+// Referral (voice calls via Twilio)
+export {
+  referralTools,
+  inviteFriendByCallTool,
+  sendSupportCallTool,
+} from './referral.semantic.js';
+
+// Voice Enrollment (speaker recognition)
+export {
+  voiceEnrollmentTools,
+  voiceEnrollmentSelfTool,
+  phoneEnrollmentTool,
+} from './voice-enrollment.semantic.js';
+
+// ============================================================================
 // PHASE 2: SAFETY-CRITICAL (Anger, Trauma, Burnout)
 // ============================================================================
 
@@ -620,6 +675,14 @@ import { legalAdminTools } from './legal-admin.semantic.js';
 import { vibeTools } from './vibe.semantic.js';
 import { groupConversationTools } from './group-conversation.semantic.js';
 
+// Phase 6: New Domains (January 2026)
+import { healthDiagnosisTools } from './health-diagnosis.semantic.js';
+import { conciergeTools } from './concierge.semantic.js';
+import { webhooksTools } from './webhooks.semantic.js';
+import { marketingTools } from './marketing.semantic.js';
+import { referralTools } from './referral.semantic.js';
+import { voiceEnrollmentTools } from './voice-enrollment.semantic.js';
+
 /**
  * All registered semantic tool definitions
  *
@@ -714,6 +777,14 @@ export const allToolDefinitions: SemanticToolDefinition[] = [
   // Phase 5: Environment & Group Interactions
   ...vibeTools, // 4 tools: set vibe, environment status, adjust lights, list vibes
   ...groupConversationTools, // 3 tools: start roundtable, invite participant, end group conversation
+
+  // Phase 6: New Domains (January 2026)
+  ...healthDiagnosisTools, // 4 tools: diagnosis shock, chronic illness, invisible illness, telling others
+  ...conciergeTools, // 5 tools: hotel quotes, restaurant reservation, healthcare appointment, service quotes, status
+  ...webhooksTools, // 3 tools: trigger, list, status
+  ...marketingTools, // 5 tools: generate content, post twitter, post linkedin, scheduled, analytics
+  ...referralTools, // 2 tools: invite friend, support call (Twilio-based)
+  ...voiceEnrollmentTools, // 2 tools: self enrollment, phone enrollment
 ];
 
 /**
@@ -805,6 +876,14 @@ export const toolsByCategory: Record<string, SemanticToolDefinition[]> = {
   // Phase 5: Environment & Group
   vibe: vibeTools,
   'group-conversation': groupConversationTools,
+
+  // Phase 6: New Domains (January 2026)
+  'health-diagnosis': healthDiagnosisTools,
+  concierge: conciergeTools,
+  webhooks: webhooksTools,
+  marketing: marketingTools,
+  referral: referralTools,
+  'voice-enrollment': voiceEnrollmentTools,
 };
 
 /**

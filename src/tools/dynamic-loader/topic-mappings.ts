@@ -468,6 +468,7 @@ export const DOMAIN_PRIORITY: Partial<Record<ToolDomain, number>> = {
 /**
  * Domains that are pre-loaded at startup (no race conditions).
  * telephony is essential because "call my mom" should work immediately.
+ * trauma-support is SAFETY-CRITICAL: users in crisis need immediate access.
  */
 export const DEFAULT_ESSENTIAL_DOMAINS: ToolDomain[] = [
   'memory',
@@ -477,4 +478,5 @@ export const DEFAULT_ESSENTIAL_DOMAINS: ToolDomain[] = [
   'information',
   'telephony',
   'communication',
+  'trauma-support', // SAFETY-CRITICAL: Immediate access for users in crisis
 ];
