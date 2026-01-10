@@ -18,7 +18,7 @@ steps:
       - '--destination=gcr.io/$PROJECT_ID/voiceai-agent:latest'
       - '--cache=true'
       - '--cache-ttl=168h'
-      - '--build-arg=CACHE_BUST=2026-01-10-v2'
+      - '--build-arg=CACHE_BUST=2026-01-10-v3'
       - '--snapshot-mode=redo'
       - '--use-new-run'
       - '--push-retry=3'
