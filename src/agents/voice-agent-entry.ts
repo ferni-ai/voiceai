@@ -417,8 +417,36 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
           `[voice-agent-entry] 📞 Inbound call context set for sessionId: ${sessionId}\n`
         );
 
-        // Override user identification if we have a sponsored identity
-        if (metadata.userId) {
+        // For sponsored identities, use their familyUserId for memory storage
+        // This gives them their own conversation history and relationship with Ferni
+        if (metadata.sponsoredIdentityId) {
+          try {
+            const { getSponsoredIdentity } = await import(
+              '../services/identity/sponsored-identity.js'
+            );
+            const sponsoredIdentity = await getSponsoredIdentity(
+              metadata.sponsoredIdentityId as string
+            );
+            if (sponsoredIdentity?.familyUserId) {
+              metadata.user_id = sponsoredIdentity.familyUserId;
+              process.stderr.write(
+                `[voice-agent-entry] 📞 Using familyUserId for memory: ${sponsoredIdentity.familyUserId}\n`
+              );
+            } else {
+              // Fallback to generated familyUserId
+              metadata.user_id = `family_${metadata.sponsoredIdentityId}`;
+              process.stderr.write(
+                `[voice-agent-entry] 📞 Using generated familyUserId: family_${metadata.sponsoredIdentityId}\n`
+              );
+            }
+          } catch (idError) {
+            process.stderr.write(
+              `[voice-agent-entry] ⚠️ Could not fetch sponsored identity, using fallback: ${idError}\n`
+            );
+            metadata.user_id = `family_${metadata.sponsoredIdentityId}`;
+          }
+        } else if (metadata.userId) {
+          // Non-sponsored caller - use their phone-based userId
           metadata.user_id = metadata.userId;
         }
       } catch (error) {

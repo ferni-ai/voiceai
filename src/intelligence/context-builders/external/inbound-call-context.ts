@@ -50,6 +50,9 @@ export interface InboundCallContext {
   /** Sponsor's user ID (the person who created this identity) */
   sponsorUserId?: string;
 
+  /** Family member's own user ID for memory storage */
+  familyUserId?: string;
+
   /** Whether this caller is known (has a profile) */
   isKnownCaller: boolean;
 

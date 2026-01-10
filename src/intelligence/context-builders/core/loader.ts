@@ -254,6 +254,8 @@ export const BUILDER_MANIFEST: Record<BuilderCategory, string[]> = {
   [BuilderCategory.CONTEXT]: [
     'outbound-call-context', // On-behalf call purpose, script, compliance (runs early for outbound calls)
     'inbound-call-context', // Inbound phone call identity, recognition status, sponsored identity context
+    'family-messages-context', // Pending messages from family phone callers
+    'family-awareness-context', // Mutual awareness between family members and sponsors
     'domain-fluency', // CONCEPTUAL capability awareness - what Ferni can help with (human-level)
     'tool-capabilities', // TECHNICAL tool capabilities (JSON format, function names)
     'dynamic-tool-guidance', // High priority - injects tool hints based on user request

@@ -195,6 +195,8 @@ export const BUILDER_IMPORTS: Record<string, BuilderImporter> = {
   'macos-context': async () => import('../external/macos-context.js'),
   'outbound-call-context': async () => import('../external/outbound-call-context.js'),
   'inbound-call-context': async () => import('../external/inbound-call-context.js'),
+  'family-messages-context': async () => import('../external/family-messages-context.js'),
+  'family-awareness-context': async () => import('../external/family-awareness-context.js'),
   'pending-call-results': async () => import('../external/pending-call-results.js'),
 
   // ============================================================================

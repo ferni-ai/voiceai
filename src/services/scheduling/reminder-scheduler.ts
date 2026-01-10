@@ -58,6 +58,17 @@ export interface ScheduledReminder {
   /** Whether this is a direct message TO the contact (vs. reminder to self about contact) */
   isDirectToContact?: boolean;
 
+  // Family coordination (for family-created reminders)
+  /**
+   * Sponsored identity ID if this reminder was created by a family phone caller.
+   * When set, Ferni will attribute the reminder: "Your mom wanted me to remind you..."
+   */
+  sourceIdentityId?: string;
+  /** Display name of the source for attribution (e.g., "Mom") */
+  sourceIdentityName?: string;
+  /** Relationship of source to user (e.g., "mother") */
+  sourceRelationship?: string;
+
   // Status
   status: 'pending' | 'delivered' | 'failed' | 'cancelled';
   attempts: number;
@@ -111,6 +122,10 @@ export async function createReminder(params: {
   contactId?: string;
   contactName?: string;
   isDirectToContact?: boolean;
+  // Family coordination - for reminders created by family phone callers
+  sourceIdentityId?: string;
+  sourceIdentityName?: string;
+  sourceRelationship?: string;
 }): Promise<ScheduledReminder> {
   const reminder: ScheduledReminder = {
     id: `reminder_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -126,6 +141,10 @@ export async function createReminder(params: {
     contactId: params.contactId,
     contactName: params.contactName,
     isDirectToContact: params.isDirectToContact,
+    // Family coordination
+    sourceIdentityId: params.sourceIdentityId,
+    sourceIdentityName: params.sourceIdentityName,
+    sourceRelationship: params.sourceRelationship,
     status: 'pending',
     attempts: 0,
     createdAt: new Date(),

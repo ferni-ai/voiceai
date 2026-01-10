@@ -71,6 +71,14 @@ export interface SponsoredIdentity {
   /** Firebase UID of the sponsor (the person who created this identity) */
   sponsorUserId: string;
 
+  /**
+   * Family member's own user ID for memory storage.
+   * This allows the family member to have their own conversation history,
+   * preferences, and relationship with Ferni independent of the sponsor.
+   * Format: "family_{sponsored_identity_id}"
+   */
+  familyUserId: string;
+
   /** Display name for this person */
   displayName: string;
 
@@ -220,10 +228,12 @@ export async function createSponsoredIdentity(
   }
 
   const id = `sponsored_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+  const familyUserId = `family_${id}`; // Own user ID for memory storage
 
   const identity: SponsoredIdentity = {
     id,
     sponsorUserId,
+    familyUserId,
     displayName: data.displayName,
     preferredName: data.preferredName,
     relationship: data.relationship,
@@ -600,11 +610,13 @@ export async function createSelfRegisteredIdentity(
   }
 
   const id = `sponsored_self_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+  const familyUserId = `family_${id}`; // Own user ID for memory storage
 
   // Create as pending - no sponsor yet
   const identity: SponsoredIdentity = {
     id,
     sponsorUserId: '', // Will be set when sponsor claims
+    familyUserId,
     displayName: name,
     relationship: 'other',
     phoneNumber: normalizedPhone,
@@ -780,9 +792,12 @@ async function deletePhoneIndex(phoneNumber: string): Promise<void> {
  */
 function docToIdentity(doc: admin.firestore.DocumentSnapshot): SponsoredIdentity {
   const data = doc.data()!;
+  const id = doc.id;
   return {
-    id: doc.id,
+    id,
     sponsorUserId: data.sponsorUserId,
+    // Generate familyUserId for backward compatibility if not present
+    familyUserId: data.familyUserId || `family_${id}`,
     displayName: data.displayName,
     preferredName: data.preferredName,
     relationship: data.relationship,
