@@ -116,10 +116,6 @@ RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
 # Copy source files (this layer invalidates on source changes)
 COPY src/ ./src/
 
-# Cache bust right before build to force recompilation
-ARG CACHE_BUST=2026-01-10-v3
-RUN echo "Cache bust: ${CACHE_BUST}" && ls -la src/personality/infrastructure/ && ls -la src/personality/domain/
-
 # Copy build scripts and CLI source
 COPY apps/cli/src/commands/build/bundle-agent.ts ./apps/cli/src/commands/build/
 COPY apps/cli/src/commands/build/build-fast.ts ./apps/cli/src/commands/build/

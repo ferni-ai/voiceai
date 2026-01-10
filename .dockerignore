@@ -112,7 +112,8 @@ ferni-speaker/
 /brand/
 vendor/
 infra/
-infrastructure/
+# Use /infrastructure/ to only match root level, not src/personality/infrastructure/
+/infrastructure/
 KMS/
 
 # Test/debug artifacts (root level)
