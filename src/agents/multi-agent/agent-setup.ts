@@ -1498,9 +1498,10 @@ function buildAgentSystemPrompt(config: AgentSetupConfig): string {
 
 /**
  * Build handoff-specific context to append to system prompt.
+ * Includes both conversation context AND trust context (boundaries, sensitive topics, etc.)
  */
 function buildHandoffContext(config: AgentSetupConfig): string | null {
-  const { isHandoff, previousPersonaId, conversationSummary, recentMessages } = config;
+  const { isHandoff, previousPersonaId, conversationSummary, recentMessages, userData } = config;
 
   if (!isHandoff || !previousPersonaId) {
     return null;
@@ -1518,6 +1519,30 @@ function buildHandoffContext(config: AgentSetupConfig): string | null {
   if (recentMessages && recentMessages.length > 0) {
     parts.push('\nRecent conversation:');
     parts.push(recentMessages.slice(-5).join('\n'));
+  }
+
+  // === E2E Integration: Inject trust-systems handoff context ===
+  // This adds boundaries, sensitive topics, rapport builders, and pending follow-ups
+  const userId = userData?.userId;
+  const targetPersonaId = config.persona?.id;
+
+  if (userId && targetPersonaId) {
+    try {
+      // Lazy import to avoid circular dependencies
+      const trustSystems = require('../../services/trust-systems/handoff-context.js');
+      const trustContext = trustSystems.buildHandoffContext(
+        userId,
+        previousPersonaId,
+        targetPersonaId
+      );
+
+      if (trustContext?.contextSummary) {
+        parts.push('\n' + trustContext.contextSummary);
+      }
+    } catch (error) {
+      // Non-fatal - continue with basic handoff context
+      log.debug({ error: String(error) }, 'Trust context unavailable for handoff (non-fatal)');
+    }
   }
 
   return parts.join('\n');

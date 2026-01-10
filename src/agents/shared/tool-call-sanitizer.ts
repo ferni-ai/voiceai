@@ -633,6 +633,12 @@ const TOOL_NAME_PATTERNS = [
   'reaching out',
   'Reaching out',
 
+  // Multi-target outreach (multiple people, mixed channels, scheduling)
+  'multiOutreach',
+  'multi outreach',
+  'Multi outreach',
+  'multioutreach',
+
   // Telephony tools (phone calls)
   'makePhoneCall',
   'make phone call',
@@ -3142,6 +3148,26 @@ export function createSanitizerWithMusicFallback(
               if (stateIntegration && sessionId) {
                 stateIntegration.notifyToolCompleted(sessionId, jsonCall.fn, false);
               }
+
+              // E2E Integration: Record failure for LLM context injection
+              // This enables Ferni to acknowledge tool failures naturally
+              if (sessionId) {
+                import('../../memory/redis-cache.js')
+                  .then(({ getRedisCache }) => {
+                    const redis = getRedisCache();
+                    redis.recordToolFailure(sessionId, {
+                      toolName: jsonCall.fn,
+                      error: String(err).slice(0, 100),
+                      timestamp: new Date().toISOString(),
+                      attemptedAction: jsonCall.args
+                        ? JSON.stringify(jsonCall.args).slice(0, 50)
+                        : undefined,
+                    });
+                  })
+                  .catch(() => {
+                    // Non-fatal - Redis may not be available
+                  });
+              }
             })
             .finally(() => {
               // 🔒 RACE CONDITION FIX: Always clear tool execution flag
@@ -3369,6 +3395,25 @@ export function createSanitizerWithMusicFallback(
             // Notify state machine that tool failed
             if (stateIntegration && sessionId) {
               stateIntegration.notifyToolCompleted(sessionId, jsonCall.fn, false);
+            }
+
+            // E2E Integration: Record failure for LLM context injection
+            if (sessionId) {
+              import('../../memory/redis-cache.js')
+                .then(({ getRedisCache }) => {
+                  const redis = getRedisCache();
+                  redis.recordToolFailure(sessionId, {
+                    toolName: jsonCall.fn,
+                    error: String(err).slice(0, 100),
+                    timestamp: new Date().toISOString(),
+                    attemptedAction: jsonCall.args
+                      ? JSON.stringify(jsonCall.args).slice(0, 50)
+                      : undefined,
+                  });
+                })
+                .catch(() => {
+                  // Non-fatal
+                });
             }
           })
           .finally(() => {
@@ -3794,14 +3839,17 @@ export function createSanitizerWithMusicFallback(
               userId: toolContext?.userId,
             });
 
-            // Only execute for VERY high-confidence matches (0.95+ for post-LLM fallback)
-            // Raised from 0.85 because it was misfiring on conversational text
-            // TODO: Fix semantic router confidence scoring before lowering this
+            // Execute for high-confidence matches (0.85+ for post-LLM fallback)
+            // Improved confidence scoring (January 2026) applies penalties for:
+            // - Mixed signals (keyword but no pattern)
+            // - Low embedding confidence
+            // - Single weak signal matches
+            // This allows lowering the threshold back to 0.85 with fewer false positives
             const topMatch = routingResult.matches?.[0];
             if (
               routingResult.action?.type === 'execute' &&
               topMatch &&
-              topMatch.confidence >= 0.95
+              topMatch.confidence >= 0.85
             ) {
               log.info(
                 {

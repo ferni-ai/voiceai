@@ -885,6 +885,78 @@ export class RedisCache {
   }
 
   // ============================================================================
+  // TOOL FAILURE TRACKING (for LLM feedback)
+  // ============================================================================
+
+  private readonly TOOL_FAILURE_TTL = 30; // 30 seconds - very short, just for current turn
+
+  /**
+   * Record a tool failure for the current session
+   * Key: tool_failure:{sessionId}
+   */
+  async recordToolFailure(
+    sessionId: string,
+    failure: {
+      toolName: string;
+      error: string;
+      timestamp: string;
+      attemptedAction?: string;
+    }
+  ): Promise<boolean> {
+    if (!this.client) return false;
+    try {
+      const key = `tool_failure:${sessionId}`;
+      const existing = await this.client.get(key);
+      const failures: Array<typeof failure> = existing ? JSON.parse(existing) : [];
+
+      // Add new failure (keep max 5 recent)
+      failures.push(failure);
+      if (failures.length > 5) {
+        failures.shift();
+      }
+
+      await this.client.setex(key, this.TOOL_FAILURE_TTL, JSON.stringify(failures));
+      return true;
+    } catch (error) {
+      getLogger().warn({ error: String(error), sessionId }, 'Failed to record tool failure');
+      return false;
+    }
+  }
+
+  /**
+   * Get recent tool failures for a session
+   */
+  async getRecentToolFailures(sessionId: string): Promise<Array<{
+    toolName: string;
+    error: string;
+    timestamp: string;
+    attemptedAction?: string;
+  }>> {
+    if (!this.client) return [];
+    try {
+      const key = `tool_failure:${sessionId}`;
+      const value = await this.client.get(key);
+      return value ? JSON.parse(value) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  /**
+   * Clear tool failures for a session (after acknowledging them)
+   */
+  async clearToolFailures(sessionId: string): Promise<boolean> {
+    if (!this.client) return false;
+    try {
+      const key = `tool_failure:${sessionId}`;
+      await this.client.del(key);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  // ============================================================================
   // PERSONA AFFINITY CACHE (Hot Path for Routing)
   // ============================================================================
 

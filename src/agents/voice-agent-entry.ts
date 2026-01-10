@@ -502,6 +502,62 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       // Continue with standard voice agent flow - don't return early
     }
 
+    // =========================================================================
+    // PROACTIVE OUTREACH CALL DETECTION
+    // =========================================================================
+    // If this is a proactive outreach call (Ferni reaching out to check in),
+    // set up the proactive session context so the agent knows WHY it's calling.
+    if (callType === 'proactive_outreach') {
+      process.stderr.write(
+        `[voice-agent-entry] 📞 PROACTIVE OUTREACH DETECTED - setting up check-in context\n`
+      );
+      process.stderr.write(
+        `[voice-agent-entry] 📞 Outreach context: ${JSON.stringify({
+          triggerType: metadata.triggerType,
+          triggerReason: metadata.triggerReason,
+          daysSinceLastSession: metadata.daysSinceLastSession,
+        })}\n`
+      );
+
+      // Set up proactive session context for the context builder to pick up
+      try {
+        const { setProactiveSessionContext } = await import(
+          '../intelligence/context-builders/external/proactive-session-context.js'
+        );
+
+        const proactiveContext = {
+          triggerType: (metadata.triggerType as string) || 'silence',
+          triggerReason: (metadata.triggerReason as string) || 'Proactive check-in',
+          daysSinceLastSession: metadata.daysSinceLastSession as number | undefined,
+          lastMood: metadata.lastMood as string | undefined,
+          lastSessionSummary: metadata.lastSessionSummary as string | undefined,
+          relatedDate: metadata.relatedDate as { type: string; date: Date; description: string } | undefined,
+          relatedCommitment: metadata.relatedCommitment as { summary: string; madeOn: Date; dueDate?: Date } | undefined,
+          openerStyle: (metadata.openerStyle as 'warm' | 'celebratory' | 'gentle' | 'supportive' | 'curious') || 'warm',
+          suggestedOpener: metadata.suggestedOpener as string | undefined,
+          avoidances: metadata.avoidances as string[] | undefined,
+          initiatingPersona: (metadata.persona_id as string) || 'ferni',
+        };
+
+        // Store with sessionId for context builder lookup
+        setProactiveSessionContext(sessionId, proactiveContext);
+
+        // Also store with room name for fallback
+        const roomName = ctx.job.room?.name;
+        if (roomName) {
+          setProactiveSessionContext(roomName, proactiveContext);
+        }
+
+        process.stderr.write(
+          `[voice-agent-entry] 📞 Proactive session context set for sessionId: ${sessionId}\n`
+        );
+      } catch (error) {
+        process.stderr.write(`[voice-agent-entry] ⚠️ Failed to set proactive context: ${error}\n`);
+        // Continue anyway - the agent will still work, just without specialized context
+      }
+      // Continue with standard voice agent flow - don't return early
+    }
+
     const personaId = (metadata.persona_id as string) || process.env.PERSONA_ID || 'ferni';
     process.stderr.write(`[voice-agent-entry] Resolved personaId: ${personaId}\n`);
 

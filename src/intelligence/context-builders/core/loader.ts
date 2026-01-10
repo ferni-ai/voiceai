@@ -133,6 +133,7 @@ export const BUILDER_MANIFEST: Record<BuilderCategory, string[]> = {
     'celebration',
     'celebration-growth',
     'somatic-context',
+    'emotional-trajectory-awareness', // E2E: Surfaces emotional trends over time ("Better Than Human")
   ],
 
   // VOICE - Voice emotion analysis
@@ -254,8 +255,11 @@ export const BUILDER_MANIFEST: Record<BuilderCategory, string[]> = {
   [BuilderCategory.CONTEXT]: [
     'outbound-call-context', // On-behalf call purpose, script, compliance (runs early for outbound calls)
     'inbound-call-context', // Inbound phone call identity, recognition status, sponsored identity context
+    'proactive-session-context', // E2E: Proactive check-in call trigger and opener guidance
     'family-messages-context', // Pending messages from family phone callers
     'family-awareness-context', // Mutual awareness between family members and sponsors
+    'session-gap-awareness', // E2E: Days since last session with reconnection guidance
+    'tool-failure-awareness', // E2E: Recent tool failures for honest acknowledgment
     'domain-fluency', // CONCEPTUAL capability awareness - what Ferni can help with (human-level)
     'tool-capabilities', // TECHNICAL tool capabilities (JSON format, function names)
     'dynamic-tool-guidance', // High priority - injects tool hints based on user request
@@ -273,6 +277,7 @@ export const BUILDER_MANIFEST: Record<BuilderCategory, string[]> = {
     'natural-discovery', // Gentle prompts to learn about dreams, values, goals
     'calendar-awareness',
     'contact-awareness',
+    'captured-data-awareness', // E2E: Surfaces what passive capture has learned (contacts, pets, places)
     'message-review-awareness', // Alex: injects calendar snapshot for scheduling context
     'goodbye',
     'rag',

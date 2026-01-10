@@ -184,6 +184,11 @@ export const BUILDER_IMPORTS: Record<string, BuilderImporter> = {
   'dynamic-tool-guidance': async () => import('../awareness/tool-guidance-awareness.js'),
   'tool-timing-context': async () => import('../awareness/tool-timing-awareness.js'),
   'revelation-awareness': async () => import('../awareness/revelation-awareness.js'),
+  // E2E Integration: Captured data, emotional trajectory, session gap, and tool failure
+  'captured-data-awareness': async () => import('../awareness/captured-data-awareness.js'),
+  'emotional-trajectory-awareness': async () => import('../awareness/emotional-trajectory-awareness.js'),
+  'session-gap-awareness': async () => import('../awareness/session-gap-awareness.js'),
+  'tool-failure-awareness': async () => import('../awareness/tool-failure-awareness.js'),
 
   // ============================================================================
   // EXTERNAL (in external/)
@@ -195,6 +200,7 @@ export const BUILDER_IMPORTS: Record<string, BuilderImporter> = {
   'macos-context': async () => import('../external/macos-context.js'),
   'outbound-call-context': async () => import('../external/outbound-call-context.js'),
   'inbound-call-context': async () => import('../external/inbound-call-context.js'),
+  'proactive-session-context': async () => import('../external/proactive-session-context.js'),
   'family-messages-context': async () => import('../external/family-messages-context.js'),
   'family-awareness-context': async () => import('../external/family-awareness-context.js'),
   'pending-call-results': async () => import('../external/pending-call-results.js'),
