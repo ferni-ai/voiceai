@@ -990,6 +990,12 @@ import {
   coordinatedReminderToolDef,
 } from './leave-message-tool.js';
 
+// Import family sharing tools (sponsor to family)
+import {
+  shareWithFamilyToolDef,
+  requestCheckInToolDef,
+} from './family-sharing-tool.js';
+
 const familyTools: ToolDefinition[] = [
   // Parenting
   coachParentingChallengeDef,
@@ -1011,6 +1017,9 @@ const familyTools: ToolDefinition[] = [
   leaveMessageToolDef,
   checkMessagesToolDef,
   coordinatedReminderToolDef,
+  // Family Sharing (sponsor to family)
+  shareWithFamilyToolDef,
+  requestCheckInToolDef,
 ];
 
 // ============================================================================

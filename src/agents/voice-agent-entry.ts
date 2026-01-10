@@ -420,30 +420,18 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
         // For sponsored identities, use their familyUserId for memory storage
         // This gives them their own conversation history and relationship with Ferni
         if (metadata.sponsoredIdentityId) {
-          try {
-            const { getSponsoredIdentity } = await import(
-              '../services/identity/sponsored-identity.js'
-            );
-            const sponsoredIdentity = await getSponsoredIdentity(
-              metadata.sponsoredIdentityId as string
-            );
-            if (sponsoredIdentity?.familyUserId) {
-              metadata.user_id = sponsoredIdentity.familyUserId;
-              process.stderr.write(
-                `[voice-agent-entry] 📞 Using familyUserId for memory: ${sponsoredIdentity.familyUserId}\n`
-              );
-            } else {
-              // Fallback to generated familyUserId
-              metadata.user_id = `family_${metadata.sponsoredIdentityId}`;
-              process.stderr.write(
-                `[voice-agent-entry] 📞 Using generated familyUserId: family_${metadata.sponsoredIdentityId}\n`
-              );
-            }
-          } catch (idError) {
+          // Use familyUserId from metadata (passed from inbound routes)
+          if (metadata.familyUserId) {
+            metadata.user_id = metadata.familyUserId as string;
             process.stderr.write(
-              `[voice-agent-entry] ⚠️ Could not fetch sponsored identity, using fallback: ${idError}\n`
+              `[voice-agent-entry] 📞 Using familyUserId for memory: ${metadata.familyUserId}\n`
             );
+          } else {
+            // Fallback to generated familyUserId (backward compatibility)
             metadata.user_id = `family_${metadata.sponsoredIdentityId}`;
+            process.stderr.write(
+              `[voice-agent-entry] 📞 Using generated familyUserId: family_${metadata.sponsoredIdentityId}\n`
+            );
           }
         } else if (metadata.userId) {
           // Non-sponsored caller - use their phone-based userId

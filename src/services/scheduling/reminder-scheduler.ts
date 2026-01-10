@@ -490,6 +490,28 @@ async function updateReminderStatus(
 // ============================================================================
 
 /**
+ * Format relationship for human-readable output.
+ */
+function formatRelationship(relationship?: string): string {
+  if (!relationship) return '';
+  const map: Record<string, string> = {
+    mother: 'mom',
+    father: 'dad',
+    grandmother: 'grandma',
+    grandfather: 'grandpa',
+    grandparent: 'grandparent',
+    parent: 'parent',
+    sibling: 'sibling',
+    child: 'child',
+    spouse: 'spouse',
+    partner: 'partner',
+    friend: 'friend',
+    other: '',
+  };
+  return map[relationship] || relationship;
+}
+
+/**
  * Deliver a reminder via the appropriate channel
  */
 export async function deliverReminder(reminder: ScheduledReminder): Promise<boolean> {
@@ -498,16 +520,36 @@ export async function deliverReminder(reminder: ScheduledReminder): Promise<bool
       reminderId: reminder.id,
       method: reminder.deliveryMethod,
       address: reminder.deliveryAddress.replace(/.{4}$/, '****'),
+      sourceIdentityId: reminder.sourceIdentityId,
     },
     '📤 Delivering reminder'
   );
+
+  // Build attributed message if this reminder came from a family member
+  let messageToDeliver = reminder.message;
+  if (reminder.sourceIdentityId && reminder.sourceIdentityName) {
+    const relationship = formatRelationship(reminder.sourceRelationship);
+    const attribution = relationship
+      ? `Your ${relationship} ${reminder.sourceIdentityName}`
+      : reminder.sourceIdentityName;
+    messageToDeliver = `${attribution} wanted me to remind you: ${reminder.message}`;
+    
+    getLogger().info(
+      {
+        reminderId: reminder.id,
+        sourceIdentityName: reminder.sourceIdentityName,
+        relationship: reminder.sourceRelationship,
+      },
+      '👨‍👩‍👧 Reminder attributed to family member'
+    );
+  }
 
   try {
     switch (reminder.deliveryMethod) {
       case 'sms': {
         const smsResult = await sendReminderSMS(
           reminder.deliveryAddress,
-          reminder.message,
+          messageToDeliver,
           reminder.context
         );
         if (smsResult.includes('trouble') || smsResult.includes('error')) {
@@ -523,10 +565,15 @@ export async function deliverReminder(reminder: ScheduledReminder): Promise<bool
         const displayName = getPersonaDisplayName(personaId);
         const firstName = displayName.split(' ')[0];
 
+        // Build subject with family attribution if applicable
+        const subject = reminder.sourceIdentityName
+          ? `⏰ Reminder from ${reminder.sourceIdentityName} (via ${firstName})`
+          : reminder.subject || `⏰ Reminder from ${firstName}`;
+
         const emailResult = await sendEmail(
           reminder.deliveryAddress,
-          reminder.subject || `⏰ Reminder from ${firstName}`,
-          `${reminder.message}\n\n${reminder.context ? `Context: ${reminder.context}\n\n` : ''}— ${firstName}`
+          subject,
+          `${messageToDeliver}\n\n${reminder.context ? `Context: ${reminder.context}\n\n` : ''}— ${firstName}`
         );
         if (emailResult.includes('trouble') || emailResult.includes('error')) {
           throw new Error(emailResult);
@@ -541,7 +588,7 @@ export async function deliverReminder(reminder: ScheduledReminder): Promise<bool
 
         const callResult = await callWithPersonaVoice(
           reminder.deliveryAddress,
-          reminder.message,
+          messageToDeliver,
           personaId,
           { fallbackToTwilioVoice: true }
         );
@@ -560,7 +607,7 @@ export async function deliverReminder(reminder: ScheduledReminder): Promise<bool
         const displayName = getPersonaDisplayName(personaId);
         const firstName = displayName.split(' ')[0];
 
-        const audioBuffer = await generatePersonaVoice(reminder.message, personaId);
+        const audioBuffer = await generatePersonaVoice(messageToDeliver, personaId);
 
         if (audioBuffer) {
           // Try to upload to GCS and send via MMS

@@ -155,6 +155,7 @@ async function handleInboundCallWebhook(
     userId: callerInfo.userId,
     sponsoredIdentityId: callerInfo.sponsoredIdentityId,
     sponsorUserId: callerInfo.sponsorUserId,
+    familyUserId: callerInfo.familyUserId,
     isKnownCaller: callerInfo.isKnown,
     isVoiceEnrolled: callerInfo.voiceEnrolled,
     greeting: callerInfo.greeting,
@@ -184,6 +185,8 @@ interface CallerIdentification {
   userId?: string;
   sponsoredIdentityId?: string;
   sponsorUserId?: string;
+  /** Family member's own user ID for memory storage (separate from sponsor) */
+  familyUserId?: string;
   voiceEnrolled: boolean;
   greeting: string;
 }
@@ -217,6 +220,7 @@ async function identifyInboundCaller(phoneNumber: string): Promise<CallerIdentif
         userId: identity.id, // Use sponsored identity ID as user ID
         sponsoredIdentityId: identity.id,
         sponsorUserId: identity.sponsorUserId,
+        familyUserId: identity.familyUserId, // Family's own memory storage
         voiceEnrolled: identity.voiceEnrolled,
         greeting: identity.voiceEnrolled
           ? `Hi ${preferredName}! Great to hear from you.`
@@ -288,6 +292,7 @@ interface InboundTwimlOptions {
   userId?: string;
   sponsoredIdentityId?: string;
   sponsorUserId?: string;
+  familyUserId?: string;
   isKnownCaller: boolean;
   isVoiceEnrolled: boolean;
   greeting: string;
@@ -304,6 +309,7 @@ function generateInboundTwiml(options: InboundTwimlOptions): string {
     userId,
     sponsoredIdentityId,
     sponsorUserId,
+    familyUserId,
     isKnownCaller,
     isVoiceEnrolled,
     greeting,
@@ -318,6 +324,7 @@ function generateInboundTwiml(options: InboundTwimlOptions): string {
     userId,
     sponsoredIdentityId,
     sponsorUserId,
+    familyUserId, // Family's own memory storage ID
     isKnownCaller,
     isVoiceEnrolled,
   };

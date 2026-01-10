@@ -52,6 +52,16 @@ export { memoryTools, rememberTool, recallTool, peopleMemoryTool } from './memor
 // NOTE: sleepHelpTool removed - consolidated into health domain (see HEALTH-HOME-WELLNESS-AUDIT.md)
 export { wellnessTools, groundingExerciseTool, wellnessCheckinTool } from './wellness.semantic.js';
 
+// Family Callers (phone caller capabilities + sponsor sharing)
+export {
+  familyCallerTools,
+  leaveMessageTool,
+  checkMessagesTool,
+  coordinatedReminderTool,
+  shareWithFamilyTool,
+  requestCheckInTool,
+} from './family-callers.semantic.js';
+
 // Information (time, date, news, search)
 export {
   informationTools,
@@ -617,6 +627,7 @@ import { calendarTools } from './calendar.semantic.js';
 import { habitsTools } from './habits.semantic.js';
 import { memoryTools } from './memory.semantic.js';
 import { wellnessTools } from './wellness.semantic.js';
+import { familyCallerTools } from './family-callers.semantic.js';
 import { informationTools } from './information.semantic.js';
 import { crisisTools } from './crisis.semantic.js';
 import { gamesTools } from './games.semantic.js';
@@ -704,6 +715,7 @@ export const allToolDefinitions: SemanticToolDefinition[] = [
   ...habitsTools, // 4 tools: track, list, create, coaching
   ...memoryTools, // 3 tools: save, recall, people
   ...wellnessTools, // 3 tools: grounding, checkin, sleep
+  ...familyCallerTools, // 3 tools: leave message, check messages, coordinated reminder
   ...informationTools, // 4 tools: time, date, news, search
 
   // Entertainment & Games
@@ -803,6 +815,7 @@ export const toolsByCategory: Record<string, SemanticToolDefinition[]> = {
   habits: habitsTools,
   memory: memoryTools,
   wellness: wellnessTools,
+  'family-callers': familyCallerTools,
   information: informationTools,
 
   // Entertainment
