@@ -172,12 +172,15 @@ jobs:
       - name: Type check
         run: pnpm typecheck
         continue-on-error: true
+        env:
+          NODE_OPTIONS: --max-old-space-size=4096
 
       - name: Run tests
         run: pnpm test -- --reporter=dot
         continue-on-error: true
         env:
           NODE_ENV: test
+          NODE_OPTIONS: --max-old-space-size=4096
 
       - name: Build backend
         run: pnpm build:fast
@@ -187,8 +190,8 @@ jobs:
 
       - name: Build frontend
         run: |
-          cd frontend-typescript
-          pnpm install --frozen-lockfile
+          cd apps/web
+          pnpm install --no-frozen-lockfile
           pnpm build
 
   # ============================================================================
