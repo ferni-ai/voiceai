@@ -394,8 +394,8 @@ jobs:
             --min-instances 0 \
             --max-instances 20 \
             --allow-unauthenticated \
-            --set-env-vars "NODE_ENV=production,BUILD_SHA=${{ github.sha }}" \
-            --set-secrets "GOOGLE_API_KEY=google-api-key:latest,CARTESIA_API_KEY=cartesia-api-key:latest,LIVEKIT_URL=livekit-url:latest,LIVEKIT_API_KEY=livekit-api-key:latest,LIVEKIT_API_SECRET=livekit-api-secret:latest"
+            --set-env-vars "NODE_ENV=production,BUILD_SHA=${{ github.sha }},USE_OPENAI_REALTIME=true" \
+            --set-secrets "GOOGLE_API_KEY=google-api-key:latest,CARTESIA_API_KEY=cartesia-api-key:latest,LIVEKIT_URL=livekit-url:latest,LIVEKIT_API_KEY=livekit-api-key:latest,LIVEKIT_API_SECRET=livekit-api-secret:latest,OPENAI_API_KEY=openai-api-key:latest"
           
           REVISION=$(gcloud run revisions list --service=voiceai-agent --region=${{ env.GCP_REGION }} --format="value(REVISION)" --limit=1)
           URL=$(gcloud run services describe voiceai-agent --region=${{ env.GCP_REGION }} --format="value(status.url)")
