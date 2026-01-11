@@ -204,20 +204,26 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # ═══════════════════════════════════════════════════════════════════════
+      # GCR AUTHENTICATION (Professional E2E Architecture)
+      # ═══════════════════════════════════════════════════════════════════════
+      # 1. Authenticate to GCP with token_format: access_token
+      # 2. Use oauth2accesstoken username for Docker login
+      # 3. This pattern works for both push AND pull of private images
+      # ═══════════════════════════════════════════════════════════════════════
       - name: Authenticate to Google Cloud
+        id: auth
         uses: google-github-actions/auth@v2
         with:
           credentials_json: ${{ secrets.GCP_SA_KEY }}
-
-      - name: Configure Docker for GCR
-        run: gcloud auth configure-docker gcr.io --quiet
+          token_format: access_token
 
       - name: Login to GCR
         uses: docker/login-action@v3
         with:
           registry: gcr.io
-          username: _json_key
-          password: ${{ secrets.GCP_SA_KEY }}
+          username: oauth2accesstoken
+          password: ${{ steps.auth.outputs.access_token }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -281,17 +287,30 @@ jobs:
           pnpm install --no-frozen-lockfile --ignore-scripts
           node design-system/build.js
 
+      # ═══════════════════════════════════════════════════════════════════════
+      # GCR AUTHENTICATION (Professional E2E Architecture)
+      # ═══════════════════════════════════════════════════════════════════════
+      # 1. Authenticate to GCP with token_format: access_token
+      # 2. Use oauth2accesstoken for Docker login
+      # 3. Required for pulling private base image (ferni-speaker:latest)
+      # ═══════════════════════════════════════════════════════════════════════
       - name: Authenticate to Google Cloud
+        id: auth
         uses: google-github-actions/auth@v2
         with:
           credentials_json: ${{ secrets.GCP_SA_KEY }}
+          token_format: access_token
 
-      - name: Configure Docker for GCR
-        run: gcloud auth configure-docker gcr.io --quiet
+      - name: Login to GCR
+        uses: docker/login-action@v3
+        with:
+          registry: gcr.io
+          username: oauth2accesstoken
+          password: ${{ steps.auth.outputs.access_token }}
 
       - name: Build and push image
         run: |
-          # Use native docker build (properly inherits gcloud auth)
+          # Native docker build (uses docker login credentials for private base images)
           docker build \
             --file docker/Dockerfile.ui \
             --tag ${{ env.UI_IMAGE }}:${{ github.sha }} \
