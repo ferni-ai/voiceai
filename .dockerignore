@@ -17,6 +17,7 @@ apps/ios-native/
 apps/macos-menubar/
 apps/marketing/
 apps/marketplace-agents/
+!apps/marketplace-agents/registry.json
 apps/shared/
 # apps/web/ - INCLUDED for UI server frontend build
 # Only exclude build artifacts and node_modules
@@ -31,6 +32,8 @@ functions/
 # Design system - only keep dist/ and essential brand assets
 design-system/.storybook/
 design-system/assets/
+!design-system/assets/logos/
+!design-system/assets/favicons/
 design-system/choreography/
 design-system/node_modules/
 design-system/preview/
