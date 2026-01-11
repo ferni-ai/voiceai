@@ -3,8 +3,7 @@ target/
 
 # NAPI build artifacts
 *.node
-index.js
-# Note: index.d.ts is tracked in git (needed for Docker builds)
+# Note: index.js and index.d.ts are tracked in git (needed for Docker builds)
 
 # OS files
 .DS_Store
