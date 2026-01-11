@@ -289,31 +289,22 @@ jobs:
       - name: Configure Docker for GCR
         run: gcloud auth configure-docker gcr.io --quiet
 
-      - name: Login to GCR
-        uses: docker/login-action@v3
-        with:
-          registry: gcr.io
-          username: _json_key
-          password: ${{ secrets.GCP_SA_KEY }}
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-        with:
-          driver: docker
-
       - name: Build and push image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: docker/Dockerfile.ui
-          push: true
-          tags: |
-            ${{ env.UI_IMAGE }}:${{ github.sha }}
-            ${{ env.UI_IMAGE }}:${{ needs.prepare.outputs.short_sha }}
-            ${{ env.UI_IMAGE }}:latest
-          build-args: |
-            NODE_VERSION=20
-            PROJECT_ID=${{ env.GCP_PROJECT_ID }}
+        run: |
+          # Use native docker build (properly inherits gcloud auth)
+          docker build \
+            --file docker/Dockerfile.ui \
+            --tag ${{ env.UI_IMAGE }}:${{ github.sha }} \
+            --tag ${{ env.UI_IMAGE }}:${{ needs.prepare.outputs.short_sha }} \
+            --tag ${{ env.UI_IMAGE }}:latest \
+            --build-arg NODE_VERSION=20 \
+            --build-arg PROJECT_ID=${{ env.GCP_PROJECT_ID }} \
+            .
+
+          # Push all tags
+          docker push ${{ env.UI_IMAGE }}:${{ github.sha }}
+          docker push ${{ env.UI_IMAGE }}:${{ needs.prepare.outputs.short_sha }}
+          docker push ${{ env.UI_IMAGE }}:latest
 
       - name: Image summary
         run: |
