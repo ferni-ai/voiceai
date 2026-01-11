@@ -292,9 +292,16 @@ jobs:
       - name: Configure Docker for GCR
         run: gcloud auth configure-docker gcr.io --quiet
 
+      - name: Pre-pull private base image
+        run: |
+          # Explicitly pull private base image before build
+          # This ensures gcloud credentials are properly used
+          echo "Pulling private base image: gcr.io/${{ env.GCP_PROJECT_ID }}/ferni-speaker:latest"
+          docker pull gcr.io/${{ env.GCP_PROJECT_ID }}/ferni-speaker:latest
+
       - name: Build and push image
         run: |
-          # Native docker build (uses docker login credentials for private base images)
+          # Native docker build (uses locally cached base image)
           docker build \
             --file docker/Dockerfile.ui \
             --tag ${{ env.UI_IMAGE }}:${{ github.sha }} \
