@@ -4,6 +4,12 @@
  */
 
 /* ============================================================================
+   CHROMATIC EFFECT TOKENS
+   Uses centralized tokens from design-system/tokens/effects.json
+   See: --effect-chromatic-* variables in _tokens.css
+   ============================================================================ */
+
+/* ============================================================================
    BASE HOLOGRAPHIC TEXT
    ============================================================================ */
 
@@ -172,15 +178,15 @@
 }
 
 .holographic-text--chromatic::before {
-  background: #ff0000;
-  -webkit-text-fill-color: rgba(255, 0, 0, 0.2);
+  background: var(--effect-chromatic-red);
+  -webkit-text-fill-color: var(--effect-chromatic-red-tint);
   transform: translate(calc(var(--holo-x, 0) * 2px), calc(var(--holo-y, 0) * 1px));
   mix-blend-mode: multiply;
 }
 
 .holographic-text--chromatic::after {
-  background: #00ffff;
-  -webkit-text-fill-color: rgba(0, 255, 255, 0.2);
+  background: var(--effect-chromatic-cyan);
+  -webkit-text-fill-color: var(--effect-chromatic-cyan-tint);
   transform: translate(calc(var(--holo-x, 0) * -2px), calc(var(--holo-y, 0) * -1px));
   mix-blend-mode: multiply;
 }

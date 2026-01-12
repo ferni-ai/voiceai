@@ -1184,7 +1184,7 @@ a.card:hover h3 {
    ============================================================================ */
 
 .the-gaps {
-  background: var(--color-bg-secondary, #f8f5f0);
+  background: var(--color-bg-secondary, var(--color-paper));
   padding: clamp(80px, 12vw, 140px) clamp(24px, 5vw, 64px);
 }
 

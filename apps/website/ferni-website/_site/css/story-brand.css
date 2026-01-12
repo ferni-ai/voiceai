@@ -2828,7 +2828,7 @@ button {
 .showcase__app-status {
   font-size: var(--text-xs);
   /* Use lighter green for dark backgrounds - 5.68:1 contrast on var(--color-text-primary) */
-  color: var(--color-dark-accent, #8fa67a);
+  color: var(--color-dark-accent, var(--color-moss-light));
 }
 
 .showcase__app-chat {
@@ -5212,7 +5212,7 @@ img[loading='lazy']:not([data-src]) {
   font-size: var(--text-sm);
   font-weight: 700;
   /* Warm accent color - explicit for always-dark section */
-  color: var(--color-nayan, #c4956b);
+  color: var(--color-nayan, var(--color-jordan-light));
   text-transform: uppercase;
   letter-spacing: 0.1em;
 }
@@ -6829,7 +6829,7 @@ body[data-time-of-day='early-morning'] {
      JOURNEY SECTION - Fix heading/timeline contrast
      =========================================== */
   .journey .section__eyebrow {
-    color: var(--color-highlight, #b4a89a) !important;
+    color: var(--color-highlight, var(--color-stone-light)) !important;
   }
 
   .journey .section__title {
@@ -6856,7 +6856,7 @@ body[data-time-of-day='early-morning'] {
   /* Generic section headers in dark sections */
   .section--dark .section__eyebrow,
   [class*="dark"] .section__eyebrow {
-    color: var(--color-highlight, #b4a89a) !important;
+    color: var(--color-highlight, var(--color-stone-light)) !important;
   }
 
   .section--dark .section__title,

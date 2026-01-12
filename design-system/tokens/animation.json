@@ -78,7 +78,7 @@
     "comm-specialist": "alex-chen",
     "spend-save": "maya-santos",
     "event-planner": "jordan-taylor",
-    "peter-lynch": "peter-lynch",
+    "peter-john": "peter-john",
     "ferni": "ferni",
     "alex-chen": "alex-chen",
     "maya-santos": "maya-santos",
@@ -96,7 +96,7 @@
       "thinkingStyle": "curious-tilt",
       "celebrationIntensity": "warm"
     },
-    "peter-lynch": {
+    "peter-john": {
       "description": "Energetic, practical, quick - like Linguini's nervous energy",
       "timingMultiplier": 0.8,
       "bounciness": 0.6,
@@ -137,7 +137,7 @@
       "smoothing": 0.7,
       "speed": 1.0
     },
-    "peter-lynch": {
+    "peter-john": {
       "energy": 0.9,
       "smoothing": 0.55,
       "speed": 1.2
@@ -177,7 +177,7 @@
       "wobble": true,
       "description": "Warm welcoming energy"
     },
-    "peter-lynch": {
+    "peter-john": {
       "speed": { "min": 1, "max": 3 },
       "direction": "none",
       "size": { "min": 2, "max": 6 },
@@ -1219,10 +1219,161 @@
     }
   },
 
+  "emotionalTheming": {
+    "_documentation": "BETTER THAN APPLE: Not just light/dark mode - themes that respond to emotional context",
+    "_philosophy": "Apple's HIG gives you static elegance. Ferni's UI breathes with your emotional state.",
+
+    "themes": {
+      "zen": {
+        "name": "Zen Garden",
+        "emotionalState": "neutral",
+        "colorTemperature": 0,
+        "animationIntensity": 1.0,
+        "warmth": 0.5,
+        "saturation": 1.0,
+        "description": "Default calm - warm paper and sage"
+      },
+      "midnight": {
+        "name": "Cedar Night",
+        "emotionalState": "neutral",
+        "colorTemperature": 0.2,
+        "animationIntensity": 0.9,
+        "warmth": 0.6,
+        "saturation": 0.95,
+        "description": "Dark mode with warm cedar tones"
+      },
+      "embrace": {
+        "name": "Warm Embrace",
+        "emotionalState": "comfort",
+        "colorTemperature": 0.4,
+        "animationIntensity": 0.7,
+        "warmth": 0.8,
+        "saturation": 0.9,
+        "triggerEmotions": ["sad", "anxious", "worried", "lonely"],
+        "description": "Extra warmth when you need comfort"
+      },
+      "energize": {
+        "name": "Morning Energy",
+        "emotionalState": "excited",
+        "colorTemperature": -0.1,
+        "animationIntensity": 1.3,
+        "warmth": 0.4,
+        "saturation": 1.1,
+        "triggerEmotions": ["excited", "happy", "motivated", "celebrating"],
+        "description": "Vibrant and alive for high-energy moments"
+      },
+      "focus": {
+        "name": "Deep Focus",
+        "emotionalState": "thinking",
+        "colorTemperature": -0.2,
+        "animationIntensity": 0.6,
+        "warmth": 0.3,
+        "saturation": 0.85,
+        "triggerEmotions": ["thinking", "working", "planning", "concentrating"],
+        "description": "Minimal, clear, distraction-free"
+      },
+      "reflect": {
+        "name": "Quiet Reflection",
+        "emotionalState": "contemplative",
+        "colorTemperature": 0.1,
+        "animationIntensity": 0.5,
+        "warmth": 0.55,
+        "saturation": 0.8,
+        "triggerEmotions": ["nostalgic", "reflective", "processing", "grieving"],
+        "description": "Muted and gentle for processing moments"
+      }
+    },
+
+    "cssVariables": {
+      "--emotional-temperature": "0",
+      "--emotional-warmth": "0.5",
+      "--emotional-saturation": "1",
+      "--emotional-animation-intensity": "1",
+      "--emotional-filter": "none"
+    },
+
+    "temperatureFilter": {
+      "_note": "Color temperature filter: cool = blue shift, warm = orange shift",
+      "cool": "hue-rotate(-10deg) saturate(0.95)",
+      "warm": "sepia(0.15) saturate(1.1) hue-rotate(-5deg)",
+      "formula": "sepia(calc(var(--emotional-warmth) * 0.2)) saturate(var(--emotional-saturation))"
+    }
+  },
+
+  "personaAura": {
+    "_documentation": "BETTER THAN GOOGLE: Each persona creates an atmospheric presence, not just a theme color",
+    "_philosophy": "Material Design gives you color schemes. Ferni personas have auras - ambient presence that affects the whole UI.",
+
+    "auras": {
+      "ferni": {
+        "name": "Ferni",
+        "gradient": "radial-gradient(ellipse 120% 100% at 50% -20%, rgba(74, 103, 65, 0.15) 0%, transparent 70%)",
+        "glowColor": "rgba(74, 103, 65, 0.25)",
+        "glowSpread": "80px",
+        "pulseRate": "5s",
+        "presence": "grounding",
+        "ambientFilter": "saturate(1.02)"
+      },
+      "maya": {
+        "name": "Maya",
+        "gradient": "radial-gradient(ellipse 120% 100% at 50% -20%, rgba(139, 90, 173, 0.15) 0%, transparent 70%)",
+        "glowColor": "rgba(139, 90, 173, 0.25)",
+        "glowSpread": "70px",
+        "pulseRate": "4s",
+        "presence": "energizing",
+        "ambientFilter": "saturate(1.05)"
+      },
+      "peter": {
+        "name": "Peter",
+        "gradient": "radial-gradient(ellipse 120% 100% at 50% -20%, rgba(46, 125, 154, 0.12) 0%, transparent 70%)",
+        "glowColor": "rgba(46, 125, 154, 0.2)",
+        "glowSpread": "90px",
+        "pulseRate": "6s",
+        "presence": "clarifying",
+        "ambientFilter": "saturate(0.98)"
+      },
+      "jordan": {
+        "name": "Jordan",
+        "gradient": "radial-gradient(ellipse 120% 100% at 50% -20%, rgba(209, 122, 71, 0.15) 0%, transparent 70%)",
+        "glowColor": "rgba(209, 122, 71, 0.25)",
+        "glowSpread": "75px",
+        "pulseRate": "4.5s",
+        "presence": "exciting",
+        "ambientFilter": "saturate(1.08)"
+      },
+      "alex": {
+        "name": "Alex",
+        "gradient": "radial-gradient(ellipse 120% 100% at 50% -20%, rgba(90, 143, 123, 0.12) 0%, transparent 70%)",
+        "glowColor": "rgba(90, 143, 123, 0.2)",
+        "glowSpread": "85px",
+        "pulseRate": "5.5s",
+        "presence": "calming",
+        "ambientFilter": "saturate(1.0)"
+      },
+      "nayan": {
+        "name": "Nayan",
+        "gradient": "radial-gradient(ellipse 120% 100% at 50% -20%, rgba(139, 107, 74, 0.15) 0%, transparent 70%)",
+        "glowColor": "rgba(139, 107, 74, 0.22)",
+        "glowSpread": "100px",
+        "pulseRate": "7s",
+        "presence": "deepening",
+        "ambientFilter": "saturate(0.95) sepia(0.05)"
+      }
+    },
+
+    "cssVariables": {
+      "--persona-aura-gradient": "none",
+      "--persona-aura-glow": "transparent",
+      "--persona-aura-spread": "0px",
+      "--persona-aura-pulse": "5s",
+      "--persona-aura-filter": "none"
+    }
+  },
+
   "relationshipDepth": {
     "_documentation": "BETTER THAN APPLE/GOOGLE: UI that grows with your relationship",
     "_philosophy": "Every session is not the same. Your 100th conversation should feel different than your first.",
-    
+
     "stages": {
       "new": {
         "conversations": [0, 5],
@@ -1264,6 +1415,626 @@
         "featureVisibility": ["all"],
         "visualDescription": "UI feels like it knows you - subtle, personal, present"
       }
+    }
+  },
+
+  "organicConversationFlow": {
+    "_documentation": "BETTER THAN APPLE/GOOGLE: Replace rigid chat bubbles with organic, flowing conversation",
+    "_philosophy": "Chat interfaces feel mechanical - boxes floating in space. Human conversation is a continuous river of dialogue, thoughts flowing into each other, not disconnected rectangles.",
+    "_inspiration": "Pixar's fluidity - water in Finding Nemo, the organic blob shapes in Inside Out emotions",
+
+    "messageShapes": {
+      "_description": "Organic shapes instead of hard rectangles",
+
+      "user": {
+        "borderRadius": "24px 24px 8px 24px",
+        "softEdge": "true",
+        "shadowStyle": "0 2px 8px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.05)",
+        "backgroundGradient": "linear-gradient(135deg, var(--color-tonal-surface2-background) 0%, var(--color-tonal-surface1-background) 100%)"
+      },
+      "ai": {
+        "borderRadius": "24px 24px 24px 8px",
+        "softEdge": "true",
+        "shadowStyle": "0 4px 16px rgba(0,0,0,0.06), 0 2px 4px rgba(0,0,0,0.04)",
+        "backgroundGradient": "linear-gradient(135deg, var(--color-background-elevated) 0%, var(--color-background-tertiary) 100%)"
+      },
+      "system": {
+        "borderRadius": "16px",
+        "softEdge": "true",
+        "shadowStyle": "none",
+        "backgroundGradient": "none"
+      }
+    },
+
+    "flowingBorders": {
+      "_description": "Borders that breathe and flow, not static lines",
+
+      "default": {
+        "width": "1px",
+        "style": "solid",
+        "color": "var(--color-border-subtle)",
+        "opacity": "0.6"
+      },
+      "active": {
+        "width": "1.5px",
+        "style": "solid",
+        "color": "var(--color-accent-primary)",
+        "opacity": "0.8",
+        "glow": "0 0 8px var(--color-accent-glow)"
+      },
+      "breathing": {
+        "animation": "borderBreathe",
+        "duration": "4s",
+        "easing": "cubic-bezier(0.4, 0, 0.2, 1)",
+        "opacityRange": [0.4, 0.8]
+      }
+    },
+
+    "connectionLines": {
+      "_description": "Visual threads that connect messages in a conversation",
+      "_philosophy": "Messages don't float alone - they're part of a continuous dialogue",
+
+      "style": "curved",
+      "width": "2px",
+      "color": "var(--color-border-subtle)",
+      "opacity": "0.3",
+      "curveStrength": "20px",
+      "animateOnNew": {
+        "duration": "400ms",
+        "easing": "cubic-bezier(0.34, 1.56, 0.64, 1)"
+      }
+    },
+
+    "breathingContainers": {
+      "_description": "Message containers that subtly breathe, suggesting life",
+      "_philosophy": "Static boxes feel dead. A slight breathing motion makes the interface feel alive without being distracting.",
+
+      "enabled": true,
+      "animation": {
+        "name": "containerBreathe",
+        "duration": "5000ms",
+        "easing": "cubic-bezier(0.4, 0, 0.2, 1)",
+        "scaleRange": [1.0, 1.005],
+        "opacityRange": [0.98, 1.0]
+      },
+      "onHover": {
+        "pause": true,
+        "scale": 1.01,
+        "transition": "200ms ease-out"
+      },
+      "onActive": {
+        "scale": 1.0,
+        "glow": "0 0 20px var(--color-accent-glow)"
+      }
+    },
+
+    "presenceIndicators": {
+      "_description": "Subtle animations showing the AI is present and listening",
+      "_philosophy": "Even when silent, presence matters. These micro-animations show 'I'm here with you'",
+
+      "listeningPulse": {
+        "animation": "presencePulse",
+        "duration": "2000ms",
+        "easing": "ease-in-out",
+        "intensity": "subtle",
+        "color": "var(--color-accent-subtle)"
+      },
+      "thinkingRipple": {
+        "animation": "thinkingRipple",
+        "duration": "1200ms",
+        "easing": "cubic-bezier(0.4, 0, 0.2, 1)",
+        "rings": 3,
+        "delay": "200ms"
+      },
+      "activeGlow": {
+        "animation": "activeGlow",
+        "duration": "3000ms",
+        "easing": "ease-in-out",
+        "color": "var(--persona-aura-glow)"
+      }
+    },
+
+    "transitionStyles": {
+      "_description": "How messages enter and exit the conversation flow",
+
+      "enter": {
+        "animation": "messageEnter",
+        "duration": "400ms",
+        "easing": "cubic-bezier(0.34, 1.56, 0.64, 1)",
+        "initialState": {
+          "opacity": 0,
+          "transform": "translateY(20px) scale(0.95)"
+        }
+      },
+      "exit": {
+        "animation": "messageExit",
+        "duration": "300ms",
+        "easing": "cubic-bezier(0.4, 0, 1, 1)",
+        "finalState": {
+          "opacity": 0,
+          "transform": "translateY(-10px) scale(0.98)"
+        }
+      },
+      "update": {
+        "animation": "messageUpdate",
+        "duration": "200ms",
+        "easing": "ease-out",
+        "highlight": "var(--color-accent-subtle)"
+      }
+    },
+
+    "keyframes": {
+      "containerBreathe": {
+        "0%": { "transform": "scale(1)", "opacity": "0.98" },
+        "50%": { "transform": "scale(1.005)", "opacity": "1" },
+        "100%": { "transform": "scale(1)", "opacity": "0.98" }
+      },
+      "borderBreathe": {
+        "0%": { "opacity": "0.4", "border-color": "var(--color-border-subtle)" },
+        "50%": { "opacity": "0.8", "border-color": "var(--color-border-medium)" },
+        "100%": { "opacity": "0.4", "border-color": "var(--color-border-subtle)" }
+      },
+      "presencePulse": {
+        "0%": { "box-shadow": "0 0 0 0 var(--color-accent-subtle)" },
+        "50%": { "box-shadow": "0 0 0 8px transparent" },
+        "100%": { "box-shadow": "0 0 0 0 var(--color-accent-subtle)" }
+      },
+      "thinkingRipple": {
+        "0%": { "transform": "scale(0.8)", "opacity": "0.6" },
+        "100%": { "transform": "scale(1.5)", "opacity": "0" }
+      },
+      "activeGlow": {
+        "0%": { "box-shadow": "0 0 20px var(--persona-aura-glow)" },
+        "50%": { "box-shadow": "0 0 30px var(--persona-aura-glow)" },
+        "100%": { "box-shadow": "0 0 20px var(--persona-aura-glow)" }
+      },
+      "messageEnter": {
+        "0%": { "opacity": "0", "transform": "translateY(20px) scale(0.95)" },
+        "100%": { "opacity": "1", "transform": "translateY(0) scale(1)" }
+      },
+      "messageExit": {
+        "0%": { "opacity": "1", "transform": "translateY(0) scale(1)" },
+        "100%": { "opacity": "0", "transform": "translateY(-10px) scale(0.98)" }
+      },
+      "messageUpdate": {
+        "0%": { "background-color": "var(--color-accent-subtle)" },
+        "100%": { "background-color": "transparent" }
+      },
+      "connectionDraw": {
+        "0%": { "stroke-dashoffset": "100%" },
+        "100%": { "stroke-dashoffset": "0%" }
+      }
+    },
+
+    "cssVariables": {
+      "--conversation-message-radius-user": "24px 24px 8px 24px",
+      "--conversation-message-radius-ai": "24px 24px 24px 8px",
+      "--conversation-message-radius-system": "16px",
+      "--conversation-breathing-duration": "5000ms",
+      "--conversation-breathing-scale": "1.005",
+      "--conversation-presence-color": "var(--color-accent-subtle)",
+      "--conversation-connection-color": "var(--color-border-subtle)",
+      "--conversation-connection-opacity": "0.3",
+      "--conversation-enter-duration": "400ms",
+      "--conversation-exit-duration": "300ms"
+    }
+  },
+
+  "microInteractions": {
+    "_documentation": "BETTER THAN APPLE/GOOGLE: Advanced micro-interactions library",
+    "_philosophy": "Micro-interactions are the soul of great UI. Every tap, hover, and state change is an opportunity to delight. Apple pioneered this with iOS's rubber-banding. We take it further with emotional awareness.",
+    "_inspiration": "Apple's attention to touch feedback, Pixar's anticipation/follow-through, Material Design's ripples - but warmer, more human",
+
+    "touchFeedback": {
+      "_description": "Haptic-style visual feedback for touch interactions",
+
+      "tap": {
+        "animation": "tapPulse",
+        "duration": "200ms",
+        "easing": "cubic-bezier(0.4, 0, 0.2, 1)",
+        "scale": [1, 0.97, 1],
+        "opacity": [1, 0.9, 1]
+      },
+      "press": {
+        "animation": "pressDown",
+        "duration": "100ms",
+        "easing": "ease-out",
+        "scale": 0.96,
+        "shadow": "inset"
+      },
+      "release": {
+        "animation": "releaseUp",
+        "duration": "200ms",
+        "easing": "cubic-bezier(0.34, 1.56, 0.64, 1)",
+        "scale": 1.02,
+        "overshoot": true
+      },
+      "ripple": {
+        "animation": "rippleExpand",
+        "duration": "400ms",
+        "easing": "ease-out",
+        "color": "var(--color-accent-subtle)",
+        "maxScale": 2.5
+      },
+      "longPress": {
+        "animation": "longPressHold",
+        "duration": "800ms",
+        "easing": "ease-in-out",
+        "scaleTarget": 0.94,
+        "glowColor": "var(--color-accent-glow)"
+      }
+    },
+
+    "stateFeedback": {
+      "_description": "Visual confirmation of state changes",
+
+      "success": {
+        "animation": "successPop",
+        "duration": "400ms",
+        "easing": "cubic-bezier(0.34, 1.56, 0.64, 1)",
+        "color": "var(--color-semantic-success)",
+        "icon": "checkmark",
+        "scale": [1, 1.2, 1],
+        "glow": "0 0 20px var(--color-semantic-success-glow)"
+      },
+      "error": {
+        "animation": "errorShake",
+        "duration": "400ms",
+        "easing": "ease-out",
+        "color": "var(--color-semantic-error)",
+        "icon": "x",
+        "shakeDistance": "8px",
+        "shakeCount": 3
+      },
+      "warning": {
+        "animation": "warningPulse",
+        "duration": "600ms",
+        "easing": "ease-in-out",
+        "color": "var(--color-semantic-warning)",
+        "icon": "alert",
+        "pulseCount": 2
+      },
+      "info": {
+        "animation": "infoSlide",
+        "duration": "300ms",
+        "easing": "ease-out",
+        "color": "var(--color-semantic-info)",
+        "icon": "info"
+      },
+      "loading": {
+        "animation": "loadingDots",
+        "duration": "1200ms",
+        "easing": "ease-in-out",
+        "dotCount": 3,
+        "stagger": "150ms"
+      }
+    },
+
+    "acknowledgments": {
+      "_description": "Micro-celebrations for completed actions",
+
+      "saved": {
+        "animation": "savedCheckmark",
+        "duration": "500ms",
+        "icon": "checkmark-circle",
+        "message": "Saved"
+      },
+      "sent": {
+        "animation": "sentFlyAway",
+        "duration": "400ms",
+        "icon": "paper-plane",
+        "trajectory": "arc-up-right"
+      },
+      "copied": {
+        "animation": "copiedFlash",
+        "duration": "300ms",
+        "icon": "clipboard-check",
+        "highlight": "var(--color-accent-subtle)"
+      },
+      "added": {
+        "animation": "addedBounce",
+        "duration": "400ms",
+        "icon": "plus-circle",
+        "bounce": true
+      },
+      "removed": {
+        "animation": "removedFade",
+        "duration": "250ms",
+        "icon": "minus-circle",
+        "direction": "out"
+      },
+      "favorited": {
+        "animation": "heartPop",
+        "duration": "500ms",
+        "icon": "heart-filled",
+        "color": "#e25555",
+        "particles": true
+      }
+    },
+
+    "attentionGrabbers": {
+      "_description": "Subtle animations to draw user attention",
+
+      "badge": {
+        "animation": "badgeBounce",
+        "duration": "600ms",
+        "easing": "cubic-bezier(0.34, 1.56, 0.64, 1)",
+        "bounceHeight": "4px",
+        "repeatCount": 2
+      },
+      "notification": {
+        "animation": "notificationSlide",
+        "duration": "300ms",
+        "easing": "ease-out",
+        "slideDistance": "100%",
+        "fadeIn": true
+      },
+      "indicator": {
+        "animation": "indicatorPulse",
+        "duration": "2000ms",
+        "easing": "ease-in-out",
+        "glowIntensity": [0.3, 0.6, 0.3],
+        "infinite": true
+      },
+      "highlight": {
+        "animation": "highlightGlow",
+        "duration": "1500ms",
+        "easing": "ease-out",
+        "color": "var(--color-accent-glow)",
+        "spread": "20px"
+      },
+      "shake": {
+        "animation": "attentionShake",
+        "duration": "500ms",
+        "easing": "ease-out",
+        "intensity": "gentle"
+      }
+    },
+
+    "loadingVariants": {
+      "_description": "Different loading states for different contexts",
+
+      "skeleton": {
+        "animation": "skeletonShimmer",
+        "duration": "1500ms",
+        "easing": "ease-in-out",
+        "gradientWidth": "50%",
+        "colors": ["var(--color-bg-tertiary)", "var(--color-bg-elevated)", "var(--color-bg-tertiary)"]
+      },
+      "dots": {
+        "animation": "dotsWave",
+        "duration": "1400ms",
+        "easing": "ease-in-out",
+        "count": 3,
+        "stagger": "100ms"
+      },
+      "spinner": {
+        "animation": "spinnerRotate",
+        "duration": "1000ms",
+        "easing": "linear",
+        "dashOffset": true
+      },
+      "progress": {
+        "animation": "progressFill",
+        "easing": "ease-out",
+        "duration": "dynamic",
+        "color": "var(--color-accent-primary)"
+      },
+      "breathing": {
+        "animation": "loadingBreathe",
+        "duration": "2000ms",
+        "easing": "ease-in-out",
+        "scaleRange": [0.95, 1.0]
+      }
+    },
+
+    "hoverEffects": {
+      "_description": "Rich hover states beyond simple color changes",
+
+      "lift": {
+        "transform": "translateY(-2px)",
+        "shadow": "0 4px 12px rgba(0,0,0,0.15)",
+        "duration": "200ms",
+        "easing": "ease-out"
+      },
+      "glow": {
+        "boxShadow": "0 0 20px var(--color-accent-glow)",
+        "duration": "250ms",
+        "easing": "ease-out"
+      },
+      "scale": {
+        "transform": "scale(1.02)",
+        "duration": "150ms",
+        "easing": "ease-out"
+      },
+      "spotlight": {
+        "background": "radial-gradient(circle at var(--mouse-x) var(--mouse-y), var(--color-accent-subtle) 0%, transparent 50%)",
+        "duration": "0ms",
+        "followMouse": true
+      },
+      "magnetic": {
+        "transform": "translate(var(--magnetic-x), var(--magnetic-y))",
+        "duration": "100ms",
+        "easing": "ease-out",
+        "strength": "0.3"
+      },
+      "borderGlow": {
+        "borderColor": "var(--color-accent-primary)",
+        "boxShadow": "0 0 0 2px var(--color-accent-glow)",
+        "duration": "200ms"
+      }
+    },
+
+    "toggleAnimations": {
+      "_description": "Switch, checkbox, radio button animations",
+
+      "switch": {
+        "thumbTravel": "18px",
+        "duration": "200ms",
+        "easing": "cubic-bezier(0.4, 0, 0.2, 1)",
+        "thumbScale": [1, 1.1, 1],
+        "trackColorChange": true
+      },
+      "checkbox": {
+        "checkmarkDraw": "150ms",
+        "easing": "ease-out",
+        "checkmarkStyle": "stroke",
+        "bounceOnCheck": true
+      },
+      "radio": {
+        "fillDuration": "150ms",
+        "easing": "ease-out",
+        "dotScale": [0, 1.2, 1],
+        "rippleOnSelect": true
+      }
+    },
+
+    "scrollInteractions": {
+      "_description": "Scroll-linked micro-animations",
+
+      "fadeIn": {
+        "trigger": "enterViewport",
+        "threshold": 0.2,
+        "animation": "fadeSlideUp",
+        "duration": "400ms",
+        "stagger": "100ms"
+      },
+      "parallax": {
+        "speed": 0.5,
+        "direction": "vertical",
+        "easing": "linear"
+      },
+      "progress": {
+        "indicator": "top-bar",
+        "color": "var(--color-accent-primary)",
+        "height": "3px"
+      },
+      "rubber": {
+        "overscroll": true,
+        "resistance": 0.4,
+        "snapBack": "300ms"
+      }
+    },
+
+    "keyframes": {
+      "tapPulse": {
+        "0%": { "transform": "scale(1)", "opacity": "1" },
+        "50%": { "transform": "scale(0.97)", "opacity": "0.9" },
+        "100%": { "transform": "scale(1)", "opacity": "1" }
+      },
+      "pressDown": {
+        "0%": { "transform": "scale(1)" },
+        "100%": { "transform": "scale(0.96)" }
+      },
+      "releaseUp": {
+        "0%": { "transform": "scale(0.96)" },
+        "50%": { "transform": "scale(1.02)" },
+        "100%": { "transform": "scale(1)" }
+      },
+      "rippleExpand": {
+        "0%": { "transform": "scale(0)", "opacity": "0.5" },
+        "100%": { "transform": "scale(2.5)", "opacity": "0" }
+      },
+      "longPressHold": {
+        "0%": { "transform": "scale(1)", "box-shadow": "none" },
+        "100%": { "transform": "scale(0.94)", "box-shadow": "0 0 20px var(--color-accent-glow)" }
+      },
+      "successPop": {
+        "0%": { "transform": "scale(0)", "opacity": "0" },
+        "50%": { "transform": "scale(1.2)", "opacity": "1" },
+        "100%": { "transform": "scale(1)", "opacity": "1" }
+      },
+      "errorShake": {
+        "0%": { "transform": "translateX(0)" },
+        "20%": { "transform": "translateX(-8px)" },
+        "40%": { "transform": "translateX(8px)" },
+        "60%": { "transform": "translateX(-8px)" },
+        "80%": { "transform": "translateX(8px)" },
+        "100%": { "transform": "translateX(0)" }
+      },
+      "warningPulse": {
+        "0%": { "transform": "scale(1)", "opacity": "1" },
+        "25%": { "transform": "scale(1.05)", "opacity": "0.8" },
+        "50%": { "transform": "scale(1)", "opacity": "1" },
+        "75%": { "transform": "scale(1.05)", "opacity": "0.8" },
+        "100%": { "transform": "scale(1)", "opacity": "1" }
+      },
+      "loadingDots": {
+        "0%": { "transform": "translateY(0)" },
+        "50%": { "transform": "translateY(-8px)" },
+        "100%": { "transform": "translateY(0)" }
+      },
+      "savedCheckmark": {
+        "0%": { "stroke-dashoffset": "24" },
+        "100%": { "stroke-dashoffset": "0" }
+      },
+      "sentFlyAway": {
+        "0%": { "transform": "translateX(0) translateY(0) scale(1)", "opacity": "1" },
+        "100%": { "transform": "translateX(30px) translateY(-20px) scale(0.5)", "opacity": "0" }
+      },
+      "copiedFlash": {
+        "0%": { "background-color": "transparent" },
+        "50%": { "background-color": "var(--color-accent-subtle)" },
+        "100%": { "background-color": "transparent" }
+      },
+      "heartPop": {
+        "0%": { "transform": "scale(1)" },
+        "15%": { "transform": "scale(1.3)" },
+        "30%": { "transform": "scale(0.9)" },
+        "45%": { "transform": "scale(1.2)" },
+        "60%": { "transform": "scale(0.95)" },
+        "100%": { "transform": "scale(1)" }
+      },
+      "badgeBounce": {
+        "0%": { "transform": "translateY(0)" },
+        "30%": { "transform": "translateY(-4px)" },
+        "50%": { "transform": "translateY(0)" },
+        "70%": { "transform": "translateY(-2px)" },
+        "100%": { "transform": "translateY(0)" }
+      },
+      "indicatorPulse": {
+        "0%": { "box-shadow": "0 0 0 0 var(--color-accent-glow)" },
+        "50%": { "box-shadow": "0 0 10px 5px var(--color-accent-glow)" },
+        "100%": { "box-shadow": "0 0 0 0 var(--color-accent-glow)" }
+      },
+      "skeletonShimmer": {
+        "0%": { "background-position": "-200% 0" },
+        "100%": { "background-position": "200% 0" }
+      },
+      "dotsWave": {
+        "0%": { "transform": "translateY(0)" },
+        "50%": { "transform": "translateY(-6px)" },
+        "100%": { "transform": "translateY(0)" }
+      },
+      "spinnerRotate": {
+        "0%": { "transform": "rotate(0deg)" },
+        "100%": { "transform": "rotate(360deg)" }
+      },
+      "fadeSlideUp": {
+        "0%": { "opacity": "0", "transform": "translateY(20px)" },
+        "100%": { "opacity": "1", "transform": "translateY(0)" }
+      },
+      "checkmarkDraw": {
+        "0%": { "stroke-dashoffset": "24", "opacity": "0" },
+        "50%": { "opacity": "1" },
+        "100%": { "stroke-dashoffset": "0", "opacity": "1" }
+      }
+    },
+
+    "cssVariables": {
+      "--micro-tap-duration": "200ms",
+      "--micro-press-scale": "0.96",
+      "--micro-release-scale": "1.02",
+      "--micro-ripple-duration": "400ms",
+      "--micro-success-duration": "400ms",
+      "--micro-error-shake-distance": "8px",
+      "--micro-loading-dots-duration": "1400ms",
+      "--micro-skeleton-duration": "1500ms",
+      "--micro-hover-lift": "-2px",
+      "--micro-hover-shadow": "0 4px 12px rgba(0,0,0,0.15)",
+      "--micro-switch-duration": "200ms",
+      "--micro-checkbox-duration": "150ms",
+      "--micro-scroll-stagger": "100ms"
     }
   }
 }

@@ -443,27 +443,27 @@
 }
 
 .demo-message--ferni[data-emotion="warm"] {
-  background: linear-gradient(135deg, var(--color-bg-primary) 0%, #f5ece4 100%);
+  background: linear-gradient(135deg, var(--color-bg-primary) 0%, var(--color-paper-warm) 100%);
   border-left: 2px solid var(--color-maya);
 }
 
 .demo-message--ferni[data-emotion="empathetic"] {
-  background: linear-gradient(135deg, var(--color-bg-primary) 0%, #f2ebe8 100%);
+  background: linear-gradient(135deg, var(--color-bg-primary) 0%, var(--color-warm-white) 100%);
   border-left: 2px solid var(--color-maya);
 }
 
 .demo-message--ferni[data-emotion="thoughtful"] {
-  background: linear-gradient(135deg, var(--color-bg-primary) 0%, #eceef2 100%);
+  background: linear-gradient(135deg, var(--color-bg-primary) 0%, var(--color-gray-100) 100%);
   border-left: 2px solid var(--color-alex);
 }
 
 .demo-message--ferni[data-emotion="curious"] {
-  background: linear-gradient(135deg, var(--color-bg-primary) 0%, #e8f0f0 100%);
+  background: linear-gradient(135deg, var(--color-bg-primary) 0%, var(--color-peter-pale) 100%);
   border-left: 2px solid var(--color-peter);
 }
 
 .demo-message--ferni[data-emotion="delighted"] {
-  background: linear-gradient(135deg, var(--color-bg-primary) 0%, #ecf0e8 100%);
+  background: linear-gradient(135deg, var(--color-bg-primary) 0%, var(--color-ferni-pale) 100%);
   border-left: 2px solid var(--color-ferni);
 }
 

@@ -4,7 +4,7 @@
  * Auto-generated from design tokens.
  * DO NOT EDIT DIRECTLY - modify tokens/*.json and rebuild.
  *
- * Build: 2026-01-10T19:43:20.136Z
+ * Build: 2026-01-12T16:40:18.961Z
  */
 
 /* ========================================
@@ -17,45 +17,29 @@
   --color-background-elevated: #70605a;
   --color-background-glass: rgba(230, 195, 160, 0.08);
   --color-background-overlay: rgba(88, 72, 64, 0.95);
-  --color-glass-_description: Apple visionOS-inspired glass system for modals and overlays;
-  --color-glass-_philosophy: Deep frosted glass creates spatial depth and premium feel;
   --color-glass-ultra-thin-background: rgba(255, 255, 255, 0.02);
   --color-glass-ultra-thin-blur: 4px;
   --color-glass-ultra-thin-border: rgba(255, 255, 255, 0.04);
-  --color-glass-ultra-thin-_usage: Subtle background separation;
   --color-glass-thin-background: rgba(255, 255, 255, 0.04);
   --color-glass-thin-blur: 8px;
   --color-glass-thin-border: rgba(255, 255, 255, 0.06);
-  --color-glass-thin-_usage: Cards, list items;
   --color-glass-regular-background: rgba(255, 255, 255, 0.08);
   --color-glass-regular-blur: 16px;
   --color-glass-regular-border: rgba(255, 255, 255, 0.10);
-  --color-glass-regular-_usage: Default glass surfaces;
   --color-glass-thick-background: rgba(255, 255, 255, 0.12);
   --color-glass-thick-blur: 24px;
   --color-glass-thick-border: rgba(255, 255, 255, 0.14);
-  --color-glass-thick-_usage: Modals, popovers;
   --color-glass-ultra-thick-background: rgba(255, 255, 255, 0.16);
   --color-glass-ultra-thick-blur: 40px;
   --color-glass-ultra-thick-border: rgba(255, 255, 255, 0.18);
-  --color-glass-ultra-thick-_usage: Full-screen overlays, system dialogs;
   --color-glass-chromatic-background: rgba(212, 168, 74, 0.06);
   --color-glass-chromatic-blur: 20px;
   --color-glass-chromatic-border: rgba(212, 168, 74, 0.12);
-  --color-glass-chromatic-_usage: Accent-tinted glass for persona or brand elements;
-  --color-tonal-_description: Material-inspired tonal surfaces for cards and buttons;
-  --color-tonal-_philosophy: Warm, approachable surfaces with subtle elevation;
   --color-tonal-surface1-background: rgba(230, 195, 160, 0.04);
-  --color-tonal-surface1-_usage: Lowest elevation - background cards;
   --color-tonal-surface2-background: rgba(230, 195, 160, 0.08);
-  --color-tonal-surface2-_usage: Medium elevation - interactive cards;
   --color-tonal-surface3-background: rgba(230, 195, 160, 0.12);
-  --color-tonal-surface3-_usage: High elevation - buttons, chips;
   --color-tonal-surface-hover-background: rgba(230, 195, 160, 0.16);
-  --color-tonal-surface-hover-_usage: Hover state for tonal surfaces;
   --color-tonal-surface-active-background: rgba(230, 195, 160, 0.20);
-  --color-tonal-surface-active-_usage: Active/pressed state for tonal surfaces;
-  --color-text-_wcag: All colors tested against #70605a elevated background for WCAG AA (4.5:1);
   --color-text-primary: #faf6f0;
   --color-text-secondary: #f0ebe4;
   --color-text-muted: #e8e2da;
@@ -70,7 +54,6 @@
   --color-accent-glow: rgba(212, 168, 74, 0.22);
   --color-accent-subtle: rgba(212, 168, 74, 0.08);
   --color-accent-text: #e8c870;
-  --color-accent-_text-note: Brighter gold for text usage - 4.0:1 contrast, use for large text/accents only;
   --color-semantic-success: #6bc48f;
   --color-semantic-success-glow: rgba(107, 196, 143, 0.22);
   --color-semantic-success-tint: rgba(107, 196, 143, 0.12);
@@ -83,13 +66,11 @@
   --color-semantic-info: #7da6cf;
   --color-semantic-info-glow: rgba(125, 166, 207, 0.22);
   --color-semantic-info-tint: rgba(125, 166, 207, 0.12);
-  --color-utility-_description: Utility colors for common UI patterns - focus rings, backdrops, overlays;
   --color-utility-focus-ring: rgba(212, 168, 74, 0.3);
   --color-utility-focus-ring-subtle: rgba(212, 168, 74, 0.1);
   --color-utility-backdrop: rgba(20, 16, 14, 0.7);
   --color-utility-backdrop-light: rgba(20, 16, 14, 0.5);
   --color-utility-scrim: rgba(20, 16, 14, 0.85);
-  --color-natural-_description: Extended natural palette - Japanese garden, forest, earth tones;
   --color-natural-cedar: #a08060;
   --color-natural-cedar-light: #c4a882;
   --color-natural-cedar-dark: #584840;
@@ -128,45 +109,29 @@
   --color-background-elevated: #70605a;
   --color-background-glass: rgba(230, 195, 160, 0.08);
   --color-background-overlay: rgba(88, 72, 64, 0.95);
-  --color-glass-_description: Apple visionOS-inspired glass system for modals and overlays;
-  --color-glass-_philosophy: Deep frosted glass creates spatial depth and premium feel;
   --color-glass-ultra-thin-background: rgba(255, 255, 255, 0.02);
   --color-glass-ultra-thin-blur: 4px;
   --color-glass-ultra-thin-border: rgba(255, 255, 255, 0.04);
-  --color-glass-ultra-thin-_usage: Subtle background separation;
   --color-glass-thin-background: rgba(255, 255, 255, 0.04);
   --color-glass-thin-blur: 8px;
   --color-glass-thin-border: rgba(255, 255, 255, 0.06);
-  --color-glass-thin-_usage: Cards, list items;
   --color-glass-regular-background: rgba(255, 255, 255, 0.08);
   --color-glass-regular-blur: 16px;
   --color-glass-regular-border: rgba(255, 255, 255, 0.10);
-  --color-glass-regular-_usage: Default glass surfaces;
   --color-glass-thick-background: rgba(255, 255, 255, 0.12);
   --color-glass-thick-blur: 24px;
   --color-glass-thick-border: rgba(255, 255, 255, 0.14);
-  --color-glass-thick-_usage: Modals, popovers;
   --color-glass-ultra-thick-background: rgba(255, 255, 255, 0.16);
   --color-glass-ultra-thick-blur: 40px;
   --color-glass-ultra-thick-border: rgba(255, 255, 255, 0.18);
-  --color-glass-ultra-thick-_usage: Full-screen overlays, system dialogs;
   --color-glass-chromatic-background: rgba(212, 168, 74, 0.06);
   --color-glass-chromatic-blur: 20px;
   --color-glass-chromatic-border: rgba(212, 168, 74, 0.12);
-  --color-glass-chromatic-_usage: Accent-tinted glass for persona or brand elements;
-  --color-tonal-_description: Material-inspired tonal surfaces for cards and buttons;
-  --color-tonal-_philosophy: Warm, approachable surfaces with subtle elevation;
   --color-tonal-surface1-background: rgba(230, 195, 160, 0.04);
-  --color-tonal-surface1-_usage: Lowest elevation - background cards;
   --color-tonal-surface2-background: rgba(230, 195, 160, 0.08);
-  --color-tonal-surface2-_usage: Medium elevation - interactive cards;
   --color-tonal-surface3-background: rgba(230, 195, 160, 0.12);
-  --color-tonal-surface3-_usage: High elevation - buttons, chips;
   --color-tonal-surface-hover-background: rgba(230, 195, 160, 0.16);
-  --color-tonal-surface-hover-_usage: Hover state for tonal surfaces;
   --color-tonal-surface-active-background: rgba(230, 195, 160, 0.20);
-  --color-tonal-surface-active-_usage: Active/pressed state for tonal surfaces;
-  --color-text-_wcag: All colors tested against #70605a elevated background for WCAG AA (4.5:1);
   --color-text-primary: #faf6f0;
   --color-text-secondary: #f0ebe4;
   --color-text-muted: #e8e2da;
@@ -181,7 +146,6 @@
   --color-accent-glow: rgba(212, 168, 74, 0.22);
   --color-accent-subtle: rgba(212, 168, 74, 0.08);
   --color-accent-text: #e8c870;
-  --color-accent-_text-note: Brighter gold for text usage - 4.0:1 contrast, use for large text/accents only;
   --color-semantic-success: #6bc48f;
   --color-semantic-success-glow: rgba(107, 196, 143, 0.22);
   --color-semantic-success-tint: rgba(107, 196, 143, 0.12);
@@ -194,13 +158,11 @@
   --color-semantic-info: #7da6cf;
   --color-semantic-info-glow: rgba(125, 166, 207, 0.22);
   --color-semantic-info-tint: rgba(125, 166, 207, 0.12);
-  --color-utility-_description: Utility colors for common UI patterns - focus rings, backdrops, overlays;
   --color-utility-focus-ring: rgba(212, 168, 74, 0.3);
   --color-utility-focus-ring-subtle: rgba(212, 168, 74, 0.1);
   --color-utility-backdrop: rgba(20, 16, 14, 0.7);
   --color-utility-backdrop-light: rgba(20, 16, 14, 0.5);
   --color-utility-scrim: rgba(20, 16, 14, 0.85);
-  --color-natural-_description: Extended natural palette - Japanese garden, forest, earth tones;
   --color-natural-cedar: #a08060;
   --color-natural-cedar-light: #c4a882;
   --color-natural-cedar-dark: #584840;
@@ -235,51 +197,34 @@
   --color-background-elevated: #fffdfb;
   --color-background-glass: rgba(139, 119, 91, 0.03);
   --color-background-overlay: rgba(250, 248, 245, 0.95);
-  --color-glass-_description: Apple visionOS-inspired glass system for light mode;
-  --color-glass-_philosophy: Frosted glass creates spatial depth while maintaining warmth;
   --color-glass-ultra-thin-background: rgba(255, 255, 255, 0.50);
   --color-glass-ultra-thin-blur: 4px;
   --color-glass-ultra-thin-border: rgba(44, 37, 32, 0.04);
-  --color-glass-ultra-thin-_usage: Subtle background separation;
   --color-glass-thin-background: rgba(255, 255, 255, 0.60);
   --color-glass-thin-blur: 8px;
   --color-glass-thin-border: rgba(44, 37, 32, 0.06);
-  --color-glass-thin-_usage: Cards, list items;
   --color-glass-regular-background: rgba(255, 255, 255, 0.70);
   --color-glass-regular-blur: 16px;
   --color-glass-regular-border: rgba(44, 37, 32, 0.08);
-  --color-glass-regular-_usage: Default glass surfaces;
   --color-glass-thick-background: rgba(255, 255, 255, 0.80);
   --color-glass-thick-blur: 24px;
   --color-glass-thick-border: rgba(44, 37, 32, 0.10);
-  --color-glass-thick-_usage: Modals, popovers;
   --color-glass-ultra-thick-background: rgba(255, 255, 255, 0.90);
   --color-glass-ultra-thick-blur: 40px;
   --color-glass-ultra-thick-border: rgba(44, 37, 32, 0.12);
-  --color-glass-ultra-thick-_usage: Full-screen overlays, system dialogs;
   --color-glass-chromatic-background: rgba(61, 90, 69, 0.06);
   --color-glass-chromatic-blur: 20px;
   --color-glass-chromatic-border: rgba(61, 90, 69, 0.12);
-  --color-glass-chromatic-_usage: Accent-tinted glass for persona or brand elements;
-  --color-tonal-_description: Material-inspired tonal surfaces for light mode;
-  --color-tonal-_philosophy: Subtle elevation through warm tints;
   --color-tonal-surface1-background: rgba(44, 37, 32, 0.02);
-  --color-tonal-surface1-_usage: Lowest elevation - background cards;
   --color-tonal-surface2-background: rgba(44, 37, 32, 0.04);
-  --color-tonal-surface2-_usage: Medium elevation - interactive cards;
   --color-tonal-surface3-background: rgba(44, 37, 32, 0.06);
-  --color-tonal-surface3-_usage: High elevation - buttons, chips;
   --color-tonal-surface-hover-background: rgba(44, 37, 32, 0.08);
-  --color-tonal-surface-hover-_usage: Hover state for tonal surfaces;
   --color-tonal-surface-active-background: rgba(44, 37, 32, 0.12);
-  --color-tonal-surface-active-_usage: Active/pressed state for tonal surfaces;
-  --color-text-_wcag: All colors WCAG AA compliant (4.5:1+) against #faf8f5 primary background;
   --color-text-primary: #2c2520;
   --color-text-secondary: #5c544a;
   --color-text-muted: #6b635a;
   --color-text-dimmed: #756a5e;
   --color-text-inverse: #faf8f5;
-  --color-text-_contrast-ratios: primary: 12.0:1, secondary: 7.0:1, muted: 5.5:1, dimmed: 4.7:1;
   --color-border-subtle: rgba(44, 37, 32, 0.05);
   --color-border-medium: rgba(44, 37, 32, 0.10);
   --color-border-strong: rgba(44, 37, 32, 0.18);
@@ -289,7 +234,6 @@
   --color-accent-glow: rgba(61, 90, 69, 0.15);
   --color-accent-subtle: rgba(61, 90, 69, 0.05);
   --color-accent-text: #3D5A45;
-  --color-accent-_text-note: Same as primary for light theme - good contrast on light backgrounds;
   --color-semantic-success: #3d7a52;
   --color-semantic-success-glow: rgba(61, 122, 82, 0.18);
   --color-semantic-success-tint: rgba(61, 122, 82, 0.08);
@@ -302,13 +246,11 @@
   --color-semantic-info: #3a6b9c;
   --color-semantic-info-glow: rgba(58, 107, 156, 0.18);
   --color-semantic-info-tint: rgba(58, 107, 156, 0.08);
-  --color-utility-_description: Utility colors for common UI patterns - focus rings, backdrops, overlays;
   --color-utility-focus-ring: rgba(61, 90, 69, 0.3);
   --color-utility-focus-ring-subtle: rgba(61, 90, 69, 0.1);
   --color-utility-backdrop: rgba(44, 37, 32, 0.6);
   --color-utility-backdrop-light: rgba(44, 37, 32, 0.4);
   --color-utility-scrim: rgba(44, 37, 32, 0.8);
-  --color-natural-_description: Extended natural palette - Japanese garden, forest, earth tones;
   --color-natural-wood: #a8896c;
   --color-natural-wood-light: #d4c4b0;
   --color-natural-wood-dark: #8a7060;
@@ -635,6 +577,85 @@
 }
 
 /* ========================================
+   VISUALIZATION COLORS
+   Better Than Human data storytelling
+   ======================================== */
+:root {
+  /* Visualization Colors - Better Than Human Data Storytelling */
+
+  /* Kintsugi */
+  --viz-kintsugi-primary: #C9A227;
+  --viz-kintsugi-bright: #E5C84B;
+  --viz-kintsugi-deep: #9A7B1C;
+  --viz-kintsugi-subtle: #B8956A;
+  --viz-kintsugi-glow: rgba(201, 162, 39, 0.4);
+  --viz-kintsugi-tint: rgba(201, 162, 39, 0.12);
+  --viz-kintsugi-gradient-start: #C9A227;
+  --viz-kintsugi-gradient-end: #E5C84B;
+
+  /* River */
+  --viz-river-user: #3a6b73;
+  --viz-river-ferni: #4a6741;
+  --viz-river-silence: rgba(139, 119, 91, 0.3);
+  --viz-river-flow: rgba(58, 107, 115, 0.6);
+
+  /* Constellation */
+  --viz-constellation-node: #b8956a;
+  --viz-constellation-edge: rgba(184, 149, 106, 0.4);
+  --viz-constellation-highlight: #E5C84B;
+  --viz-constellation-cluster: rgba(166, 122, 106, 0.3);
+
+  /* Seasons */
+  --viz-seasons-spring: #7a9060;
+  --viz-seasons-summer: #C9A227;
+  --viz-seasons-autumn: #c4856a;
+  --viz-seasons-winter: #5a6b8a;
+
+  /* Energy */
+  --viz-energy-source: #4a6741;
+  --viz-energy-drain: #c4856a;
+  --viz-energy-neutral: #8a7a6a;
+  --viz-energy-flow: rgba(74, 103, 65, 0.5);
+
+  /* Growth */
+  --viz-growth-ring: rgba(74, 103, 65, 0.15);
+  --viz-growth-ring-active: #4a6741;
+  --viz-growth-milestone: #C9A227;
+  --viz-growth-potential: rgba(201, 162, 39, 0.3);
+
+  /* Moods */
+  --viz-moods-calm: #3D5A45;
+  --viz-moods-joyful: #c4956a;
+  --viz-moods-anxious: #b5453a;
+  --viz-moods-tired: #756a5e;
+  --viz-moods-focused: #3a6b73;
+  --viz-moods-reflective: #7a6a8a;
+  --viz-moods-stressed: #a54545;
+  --viz-moods-energized: #4a7a52;
+  --viz-moods-peaceful: #5a8a73;
+  --viz-moods-uncertain: #6a6a6a;
+
+  /* Status */
+  --viz-status-thriving: #3d7a52;
+  --viz-status-balanced: #3D5A45;
+  --viz-status-stretched: #a67c35;
+  --viz-status-depleted: #c67840;
+  --viz-status-critical: #b5453a;
+
+  /* Priority */
+  --viz-priority-high: #b5453a;
+  --viz-priority-medium: #a67c35;
+  --viz-priority-low: #756a5e;
+
+  /* Chapters */
+  --viz-chapters-growth: #3D5A45;
+  --viz-chapters-challenge: #b5453a;
+  --viz-chapters-transition: #c4956a;
+  --viz-chapters-celebration: #4a7a52;
+  --viz-chapters-reflection: #7a6a8a;
+}
+
+/* ========================================
    TYPOGRAPHY
    ======================================== */
 /* Font Families */
@@ -752,15 +773,16 @@
   --space-3_5: 0.875rem;
 
   /* Semantic Spacing */
-  --spacing-2xs: 0.25rem;
-  --spacing-xs: 0.5rem;
-  --spacing-sm: 0.75rem;
-  --spacing-md: 1.25rem;
-  --spacing-lg: 2rem;
-  --spacing-xl: 3rem;
-  --spacing-2xl: 4rem;
-  --spacing-3xl: 6rem;
-  --spacing-4xl: 8rem;
+  --spacing-_documentation: Golden ratio (φ = 1.618) based spacing for harmonious visual rhythm;
+  --spacing-2xs: 0.125rem;
+  --spacing-xs: 0.25rem;
+  --spacing-sm: 0.5rem;
+  --spacing-md: 1rem;
+  --spacing-lg: 1.618rem;
+  --spacing-xl: 2.618rem;
+  --spacing-2xl: 4.236rem;
+  --spacing-3xl: 6.854rem;
+  --spacing-4xl: 11.09rem;
 
   /* Border Radius */
   --radius-none: 0;
@@ -839,6 +861,7 @@
 
 /* Shadows - Midnight Theme */
 [data-theme="midnight"] {
+  --shadow-2xs: 0 1px 2px rgba(0, 0, 0, 0.3), 0 1px 1px rgba(0, 0, 0, 0.4);
   --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.5);
   --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.4);
   --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.35), 0 2px 4px rgba(0, 0, 0, 0.3);
@@ -851,6 +874,7 @@
 
 /* Shadows - Zen Theme */
 [data-theme="zen"] {
+  --shadow-2xs: 0 1px 2px rgba(0, 0, 0, 0.03), 0 1px 1px rgba(0, 0, 0, 0.04);
   --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.04);
   --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.06);
   --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04);
@@ -1369,6 +1393,577 @@
 
 
 /* ========================================
+   CIRCADIAN SYSTEM
+   Time-aware design that adapts to human rhythms
+   "Dark mode is not enough. Ferni knows the difference
+    between 10am focus and 2am presence."
+   ======================================== */
+
+:root {
+  /* Circadian CSS Variables - Updated by JavaScript based on time */
+  --circadian-warmth: 0;
+  --circadian-brightness: 1;
+  --circadian-animation-speed: 1;
+  --circadian-filter: none;
+
+  /* Circadian warmth filter formula */
+  --circadian-filter-computed: sepia(calc(var(--circadian-warmth) * 0.15)) saturate(calc(1 + var(--circadian-warmth) * 0.1));
+}
+
+/* Circadian Period Data Attributes */
+/* Apply [data-circadian="periodName"] to body for time-aware theming */
+
+[data-circadian="earlyMorning"] {
+  --circadian-warmth: 0.15;
+  --circadian-brightness: 0.95;
+  --circadian-animation-speed: 0.9;
+  --circadian-period-name: "Dawn";
+  --circadian-presence: "gentle awakening";
+  --circadian-filter: sepia(calc(var(--circadian-warmth) * 0.15)) saturate(calc(1 + var(--circadian-warmth) * 0.1));
+}
+
+[data-circadian="morning"] {
+  --circadian-warmth: 0.1;
+  --circadian-brightness: 1;
+  --circadian-animation-speed: 1.1;
+  --circadian-period-name: "Morning";
+  --circadian-presence: "fresh and energetic";
+  --circadian-filter: sepia(calc(var(--circadian-warmth) * 0.15)) saturate(calc(1 + var(--circadian-warmth) * 0.1));
+}
+
+[data-circadian="midday"] {
+  --circadian-warmth: 0;
+  --circadian-brightness: 1;
+  --circadian-animation-speed: 1;
+  --circadian-period-name: "Midday";
+  --circadian-presence: "clear and focused";
+  --circadian-filter: sepia(calc(var(--circadian-warmth) * 0.15)) saturate(calc(1 + var(--circadian-warmth) * 0.1));
+}
+
+[data-circadian="afternoon"] {
+  --circadian-warmth: 0.05;
+  --circadian-brightness: 1;
+  --circadian-animation-speed: 1;
+  --circadian-period-name: "Afternoon";
+  --circadian-presence: "productive calm";
+  --circadian-filter: sepia(calc(var(--circadian-warmth) * 0.15)) saturate(calc(1 + var(--circadian-warmth) * 0.1));
+}
+
+[data-circadian="evening"] {
+  --circadian-warmth: 0.2;
+  --circadian-brightness: 0.95;
+  --circadian-animation-speed: 0.9;
+  --circadian-period-name: "Evening";
+  --circadian-presence: "winding down";
+  --circadian-filter: sepia(calc(var(--circadian-warmth) * 0.15)) saturate(calc(1 + var(--circadian-warmth) * 0.1));
+}
+
+[data-circadian="night"] {
+  --circadian-warmth: 0.3;
+  --circadian-brightness: 0.85;
+  --circadian-animation-speed: 0.8;
+  --circadian-period-name: "Night";
+  --circadian-presence: "intimate and calm";
+  --circadian-filter: sepia(calc(var(--circadian-warmth) * 0.15)) saturate(calc(1 + var(--circadian-warmth) * 0.1));
+}
+
+[data-circadian="lateNight"] {
+  --circadian-warmth: 0.35;
+  --circadian-brightness: 0.8;
+  --circadian-animation-speed: 0.7;
+  --circadian-period-name: "Late Night";
+  --circadian-presence: "fully present at 2am";
+  --circadian-filter: sepia(calc(var(--circadian-warmth) * 0.15)) saturate(calc(1 + var(--circadian-warmth) * 0.1));
+}
+
+[data-circadian="deepNight"] {
+  --circadian-warmth: 0.25;
+  --circadian-brightness: 0.75;
+  --circadian-animation-speed: 0.6;
+  --circadian-period-name: "Deep Night";
+  --circadian-presence: "quiet companion";
+  --circadian-filter: sepia(calc(var(--circadian-warmth) * 0.15)) saturate(calc(1 + var(--circadian-warmth) * 0.1));
+}
+
+/* Circadian Animation Speed Modifiers */
+.circadian-aware {
+  animation-duration: calc(var(--base-duration, 1s) / var(--circadian-animation-speed, 1));
+}
+
+/* Apply circadian warmth filter to any element */
+.circadian-warm {
+  filter: var(--circadian-filter, none);
+  transition: filter 2s ease-in-out;
+}
+
+/* Late Night Presence - Extra warmth and slower animations */
+[data-circadian="lateNight"], [data-circadian="deepNight"] {
+  --color-bg-primary-circadian: color-mix(in oklch, var(--color-bg-primary) 95%, var(--color-warm) 5%);
+  --transition-duration-circadian: calc(var(--duration-normal, 200ms) * 1.3);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .circadian-aware {
+    animation-duration: 0s;
+  }
+}
+
+/* ========================================
+   BREATH-SYNC ANIMATION SYSTEM
+   "Traditional UI animations are robotic.
+    Ferni breathes with you."
+   ======================================== */
+
+:root {
+  /* Breath-Sync CSS Variables */
+  --breath-duration: 5000ms;
+  --breath-inhale: 40%;
+  --breath-hold: 20%;
+  --breath-exhale: 40%;
+  --breath-scale-min: 1;
+  --breath-scale-max: 1.03;
+  --breath-easing: cubic-bezier(0.4, 0.0, 0.6, 1);
+}
+
+/* Breath-Sync Keyframes */
+
+@keyframes breathSync-calm {
+  0% { transform: scale(1); opacity: 0.9; }
+  40% { transform: scale(1.03); opacity: 1; }
+  60% { transform: scale(1.03); opacity: 1; }
+  100% { transform: scale(1); opacity: 0.9; }
+}
+
+@keyframes breathSync-relaxed {
+  0% { transform: scale(1); opacity: 0.92; }
+  35% { transform: scale(1.02); opacity: 1; }
+  65% { transform: scale(1.02); opacity: 1; }
+  100% { transform: scale(1); opacity: 0.92; }
+}
+
+@keyframes breathSync-attentive {
+  0% { transform: scale(1); opacity: 0.88; }
+  45% { transform: scale(1.04); opacity: 1; }
+  55% { transform: scale(1.04); opacity: 1; }
+  100% { transform: scale(1); opacity: 0.88; }
+}
+
+@keyframes breathSync-concerned {
+  0% { transform: scale(0.98); opacity: 0.9; }
+  50% { transform: scale(1.02); opacity: 1; }
+  60% { transform: scale(1.02); opacity: 1; }
+  100% { transform: scale(0.98); opacity: 0.9; }
+}
+
+/* Breath-Sync Preset Data Attributes */
+/* Apply [data-breath="presetName"] to enable preset */
+
+[data-breath="calm"] {
+  --breath-duration: 5000ms;
+  --breath-inhale: 40%;
+  --breath-hold: 20%;
+  --breath-exhale: 40%;
+  --breath-scale-min: 1;
+  --breath-scale-max: 1.03;
+  --breath-easing: cubic-bezier(0.4, 0.0, 0.6, 1);
+}
+
+[data-breath="relaxed"] {
+  --breath-duration: 6000ms;
+  --breath-inhale: 35%;
+  --breath-hold: 30%;
+  --breath-exhale: 35%;
+  --breath-scale-min: 1;
+  --breath-scale-max: 1.02;
+  --breath-easing: cubic-bezier(0.33, 0.0, 0.67, 1);
+}
+
+[data-breath="attentive"] {
+  --breath-duration: 4000ms;
+  --breath-inhale: 45%;
+  --breath-hold: 10%;
+  --breath-exhale: 45%;
+  --breath-scale-min: 1;
+  --breath-scale-max: 1.04;
+  --breath-easing: cubic-bezier(0.4, 0.0, 0.2, 1);
+}
+
+[data-breath="concerned"] {
+  --breath-duration: 3500ms;
+  --breath-inhale: 50%;
+  --breath-hold: 10%;
+  --breath-exhale: 40%;
+  --breath-scale-min: 0.98;
+  --breath-scale-max: 1.02;
+  --breath-easing: cubic-bezier(0.5, 0.0, 0.3, 1);
+}
+
+/* Breath-Sync Utility Classes */
+.breath-sync {
+  animation: breathSync-calm var(--breath-duration, 5000ms) var(--breath-easing, ease-in-out) infinite;
+}
+
+.breath-sync-calm {
+  animation: breathSync-calm 5000ms cubic-bezier(0.4, 0.0, 0.6, 1) infinite;
+}
+
+.breath-sync-relaxed {
+  animation: breathSync-relaxed 6000ms cubic-bezier(0.33, 0.0, 0.67, 1) infinite;
+}
+
+.breath-sync-attentive {
+  animation: breathSync-attentive 4000ms cubic-bezier(0.4, 0.0, 0.2, 1) infinite;
+}
+
+.breath-sync-concerned {
+  animation: breathSync-concerned 3500ms cubic-bezier(0.5, 0.0, 0.3, 1) infinite;
+}
+
+/* Dynamic Breath-Sync - Uses CSS Variables */
+@keyframes breathSyncDynamic {
+  0% { transform: scale(var(--breath-scale-min, 1)); opacity: 0.9; }
+  40% { transform: scale(var(--breath-scale-max, 1.03)); opacity: 1; }
+  60% { transform: scale(var(--breath-scale-max, 1.03)); opacity: 1; }
+  100% { transform: scale(var(--breath-scale-min, 1)); opacity: 0.9; }
+}
+
+.breath-sync-dynamic {
+  animation: breathSyncDynamic var(--breath-duration, 5000ms) var(--breath-easing, ease-in-out) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .breath-sync,
+  .breath-sync-calm,
+  .breath-sync-relaxed,
+  .breath-sync-attentive,
+  .breath-sync-concerned,
+  .breath-sync-dynamic {
+    animation: none;
+  }
+}
+
+/* ========================================
+   EMOTIONAL THEMING SYSTEM
+   "Apple gives you light/dark mode.
+    Ferni gives you emotional presence."
+   ======================================== */
+
+:root {
+  /* Emotional Theming CSS Variables */
+  --emotional-temperature: 0;
+  --emotional-warmth: 0.5;
+  --emotional-saturation: 1;
+  --emotional-animation-intensity: 1;
+  --emotional-filter: none;
+
+  /* Computed emotional filter */
+  --emotional-filter-computed: sepia(calc(var(--emotional-warmth) * 0.2)) saturate(var(--emotional-saturation, 1));
+}
+
+/* Emotional Theme Data Attributes */
+/* Apply [data-emotion="themeName"] for context-aware theming */
+
+[data-emotion="embrace"] {
+  --emotional-temperature: 0.4;
+  --emotional-warmth: 0.8;
+  --emotional-saturation: 0.9;
+  --emotional-animation-intensity: 0.7;
+  --emotional-state: "comfort";
+  --emotional-name: "Warm Embrace";
+  --emotional-filter: sepia(0.16000000000000003) saturate(0.9);
+}
+
+[data-emotion="energize"] {
+  --emotional-temperature: -0.1;
+  --emotional-warmth: 0.4;
+  --emotional-saturation: 1.1;
+  --emotional-animation-intensity: 1.3;
+  --emotional-state: "excited";
+  --emotional-name: "Morning Energy";
+  --emotional-filter: hue-rotate(-1deg) saturate(1.1);
+}
+
+[data-emotion="focus"] {
+  --emotional-temperature: -0.2;
+  --emotional-warmth: 0.3;
+  --emotional-saturation: 0.85;
+  --emotional-animation-intensity: 0.6;
+  --emotional-state: "thinking";
+  --emotional-name: "Deep Focus";
+  --emotional-filter: hue-rotate(-2deg) saturate(0.85);
+}
+
+[data-emotion="reflect"] {
+  --emotional-temperature: 0.1;
+  --emotional-warmth: 0.55;
+  --emotional-saturation: 0.8;
+  --emotional-animation-intensity: 0.5;
+  --emotional-state: "contemplative";
+  --emotional-name: "Quiet Reflection";
+  --emotional-filter: sepia(0.11000000000000001) saturate(0.8);
+}
+
+/* Emotional Theme Utilities */
+.emotion-aware {
+  transition: filter 1.5s ease-in-out, background 1.5s ease-in-out;
+}
+
+.emotion-filter {
+  filter: var(--emotional-filter, none);
+}
+
+/* Embrace - For comfort moments */
+[data-emotion="embrace"] .emotion-surface {
+  background: color-mix(in oklch, var(--color-bg-primary) 90%, #e6a96a 10%);
+}
+
+/* Energize - For high-energy moments */
+[data-emotion="energize"] .emotion-surface {
+  background: color-mix(in oklch, var(--color-bg-primary) 95%, var(--color-accent) 5%);
+}
+
+/* Focus - For deep work */
+[data-emotion="focus"] {
+  --shadow-strength: 0.5;
+  --border-strength: 0.7;
+}
+
+/* Reflect - For processing moments */
+[data-emotion="reflect"] {
+  --color-saturation-modifier: 0.85;
+}
+
+/* Animation Intensity based on emotional state */
+.emotion-animated {
+  animation-duration: calc(var(--base-duration, 1s) / var(--emotional-animation-intensity, 1));
+}
+
+/* ========================================
+   PERSONA AURA SYSTEM
+   "Google Material gives you color schemes.
+    Ferni personas have atmospheric presence."
+   ======================================== */
+
+:root {
+  /* Persona Aura CSS Variables */
+  --persona-aura-gradient: none;
+  --persona-aura-glow: transparent;
+  --persona-aura-spread: 0px;
+  --persona-aura-pulse: 5s;
+  --persona-aura-filter: none;
+}
+
+/* Aura Pulse Animation */
+@keyframes aura-pulse {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 1; }
+}
+
+/* Persona Aura Data Attributes */
+/* Apply [data-persona="personaName"] for persona-specific atmosphere */
+
+[data-persona="ferni"] {
+  --persona-aura-gradient: radial-gradient(ellipse 120% 100% at 50% -20%, rgba(74, 103, 65, 0.15) 0%, transparent 70%);
+  --persona-aura-glow: rgba(74, 103, 65, 0.25);
+  --persona-aura-spread: 80px;
+  --persona-aura-pulse: 5s;
+  --persona-aura-filter: saturate(1.02);
+  --persona-presence: "grounding";
+}
+
+[data-persona="maya"] {
+  --persona-aura-gradient: radial-gradient(ellipse 120% 100% at 50% -20%, rgba(139, 90, 173, 0.15) 0%, transparent 70%);
+  --persona-aura-glow: rgba(139, 90, 173, 0.25);
+  --persona-aura-spread: 70px;
+  --persona-aura-pulse: 4s;
+  --persona-aura-filter: saturate(1.05);
+  --persona-presence: "energizing";
+}
+
+[data-persona="peter"] {
+  --persona-aura-gradient: radial-gradient(ellipse 120% 100% at 50% -20%, rgba(46, 125, 154, 0.12) 0%, transparent 70%);
+  --persona-aura-glow: rgba(46, 125, 154, 0.2);
+  --persona-aura-spread: 90px;
+  --persona-aura-pulse: 6s;
+  --persona-aura-filter: saturate(0.98);
+  --persona-presence: "clarifying";
+}
+
+[data-persona="jordan"] {
+  --persona-aura-gradient: radial-gradient(ellipse 120% 100% at 50% -20%, rgba(209, 122, 71, 0.15) 0%, transparent 70%);
+  --persona-aura-glow: rgba(209, 122, 71, 0.25);
+  --persona-aura-spread: 75px;
+  --persona-aura-pulse: 4.5s;
+  --persona-aura-filter: saturate(1.08);
+  --persona-presence: "exciting";
+}
+
+[data-persona="alex"] {
+  --persona-aura-gradient: radial-gradient(ellipse 120% 100% at 50% -20%, rgba(90, 143, 123, 0.12) 0%, transparent 70%);
+  --persona-aura-glow: rgba(90, 143, 123, 0.2);
+  --persona-aura-spread: 85px;
+  --persona-aura-pulse: 5.5s;
+  --persona-aura-filter: saturate(1.0);
+  --persona-presence: "calming";
+}
+
+[data-persona="nayan"] {
+  --persona-aura-gradient: radial-gradient(ellipse 120% 100% at 50% -20%, rgba(139, 107, 74, 0.15) 0%, transparent 70%);
+  --persona-aura-glow: rgba(139, 107, 74, 0.22);
+  --persona-aura-spread: 100px;
+  --persona-aura-pulse: 7s;
+  --persona-aura-filter: saturate(0.95) sepia(0.05);
+  --persona-presence: "deepening";
+}
+
+/* Aura Background - Apply to a pseudo-element or dedicated div */
+.persona-aura {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 50vh;
+  background: var(--persona-aura-gradient, none);
+  pointer-events: none;
+  z-index: -1;
+  animation: aura-pulse var(--persona-aura-pulse, 5s) ease-in-out infinite;
+  transition: background 1s ease-in-out;
+}
+
+/* Aura Glow - Ambient light around avatar */
+.persona-glow {
+  box-shadow: 0 0 var(--persona-aura-spread, 60px) var(--persona-aura-glow, transparent);
+  transition: box-shadow 0.6s ease-in-out;
+}
+
+/* Aura Filter - Subtle atmosphere adjustment */
+.persona-atmosphere {
+  filter: var(--persona-aura-filter, none);
+  transition: filter 0.8s ease-in-out;
+}
+
+/* ========================================
+   RELATIONSHIP DEPTH SYSTEM
+   "Apple treats every session the same.
+    Ferni UI grows with your relationship."
+   ======================================== */
+
+:root {
+  /* Relationship Depth CSS Variables */
+  --relationship-stage: "new";
+  --relationship-richness: 0.5;
+  --relationship-animation-complexity: 1;
+  --relationship-personalization: 0;
+}
+
+/* Relationship Stage Data Attributes */
+/* Apply [data-relationship="stageName"] for progressive UI richness */
+
+[data-relationship="new"] {
+  --relationship-stage: "new";
+  --relationship-richness: 0.5;
+  --relationship-animation-complexity: 0.5;
+  --relationship-personalization: 0.2;
+}
+
+[data-relationship="gettingToKnow"] {
+  --relationship-stage: "gettingToKnow";
+  --relationship-richness: 0.65;
+  --relationship-animation-complexity: 0.7;
+  --relationship-personalization: 0.4;
+}
+
+[data-relationship="buildingTrust"] {
+  --relationship-stage: "buildingTrust";
+  --relationship-richness: 0.8;
+  --relationship-animation-complexity: 0.85;
+  --relationship-personalization: 0.6;
+}
+
+[data-relationship="established"] {
+  --relationship-stage: "established";
+  --relationship-richness: 0.9;
+  --relationship-animation-complexity: 0.95;
+  --relationship-personalization: 0.8;
+}
+
+[data-relationship="deepPartnership"] {
+  --relationship-stage: "deepPartnership";
+  --relationship-richness: 1;
+  --relationship-animation-complexity: 1;
+  --relationship-personalization: 1;
+}
+
+/* Progressive UI Richness */
+
+.relationship-animation {
+  animation-iteration-count: calc(var(--relationship-animation-complexity, 1) * 1);
+}
+
+.relationship-shadow {
+  --shadow-multiplier: var(--relationship-richness, 0.5);
+  box-shadow: 0 4px calc(12px * var(--shadow-multiplier)) rgba(0, 0, 0, calc(0.1 * var(--shadow-multiplier)));
+}
+
+/* New User - Clean and focused */
+[data-relationship="new"] .advanced-feature {
+  display: none;
+}
+[data-relationship="new"] .relationship-decorative {
+  opacity: 0;
+}
+
+/* Getting to Know - Personality emerging */
+[data-relationship="gettingToKnow"] .growth-feature {
+  display: block;
+}
+[data-relationship="gettingToKnow"] .relationship-decorative {
+  opacity: 0.5;
+}
+
+/* Building Trust - Full team available */
+[data-relationship="buildingTrust"] .team-feature {
+  display: block;
+}
+[data-relationship="buildingTrust"] .relationship-decorative {
+  opacity: 0.75;
+}
+
+/* Established - Rich interactions */
+[data-relationship="established"] .advanced-feature {
+  display: block;
+}
+[data-relationship="established"] .relationship-decorative {
+  opacity: 0.9;
+}
+
+/* Deep Partnership - Full UI richness */
+[data-relationship="deepPartnership"] .relationship-decorative {
+  opacity: 1;
+}
+[data-relationship="deepPartnership"] .insight-preview {
+  display: block;
+}
+
+/* Relationship Depth Indicator */
+.relationship-indicator {
+  display: flex;
+  gap: 4px;
+}
+.relationship-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-text-muted);
+  opacity: 0.3;
+  transition: opacity 0.3s ease, background 0.3s ease;
+}
+.relationship-dot.filled {
+  opacity: 1;
+  background: var(--color-accent);
+}
+
+/* ========================================
    EFFECTS & MAGICAL UTILITIES
    ======================================== */
 /* Blur Utilities */
@@ -1409,6 +2004,17 @@
   --glow-persona-ring: none;
   --glow-connection: 0 0 16px 0 var(--color-semantic-success-glow);
   --glow-thinking: 0 0 12px 2px var(--color-accent-glow);
+}
+
+/* Chromatic Aberration Effects */
+:root {
+  --effect-chromatic-red: #ff0000;
+  --effect-chromatic-red-tint: rgba(255, 0, 0, 0.2);
+  --effect-chromatic-cyan: #00ffff;
+  --effect-chromatic-cyan-tint: rgba(0, 255, 255, 0.2);
+  --effect-chromatic-offset-subtle: 1px;
+  --effect-chromatic-offset-normal: 2px;
+  --effect-chromatic-offset-strong: 4px;
 }
 
 /* ========================================
@@ -3984,4 +4590,1014 @@
     --backdrop-medium: var(--color-background-overlay);
     --backdrop-heavy: var(--color-background-overlay);
   }
+}
+
+/* ========================================
+   ORGANIC CONVERSATION FLOW
+   Flowing borders, breathing containers
+   ======================================== */
+/* ========================================
+   ORGANIC CONVERSATION FLOW
+
+   Better than Apple: Not rigid message boxes
+   Better than Google: Not disconnected bubbles
+
+   Philosophy: Chat interfaces feel mechanical - boxes floating in space.
+   Human conversation is a continuous river of dialogue, thoughts flowing
+   into each other, not disconnected rectangles.
+
+   Inspired by: Pixar's fluidity - water in Finding Nemo,
+   the organic blob shapes in Inside Out emotions
+   ======================================== */
+
+:root {
+  --conversation-message-radius-user: 24px 24px 8px 24px;
+  --conversation-message-radius-ai: 24px 24px 24px 8px;
+  --conversation-message-radius-system: 16px;
+  --conversation-breathing-duration: 5000ms;
+  --conversation-breathing-scale: 1.005;
+  --conversation-presence-color: var(--color-accent-subtle);
+  --conversation-connection-color: var(--color-border-subtle);
+  --conversation-connection-opacity: 0.3;
+  --conversation-enter-duration: 400ms;
+  --conversation-exit-duration: 300ms;
+}
+
+@keyframes containerBreathe {
+  0% { transform: scale(1); opacity: 0.98; }
+  50% { transform: scale(1.005); opacity: 1; }
+  100% { transform: scale(1); opacity: 0.98; }
+}
+
+@keyframes borderBreathe {
+  0% { opacity: 0.4; border-color: var(--color-border-subtle); }
+  50% { opacity: 0.8; border-color: var(--color-border-medium); }
+  100% { opacity: 0.4; border-color: var(--color-border-subtle); }
+}
+
+@keyframes presencePulse {
+  0% { box-shadow: 0 0 0 0 var(--color-accent-subtle); }
+  50% { box-shadow: 0 0 0 8px transparent; }
+  100% { box-shadow: 0 0 0 0 var(--color-accent-subtle); }
+}
+
+@keyframes thinkingRipple {
+  0% { transform: scale(0.8); opacity: 0.6; }
+  100% { transform: scale(1.5); opacity: 0; }
+}
+
+@keyframes activeGlow {
+  0% { box-shadow: 0 0 20px var(--persona-aura-glow); }
+  50% { box-shadow: 0 0 30px var(--persona-aura-glow); }
+  100% { box-shadow: 0 0 20px var(--persona-aura-glow); }
+}
+
+@keyframes messageEnter {
+  0% { opacity: 0; transform: translateY(20px) scale(0.95); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes messageExit {
+  0% { opacity: 1; transform: translateY(0) scale(1); }
+  100% { opacity: 0; transform: translateY(-10px) scale(0.98); }
+}
+
+@keyframes messageUpdate {
+  0% { background-color: var(--color-accent-subtle); }
+  100% { background-color: transparent; }
+}
+
+@keyframes connectionDraw {
+  0% { stroke-dashoffset: 100%; }
+  100% { stroke-dashoffset: 0%; }
+}
+
+/* Organic Message Shapes - asymmetric, flowing, human */
+.conversation-message {
+  position: relative;
+  padding: 16px 20px;
+  margin: 8px 0;
+  border-radius: var(--conversation-message-radius-ai);
+  background: var(--color-tonal-surface1-background);
+  animation: containerBreathe var(--conversation-breathing-duration) ease-in-out infinite;
+  will-change: transform, opacity;
+  transition: transform 200ms ease-out, box-shadow 200ms ease-out;
+}
+
+.conversation-message:hover {
+  animation-play-state: paused;
+  transform: scale(1.01);
+}
+
+.conversation-message--user {
+  border-radius: var(--conversation-message-radius-user);
+  background: linear-gradient(135deg, var(--color-tonal-surface2-background) 0%, var(--color-tonal-surface1-background) 100%);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.05);
+  margin-left: 40px;
+  margin-right: 0;
+}
+
+.conversation-message--ai {
+  border-radius: var(--conversation-message-radius-ai);
+  background: linear-gradient(135deg, var(--color-background-elevated) 0%, var(--color-background-tertiary) 100%);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.06), 0 2px 4px rgba(0,0,0,0.04);
+  margin-right: 40px;
+  margin-left: 0;
+}
+
+.conversation-message--system {
+  border-radius: var(--conversation-message-radius-system);
+  background: transparent;
+  text-align: center;
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+  animation: none;
+  margin: 16px 40px;
+}
+
+/* Flowing Borders - borders that breathe */
+.conversation-message--flowing {
+  border: 1px solid var(--color-border-subtle);
+  opacity: 0.6;
+}
+
+.conversation-message--active {
+  border: 1.5px solid var(--color-accent-primary);
+  box-shadow: 0 0 8px var(--color-accent-glow);
+}
+
+.conversation-message--breathing-border {
+  animation: borderBreathe 4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+/* Connection Lines - visual threads between messages */
+.conversation-connection {
+  position: absolute;
+  left: 30px;
+  width: 2px;
+  background: var(--color-border-subtle);
+  opacity: 0.3;
+  transform-origin: top;
+}
+
+.conversation-connection--curved {
+  position: absolute;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.conversation-connection--curved path {
+  fill: none;
+  stroke: var(--conversation-connection-color);
+  stroke-width: 2px;
+  opacity: var(--conversation-connection-opacity);
+  stroke-dasharray: 100%;
+  animation: connectionDraw 400ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* Breathing Containers - subtle life in static elements */
+.breathing-container {
+  animation: containerBreathe 5000ms cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.breathing-container:hover {
+  animation-play-state: paused;
+  transform: scale(1.01);
+  transition: 200ms ease-out;
+}
+
+.breathing-container--active {
+  transform: scale(1);
+  box-shadow: 0 0 20px var(--color-accent-glow);
+}
+
+/* Presence Indicators - showing AI is here with you */
+.presence-indicator {
+  position: relative;
+  display: inline-block;
+}
+
+.presence-indicator--listening::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: inherit;
+  animation: presencePulse 2000ms ease-in-out infinite;
+}
+
+.presence-indicator--thinking {
+  position: relative;
+}
+
+.presence-indicator--thinking::before,
+.presence-indicator--thinking::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  border: 1px solid var(--color-accent-primary);
+  animation: thinkingRipple 1200ms cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.presence-indicator--thinking::after {
+  animation-delay: 200ms;
+}
+
+.presence-indicator--active-glow {
+  animation: activeGlow 3000ms ease-in-out infinite;
+}
+
+/* Message Transitions - how messages enter and exit */
+.conversation-message-enter {
+  animation: messageEnter var(--conversation-enter-duration) cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.conversation-message-exit {
+  animation: messageExit var(--conversation-exit-duration) ease-out forwards;
+}
+
+.conversation-message-update {
+  animation: messageUpdate 200ms ease-out;
+}
+
+/* Conversation Flow Container - the river of dialogue */
+.conversation-flow {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px;
+  position: relative;
+}
+
+.conversation-flow--connected {
+  /* Enables visual connection lines between messages */
+  --show-connections: 1;
+}
+
+.conversation-flow--connected .conversation-connection {
+  display: block;
+}
+
+.conversation-flow:not(.conversation-flow--connected) .conversation-connection {
+  display: none;
+}
+
+/* Reduced Motion - respect user preferences */
+@media (prefers-reduced-motion: reduce) {
+  .conversation-message,
+  .breathing-container,
+  .presence-indicator--listening::after,
+  .presence-indicator--thinking::before,
+  .presence-indicator--thinking::after,
+  .presence-indicator--active-glow {
+    animation: none;
+  }
+
+  .conversation-message-enter,
+  .conversation-message-exit {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+
+  .conversation-connection--curved path {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
+}
+
+/* ========================================
+   MICRO-INTERACTIONS LIBRARY
+   Touch feedback, state animations, hover effects
+   ======================================== */
+/* ========================================
+   MICRO-INTERACTIONS LIBRARY
+
+   Better than Apple: More emotionally aware feedback
+   Better than Google: Warmer than Material's mechanical ripples
+
+   Philosophy: Micro-interactions are the soul of great UI.
+   Every tap, hover, and state change is an opportunity to delight.
+   We take Apple's touch feedback and add emotional warmth.
+
+   Inspired by: Apple's haptic feedback, Pixar's anticipation
+   and follow-through, but with human warmth
+   ======================================== */
+
+:root {
+  --micro-tap-duration: 200ms;
+  --micro-press-scale: 0.96;
+  --micro-release-scale: 1.02;
+  --micro-ripple-duration: 400ms;
+  --micro-success-duration: 400ms;
+  --micro-error-shake-distance: 8px;
+  --micro-loading-dots-duration: 1400ms;
+  --micro-skeleton-duration: 1500ms;
+  --micro-hover-lift: -2px;
+  --micro-hover-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  --micro-switch-duration: 200ms;
+  --micro-checkbox-duration: 150ms;
+  --micro-scroll-stagger: 100ms;
+}
+
+@keyframes tapPulse {
+  0% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(0.97); opacity: 0.9; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes pressDown {
+  0% { transform: scale(1); }
+  100% { transform: scale(0.96); }
+}
+
+@keyframes releaseUp {
+  0% { transform: scale(0.96); }
+  50% { transform: scale(1.02); }
+  100% { transform: scale(1); }
+}
+
+@keyframes rippleExpand {
+  0% { transform: scale(0); opacity: 0.5; }
+  100% { transform: scale(2.5); opacity: 0; }
+}
+
+@keyframes longPressHold {
+  0% { transform: scale(1); box-shadow: none; }
+  100% { transform: scale(0.94); box-shadow: 0 0 20px var(--color-accent-glow); }
+}
+
+@keyframes successPop {
+  0% { transform: scale(0); opacity: 0; }
+  50% { transform: scale(1.2); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes errorShake {
+  0% { transform: translateX(0); }
+  20% { transform: translateX(-8px); }
+  40% { transform: translateX(8px); }
+  60% { transform: translateX(-8px); }
+  80% { transform: translateX(8px); }
+  100% { transform: translateX(0); }
+}
+
+@keyframes warningPulse {
+  0% { transform: scale(1); opacity: 1; }
+  25% { transform: scale(1.05); opacity: 0.8; }
+  50% { transform: scale(1); opacity: 1; }
+  75% { transform: scale(1.05); opacity: 0.8; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes loadingDots {
+  0% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+  100% { transform: translateY(0); }
+}
+
+@keyframes savedCheckmark {
+  0% { stroke-dashoffset: 24; }
+  100% { stroke-dashoffset: 0; }
+}
+
+@keyframes sentFlyAway {
+  0% { transform: translateX(0) translateY(0) scale(1); opacity: 1; }
+  100% { transform: translateX(30px) translateY(-20px) scale(0.5); opacity: 0; }
+}
+
+@keyframes copiedFlash {
+  0% { background-color: transparent; }
+  50% { background-color: var(--color-accent-subtle); }
+  100% { background-color: transparent; }
+}
+
+@keyframes heartPop {
+  0% { transform: scale(1); }
+  15% { transform: scale(1.3); }
+  30% { transform: scale(0.9); }
+  45% { transform: scale(1.2); }
+  60% { transform: scale(0.95); }
+  100% { transform: scale(1); }
+}
+
+@keyframes badgeBounce {
+  0% { transform: translateY(0); }
+  30% { transform: translateY(-4px); }
+  50% { transform: translateY(0); }
+  70% { transform: translateY(-2px); }
+  100% { transform: translateY(0); }
+}
+
+@keyframes indicatorPulse {
+  0% { box-shadow: 0 0 0 0 var(--color-accent-glow); }
+  50% { box-shadow: 0 0 10px 5px var(--color-accent-glow); }
+  100% { box-shadow: 0 0 0 0 var(--color-accent-glow); }
+}
+
+@keyframes skeletonShimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes dotsWave {
+  0% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+  100% { transform: translateY(0); }
+}
+
+@keyframes spinnerRotate {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes fadeSlideUp {
+  0% { opacity: 0; transform: translateY(20px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes checkmarkDraw {
+  0% { stroke-dashoffset: 24; opacity: 0; }
+  50% { opacity: 1; }
+  100% { stroke-dashoffset: 0; opacity: 1; }
+}
+
+/* Touch Feedback - Haptic-style visual feedback */
+.touch-tap {
+  animation: tapPulse 200ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.touch-press {
+  transform: scale(0.96);
+  transition: transform 100ms ease-out;
+}
+.touch-release {
+  animation: releaseUp 200ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.touch-ripple {
+  position: relative;
+  overflow: hidden;
+}
+.touch-ripple::after {
+  content: '';
+  position: absolute;
+  top: var(--ripple-y, 50%);
+  left: var(--ripple-x, 50%);
+  width: 100%;
+  height: 100%;
+  background: var(--color-accent-subtle);
+  border-radius: 50%;
+  transform: translate(-50%, -50%) scale(0);
+  opacity: 0;
+  pointer-events: none;
+}
+.touch-ripple.rippling::after {
+  animation: rippleExpand 400ms ease-out forwards;
+}
+.touch-long-press {
+  animation: longPressHold 800ms ease-in-out forwards;
+}
+
+/* State Feedback - Visual confirmation of state changes */
+.state-success {
+  animation: successPop 400ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  color: var(--color-semantic-success);
+}
+.state-success::after {
+  box-shadow: 0 0 20px var(--color-semantic-success-glow);
+}
+.state-error {
+  animation: errorShake 400ms ease-out;
+  color: var(--color-semantic-error);
+}
+.state-warning {
+  animation: warningPulse 600ms ease-in-out;
+  color: var(--color-semantic-warning);
+}
+.state-info {
+  animation: infoSlide 300ms ease-out;
+  color: var(--color-semantic-info);
+}
+.state-loading .dot {
+  animation: loadingDots 1200ms ease-in-out infinite;
+}
+.state-loading .dot:nth-child(2) {
+  animation-delay: 150ms;
+}
+.state-loading .dot:nth-child(3) {
+  animation-delay: calc(150ms * 2);
+}
+
+/* Acknowledgments - Micro-celebrations for completed actions */
+.ack-saved {
+  animation: savedCheckmark 500ms ease-out forwards;
+}
+.ack-sent {
+  animation: sentFlyAway 400ms ease-out forwards;
+}
+.ack-copied {
+  animation: copiedFlash 300ms ease-out;
+}
+.ack-favorited {
+  animation: heartPop 500ms ease-out;
+  color: #e25555;
+}
+
+/* Attention Grabbers - Subtle animations to draw user attention */
+.attention-badge {
+  animation: badgeBounce 600ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  animation-iteration-count: 2;
+}
+.attention-indicator {
+  animation: indicatorPulse 2000ms ease-in-out infinite;
+}
+.attention-shake {
+  animation: attentionShake 500ms ease-out;
+}
+@keyframes attentionShake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-3px); }
+  40%, 80% { transform: translateX(3px); }
+}
+
+/* Loading Variants - Different loading states for different contexts */
+.loading-skeleton {
+  background: linear-gradient(90deg,
+    var(--color-bg-tertiary) 0%,
+    var(--color-bg-elevated) 50%,
+    var(--color-bg-tertiary) 100%);
+  background-size: 200% 100%;
+  animation: skeletonShimmer 1500ms ease-in-out infinite;
+}
+.loading-dots {
+  display: inline-flex;
+  gap: 4px;
+}
+.loading-dots .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: dotsWave 1400ms ease-in-out infinite;
+}
+.loading-dots .dot:nth-child(2) {
+  animation-delay: 100ms;
+}
+.loading-dots .dot:nth-child(3) {
+  animation-delay: calc(100ms * 2);
+}
+.loading-spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--color-border-subtle);
+  border-top-color: var(--color-accent-primary);
+  border-radius: 50%;
+  animation: spinnerRotate 1000ms linear infinite;
+}
+.loading-breathing {
+  animation: loadingBreathe 2000ms ease-in-out infinite;
+}
+@keyframes loadingBreathe {
+  0%, 100% { transform: scale(0.95); opacity: 0.7; }
+  50% { transform: scale(1); opacity: 1; }
+}
+
+/* Hover Effects - Rich hover states beyond simple color changes */
+.hover-lift {
+  transition: transform 200ms ease-out, box-shadow 200ms ease-out;
+}
+.hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+.hover-glow {
+  transition: box-shadow 250ms ease-out;
+}
+.hover-glow:hover {
+  box-shadow: 0 0 20px var(--color-accent-glow);
+}
+.hover-scale {
+  transition: transform 150ms ease-out;
+}
+.hover-scale:hover {
+  transform: scale(1.02);
+}
+.hover-border-glow {
+  transition: border-color 200ms ease-out, box-shadow 200ms ease-out;
+}
+.hover-border-glow:hover {
+  border-color: var(--color-accent-primary);
+  box-shadow: 0 0 0 2px var(--color-accent-glow);
+}
+
+/* Toggle Animations - Switch, checkbox, radio button animations */
+.toggle-switch {
+  --thumb-travel: 18px;
+  transition: background-color 200ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.toggle-switch .thumb {
+  transition: transform 200ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.toggle-switch.active .thumb {
+  transform: translateX(var(--thumb-travel));
+}
+.toggle-checkbox .checkmark {
+  stroke-dasharray: 24;
+  stroke-dashoffset: 24;
+  transition: stroke-dashoffset 150ms ease-out;
+}
+.toggle-checkbox.checked .checkmark {
+  stroke-dashoffset: 0;
+}
+.toggle-radio .dot {
+  transform: scale(0);
+  transition: transform 150ms ease-out;
+}
+.toggle-radio.selected .dot {
+  transform: scale(1);
+}
+
+/* Scroll Interactions - Scroll-linked micro-animations */
+.scroll-fade-in {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 400ms ease-out, transform 400ms ease-out;
+}
+.scroll-fade-in.in-view {
+  opacity: 1;
+  transform: translateY(0);
+}
+.scroll-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: var(--scroll-progress, 0%);
+  height: 3px;
+  background: var(--color-accent-primary);
+  z-index: 9999;
+  transition: width 50ms linear;
+}
+
+/* Reduced Motion - respect user preferences */
+@media (prefers-reduced-motion: reduce) {
+  .touch-tap,
+  .touch-press,
+  .touch-release,
+  .touch-ripple::after,
+  .touch-long-press,
+  .state-success,
+  .state-error,
+  .state-warning,
+  .state-loading .dot,
+  .ack-saved,
+  .ack-sent,
+  .ack-copied,
+  .ack-favorited,
+  .attention-badge,
+  .attention-indicator,
+  .attention-shake,
+  .loading-skeleton,
+  .loading-dots .dot,
+  .loading-spinner,
+  .loading-breathing,
+  .scroll-fade-in {
+    animation: none !important;
+  }
+
+  .hover-lift,
+  .hover-glow,
+  .hover-scale,
+  .hover-border-glow,
+  .toggle-switch .thumb,
+  .toggle-checkbox .checkmark,
+  .toggle-radio .dot {
+    transition: none !important;
+  }
+
+  .scroll-fade-in {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ========================================
+   STATE LAYERS (MATERIAL 3 STYLE)
+   Hover, focus, pressed, dragged, disabled states
+   ======================================== */
+:root {
+  /* State Layer Opacities (Material 3 style) */
+  --state-opacity-hover: 0.08;
+  --state-opacity-focus: 0.12;
+  --state-opacity-pressed: 0.12;
+  --state-opacity-dragged: 0.16;
+  --state-opacity-selected: 0.12;
+  --state-opacity-activated: 0.12;
+
+  /* Disabled State Tokens */
+  --state-disabled-container-opacity: 0.12;
+  --state-disabled-content-opacity: 0.38;
+
+  /* State Transition Timings */
+  --state-transition-enter: 150ms cubic-bezier(0.0, 0.0, 0.2, 1);
+  --state-transition-exit: 75ms cubic-bezier(0.4, 0.0, 1, 1);
+  --state-transition-change: 200ms cubic-bezier(0.4, 0.0, 0.2, 1);
+
+  /* Ripple Effect Tokens */
+  --ripple-duration: 450ms;
+  --ripple-easing: cubic-bezier(0.4, 0, 0.2, 1);
+  --ripple-opacity-start: 0.24;
+  --ripple-opacity-end: 0;
+
+  /* Skeleton Loading Tokens */
+  --skeleton-pulse-duration: 1.5s;
+  --skeleton-shimmer-duration: 1.5s;
+}
+
+/* Focus Ring Styles */
+.focus-ring-default:focus-visible {
+  outline: 2px solid var(--color-accent-primary);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 2px var(--color-utility-focusRing);
+}
+
+.focus-ring-inset:focus-visible {
+  outline: 2px solid var(--color-accent-primary);
+  outline-offset: -2px;
+}
+
+.focus-ring-prominent:focus-visible {
+  outline: 3px solid var(--color-accent-primary);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 3px var(--color-utility-focusRing), 0 0 8px var(--color-accent-glow);
+}
+
+.focus-ring-persona:focus-visible {
+  outline: 2px solid var(--persona-primary);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 2px var(--persona-glow);
+}
+
+/* Emotional State Overrides */
+[data-mood="calm"] {
+  --state-opacity-hover: 0.06;
+  --state-transition-enter: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+[data-mood="energized"] {
+  --state-opacity-hover: 0.1;
+  --state-transition-enter: 150ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+[data-mood="stressed"] {
+  --state-opacity-hover: 0.05;
+  --state-transition-enter: 400ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+[data-mood="focused"] {
+  --state-opacity-hover: 0.08;
+  --state-transition-enter: 200ms cubic-bezier(0.4, 0, 0.6, 1);
+}
+
+
+/* ========================================
+   ICON SYSTEM (SF SYMBOLS-INSPIRED)
+   10 sizes, 8 weights, optical scaling
+   ======================================== */
+:root {
+  /* Icon Sizes */
+  --icon-size-2xs: 12px;
+  --icon-size-xs: 14px;
+  --icon-size-sm: 16px;
+  --icon-size-md: 20px;
+  --icon-size-lg: 24px;
+  --icon-size-xl: 28px;
+  --icon-size-2xl: 32px;
+  --icon-size-3xl: 40px;
+  --icon-size-4xl: 48px;
+  --icon-size-5xl: 64px;
+
+  /* Icon Stroke Weights */
+  --icon-stroke-ultraLight: 1px;
+  --icon-stroke-thin: 1.25px;
+  --icon-stroke-light: 1.5px;
+  --icon-stroke-regular: 1.75px;
+  --icon-stroke-medium: 2px;
+  --icon-stroke-semibold: 2.25px;
+  --icon-stroke-bold: 2.5px;
+  --icon-stroke-heavy: 3px;
+
+  /* Icon Colors */
+  --icon-color-default: var(--color-text-secondary);
+  --icon-color-muted: var(--color-text-muted);
+  --icon-color-primary: var(--color-text-primary);
+  --icon-color-accent: var(--color-accent-primary);
+  --icon-color-persona: var(--persona-primary);
+
+  /* Icon Animation Tokens */
+  --icon-press-scale: 0.85;
+  --icon-press-duration: 100ms;
+  --icon-hover-scale: 1.1;
+  --icon-hover-duration: 150ms;
+}
+
+/* ========================================
+   SHAPE SYSTEM (MATERIAL 3 STYLE)
+   Component-specific corner radius mappings
+   ======================================== */
+:root {
+  /* Corner Radius Scale */
+  --radius-none: 0px;
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 20px;
+  --radius-3xl: 24px;
+  --radius-4xl: 28px;
+  --radius-5xl: 32px;
+  --radius-full: 9999px;
+
+  /* Component-Specific Radius */
+  --radius-button-sm: var(--radius-md);
+  --radius-button-md: var(--radius-md);
+  --radius-button-lg: var(--radius-lg);
+  --radius-button-fab: var(--radius-xl);
+  --radius-input: var(--radius-md);
+  --radius-search: var(--radius-full);
+  --radius-card: var(--radius-lg);
+  --radius-card-glass: var(--radius-xl);
+  --radius-dialog: var(--radius-4xl);
+  --radius-sheet-top: var(--radius-3xl);
+  --radius-chip: var(--radius-sm);
+  --radius-badge: var(--radius-full);
+  --radius-avatar: var(--radius-full);
+  --radius-tooltip: var(--radius-md);
+  --radius-toast: var(--radius-lg);
+}
+
+/* Persona Radius Adjustments */
+[data-persona="ferni"] {
+  --radius-multiplier: 1.1;
+}
+[data-persona="maya"] {
+  --radius-multiplier: 1;
+}
+[data-persona="peter"] {
+  --radius-multiplier: 0.85;
+}
+[data-persona="jordan"] {
+  --radius-multiplier: 1;
+}
+[data-persona="alex"] {
+  --radius-multiplier: 0.95;
+}
+[data-persona="nayan"] {
+  --radius-multiplier: 1.15;
+}
+
+/* ========================================
+   VISUALIZATION SYSTEM
+   Kintsugi, constellation, river, sankey, etc.
+   ======================================== */
+:root {
+  /* Visualization Shared Tokens */
+  --viz-transition-fast: 150ms ease-out;
+  --viz-transition-normal: 300ms ease-out;
+  --viz-transition-slow: 600ms ease-out;
+  --viz-transition-story: 1200ms cubic-bezier(0.4, 0, 0.2, 1);
+  --viz-tooltip-bg: var(--surface-elevated);
+  --viz-tooltip-radius: var(--radius-md);
+  --viz-tooltip-padding: 8px 12px;
+  --viz-legend-gap: 12px;
+  --viz-legend-swatch: 12px;
+
+  /* Kintsugi Animation Tokens */
+  --kintsugi-flow-duration: 1200ms;
+  --kintsugi-flow-stagger: 100ms;
+  --kintsugi-glow-duration: 2000ms;
+
+  /* Constellation Animation Tokens */
+  --constellation-twinkle-duration: 2000ms;
+  --constellation-draw-duration: 600ms;
+  --constellation-star-self: 24px;
+  --constellation-star-close: 12px;
+  --constellation-star-regular: 8px;
+
+  /* River Animation Tokens */
+  --river-flow-duration: 4000ms;
+  --river-ripple-duration: 1500ms;
+
+  /* Growth Rings Animation Tokens */
+  --growth-reveal-duration: 1500ms;
+  --growth-reveal-stagger: 150ms per ring;
+
+  /* Mood Calendar Tokens */
+  --mood-cell-size: 12px;
+  --mood-cell-gap: 3px;
+  --mood-cell-radius: 2px;
+}
+
+/* ========================================
+   EXTENDED COMPONENTS SYSTEM
+   30+ fully-specified component tokens
+   ======================================== */
+:root {
+  /* Extended Component Tokens */
+
+  /* Button Tokens */
+  --button-height-xs: 28px;
+  --button-padding-xs: 0 10px;
+  --button-font-xs: var(--text-xs);
+  --button-radius-xs: var(--radius-sm);
+  --button-icon-xs: 14px;
+  --button-height-sm: 32px;
+  --button-padding-sm: 0 12px;
+  --button-font-sm: var(--text-sm);
+  --button-radius-sm: var(--radius-md);
+  --button-icon-sm: 16px;
+  --button-height-md: 40px;
+  --button-padding-md: 0 16px;
+  --button-font-md: var(--text-base);
+  --button-radius-md: var(--radius-md);
+  --button-icon-md: 18px;
+  --button-height-lg: 48px;
+  --button-padding-lg: 0 24px;
+  --button-font-lg: var(--text-lg);
+  --button-radius-lg: var(--radius-lg);
+  --button-icon-lg: 20px;
+  --button-height-xl: 56px;
+  --button-padding-xl: 0 32px;
+  --button-font-xl: var(--text-xl);
+  --button-radius-xl: var(--radius-xl);
+  --button-icon-xl: 24px;
+  --button-press-duration: 100ms;
+  --button-release-duration: 200ms;
+
+  /* Input Tokens */
+  --input-height: 48px;
+  --input-padding: 12px 16px;
+  --input-radius: var(--radius-md);
+  --input-font: var(--text-base);
+  --input-height-sm: 36px;
+  --input-padding-sm: 8px 12px;
+  --input-height-md: 44px;
+  --input-padding-md: 10px 14px;
+  --input-height-lg: 52px;
+  --input-padding-lg: 12px 16px;
+
+  /* Card Tokens */
+  --card-padding-sm: 12px;
+  --card-radius-sm: var(--radius-md);
+  --card-padding-md: 16px;
+  --card-radius-md: var(--radius-lg);
+  --card-padding-lg: 24px;
+  --card-radius-lg: var(--radius-xl);
+
+  /* Toast Tokens */
+  --toast-padding: 12px 16px;
+  --toast-radius: var(--radius-lg);
+  --toast-min-width: 280px;
+  --toast-max-width: 420px;
+  --toast-gap: 12px;
+  --toast-enter-duration: 400ms;
+  --toast-exit-duration: 200ms;
+  --toast-duration-short: 2500ms;
+  --toast-duration-default: 4000ms;
+  --toast-duration-long: 6000ms;
+
+  /* Dialog Tokens */
+  --dialog-radius: var(--radius-2xl);
+  --dialog-max-width: 560px;
+  --dialog-width: calc(100vw - 48px);
+  --dialog-max-height: calc(100vh - 96px);
+  --dialog-header-padding: 24px 24px 16px;
+  --dialog-body-padding: 0 24px;
+  --dialog-footer-padding: 16px 24px 24px;
+  --dialog-footer-gap: 12px;
+  --dialog-enter-duration: 300ms;
+  --dialog-exit-duration: 200ms;
+
+  /* Avatar Tokens */
+  --avatar-size-xs: 24px;
+  --avatar-font-xs: 10px;
+  --avatar-size-sm: 32px;
+  --avatar-font-sm: 12px;
+  --avatar-size-md: 40px;
+  --avatar-font-md: 14px;
+  --avatar-size-lg: 48px;
+  --avatar-font-lg: 16px;
+  --avatar-size-xl: 64px;
+  --avatar-font-xl: 20px;
+  --avatar-size-2xl: 96px;
+  --avatar-font-2xl: 28px;
+  --avatar-radius: var(--radius-full);
+  --avatar-group-overlap: -8px;
+  --avatar-group-max-visible: 4;
+
+  /* Progress Tokens */
+  --progress-height: 4px;
+  --progress-radius: var(--radius-full);
+  --progress-bg: var(--tonal-surface-2);
+  --progress-circular-size: 40px;
+  --progress-circular-stroke: 4px;
 }

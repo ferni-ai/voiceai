@@ -1,0 +1,668 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "description": "Ferni Visualization System Tokens - Data storytelling through emotional design",
+  "version": "1.0.0",
+
+  "_designPhilosophy": {
+    "principle": "Data should tell stories, not just display numbers",
+    "inspiration": "Kintsugi (golden repair), natural patterns, emotional resonance",
+    "goal": "Visualizations that create understanding, not just awareness"
+  },
+
+  "kintsugi": {
+    "_description": "Japanese golden repair philosophy - celebrating growth through challenges",
+    "_metaphor": "Cracks filled with gold represent overcome struggles becoming strengths",
+
+    "colors": {
+      "gold": {
+        "primary": "var(--viz-kintsugi-gold)",
+        "glow": "var(--viz-kintsugi-goldGlow)",
+        "subtle": "var(--viz-kintsugi-goldSubtle)"
+      },
+      "ceramic": {
+        "base": "var(--viz-kintsugi-ceramicBase)",
+        "fragment": "var(--viz-kintsugi-ceramicFragment)",
+        "shadow": "var(--viz-kintsugi-ceramicShadow)"
+      }
+    },
+
+    "crackPatterns": {
+      "_description": "Different crack patterns representing different types of challenges",
+      "single": {
+        "description": "One major challenge overcome",
+        "strokeWidth": "3px",
+        "goldIntensity": 1.0
+      },
+      "branching": {
+        "description": "Challenge that led to multiple growth areas",
+        "strokeWidth": "2px",
+        "branchCount": "2-4",
+        "goldIntensity": 0.9
+      },
+      "web": {
+        "description": "Complex interrelated challenges",
+        "strokeWidth": "1.5px",
+        "nodeCount": "5-12",
+        "goldIntensity": 0.8
+      },
+      "hairline": {
+        "description": "Minor setbacks, quickly healed",
+        "strokeWidth": "1px",
+        "goldIntensity": 0.6
+      }
+    },
+
+    "repairAnimation": {
+      "goldFlow": {
+        "duration": "1200ms",
+        "easing": "cubic-bezier(0.34, 1.56, 0.64, 1)",
+        "stagger": "100ms"
+      },
+      "glow": {
+        "duration": "2000ms",
+        "easing": "ease-in-out",
+        "pulseScale": 1.15
+      },
+      "reveal": {
+        "duration": "800ms",
+        "easing": "cubic-bezier(0.4, 0, 0.2, 1)"
+      }
+    },
+
+    "dataMapping": {
+      "challengeIntensity": "crackWidth",
+      "timeToOvercome": "crackLength",
+      "growthResult": "goldIntensity",
+      "interconnection": "branchPattern"
+    },
+
+    "accessibility": {
+      "patternFill": true,
+      "textLabels": "required",
+      "colorBlindSafe": "gold contrasts with all ceramic tones"
+    }
+  },
+
+  "constellation": {
+    "_description": "Relationship network visualization - connections as stars in personal universe",
+    "_metaphor": "People as stars, relationships as constellations, strength as brightness",
+
+    "colors": {
+      "stars": {
+        "bright": "var(--viz-constellation-starBright)",
+        "medium": "var(--viz-constellation-starMedium)",
+        "dim": "var(--viz-constellation-starDim)",
+        "glow": "var(--viz-constellation-glow)"
+      },
+      "connections": {
+        "strong": "var(--viz-constellation-connectionStrong)",
+        "medium": "var(--viz-constellation-connectionMedium)",
+        "weak": "var(--viz-constellation-connectionWeak)"
+      },
+      "background": {
+        "deep": "var(--viz-constellation-deepSpace)",
+        "nebula": "var(--viz-constellation-nebula)"
+      }
+    },
+
+    "starSizes": {
+      "self": {
+        "radius": "24px",
+        "glow": "40px",
+        "brightness": 1.0
+      },
+      "close": {
+        "radius": "12px",
+        "glow": "20px",
+        "brightness": 0.9
+      },
+      "regular": {
+        "radius": "8px",
+        "glow": "12px",
+        "brightness": 0.7
+      },
+      "distant": {
+        "radius": "4px",
+        "glow": "6px",
+        "brightness": 0.4
+      }
+    },
+
+    "connectionStyles": {
+      "family": {
+        "style": "solid",
+        "width": "2px",
+        "color": "var(--viz-constellation-connectionStrong)",
+        "glow": true
+      },
+      "friend": {
+        "style": "solid",
+        "width": "1.5px",
+        "color": "var(--viz-constellation-connectionMedium)",
+        "glow": false
+      },
+      "acquaintance": {
+        "style": "dashed",
+        "width": "1px",
+        "color": "var(--viz-constellation-connectionWeak)",
+        "dashArray": "4 4"
+      },
+      "dormant": {
+        "style": "dotted",
+        "width": "0.5px",
+        "color": "var(--viz-constellation-connectionWeak)",
+        "opacity": 0.4
+      }
+    },
+
+    "animations": {
+      "twinkle": {
+        "duration": "2000ms",
+        "easing": "ease-in-out",
+        "opacityRange": [0.7, 1.0],
+        "stagger": "random"
+      },
+      "pulse": {
+        "duration": "3000ms",
+        "easing": "ease-in-out",
+        "scaleRange": [1.0, 1.1]
+      },
+      "connectionDraw": {
+        "duration": "600ms",
+        "easing": "cubic-bezier(0.4, 0, 0.2, 1)"
+      },
+      "focusZoom": {
+        "duration": "400ms",
+        "easing": "cubic-bezier(0.34, 1.56, 0.64, 1)"
+      }
+    },
+
+    "layout": {
+      "type": "force-directed",
+      "centerForce": 0.05,
+      "linkDistance": {
+        "family": 80,
+        "friend": 120,
+        "acquaintance": 180
+      },
+      "chargeStrength": -300
+    },
+
+    "interactions": {
+      "hover": {
+        "starScale": 1.5,
+        "showConnections": true,
+        "showLabel": true
+      },
+      "select": {
+        "highlightNetwork": true,
+        "dimOthers": 0.3,
+        "showDetails": true
+      }
+    }
+  },
+
+  "river": {
+    "_description": "Conversation and time flow visualization - life as a flowing river",
+    "_metaphor": "Time flows like water, memories are pools, emotions are currents",
+
+    "colors": {
+      "water": {
+        "calm": "var(--viz-river-calm)",
+        "active": "var(--viz-river-active)",
+        "turbulent": "var(--viz-river-turbulent)",
+        "deep": "var(--viz-river-deep)"
+      },
+      "banks": {
+        "shore": "var(--viz-river-shore)",
+        "vegetation": "var(--viz-river-vegetation)"
+      },
+      "markers": {
+        "milestone": "var(--viz-river-milestone)",
+        "memory": "var(--viz-river-memory)"
+      }
+    },
+
+    "flowPatterns": {
+      "calm": {
+        "waveHeight": "2px",
+        "waveFrequency": "slow",
+        "turbulence": 0,
+        "description": "Peaceful periods, routine days"
+      },
+      "steady": {
+        "waveHeight": "4px",
+        "waveFrequency": "medium",
+        "turbulence": 0.2,
+        "description": "Normal flow, balanced times"
+      },
+      "active": {
+        "waveHeight": "8px",
+        "waveFrequency": "fast",
+        "turbulence": 0.5,
+        "description": "Busy periods, lots happening"
+      },
+      "rapids": {
+        "waveHeight": "12px",
+        "waveFrequency": "very-fast",
+        "turbulence": 0.8,
+        "description": "Challenging times, high stress"
+      }
+    },
+
+    "riverWidth": {
+      "_description": "Width represents engagement/activity level",
+      "narrow": {
+        "width": "40px",
+        "meaning": "Quiet periods, introspection"
+      },
+      "medium": {
+        "width": "80px",
+        "meaning": "Normal engagement"
+      },
+      "wide": {
+        "width": "120px",
+        "meaning": "High activity, many interactions"
+      },
+      "delta": {
+        "width": "200px",
+        "meaning": "Major life events, branching paths"
+      }
+    },
+
+    "specialFeatures": {
+      "pool": {
+        "description": "Significant memory or reflection point",
+        "shape": "ellipse",
+        "animation": "gentle-ripple",
+        "interactable": true
+      },
+      "waterfall": {
+        "description": "Major transition or change",
+        "animation": "cascade",
+        "sound": "optional"
+      },
+      "confluence": {
+        "description": "Where paths/people join",
+        "animation": "merge-flow"
+      },
+      "island": {
+        "description": "Period of isolation or focus",
+        "style": "surrounded by flow"
+      }
+    },
+
+    "animations": {
+      "flow": {
+        "duration": "4000ms",
+        "easing": "linear",
+        "loop": true
+      },
+      "ripple": {
+        "duration": "1500ms",
+        "easing": "ease-out",
+        "rings": 3
+      },
+      "cascade": {
+        "duration": "2000ms",
+        "easing": "cubic-bezier(0.4, 0, 0.2, 1)"
+      }
+    },
+
+    "timeMapping": {
+      "horizontal": "chronological (left to right)",
+      "vertical": "depth of engagement",
+      "color": "emotional tone",
+      "width": "activity level"
+    }
+  },
+
+  "energySankey": {
+    "_description": "Energy flow diagram - where life energy goes",
+    "_metaphor": "Energy as a finite resource flowing between life areas",
+
+    "colors": {
+      "flows": {
+        "work": "var(--viz-energy-work)",
+        "relationships": "var(--viz-energy-relationships)",
+        "health": "var(--viz-energy-health)",
+        "creativity": "var(--viz-energy-creativity)",
+        "rest": "var(--viz-energy-rest)",
+        "growth": "var(--viz-energy-growth)"
+      },
+      "nodes": {
+        "source": "var(--viz-energy-source)",
+        "sink": "var(--viz-energy-sink)",
+        "neutral": "var(--surface-secondary)"
+      }
+    },
+
+    "flowStyle": {
+      "minWidth": "4px",
+      "maxWidth": "60px",
+      "curvature": 0.5,
+      "opacity": 0.7,
+      "hoverOpacity": 1.0
+    },
+
+    "nodeStyle": {
+      "width": "24px",
+      "padding": "8px",
+      "borderRadius": "var(--radius-md)",
+      "labelPosition": "outside"
+    },
+
+    "animations": {
+      "flowPulse": {
+        "duration": "2000ms",
+        "easing": "ease-in-out",
+        "direction": "source-to-sink"
+      },
+      "highlight": {
+        "duration": "200ms",
+        "easing": "ease-out"
+      },
+      "rebalance": {
+        "duration": "800ms",
+        "easing": "cubic-bezier(0.34, 1.56, 0.64, 1)"
+      }
+    },
+
+    "layout": {
+      "nodeAlignment": "justify",
+      "nodePadding": 16,
+      "iterations": 32
+    }
+  },
+
+  "growthRings": {
+    "_description": "Tree ring visualization - growth over time",
+    "_metaphor": "Personal growth as tree rings, each year a layer of experience",
+
+    "colors": {
+      "rings": {
+        "light": "var(--viz-growth-ringLight)",
+        "dark": "var(--viz-growth-ringDark)",
+        "highlight": "var(--viz-growth-highlight)"
+      },
+      "markers": {
+        "milestone": "var(--viz-growth-milestone)",
+        "challenge": "var(--viz-growth-challenge)",
+        "achievement": "var(--viz-growth-achievement)"
+      }
+    },
+
+    "ringStyles": {
+      "normal": {
+        "thickness": "8px",
+        "gap": "2px",
+        "description": "Standard growth year"
+      },
+      "thick": {
+        "thickness": "14px",
+        "gap": "2px",
+        "description": "Year of significant growth"
+      },
+      "thin": {
+        "thickness": "4px",
+        "gap": "2px",
+        "description": "Difficult year, slower growth"
+      },
+      "scarred": {
+        "thickness": "8px",
+        "gap": "2px",
+        "marker": true,
+        "description": "Year with major challenge overcome"
+      }
+    },
+
+    "dataMapping": {
+      "ringThickness": "growth amount",
+      "ringColor": "emotional tone",
+      "markers": "significant events",
+      "texture": "challenge density"
+    },
+
+    "animations": {
+      "reveal": {
+        "type": "radial-grow",
+        "duration": "1500ms",
+        "easing": "cubic-bezier(0.4, 0, 0.2, 1)",
+        "stagger": "150ms per ring"
+      },
+      "hover": {
+        "ringScale": 1.05,
+        "showDetails": true,
+        "duration": "200ms"
+      }
+    },
+
+    "interactions": {
+      "hover": {
+        "highlightRing": true,
+        "showYearDetails": true,
+        "fadeOthers": 0.6
+      },
+      "click": {
+        "expandRing": true,
+        "showEvents": true
+      }
+    }
+  },
+
+  "moodCalendar": {
+    "_description": "Emotional patterns over time - GitHub contribution style",
+    "_metaphor": "Moods as colors painting the canvas of time",
+
+    "colors": {
+      "moods": {
+        "joyful": "var(--viz-mood-joyful)",
+        "calm": "var(--viz-mood-calm)",
+        "energized": "var(--viz-mood-energized)",
+        "stressed": "var(--viz-mood-stressed)",
+        "sad": "var(--viz-mood-sad)",
+        "neutral": "var(--viz-mood-neutral)"
+      },
+      "intensity": {
+        "levels": 5,
+        "minOpacity": 0.2,
+        "maxOpacity": 1.0
+      }
+    },
+
+    "cellStyle": {
+      "size": "12px",
+      "gap": "3px",
+      "borderRadius": "2px",
+      "hoverScale": 1.3
+    },
+
+    "layout": {
+      "type": "calendar-grid",
+      "weekStartsOn": "sunday",
+      "showWeekLabels": true,
+      "showMonthLabels": true
+    },
+
+    "animations": {
+      "cellReveal": {
+        "duration": "400ms",
+        "easing": "ease-out",
+        "stagger": "10ms"
+      },
+      "hover": {
+        "duration": "100ms",
+        "showTooltip": true
+      }
+    }
+  },
+
+  "lifePath": {
+    "_description": "Journey visualization - life as a winding path",
+    "_metaphor": "Life as a path through varied terrain",
+
+    "colors": {
+      "path": {
+        "walked": "var(--viz-path-walked)",
+        "current": "var(--viz-path-current)",
+        "future": "var(--viz-path-future)"
+      },
+      "terrain": {
+        "valley": "var(--viz-terrain-valley)",
+        "plateau": "var(--viz-terrain-plateau)",
+        "peak": "var(--viz-terrain-peak)",
+        "forest": "var(--viz-terrain-forest)"
+      }
+    },
+
+    "pathStyles": {
+      "width": "6px",
+      "dashArray": {
+        "past": "none",
+        "present": "none",
+        "future": "8 8"
+      }
+    },
+
+    "milestones": {
+      "size": "16px",
+      "iconSize": "12px",
+      "animation": "pulse",
+      "interactable": true
+    },
+
+    "terrainPatterns": {
+      "valley": {
+        "elevation": "low",
+        "meaning": "Difficult periods",
+        "texture": "waves"
+      },
+      "plateau": {
+        "elevation": "medium",
+        "meaning": "Stable periods",
+        "texture": "flat"
+      },
+      "peak": {
+        "elevation": "high",
+        "meaning": "Achievements",
+        "texture": "triangular"
+      }
+    },
+
+    "animations": {
+      "pathDraw": {
+        "duration": "2000ms",
+        "easing": "ease-in-out"
+      },
+      "walkerMove": {
+        "duration": "800ms",
+        "easing": "cubic-bezier(0.34, 1.56, 0.64, 1)"
+      }
+    }
+  },
+
+  "sharedTokens": {
+    "_description": "Tokens shared across all visualizations",
+
+    "transitions": {
+      "fast": "150ms ease-out",
+      "normal": "300ms ease-out",
+      "slow": "600ms ease-out",
+      "story": "1200ms cubic-bezier(0.4, 0, 0.2, 1)"
+    },
+
+    "focus": {
+      "ring": "var(--focus-ring-default)",
+      "offset": "2px"
+    },
+
+    "tooltip": {
+      "background": "var(--surface-elevated)",
+      "border": "1px solid var(--border-subtle)",
+      "borderRadius": "var(--radius-md)",
+      "padding": "8px 12px",
+      "shadow": "var(--shadow-md)",
+      "maxWidth": "240px"
+    },
+
+    "legend": {
+      "itemGap": "12px",
+      "swatchSize": "12px",
+      "fontSize": "var(--font-size-sm)",
+      "color": "var(--color-text-secondary)"
+    },
+
+    "axis": {
+      "lineColor": "var(--border-subtle)",
+      "lineWidth": "1px",
+      "tickSize": "4px",
+      "labelColor": "var(--color-text-muted)",
+      "labelSize": "var(--font-size-xs)"
+    },
+
+    "grid": {
+      "color": "var(--border-subtle)",
+      "opacity": 0.3,
+      "dashArray": "2 4"
+    }
+  },
+
+  "accessibility": {
+    "_description": "Accessibility requirements for all visualizations",
+
+    "patterns": {
+      "enabled": true,
+      "description": "Use patterns in addition to color for data encoding"
+    },
+
+    "motion": {
+      "respectReducedMotion": true,
+      "providePauseControl": true
+    },
+
+    "text": {
+      "minimumSize": "12px",
+      "altTextRequired": true,
+      "screenReaderDescriptions": true
+    },
+
+    "contrast": {
+      "minimum": 4.5,
+      "dataVsBackground": 3.0
+    },
+
+    "keyboard": {
+      "navigable": true,
+      "focusVisible": true,
+      "escapeToExit": true
+    }
+  },
+
+  "responsiveness": {
+    "_description": "Responsive behavior for different screen sizes",
+
+    "breakpoints": {
+      "mobile": {
+        "maxWidth": "640px",
+        "simplify": true,
+        "reduceLabelDensity": true
+      },
+      "tablet": {
+        "maxWidth": "1024px",
+        "fullFeatures": true
+      },
+      "desktop": {
+        "minWidth": "1025px",
+        "fullFeatures": true,
+        "enableAdvancedInteractions": true
+      }
+    },
+
+    "mobileSimplifications": {
+      "reduceDataPoints": true,
+      "enlargeTouchTargets": "44px minimum",
+      "stackLayouts": true,
+      "hideSecondaryInfo": true
+    }
+  }
+}

@@ -321,6 +321,29 @@
     }
   },
 
+  "chromatic": {
+    "_description": "Chromatic aberration effect - 3D glasses style color separation",
+    "_philosophy": "Used for holographic text effects and depth perception tricks",
+
+    "red": {
+      "solid": "#ff0000",
+      "tint": "rgba(255, 0, 0, 0.2)",
+      "_usage": "Red channel for chromatic offset (shifts positive)"
+    },
+    "cyan": {
+      "solid": "#00ffff",
+      "tint": "rgba(0, 255, 255, 0.2)",
+      "_usage": "Cyan channel for chromatic offset (shifts negative)"
+    },
+    "offset": {
+      "subtle": "1px",
+      "normal": "2px",
+      "strong": "4px",
+      "_usage": "Offset amounts for chromatic separation"
+    },
+    "blendMode": "multiply"
+  },
+
   "sounds": {
     "connect": {
       "description": "Warm connection chime",

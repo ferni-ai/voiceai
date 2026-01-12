@@ -39,6 +39,13 @@ const glowColors = JSON.parse(fs.readFileSync(path.join(__dirname, 'tokens/glow-
 // Window Avatar token file (Scale variants, expressions, animation timing)
 const windowAvatar = JSON.parse(fs.readFileSync(path.join(__dirname, 'tokens/window-avatar.json'), 'utf8'));
 
+// NEW: World-class design system tokens (Material 3 + Apple HIG parity)
+const states = JSON.parse(fs.readFileSync(path.join(__dirname, 'tokens/states.json'), 'utf8'));
+const icons = JSON.parse(fs.readFileSync(path.join(__dirname, 'tokens/icons.json'), 'utf8'));
+const shape = JSON.parse(fs.readFileSync(path.join(__dirname, 'tokens/shape.json'), 'utf8'));
+const visualizations = JSON.parse(fs.readFileSync(path.join(__dirname, 'tokens/visualizations.json'), 'utf8'));
+const componentsExtended = JSON.parse(fs.readFileSync(path.join(__dirname, 'tokens/components-extended.json'), 'utf8'));
+
 // ============================================================================
 // CSS GENERATION HELPERS
 // ============================================================================
@@ -50,6 +57,9 @@ function camelToKebab(str) {
 function flattenObject(obj, prefix = '') {
   const result = {};
   for (const [key, value] of Object.entries(obj)) {
+    // Skip meta/documentation fields (underscore-prefixed keys)
+    if (key.startsWith('_')) continue;
+
     const newKey = prefix ? `${prefix}-${camelToKebab(key)}` : camelToKebab(key);
     if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
       Object.assign(result, flattenObject(value, newKey));
@@ -259,6 +269,43 @@ function generateComparisonCSS(comparison) {
     for (const [key, value] of Object.entries(compData)) {
       if (key.startsWith('_')) continue;
       lines.push(`  --comparison-${kebabType}-${camelToKebab(key)}: ${value};`);
+    }
+  }
+
+  lines.push('}');
+  return lines.join('\n');
+}
+
+/**
+ * Generate CSS variables for visualization colors
+ * Used by data visualizations, mood calendars, energy rings, etc.
+ */
+function generateVisualizationCSS(visualization) {
+  if (!visualization) return '';
+  const lines = [];
+  lines.push(':root {');
+  lines.push('  /* Visualization Colors - Better Than Human Data Storytelling */');
+
+  // Process each category in visualization
+  for (const [category, categoryData] of Object.entries(visualization)) {
+    if (category.startsWith('_')) continue;
+    if (typeof categoryData !== 'object') continue;
+
+    const kebabCategory = camelToKebab(category);
+    lines.push(`\n  /* ${category.charAt(0).toUpperCase() + category.slice(1)} */`);
+
+    for (const [key, value] of Object.entries(categoryData)) {
+      if (key.startsWith('_')) continue;
+
+      // Handle nested objects (like gradient with start/end)
+      if (typeof value === 'object' && value !== null) {
+        for (const [nestedKey, nestedValue] of Object.entries(value)) {
+          if (nestedKey.startsWith('_')) continue;
+          lines.push(`  --viz-${kebabCategory}-${camelToKebab(key)}-${camelToKebab(nestedKey)}: ${nestedValue};`);
+        }
+      } else {
+        lines.push(`  --viz-${kebabCategory}-${camelToKebab(key)}: ${value};`);
+      }
     }
   }
 
@@ -765,6 +812,577 @@ function generateAnimationCSS(animation) {
 }
 
 // ============================================================================
+// CIRCADIAN CSS GENERATION - Time-aware design that adapts to human rhythms
+// ============================================================================
+
+function generateCircadianCSS(animation) {
+  const lines = [];
+  const circadian = animation.circadian;
+
+  if (!circadian) return '';
+
+  lines.push('/* ========================================');
+  lines.push('   CIRCADIAN SYSTEM');
+  lines.push('   Time-aware design that adapts to human rhythms');
+  lines.push('   "Dark mode is not enough. Ferni knows the difference');
+  lines.push('    between 10am focus and 2am presence."');
+  lines.push('   ======================================== */');
+  lines.push('');
+
+  // Default circadian variables
+  lines.push(':root {');
+  lines.push('  /* Circadian CSS Variables - Updated by JavaScript based on time */');
+  if (circadian.cssVariables) {
+    for (const [key, value] of Object.entries(circadian.cssVariables)) {
+      lines.push(`  ${key}: ${value};`);
+    }
+  }
+  lines.push('');
+  lines.push('  /* Circadian warmth filter formula */');
+  lines.push('  --circadian-filter-computed: sepia(calc(var(--circadian-warmth) * 0.15)) saturate(calc(1 + var(--circadian-warmth) * 0.1));');
+  lines.push('}');
+  lines.push('');
+
+  // Generate data attributes for each circadian period
+  lines.push('/* Circadian Period Data Attributes */');
+  lines.push('/* Apply [data-circadian="periodName"] to body for time-aware theming */');
+  lines.push('');
+
+  if (circadian.periods) {
+    for (const [periodName, period] of Object.entries(circadian.periods)) {
+      lines.push(`[data-circadian="${periodName}"] {`);
+      lines.push(`  --circadian-warmth: ${period.warmth};`);
+      lines.push(`  --circadian-brightness: ${period.brightness};`);
+      lines.push(`  --circadian-animation-speed: ${period.animationSpeed};`);
+      lines.push(`  --circadian-period-name: "${period.name}";`);
+      lines.push(`  --circadian-presence: "${period.presence}";`);
+      lines.push('  --circadian-filter: sepia(calc(var(--circadian-warmth) * 0.15)) saturate(calc(1 + var(--circadian-warmth) * 0.1));');
+      lines.push('}');
+      lines.push('');
+    }
+  }
+
+  // Circadian-aware animation speed modifiers
+  lines.push('/* Circadian Animation Speed Modifiers */');
+  lines.push('.circadian-aware {');
+  lines.push('  animation-duration: calc(var(--base-duration, 1s) / var(--circadian-animation-speed, 1));');
+  lines.push('}');
+  lines.push('');
+
+  // Circadian warmth filter utility
+  lines.push('/* Apply circadian warmth filter to any element */');
+  lines.push('.circadian-warm {');
+  lines.push('  filter: var(--circadian-filter, none);');
+  lines.push('  transition: filter 2s ease-in-out;');
+  lines.push('}');
+  lines.push('');
+
+  // Late night presence mode
+  lines.push('/* Late Night Presence - Extra warmth and slower animations */');
+  lines.push('[data-circadian="lateNight"], [data-circadian="deepNight"] {');
+  lines.push('  --color-bg-primary-circadian: color-mix(in oklch, var(--color-bg-primary) 95%, var(--color-warm) 5%);');
+  lines.push('  --transition-duration-circadian: calc(var(--duration-normal, 200ms) * 1.3);');
+  lines.push('}');
+  lines.push('');
+
+  // Reduced motion respects circadian
+  lines.push('@media (prefers-reduced-motion: reduce) {');
+  lines.push('  .circadian-aware {');
+  lines.push('    animation-duration: 0s;');
+  lines.push('  }');
+  lines.push('}');
+  lines.push('');
+
+  return lines.join('\n');
+}
+
+// ============================================================================
+// BREATH-SYNC CSS GENERATION - Breathing animations that feel alive
+// ============================================================================
+
+function generateBreathSyncCSS(animation) {
+  const lines = [];
+  const breathSync = animation.breathSync;
+
+  if (!breathSync) return '';
+
+  lines.push('/* ========================================');
+  lines.push('   BREATH-SYNC ANIMATION SYSTEM');
+  lines.push('   "Traditional UI animations are robotic.');
+  lines.push('    Ferni breathes with you."');
+  lines.push('   ======================================== */');
+  lines.push('');
+
+  // Default breath-sync variables
+  lines.push(':root {');
+  lines.push('  /* Breath-Sync CSS Variables */');
+  if (breathSync.cssVariables) {
+    for (const [key, value] of Object.entries(breathSync.cssVariables)) {
+      lines.push(`  ${key}: ${value};`);
+    }
+  }
+  lines.push('}');
+  lines.push('');
+
+  // Generate breath-sync keyframes for each preset
+  lines.push('/* Breath-Sync Keyframes */');
+  lines.push('');
+
+  if (breathSync.presets) {
+    for (const [presetName, preset] of Object.entries(breathSync.presets)) {
+      const inhaleEnd = Math.round(preset.inhaleRatio * 100);
+      const holdEnd = Math.round((preset.inhaleRatio + preset.holdRatio) * 100);
+      const [scaleMin, scaleMax] = preset.scaleRange || [1, 1.03];
+      const [opacityMin, opacityMax] = preset.opacityRange || [0.9, 1];
+
+      lines.push(`@keyframes breathSync-${presetName} {`);
+      lines.push(`  0% { transform: scale(${scaleMin}); opacity: ${opacityMin}; }`);
+      lines.push(`  ${inhaleEnd}% { transform: scale(${scaleMax}); opacity: ${opacityMax}; }`);
+      lines.push(`  ${holdEnd}% { transform: scale(${scaleMax}); opacity: ${opacityMax}; }`);
+      lines.push(`  100% { transform: scale(${scaleMin}); opacity: ${opacityMin}; }`);
+      lines.push('}');
+      lines.push('');
+    }
+  }
+
+  // Generate data attributes for each breath preset
+  lines.push('/* Breath-Sync Preset Data Attributes */');
+  lines.push('/* Apply [data-breath="presetName"] to enable preset */');
+  lines.push('');
+
+  if (breathSync.presets) {
+    for (const [presetName, preset] of Object.entries(breathSync.presets)) {
+      const [scaleMin, scaleMax] = preset.scaleRange || [1, 1.03];
+
+      lines.push(`[data-breath="${presetName}"] {`);
+      lines.push(`  --breath-duration: ${preset.duration}ms;`);
+      lines.push(`  --breath-inhale: ${Math.round(preset.inhaleRatio * 100)}%;`);
+      lines.push(`  --breath-hold: ${Math.round(preset.holdRatio * 100)}%;`);
+      lines.push(`  --breath-exhale: ${Math.round(preset.exhaleRatio * 100)}%;`);
+      lines.push(`  --breath-scale-min: ${scaleMin};`);
+      lines.push(`  --breath-scale-max: ${scaleMax};`);
+      lines.push(`  --breath-easing: ${preset.easing};`);
+      lines.push('}');
+      lines.push('');
+    }
+  }
+
+  // Breath-sync utility classes
+  lines.push('/* Breath-Sync Utility Classes */');
+  lines.push('.breath-sync {');
+  lines.push('  animation: breathSync-calm var(--breath-duration, 5000ms) var(--breath-easing, ease-in-out) infinite;');
+  lines.push('}');
+  lines.push('');
+
+  lines.push('.breath-sync-calm {');
+  lines.push('  animation: breathSync-calm 5000ms cubic-bezier(0.4, 0.0, 0.6, 1) infinite;');
+  lines.push('}');
+  lines.push('');
+
+  lines.push('.breath-sync-relaxed {');
+  lines.push('  animation: breathSync-relaxed 6000ms cubic-bezier(0.33, 0.0, 0.67, 1) infinite;');
+  lines.push('}');
+  lines.push('');
+
+  lines.push('.breath-sync-attentive {');
+  lines.push('  animation: breathSync-attentive 4000ms cubic-bezier(0.4, 0.0, 0.2, 1) infinite;');
+  lines.push('}');
+  lines.push('');
+
+  lines.push('.breath-sync-concerned {');
+  lines.push('  animation: breathSync-concerned 3500ms cubic-bezier(0.5, 0.0, 0.3, 1) infinite;');
+  lines.push('}');
+  lines.push('');
+
+  // Dynamic breath-sync that uses CSS variables
+  lines.push('/* Dynamic Breath-Sync - Uses CSS Variables */');
+  lines.push('@keyframes breathSyncDynamic {');
+  lines.push('  0% { transform: scale(var(--breath-scale-min, 1)); opacity: 0.9; }');
+  lines.push('  40% { transform: scale(var(--breath-scale-max, 1.03)); opacity: 1; }');
+  lines.push('  60% { transform: scale(var(--breath-scale-max, 1.03)); opacity: 1; }');
+  lines.push('  100% { transform: scale(var(--breath-scale-min, 1)); opacity: 0.9; }');
+  lines.push('}');
+  lines.push('');
+
+  lines.push('.breath-sync-dynamic {');
+  lines.push('  animation: breathSyncDynamic var(--breath-duration, 5000ms) var(--breath-easing, ease-in-out) infinite;');
+  lines.push('}');
+  lines.push('');
+
+  // Reduced motion
+  lines.push('@media (prefers-reduced-motion: reduce) {');
+  lines.push('  .breath-sync,');
+  lines.push('  .breath-sync-calm,');
+  lines.push('  .breath-sync-relaxed,');
+  lines.push('  .breath-sync-attentive,');
+  lines.push('  .breath-sync-concerned,');
+  lines.push('  .breath-sync-dynamic {');
+  lines.push('    animation: none;');
+  lines.push('  }');
+  lines.push('}');
+  lines.push('');
+
+  return lines.join('\n');
+}
+
+// ============================================================================
+// EMOTIONAL THEMING CSS - Better than Apple's light/dark mode
+// ============================================================================
+
+function generateEmotionalThemingCSS(animation) {
+  const lines = [];
+  const emotionalTheming = animation.emotionalTheming;
+
+  if (!emotionalTheming) return '';
+
+  lines.push('/* ========================================');
+  lines.push('   EMOTIONAL THEMING SYSTEM');
+  lines.push('   "Apple gives you light/dark mode.');
+  lines.push('    Ferni gives you emotional presence."');
+  lines.push('   ======================================== */');
+  lines.push('');
+
+  // Default emotional variables
+  lines.push(':root {');
+  lines.push('  /* Emotional Theming CSS Variables */');
+  if (emotionalTheming.cssVariables) {
+    for (const [key, value] of Object.entries(emotionalTheming.cssVariables)) {
+      lines.push(`  ${key}: ${value};`);
+    }
+  }
+  lines.push('');
+  lines.push('  /* Computed emotional filter */');
+  lines.push('  --emotional-filter-computed: sepia(calc(var(--emotional-warmth) * 0.2)) saturate(var(--emotional-saturation, 1));');
+  lines.push('}');
+  lines.push('');
+
+  // Generate data attributes for each emotional theme
+  lines.push('/* Emotional Theme Data Attributes */');
+  lines.push('/* Apply [data-emotion="themeName"] for context-aware theming */');
+  lines.push('');
+
+  if (emotionalTheming.themes) {
+    for (const [themeName, theme] of Object.entries(emotionalTheming.themes)) {
+      // Skip zen and midnight as they're handled by existing data-theme
+      if (themeName === 'zen' || themeName === 'midnight') continue;
+
+      lines.push(`[data-emotion="${themeName}"] {`);
+      lines.push(`  --emotional-temperature: ${theme.colorTemperature};`);
+      lines.push(`  --emotional-warmth: ${theme.warmth};`);
+      lines.push(`  --emotional-saturation: ${theme.saturation};`);
+      lines.push(`  --emotional-animation-intensity: ${theme.animationIntensity};`);
+      lines.push(`  --emotional-state: "${theme.emotionalState}";`);
+      lines.push(`  --emotional-name: "${theme.name}";`);
+
+      // Generate filter based on temperature
+      if (theme.colorTemperature > 0) {
+        lines.push(`  --emotional-filter: sepia(${theme.warmth * 0.2}) saturate(${theme.saturation});`);
+      } else if (theme.colorTemperature < 0) {
+        lines.push(`  --emotional-filter: hue-rotate(${theme.colorTemperature * 10}deg) saturate(${theme.saturation});`);
+      } else {
+        lines.push(`  --emotional-filter: saturate(${theme.saturation});`);
+      }
+      lines.push('}');
+      lines.push('');
+    }
+  }
+
+  // Emotional theme utility classes
+  lines.push('/* Emotional Theme Utilities */');
+  lines.push('.emotion-aware {');
+  lines.push('  transition: filter 1.5s ease-in-out, background 1.5s ease-in-out;');
+  lines.push('}');
+  lines.push('');
+
+  lines.push('.emotion-filter {');
+  lines.push('  filter: var(--emotional-filter, none);');
+  lines.push('}');
+  lines.push('');
+
+  // Embrace theme - extra warmth
+  lines.push('/* Embrace - For comfort moments */');
+  lines.push('[data-emotion="embrace"] .emotion-surface {');
+  lines.push('  background: color-mix(in oklch, var(--color-bg-primary) 90%, #e6a96a 10%);');
+  lines.push('}');
+  lines.push('');
+
+  // Energize theme - vibrant
+  lines.push('/* Energize - For high-energy moments */');
+  lines.push('[data-emotion="energize"] .emotion-surface {');
+  lines.push('  background: color-mix(in oklch, var(--color-bg-primary) 95%, var(--color-accent) 5%);');
+  lines.push('}');
+  lines.push('');
+
+  // Focus theme - minimal
+  lines.push('/* Focus - For deep work */');
+  lines.push('[data-emotion="focus"] {');
+  lines.push('  --shadow-strength: 0.5;');
+  lines.push('  --border-strength: 0.7;');
+  lines.push('}');
+  lines.push('');
+
+  // Reflect theme - muted
+  lines.push('/* Reflect - For processing moments */');
+  lines.push('[data-emotion="reflect"] {');
+  lines.push('  --color-saturation-modifier: 0.85;');
+  lines.push('}');
+  lines.push('');
+
+  // Animation intensity modifiers
+  lines.push('/* Animation Intensity based on emotional state */');
+  lines.push('.emotion-animated {');
+  lines.push('  animation-duration: calc(var(--base-duration, 1s) / var(--emotional-animation-intensity, 1));');
+  lines.push('}');
+  lines.push('');
+
+  return lines.join('\n');
+}
+
+// ============================================================================
+// PERSONA AURA CSS - Better than Google's color schemes
+// ============================================================================
+
+function generatePersonaAuraCSS(animation) {
+  const lines = [];
+  const personaAura = animation.personaAura;
+
+  if (!personaAura) return '';
+
+  lines.push('/* ========================================');
+  lines.push('   PERSONA AURA SYSTEM');
+  lines.push('   "Google Material gives you color schemes.');
+  lines.push('    Ferni personas have atmospheric presence."');
+  lines.push('   ======================================== */');
+  lines.push('');
+
+  // Default aura variables
+  lines.push(':root {');
+  lines.push('  /* Persona Aura CSS Variables */');
+  if (personaAura.cssVariables) {
+    for (const [key, value] of Object.entries(personaAura.cssVariables)) {
+      lines.push(`  ${key}: ${value};`);
+    }
+  }
+  lines.push('}');
+  lines.push('');
+
+  // Generate aura pulse keyframe
+  lines.push('/* Aura Pulse Animation */');
+  lines.push('@keyframes aura-pulse {');
+  lines.push('  0%, 100% { opacity: 0.7; }');
+  lines.push('  50% { opacity: 1; }');
+  lines.push('}');
+  lines.push('');
+
+  // Generate data attributes for each persona aura
+  lines.push('/* Persona Aura Data Attributes */');
+  lines.push('/* Apply [data-persona="personaName"] for persona-specific atmosphere */');
+  lines.push('');
+
+  if (personaAura.auras) {
+    for (const [personaName, aura] of Object.entries(personaAura.auras)) {
+      lines.push(`[data-persona="${personaName}"] {`);
+      lines.push(`  --persona-aura-gradient: ${aura.gradient};`);
+      lines.push(`  --persona-aura-glow: ${aura.glowColor};`);
+      lines.push(`  --persona-aura-spread: ${aura.glowSpread};`);
+      lines.push(`  --persona-aura-pulse: ${aura.pulseRate};`);
+      lines.push(`  --persona-aura-filter: ${aura.ambientFilter};`);
+      lines.push(`  --persona-presence: "${aura.presence}";`);
+      lines.push('}');
+      lines.push('');
+    }
+  }
+
+  // Aura background element
+  lines.push('/* Aura Background - Apply to a pseudo-element or dedicated div */');
+  lines.push('.persona-aura {');
+  lines.push('  position: fixed;');
+  lines.push('  top: 0;');
+  lines.push('  left: 0;');
+  lines.push('  right: 0;');
+  lines.push('  height: 50vh;');
+  lines.push('  background: var(--persona-aura-gradient, none);');
+  lines.push('  pointer-events: none;');
+  lines.push('  z-index: -1;');
+  lines.push('  animation: aura-pulse var(--persona-aura-pulse, 5s) ease-in-out infinite;');
+  lines.push('  transition: background 1s ease-in-out;');
+  lines.push('}');
+  lines.push('');
+
+  // Aura glow effect
+  lines.push('/* Aura Glow - Ambient light around avatar */');
+  lines.push('.persona-glow {');
+  lines.push('  box-shadow: 0 0 var(--persona-aura-spread, 60px) var(--persona-aura-glow, transparent);');
+  lines.push('  transition: box-shadow 0.6s ease-in-out;');
+  lines.push('}');
+  lines.push('');
+
+  // Aura filter effect
+  lines.push('/* Aura Filter - Subtle atmosphere adjustment */');
+  lines.push('.persona-atmosphere {');
+  lines.push('  filter: var(--persona-aura-filter, none);');
+  lines.push('  transition: filter 0.8s ease-in-out;');
+  lines.push('}');
+  lines.push('');
+
+  return lines.join('\n');
+}
+
+// ============================================================================
+// RELATIONSHIP DEPTH CSS - UI that grows with your relationship
+// ============================================================================
+
+function generateRelationshipDepthCSS(animation) {
+  const lines = [];
+  const relationshipDepth = animation.relationshipDepth;
+
+  if (!relationshipDepth) return '';
+
+  lines.push('/* ========================================');
+  lines.push('   RELATIONSHIP DEPTH SYSTEM');
+  lines.push('   "Apple treats every session the same.');
+  lines.push('    Ferni UI grows with your relationship."');
+  lines.push('   ======================================== */');
+  lines.push('');
+
+  // Default relationship variables
+  lines.push(':root {');
+  lines.push('  /* Relationship Depth CSS Variables */');
+  lines.push('  --relationship-stage: "new";');
+  lines.push('  --relationship-richness: 0.5;');
+  lines.push('  --relationship-animation-complexity: 1;');
+  lines.push('  --relationship-personalization: 0;');
+  lines.push('}');
+  lines.push('');
+
+  // Generate data attributes for each relationship stage
+  lines.push('/* Relationship Stage Data Attributes */');
+  lines.push('/* Apply [data-relationship="stageName"] for progressive UI richness */');
+  lines.push('');
+
+  if (relationshipDepth.stages) {
+    for (const [stageName, stage] of Object.entries(relationshipDepth.stages)) {
+      // Map animation complexity to a number
+      const complexityMap = {
+        'simple': 0.5,
+        'moderate': 0.7,
+        'rich': 0.85,
+        'expressive': 0.95,
+        'full': 1.0
+      };
+      const complexity = complexityMap[stage.animationComplexity] || 1;
+
+      // Map personalization to a number
+      const personalizationMap = {
+        'minimal': 0.2,
+        'emerging': 0.4,
+        'adapted': 0.6,
+        'deep': 0.8,
+        'intuitive': 1.0
+      };
+      const personalization = personalizationMap[stage.personalization] || 0;
+
+      lines.push(`[data-relationship="${stageName}"] {`);
+      lines.push(`  --relationship-stage: "${stageName}";`);
+      lines.push(`  --relationship-richness: ${stage.uiRichness};`);
+      lines.push(`  --relationship-animation-complexity: ${complexity};`);
+      lines.push(`  --relationship-personalization: ${personalization};`);
+      lines.push('}');
+      lines.push('');
+    }
+  }
+
+  // Progressive UI richness utilities
+  lines.push('/* Progressive UI Richness */');
+  lines.push('');
+
+  // Animation complexity - more complex animations unlock over time
+  lines.push('.relationship-animation {');
+  lines.push('  animation-iteration-count: calc(var(--relationship-animation-complexity, 1) * 1);');
+  lines.push('}');
+  lines.push('');
+
+  // Visual richness - shadows and effects increase
+  lines.push('.relationship-shadow {');
+  lines.push('  --shadow-multiplier: var(--relationship-richness, 0.5);');
+  lines.push('  box-shadow: 0 4px calc(12px * var(--shadow-multiplier)) rgba(0, 0, 0, calc(0.1 * var(--shadow-multiplier)));');
+  lines.push('}');
+  lines.push('');
+
+  // New user stage - minimal, focused
+  lines.push('/* New User - Clean and focused */');
+  lines.push('[data-relationship="new"] .advanced-feature {');
+  lines.push('  display: none;');
+  lines.push('}');
+  lines.push('[data-relationship="new"] .relationship-decorative {');
+  lines.push('  opacity: 0;');
+  lines.push('}');
+  lines.push('');
+
+  // Getting to know - emerging personality
+  lines.push('/* Getting to Know - Personality emerging */');
+  lines.push('[data-relationship="gettingToKnow"] .growth-feature {');
+  lines.push('  display: block;');
+  lines.push('}');
+  lines.push('[data-relationship="gettingToKnow"] .relationship-decorative {');
+  lines.push('  opacity: 0.5;');
+  lines.push('}');
+  lines.push('');
+
+  // Building trust - full team access
+  lines.push('/* Building Trust - Full team available */');
+  lines.push('[data-relationship="buildingTrust"] .team-feature {');
+  lines.push('  display: block;');
+  lines.push('}');
+  lines.push('[data-relationship="buildingTrust"] .relationship-decorative {');
+  lines.push('  opacity: 0.75;');
+  lines.push('}');
+  lines.push('');
+
+  // Established - rich interactions
+  lines.push('/* Established - Rich interactions */');
+  lines.push('[data-relationship="established"] .advanced-feature {');
+  lines.push('  display: block;');
+  lines.push('}');
+  lines.push('[data-relationship="established"] .relationship-decorative {');
+  lines.push('  opacity: 0.9;');
+  lines.push('}');
+  lines.push('');
+
+  // Deep partnership - everything
+  lines.push('/* Deep Partnership - Full UI richness */');
+  lines.push('[data-relationship="deepPartnership"] .relationship-decorative {');
+  lines.push('  opacity: 1;');
+  lines.push('}');
+  lines.push('[data-relationship="deepPartnership"] .insight-preview {');
+  lines.push('  display: block;');
+  lines.push('}');
+  lines.push('');
+
+  // Relationship indicator visual
+  lines.push('/* Relationship Depth Indicator */');
+  lines.push('.relationship-indicator {');
+  lines.push('  display: flex;');
+  lines.push('  gap: 4px;');
+  lines.push('}');
+  lines.push('.relationship-dot {');
+  lines.push('  width: 8px;');
+  lines.push('  height: 8px;');
+  lines.push('  border-radius: 50%;');
+  lines.push('  background: var(--color-text-muted);');
+  lines.push('  opacity: 0.3;');
+  lines.push('  transition: opacity 0.3s ease, background 0.3s ease;');
+  lines.push('}');
+  lines.push('.relationship-dot.filled {');
+  lines.push('  opacity: 1;');
+  lines.push('  background: var(--color-accent);');
+  lines.push('}');
+  lines.push('');
+
+  return lines.join('\n');
+}
+
+// ============================================================================
 // EFFECTS CSS GENERATION
 // ============================================================================
 
@@ -807,6 +1425,27 @@ function generateEffectsCSS(effects) {
   }
   lines.push('}');
   lines.push('');
+
+  // Chromatic aberration effect tokens
+  if (effects.chromatic) {
+    lines.push('/* Chromatic Aberration Effects */');
+    lines.push(':root {');
+    if (effects.chromatic.red) {
+      lines.push(`  --effect-chromatic-red: ${effects.chromatic.red.solid};`);
+      lines.push(`  --effect-chromatic-red-tint: ${effects.chromatic.red.tint};`);
+    }
+    if (effects.chromatic.cyan) {
+      lines.push(`  --effect-chromatic-cyan: ${effects.chromatic.cyan.solid};`);
+      lines.push(`  --effect-chromatic-cyan-tint: ${effects.chromatic.cyan.tint};`);
+    }
+    if (effects.chromatic.offset) {
+      lines.push(`  --effect-chromatic-offset-subtle: ${effects.chromatic.offset.subtle};`);
+      lines.push(`  --effect-chromatic-offset-normal: ${effects.chromatic.offset.normal};`);
+      lines.push(`  --effect-chromatic-offset-strong: ${effects.chromatic.offset.strong};`);
+    }
+    lines.push('}');
+    lines.push('');
+  }
 
   // Magical utility classes
   lines.push('/* ========================================');
@@ -3382,6 +4021,1206 @@ function generateHighContrastCSS() {
 }
 
 // ============================================================================
+// ORGANIC CONVERSATION FLOW CSS GENERATION
+// Better than Apple/Google: Replace rigid chat bubbles with organic flow
+// ============================================================================
+
+function generateOrganicConversationCSS(conversationFlow) {
+  const lines = [];
+
+  lines.push(`/* ========================================
+   ORGANIC CONVERSATION FLOW
+
+   Better than Apple: Not rigid message boxes
+   Better than Google: Not disconnected bubbles
+
+   Philosophy: Chat interfaces feel mechanical - boxes floating in space.
+   Human conversation is a continuous river of dialogue, thoughts flowing
+   into each other, not disconnected rectangles.
+
+   Inspired by: Pixar's fluidity - water in Finding Nemo,
+   the organic blob shapes in Inside Out emotions
+   ======================================== */
+`);
+
+  // CSS Custom Properties for conversation flow
+  lines.push(':root {');
+
+  const cssVars = conversationFlow.cssVariables || {};
+  for (const [varName, value] of Object.entries(cssVars)) {
+    if (!varName.startsWith('_')) {
+      lines.push(`  ${varName}: ${value};`);
+    }
+  }
+  lines.push('}');
+  lines.push('');
+
+  // Keyframe animations
+  const keyframes = conversationFlow.keyframes || {};
+  for (const [animName, frames] of Object.entries(keyframes)) {
+    if (animName.startsWith('_')) continue;
+
+    lines.push(`@keyframes ${animName} {`);
+    for (const [percent, props] of Object.entries(frames)) {
+      const propsStr = Object.entries(props)
+        .map(([k, v]) => `${camelToKebab(k)}: ${v}`)
+        .join('; ');
+      lines.push(`  ${percent} { ${propsStr}; }`);
+    }
+    lines.push('}');
+    lines.push('');
+  }
+
+  // Organic Message Containers
+  const shapes = conversationFlow.messageShapes || {};
+
+  lines.push(`/* Organic Message Shapes - asymmetric, flowing, human */`);
+  lines.push(`.conversation-message {
+  position: relative;
+  padding: 16px 20px;
+  margin: 8px 0;
+  border-radius: var(--conversation-message-radius-ai);
+  background: var(--color-tonal-surface1-background);
+  animation: containerBreathe var(--conversation-breathing-duration) ease-in-out infinite;
+  will-change: transform, opacity;
+  transition: transform 200ms ease-out, box-shadow 200ms ease-out;
+}
+
+.conversation-message:hover {
+  animation-play-state: paused;
+  transform: scale(1.01);
+}
+
+.conversation-message--user {
+  border-radius: var(--conversation-message-radius-user);
+  background: ${shapes.user?.backgroundGradient || 'var(--color-tonal-surface2-background)'};
+  box-shadow: ${shapes.user?.shadowStyle || '0 2px 8px rgba(0,0,0,0.08)'};
+  margin-left: 40px;
+  margin-right: 0;
+}
+
+.conversation-message--ai {
+  border-radius: var(--conversation-message-radius-ai);
+  background: ${shapes.ai?.backgroundGradient || 'var(--color-background-elevated)'};
+  box-shadow: ${shapes.ai?.shadowStyle || '0 4px 16px rgba(0,0,0,0.06)'};
+  margin-right: 40px;
+  margin-left: 0;
+}
+
+.conversation-message--system {
+  border-radius: var(--conversation-message-radius-system);
+  background: transparent;
+  text-align: center;
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+  animation: none;
+  margin: 16px 40px;
+}`);
+  lines.push('');
+
+  // Flowing Borders
+  const flowingBorders = conversationFlow.flowingBorders || {};
+
+  lines.push(`/* Flowing Borders - borders that breathe */`);
+  lines.push(`.conversation-message--flowing {
+  border: ${flowingBorders.default?.width || '1px'} ${flowingBorders.default?.style || 'solid'} ${flowingBorders.default?.color || 'var(--color-border-subtle)'};
+  opacity: ${flowingBorders.default?.opacity || '0.6'};
+}
+
+.conversation-message--active {
+  border: ${flowingBorders.active?.width || '1.5px'} ${flowingBorders.active?.style || 'solid'} ${flowingBorders.active?.color || 'var(--color-accent-primary)'};
+  box-shadow: ${flowingBorders.active?.glow || '0 0 8px var(--color-accent-glow)'};
+}
+
+.conversation-message--breathing-border {
+  animation: borderBreathe ${flowingBorders.breathing?.duration || '4s'} ${flowingBorders.breathing?.easing || 'ease-in-out'} infinite;
+}`);
+  lines.push('');
+
+  // Connection Lines (SVG-based)
+  const connections = conversationFlow.connectionLines || {};
+
+  lines.push(`/* Connection Lines - visual threads between messages */`);
+  lines.push(`.conversation-connection {
+  position: absolute;
+  left: 30px;
+  width: ${connections.width || '2px'};
+  background: ${connections.color || 'var(--color-border-subtle)'};
+  opacity: ${connections.opacity || '0.3'};
+  transform-origin: top;
+}
+
+.conversation-connection--curved {
+  position: absolute;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.conversation-connection--curved path {
+  fill: none;
+  stroke: var(--conversation-connection-color);
+  stroke-width: 2px;
+  opacity: var(--conversation-connection-opacity);
+  stroke-dasharray: 100%;
+  animation: connectionDraw 400ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}`);
+  lines.push('');
+
+  // Breathing Containers
+  const breathing = conversationFlow.breathingContainers || {};
+
+  lines.push(`/* Breathing Containers - subtle life in static elements */`);
+  lines.push(`.breathing-container {
+  animation: containerBreathe ${breathing.animation?.duration || '5000ms'} ${breathing.animation?.easing || 'ease-in-out'} infinite;
+}
+
+.breathing-container:hover {
+  animation-play-state: paused;
+  transform: scale(${breathing.onHover?.scale || 1.01});
+  transition: ${breathing.onHover?.transition || 'transform 200ms ease-out'};
+}
+
+.breathing-container--active {
+  transform: scale(${breathing.onActive?.scale || 1.0});
+  box-shadow: ${breathing.onActive?.glow || '0 0 20px var(--color-accent-glow)'};
+}`);
+  lines.push('');
+
+  // Presence Indicators
+  const presence = conversationFlow.presenceIndicators || {};
+
+  lines.push(`/* Presence Indicators - showing AI is here with you */`);
+  lines.push(`.presence-indicator {
+  position: relative;
+  display: inline-block;
+}
+
+.presence-indicator--listening::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: inherit;
+  animation: presencePulse ${presence.listeningPulse?.duration || '2000ms'} ${presence.listeningPulse?.easing || 'ease-in-out'} infinite;
+}
+
+.presence-indicator--thinking {
+  position: relative;
+}
+
+.presence-indicator--thinking::before,
+.presence-indicator--thinking::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  border: 1px solid var(--color-accent-primary);
+  animation: thinkingRipple ${presence.thinkingRipple?.duration || '1200ms'} ${presence.thinkingRipple?.easing || 'ease-out'} infinite;
+}
+
+.presence-indicator--thinking::after {
+  animation-delay: ${presence.thinkingRipple?.delay || '200ms'};
+}
+
+.presence-indicator--active-glow {
+  animation: activeGlow ${presence.activeGlow?.duration || '3000ms'} ${presence.activeGlow?.easing || 'ease-in-out'} infinite;
+}`);
+  lines.push('');
+
+  // Message Transitions
+  const transitions = conversationFlow.transitionStyles || {};
+
+  lines.push(`/* Message Transitions - how messages enter and exit */`);
+  lines.push(`.conversation-message-enter {
+  animation: messageEnter var(--conversation-enter-duration) cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.conversation-message-exit {
+  animation: messageExit var(--conversation-exit-duration) ease-out forwards;
+}
+
+.conversation-message-update {
+  animation: messageUpdate 200ms ease-out;
+}`);
+  lines.push('');
+
+  // Conversation Flow Container
+  lines.push(`/* Conversation Flow Container - the river of dialogue */`);
+  lines.push(`.conversation-flow {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px;
+  position: relative;
+}
+
+.conversation-flow--connected {
+  /* Enables visual connection lines between messages */
+  --show-connections: 1;
+}
+
+.conversation-flow--connected .conversation-connection {
+  display: block;
+}
+
+.conversation-flow:not(.conversation-flow--connected) .conversation-connection {
+  display: none;
+}`);
+  lines.push('');
+
+  // Reduced Motion Support
+  lines.push(`/* Reduced Motion - respect user preferences */
+@media (prefers-reduced-motion: reduce) {
+  .conversation-message,
+  .breathing-container,
+  .presence-indicator--listening::after,
+  .presence-indicator--thinking::before,
+  .presence-indicator--thinking::after,
+  .presence-indicator--active-glow {
+    animation: none;
+  }
+
+  .conversation-message-enter,
+  .conversation-message-exit {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+
+  .conversation-connection--curved path {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
+}`);
+
+  return lines.join('\n');
+}
+
+// ============================================================================
+// MICRO-INTERACTIONS CSS GENERATION
+// Better than Apple/Google: Advanced haptic-style visual feedback library
+// ============================================================================
+
+function generateMicroInteractionsCSS(microInteractions) {
+  const lines = [];
+
+  lines.push(`/* ========================================
+   MICRO-INTERACTIONS LIBRARY
+
+   Better than Apple: More emotionally aware feedback
+   Better than Google: Warmer than Material's mechanical ripples
+
+   Philosophy: Micro-interactions are the soul of great UI.
+   Every tap, hover, and state change is an opportunity to delight.
+   We take Apple's touch feedback and add emotional warmth.
+
+   Inspired by: Apple's haptic feedback, Pixar's anticipation
+   and follow-through, but with human warmth
+   ======================================== */
+`);
+
+  // CSS Custom Properties
+  lines.push(':root {');
+  const cssVars = microInteractions.cssVariables || {};
+  for (const [varName, value] of Object.entries(cssVars)) {
+    if (!varName.startsWith('_')) {
+      lines.push(`  ${varName}: ${value};`);
+    }
+  }
+  lines.push('}');
+  lines.push('');
+
+  // Keyframe animations
+  const keyframes = microInteractions.keyframes || {};
+  for (const [animName, frames] of Object.entries(keyframes)) {
+    if (animName.startsWith('_')) continue;
+
+    lines.push(`@keyframes ${animName} {`);
+    for (const [percent, props] of Object.entries(frames)) {
+      const propsStr = Object.entries(props)
+        .map(([k, v]) => `${camelToKebab(k)}: ${v}`)
+        .join('; ');
+      lines.push(`  ${percent} { ${propsStr}; }`);
+    }
+    lines.push('}');
+    lines.push('');
+  }
+
+  // Touch Feedback Classes
+  const touchFeedback = microInteractions.touchFeedback || {};
+  lines.push('/* Touch Feedback - Haptic-style visual feedback */');
+
+  if (touchFeedback.tap) {
+    lines.push(`.touch-tap {
+  animation: ${touchFeedback.tap.animation} ${touchFeedback.tap.duration} ${touchFeedback.tap.easing};
+}`);
+  }
+
+  if (touchFeedback.press) {
+    lines.push(`.touch-press {
+  transform: scale(${touchFeedback.press.scale});
+  transition: transform ${touchFeedback.press.duration} ${touchFeedback.press.easing};
+}`);
+  }
+
+  if (touchFeedback.release) {
+    lines.push(`.touch-release {
+  animation: ${touchFeedback.release.animation} ${touchFeedback.release.duration} ${touchFeedback.release.easing};
+}`);
+  }
+
+  if (touchFeedback.ripple) {
+    lines.push(`.touch-ripple {
+  position: relative;
+  overflow: hidden;
+}
+.touch-ripple::after {
+  content: '';
+  position: absolute;
+  top: var(--ripple-y, 50%);
+  left: var(--ripple-x, 50%);
+  width: 100%;
+  height: 100%;
+  background: ${touchFeedback.ripple.color};
+  border-radius: 50%;
+  transform: translate(-50%, -50%) scale(0);
+  opacity: 0;
+  pointer-events: none;
+}
+.touch-ripple.rippling::after {
+  animation: ${touchFeedback.ripple.animation} ${touchFeedback.ripple.duration} ${touchFeedback.ripple.easing} forwards;
+}`);
+  }
+
+  if (touchFeedback.longPress) {
+    lines.push(`.touch-long-press {
+  animation: ${touchFeedback.longPress.animation} ${touchFeedback.longPress.duration} ${touchFeedback.longPress.easing} forwards;
+}`);
+  }
+
+  lines.push('');
+
+  // State Feedback Classes
+  const stateFeedback = microInteractions.stateFeedback || {};
+  lines.push('/* State Feedback - Visual confirmation of state changes */');
+
+  if (stateFeedback.success) {
+    lines.push(`.state-success {
+  animation: ${stateFeedback.success.animation} ${stateFeedback.success.duration} ${stateFeedback.success.easing};
+  color: ${stateFeedback.success.color};
+}
+.state-success::after {
+  box-shadow: ${stateFeedback.success.glow};
+}`);
+  }
+
+  if (stateFeedback.error) {
+    lines.push(`.state-error {
+  animation: ${stateFeedback.error.animation} ${stateFeedback.error.duration} ${stateFeedback.error.easing};
+  color: ${stateFeedback.error.color};
+}`);
+  }
+
+  if (stateFeedback.warning) {
+    lines.push(`.state-warning {
+  animation: ${stateFeedback.warning.animation} ${stateFeedback.warning.duration} ${stateFeedback.warning.easing};
+  color: ${stateFeedback.warning.color};
+}`);
+  }
+
+  if (stateFeedback.info) {
+    lines.push(`.state-info {
+  animation: ${stateFeedback.info.animation} ${stateFeedback.info.duration} ${stateFeedback.info.easing};
+  color: ${stateFeedback.info.color};
+}`);
+  }
+
+  if (stateFeedback.loading) {
+    lines.push(`.state-loading .dot {
+  animation: ${stateFeedback.loading.animation} ${stateFeedback.loading.duration} ${stateFeedback.loading.easing} infinite;
+}
+.state-loading .dot:nth-child(2) {
+  animation-delay: ${stateFeedback.loading.stagger};
+}
+.state-loading .dot:nth-child(3) {
+  animation-delay: calc(${stateFeedback.loading.stagger} * 2);
+}`);
+  }
+
+  lines.push('');
+
+  // Acknowledgment Classes
+  const acknowledgments = microInteractions.acknowledgments || {};
+  lines.push('/* Acknowledgments - Micro-celebrations for completed actions */');
+
+  if (acknowledgments.saved) {
+    lines.push(`.ack-saved {
+  animation: ${acknowledgments.saved.animation} ${acknowledgments.saved.duration} ease-out forwards;
+}`);
+  }
+
+  if (acknowledgments.sent) {
+    lines.push(`.ack-sent {
+  animation: ${acknowledgments.sent.animation} ${acknowledgments.sent.duration} ease-out forwards;
+}`);
+  }
+
+  if (acknowledgments.copied) {
+    lines.push(`.ack-copied {
+  animation: ${acknowledgments.copied.animation} ${acknowledgments.copied.duration} ease-out;
+}`);
+  }
+
+  if (acknowledgments.favorited) {
+    lines.push(`.ack-favorited {
+  animation: ${acknowledgments.favorited.animation} ${acknowledgments.favorited.duration} ease-out;
+  color: ${acknowledgments.favorited.color};
+}`);
+  }
+
+  lines.push('');
+
+  // Attention Grabbers
+  const attentionGrabbers = microInteractions.attentionGrabbers || {};
+  lines.push('/* Attention Grabbers - Subtle animations to draw user attention */');
+
+  if (attentionGrabbers.badge) {
+    lines.push(`.attention-badge {
+  animation: ${attentionGrabbers.badge.animation} ${attentionGrabbers.badge.duration} ${attentionGrabbers.badge.easing};
+  animation-iteration-count: ${attentionGrabbers.badge.repeatCount || 1};
+}`);
+  }
+
+  if (attentionGrabbers.indicator) {
+    lines.push(`.attention-indicator {
+  animation: ${attentionGrabbers.indicator.animation} ${attentionGrabbers.indicator.duration} ${attentionGrabbers.indicator.easing} infinite;
+}`);
+  }
+
+  if (attentionGrabbers.shake) {
+    lines.push(`.attention-shake {
+  animation: attentionShake ${attentionGrabbers.shake.duration} ${attentionGrabbers.shake.easing};
+}
+@keyframes attentionShake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-3px); }
+  40%, 80% { transform: translateX(3px); }
+}`);
+  }
+
+  lines.push('');
+
+  // Loading Variants
+  const loadingVariants = microInteractions.loadingVariants || {};
+  lines.push('/* Loading Variants - Different loading states for different contexts */');
+
+  if (loadingVariants.skeleton) {
+    lines.push(`.loading-skeleton {
+  background: linear-gradient(90deg,
+    ${loadingVariants.skeleton.colors ? loadingVariants.skeleton.colors[0] : 'var(--color-bg-tertiary)'} 0%,
+    ${loadingVariants.skeleton.colors ? loadingVariants.skeleton.colors[1] : 'var(--color-bg-elevated)'} 50%,
+    ${loadingVariants.skeleton.colors ? loadingVariants.skeleton.colors[2] : 'var(--color-bg-tertiary)'} 100%);
+  background-size: 200% 100%;
+  animation: ${loadingVariants.skeleton.animation} ${loadingVariants.skeleton.duration} ${loadingVariants.skeleton.easing} infinite;
+}`);
+  }
+
+  if (loadingVariants.dots) {
+    lines.push(`.loading-dots {
+  display: inline-flex;
+  gap: 4px;
+}
+.loading-dots .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: ${loadingVariants.dots.animation} ${loadingVariants.dots.duration} ${loadingVariants.dots.easing} infinite;
+}
+.loading-dots .dot:nth-child(2) {
+  animation-delay: ${loadingVariants.dots.stagger};
+}
+.loading-dots .dot:nth-child(3) {
+  animation-delay: calc(${loadingVariants.dots.stagger} * 2);
+}`);
+  }
+
+  if (loadingVariants.spinner) {
+    lines.push(`.loading-spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--color-border-subtle);
+  border-top-color: var(--color-accent-primary);
+  border-radius: 50%;
+  animation: ${loadingVariants.spinner.animation} ${loadingVariants.spinner.duration} ${loadingVariants.spinner.easing} infinite;
+}`);
+  }
+
+  if (loadingVariants.breathing) {
+    lines.push(`.loading-breathing {
+  animation: loadingBreathe ${loadingVariants.breathing.duration} ${loadingVariants.breathing.easing} infinite;
+}
+@keyframes loadingBreathe {
+  0%, 100% { transform: scale(${loadingVariants.breathing.scaleRange ? loadingVariants.breathing.scaleRange[0] : 0.95}); opacity: 0.7; }
+  50% { transform: scale(${loadingVariants.breathing.scaleRange ? loadingVariants.breathing.scaleRange[1] : 1}); opacity: 1; }
+}`);
+  }
+
+  lines.push('');
+
+  // Hover Effects
+  const hoverEffects = microInteractions.hoverEffects || {};
+  lines.push('/* Hover Effects - Rich hover states beyond simple color changes */');
+
+  if (hoverEffects.lift) {
+    lines.push(`.hover-lift {
+  transition: transform ${hoverEffects.lift.duration} ${hoverEffects.lift.easing}, box-shadow ${hoverEffects.lift.duration} ${hoverEffects.lift.easing};
+}
+.hover-lift:hover {
+  transform: ${hoverEffects.lift.transform};
+  box-shadow: ${hoverEffects.lift.shadow};
+}`);
+  }
+
+  if (hoverEffects.glow) {
+    lines.push(`.hover-glow {
+  transition: box-shadow ${hoverEffects.glow.duration} ${hoverEffects.glow.easing};
+}
+.hover-glow:hover {
+  box-shadow: ${hoverEffects.glow.boxShadow};
+}`);
+  }
+
+  if (hoverEffects.scale) {
+    lines.push(`.hover-scale {
+  transition: transform ${hoverEffects.scale.duration} ${hoverEffects.scale.easing};
+}
+.hover-scale:hover {
+  transform: ${hoverEffects.scale.transform};
+}`);
+  }
+
+  if (hoverEffects.borderGlow) {
+    lines.push(`.hover-border-glow {
+  transition: border-color ${hoverEffects.borderGlow.duration} ease-out, box-shadow ${hoverEffects.borderGlow.duration} ease-out;
+}
+.hover-border-glow:hover {
+  border-color: ${hoverEffects.borderGlow.borderColor};
+  box-shadow: ${hoverEffects.borderGlow.boxShadow};
+}`);
+  }
+
+  lines.push('');
+
+  // Toggle Animations
+  const toggleAnimations = microInteractions.toggleAnimations || {};
+  lines.push('/* Toggle Animations - Switch, checkbox, radio button animations */');
+
+  if (toggleAnimations.switch) {
+    lines.push(`.toggle-switch {
+  --thumb-travel: ${toggleAnimations.switch.thumbTravel};
+  transition: background-color ${toggleAnimations.switch.duration} ${toggleAnimations.switch.easing};
+}
+.toggle-switch .thumb {
+  transition: transform ${toggleAnimations.switch.duration} ${toggleAnimations.switch.easing};
+}
+.toggle-switch.active .thumb {
+  transform: translateX(var(--thumb-travel));
+}`);
+  }
+
+  if (toggleAnimations.checkbox) {
+    lines.push(`.toggle-checkbox .checkmark {
+  stroke-dasharray: 24;
+  stroke-dashoffset: 24;
+  transition: stroke-dashoffset ${toggleAnimations.checkbox.checkmarkDraw} ${toggleAnimations.checkbox.easing};
+}
+.toggle-checkbox.checked .checkmark {
+  stroke-dashoffset: 0;
+}`);
+  }
+
+  if (toggleAnimations.radio) {
+    lines.push(`.toggle-radio .dot {
+  transform: scale(0);
+  transition: transform ${toggleAnimations.radio.fillDuration} ${toggleAnimations.radio.easing};
+}
+.toggle-radio.selected .dot {
+  transform: scale(1);
+}`);
+  }
+
+  lines.push('');
+
+  // Scroll-triggered Animations
+  const scrollInteractions = microInteractions.scrollInteractions || {};
+  lines.push('/* Scroll Interactions - Scroll-linked micro-animations */');
+
+  if (scrollInteractions.fadeIn) {
+    lines.push(`.scroll-fade-in {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity ${scrollInteractions.fadeIn.duration} ease-out, transform ${scrollInteractions.fadeIn.duration} ease-out;
+}
+.scroll-fade-in.in-view {
+  opacity: 1;
+  transform: translateY(0);
+}`);
+  }
+
+  if (scrollInteractions.progress) {
+    lines.push(`.scroll-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: var(--scroll-progress, 0%);
+  height: ${scrollInteractions.progress.height};
+  background: ${scrollInteractions.progress.color};
+  z-index: 9999;
+  transition: width 50ms linear;
+}`);
+  }
+
+  lines.push('');
+
+  // Reduced Motion Support
+  lines.push(`/* Reduced Motion - respect user preferences */
+@media (prefers-reduced-motion: reduce) {
+  .touch-tap,
+  .touch-press,
+  .touch-release,
+  .touch-ripple::after,
+  .touch-long-press,
+  .state-success,
+  .state-error,
+  .state-warning,
+  .state-loading .dot,
+  .ack-saved,
+  .ack-sent,
+  .ack-copied,
+  .ack-favorited,
+  .attention-badge,
+  .attention-indicator,
+  .attention-shake,
+  .loading-skeleton,
+  .loading-dots .dot,
+  .loading-spinner,
+  .loading-breathing,
+  .scroll-fade-in {
+    animation: none !important;
+  }
+
+  .hover-lift,
+  .hover-glow,
+  .hover-scale,
+  .hover-border-glow,
+  .toggle-switch .thumb,
+  .toggle-checkbox .checkmark,
+  .toggle-radio .dot {
+    transition: none !important;
+  }
+
+  .scroll-fade-in {
+    opacity: 1;
+    transform: none;
+  }
+}`);
+
+  return lines.join('\n');
+}
+
+// ============================================================================
+// STATE LAYER CSS (Material 3 Style)
+// ============================================================================
+
+function generateStatesCSS(states) {
+  const lines = [];
+
+  lines.push(':root {');
+  lines.push('  /* State Layer Opacities (Material 3 style) */');
+
+  // State opacities
+  if (states.stateOpacity) {
+    for (const [state, config] of Object.entries(states.stateOpacity)) {
+      if (state.startsWith('_')) continue;
+      lines.push(`  --state-opacity-${state}: ${config.value};`);
+    }
+  }
+
+  // Disabled states
+  if (states.disabledStates) {
+    lines.push('');
+    lines.push('  /* Disabled State Tokens */');
+    if (states.disabledStates.container) {
+      lines.push(`  --state-disabled-container-opacity: ${states.disabledStates.container.opacity};`);
+    }
+    if (states.disabledStates.content) {
+      lines.push(`  --state-disabled-content-opacity: ${states.disabledStates.content.opacity};`);
+    }
+  }
+
+  // State transitions
+  if (states.stateTransitions) {
+    lines.push('');
+    lines.push('  /* State Transition Timings */');
+    if (states.stateTransitions.enter) {
+      lines.push(`  --state-transition-enter: ${states.stateTransitions.enter.duration} ${states.stateTransitions.enter.easing};`);
+    }
+    if (states.stateTransitions.exit) {
+      lines.push(`  --state-transition-exit: ${states.stateTransitions.exit.duration} ${states.stateTransitions.exit.easing};`);
+    }
+    if (states.stateTransitions.change) {
+      lines.push(`  --state-transition-change: ${states.stateTransitions.change.duration} ${states.stateTransitions.change.easing};`);
+    }
+  }
+
+  // Ripple
+  if (states.ripple) {
+    lines.push('');
+    lines.push('  /* Ripple Effect Tokens */');
+    lines.push(`  --ripple-duration: ${states.ripple.duration};`);
+    lines.push(`  --ripple-easing: ${states.ripple.easing};`);
+    if (states.ripple.opacity) {
+      lines.push(`  --ripple-opacity-start: ${states.ripple.opacity.start};`);
+      lines.push(`  --ripple-opacity-end: ${states.ripple.opacity.end};`);
+    }
+  }
+
+  // Skeleton loading
+  if (states.skeleton) {
+    lines.push('');
+    lines.push('  /* Skeleton Loading Tokens */');
+    if (states.skeleton.pulse) {
+      lines.push(`  --skeleton-pulse-duration: ${states.skeleton.pulse.duration};`);
+    }
+    if (states.skeleton.shimmer) {
+      lines.push(`  --skeleton-shimmer-duration: ${states.skeleton.shimmer.duration};`);
+    }
+  }
+
+  lines.push('}');
+  lines.push('');
+
+  // Focus ring styles
+  if (states.focusRing) {
+    lines.push('/* Focus Ring Styles */');
+    for (const [name, config] of Object.entries(states.focusRing)) {
+      if (name.startsWith('_')) continue;
+      lines.push(`.focus-ring-${name}:focus-visible {`);
+      lines.push(`  outline: ${config.width} ${config.style} ${config.color};`);
+      lines.push(`  outline-offset: ${config.offset};`);
+      if (config.shadow) {
+        lines.push(`  box-shadow: ${config.shadow};`);
+      }
+      lines.push('}');
+      lines.push('');
+    }
+  }
+
+  // Emotional states (Ferni-unique)
+  if (states.emotionalStates) {
+    lines.push('/* Emotional State Overrides */');
+    for (const [mood, config] of Object.entries(states.emotionalStates)) {
+      if (mood.startsWith('_')) continue;
+      lines.push(`[data-mood="${mood}"] {`);
+      lines.push(`  --state-opacity-hover: ${config.hoverOpacity};`);
+      lines.push(`  --state-transition-enter: ${config.transitionDuration} ${config.easing};`);
+      lines.push('}');
+      lines.push('');
+    }
+  }
+
+  return lines.join('\n');
+}
+
+// ============================================================================
+// ICON SYSTEM CSS
+// ============================================================================
+
+function generateIconsCSS(icons) {
+  const lines = [];
+
+  lines.push(':root {');
+  lines.push('  /* Icon Sizes */');
+
+  // Icon sizes
+  if (icons.sizes) {
+    for (const [size, config] of Object.entries(icons.sizes)) {
+      if (size.startsWith('_')) continue;
+      lines.push(`  --icon-size-${size}: ${config.value};`);
+    }
+  }
+
+  lines.push('');
+  lines.push('  /* Icon Stroke Weights */');
+
+  // Icon weights
+  if (icons.weights) {
+    for (const [weight, config] of Object.entries(icons.weights)) {
+      if (weight.startsWith('_')) continue;
+      lines.push(`  --icon-stroke-${weight}: ${config.strokeWidth};`);
+    }
+  }
+
+  lines.push('');
+  lines.push('  /* Icon Colors */');
+  if (icons.colors) {
+    lines.push(`  --icon-color-default: ${icons.colors.default};`);
+    lines.push(`  --icon-color-muted: ${icons.colors.muted};`);
+    lines.push(`  --icon-color-primary: ${icons.colors.primary};`);
+    lines.push(`  --icon-color-accent: ${icons.colors.accent};`);
+    lines.push(`  --icon-color-persona: ${icons.colors.persona};`);
+  }
+
+  // Icon animations
+  if (icons.animations) {
+    lines.push('');
+    lines.push('  /* Icon Animation Tokens */');
+    if (icons.animations.press) {
+      lines.push(`  --icon-press-scale: ${icons.animations.press.scale};`);
+      lines.push(`  --icon-press-duration: ${icons.animations.press.duration};`);
+    }
+    if (icons.animations.hover) {
+      lines.push(`  --icon-hover-scale: ${icons.animations.hover.scale};`);
+      lines.push(`  --icon-hover-duration: ${icons.animations.hover.duration};`);
+    }
+  }
+
+  lines.push('}');
+
+  return lines.join('\n');
+}
+
+// ============================================================================
+// SHAPE/RADIUS CSS
+// ============================================================================
+
+function generateShapeCSS(shape) {
+  const lines = [];
+
+  lines.push(':root {');
+  lines.push('  /* Corner Radius Scale */');
+
+  // Corner scale
+  if (shape.cornerScale) {
+    for (const [size, config] of Object.entries(shape.cornerScale)) {
+      if (size.startsWith('_')) continue;
+      lines.push(`  --radius-${size}: ${config.value};`);
+    }
+  }
+
+  lines.push('');
+  lines.push('  /* Component-Specific Radius */');
+
+  // Component radius mappings
+  if (shape.componentRadius) {
+    if (shape.componentRadius.buttons) {
+      lines.push(`  --radius-button-sm: ${shape.componentRadius.buttons.sm};`);
+      lines.push(`  --radius-button-md: ${shape.componentRadius.buttons.md};`);
+      lines.push(`  --radius-button-lg: ${shape.componentRadius.buttons.lg};`);
+      lines.push(`  --radius-button-fab: ${shape.componentRadius.buttons.fab};`);
+    }
+    if (shape.componentRadius.inputs) {
+      lines.push(`  --radius-input: ${shape.componentRadius.inputs.text};`);
+      lines.push(`  --radius-search: ${shape.componentRadius.inputs.search};`);
+    }
+    if (shape.componentRadius.cards) {
+      lines.push(`  --radius-card: ${shape.componentRadius.cards.elevated};`);
+      lines.push(`  --radius-card-glass: ${shape.componentRadius.cards.glass};`);
+    }
+    if (shape.componentRadius.dialogs) {
+      lines.push(`  --radius-dialog: ${shape.componentRadius.dialogs.default};`);
+    }
+    if (shape.componentRadius.sheets && shape.componentRadius.sheets.bottom) {
+      lines.push(`  --radius-sheet-top: ${shape.componentRadius.sheets.bottom.topLeft};`);
+    }
+    if (shape.componentRadius.chips) {
+      lines.push(`  --radius-chip: ${shape.componentRadius.chips.default};`);
+    }
+    if (shape.componentRadius.badges) {
+      lines.push(`  --radius-badge: ${shape.componentRadius.badges.default};`);
+    }
+    if (shape.componentRadius.avatars) {
+      lines.push(`  --radius-avatar: ${shape.componentRadius.avatars.circular};`);
+    }
+    if (shape.componentRadius.tooltips) {
+      lines.push(`  --radius-tooltip: ${shape.componentRadius.tooltips.default};`);
+    }
+    if (shape.componentRadius.toasts) {
+      lines.push(`  --radius-toast: ${shape.componentRadius.toasts.default};`);
+    }
+  }
+
+  lines.push('}');
+  lines.push('');
+
+  // Persona-specific radius adjustments
+  if (shape.personaRadius) {
+    lines.push('/* Persona Radius Adjustments */');
+    for (const [persona, config] of Object.entries(shape.personaRadius)) {
+      if (persona.startsWith('_')) continue;
+      lines.push(`[data-persona="${persona}"] {`);
+      lines.push(`  --radius-multiplier: ${config.multiplier};`);
+      lines.push('}');
+    }
+  }
+
+  return lines.join('\n');
+}
+
+// ============================================================================
+// VISUALIZATION SYSTEM CSS
+// ============================================================================
+
+function generateVisualizationsSystemCSS(visualizations) {
+  const lines = [];
+
+  lines.push(':root {');
+  lines.push('  /* Visualization Shared Tokens */');
+
+  // Shared tokens
+  if (visualizations.sharedTokens) {
+    const shared = visualizations.sharedTokens;
+    if (shared.transitions) {
+      lines.push(`  --viz-transition-fast: ${shared.transitions.fast};`);
+      lines.push(`  --viz-transition-normal: ${shared.transitions.normal};`);
+      lines.push(`  --viz-transition-slow: ${shared.transitions.slow};`);
+      lines.push(`  --viz-transition-story: ${shared.transitions.story};`);
+    }
+    if (shared.tooltip) {
+      lines.push(`  --viz-tooltip-bg: ${shared.tooltip.background};`);
+      lines.push(`  --viz-tooltip-radius: ${shared.tooltip.borderRadius};`);
+      lines.push(`  --viz-tooltip-padding: ${shared.tooltip.padding};`);
+    }
+    if (shared.legend) {
+      lines.push(`  --viz-legend-gap: ${shared.legend.itemGap};`);
+      lines.push(`  --viz-legend-swatch: ${shared.legend.swatchSize};`);
+    }
+  }
+
+  // Kintsugi animation tokens
+  if (visualizations.kintsugi && visualizations.kintsugi.repairAnimation) {
+    lines.push('');
+    lines.push('  /* Kintsugi Animation Tokens */');
+    const anim = visualizations.kintsugi.repairAnimation;
+    if (anim.goldFlow) {
+      lines.push(`  --kintsugi-flow-duration: ${anim.goldFlow.duration};`);
+      lines.push(`  --kintsugi-flow-stagger: ${anim.goldFlow.stagger};`);
+    }
+    if (anim.glow) {
+      lines.push(`  --kintsugi-glow-duration: ${anim.glow.duration};`);
+    }
+  }
+
+  // Constellation tokens
+  if (visualizations.constellation) {
+    lines.push('');
+    lines.push('  /* Constellation Animation Tokens */');
+    if (visualizations.constellation.animations) {
+      const anim = visualizations.constellation.animations;
+      if (anim.twinkle) {
+        lines.push(`  --constellation-twinkle-duration: ${anim.twinkle.duration};`);
+      }
+      if (anim.connectionDraw) {
+        lines.push(`  --constellation-draw-duration: ${anim.connectionDraw.duration};`);
+      }
+    }
+    if (visualizations.constellation.starSizes) {
+      lines.push(`  --constellation-star-self: ${visualizations.constellation.starSizes.self.radius};`);
+      lines.push(`  --constellation-star-close: ${visualizations.constellation.starSizes.close.radius};`);
+      lines.push(`  --constellation-star-regular: ${visualizations.constellation.starSizes.regular.radius};`);
+    }
+  }
+
+  // River tokens
+  if (visualizations.river) {
+    lines.push('');
+    lines.push('  /* River Animation Tokens */');
+    if (visualizations.river.animations) {
+      lines.push(`  --river-flow-duration: ${visualizations.river.animations.flow.duration};`);
+      lines.push(`  --river-ripple-duration: ${visualizations.river.animations.ripple.duration};`);
+    }
+  }
+
+  // Growth rings tokens
+  if (visualizations.growthRings && visualizations.growthRings.animations) {
+    lines.push('');
+    lines.push('  /* Growth Rings Animation Tokens */');
+    lines.push(`  --growth-reveal-duration: ${visualizations.growthRings.animations.reveal.duration};`);
+    lines.push(`  --growth-reveal-stagger: ${visualizations.growthRings.animations.reveal.stagger};`);
+  }
+
+  // Mood calendar tokens
+  if (visualizations.moodCalendar && visualizations.moodCalendar.cellStyle) {
+    lines.push('');
+    lines.push('  /* Mood Calendar Tokens */');
+    lines.push(`  --mood-cell-size: ${visualizations.moodCalendar.cellStyle.size};`);
+    lines.push(`  --mood-cell-gap: ${visualizations.moodCalendar.cellStyle.gap};`);
+    lines.push(`  --mood-cell-radius: ${visualizations.moodCalendar.cellStyle.borderRadius};`);
+  }
+
+  lines.push('}');
+
+  return lines.join('\n');
+}
+
+// ============================================================================
+// COMPONENTS EXTENDED CSS
+// ============================================================================
+
+function generateComponentsExtendedCSS(components) {
+  const lines = [];
+
+  lines.push(':root {');
+  lines.push('  /* Extended Component Tokens */');
+
+  // Button tokens
+  if (components.button) {
+    lines.push('');
+    lines.push('  /* Button Tokens */');
+    const btn = components.button;
+    if (btn.sizes) {
+      for (const [size, config] of Object.entries(btn.sizes)) {
+        if (size.startsWith('_')) continue;
+        lines.push(`  --button-height-${size}: ${config.height};`);
+        lines.push(`  --button-padding-${size}: ${config.padding};`);
+        lines.push(`  --button-font-${size}: ${config.fontSize};`);
+        lines.push(`  --button-radius-${size}: ${config.borderRadius};`);
+        lines.push(`  --button-icon-${size}: ${config.iconSize};`);
+      }
+    }
+    if (btn.animation) {
+      lines.push(`  --button-press-duration: ${btn.animation.press?.duration || '100ms'};`);
+      lines.push(`  --button-release-duration: ${btn.animation.release?.duration || '200ms'};`);
+    }
+  }
+
+  // Input tokens
+  if (components.input) {
+    lines.push('');
+    lines.push('  /* Input Tokens */');
+    const inp = components.input;
+    if (inp.base) {
+      lines.push(`  --input-height: ${inp.base.height};`);
+      lines.push(`  --input-padding: ${inp.base.padding};`);
+      lines.push(`  --input-radius: ${inp.base.borderRadius};`);
+      lines.push(`  --input-font: ${inp.base.fontSize};`);
+    }
+    if (inp.sizes) {
+      for (const [size, config] of Object.entries(inp.sizes)) {
+        if (size.startsWith('_')) continue;
+        lines.push(`  --input-height-${size}: ${config.height};`);
+        lines.push(`  --input-padding-${size}: ${config.padding};`);
+      }
+    }
+  }
+
+  // Card tokens
+  if (components.card) {
+    lines.push('');
+    lines.push('  /* Card Tokens */');
+    const card = components.card;
+    if (card.sizes) {
+      for (const [size, config] of Object.entries(card.sizes)) {
+        if (size.startsWith('_')) continue;
+        lines.push(`  --card-padding-${size}: ${config.padding};`);
+        lines.push(`  --card-radius-${size}: ${config.borderRadius};`);
+      }
+    }
+  }
+
+  // Toast tokens
+  if (components.toast) {
+    lines.push('');
+    lines.push('  /* Toast Tokens */');
+    const toast = components.toast;
+    if (toast.container) {
+      lines.push(`  --toast-padding: ${toast.container.padding};`);
+      lines.push(`  --toast-radius: ${toast.container.borderRadius};`);
+      lines.push(`  --toast-min-width: ${toast.container.minWidth};`);
+      lines.push(`  --toast-max-width: ${toast.container.maxWidth};`);
+      lines.push(`  --toast-gap: ${toast.container.gap};`);
+    }
+    if (toast.animation) {
+      lines.push(`  --toast-enter-duration: ${toast.animation.enter?.duration || '400ms'};`);
+      lines.push(`  --toast-exit-duration: ${toast.animation.exit?.duration || '200ms'};`);
+    }
+    if (toast.duration) {
+      lines.push(`  --toast-duration-short: ${toast.duration.short}ms;`);
+      lines.push(`  --toast-duration-default: ${toast.duration.default}ms;`);
+      lines.push(`  --toast-duration-long: ${toast.duration.long}ms;`);
+    }
+  }
+
+  // Dialog tokens
+  if (components.dialog) {
+    lines.push('');
+    lines.push('  /* Dialog Tokens */');
+    const dlg = components.dialog;
+    if (dlg.container) {
+      lines.push(`  --dialog-radius: ${dlg.container.borderRadius};`);
+      lines.push(`  --dialog-max-width: ${dlg.container.maxWidth};`);
+      lines.push(`  --dialog-width: ${dlg.container.width};`);
+      lines.push(`  --dialog-max-height: ${dlg.container.maxHeight};`);
+    }
+    if (dlg.header) {
+      lines.push(`  --dialog-header-padding: ${dlg.header.padding};`);
+    }
+    if (dlg.body) {
+      lines.push(`  --dialog-body-padding: ${dlg.body.padding};`);
+    }
+    if (dlg.footer) {
+      lines.push(`  --dialog-footer-padding: ${dlg.footer.padding};`);
+      lines.push(`  --dialog-footer-gap: ${dlg.footer.gap};`);
+    }
+    if (dlg.animation) {
+      lines.push(`  --dialog-enter-duration: ${dlg.animation.enter?.duration || '300ms'};`);
+      lines.push(`  --dialog-exit-duration: ${dlg.animation.exit?.duration || '200ms'};`);
+    }
+  }
+
+  // Avatar tokens
+  if (components.avatar) {
+    lines.push('');
+    lines.push('  /* Avatar Tokens */');
+    const avatar = components.avatar;
+    if (avatar.sizes) {
+      for (const [size, config] of Object.entries(avatar.sizes)) {
+        if (size.startsWith('_')) continue;
+        lines.push(`  --avatar-size-${size}: ${config.size};`);
+        lines.push(`  --avatar-font-${size}: ${config.fontSize};`);
+      }
+    }
+    if (avatar.base) {
+      lines.push(`  --avatar-radius: ${avatar.base.borderRadius};`);
+    }
+    if (avatar.group) {
+      lines.push(`  --avatar-group-overlap: ${avatar.group.overlap};`);
+      lines.push(`  --avatar-group-max-visible: ${avatar.group.maxVisible};`);
+    }
+  }
+
+  // Progress tokens
+  if (components.progress) {
+    lines.push('');
+    lines.push('  /* Progress Tokens */');
+    const prog = components.progress;
+    if (prog.linear) {
+      lines.push(`  --progress-height: ${prog.linear.height};`);
+      lines.push(`  --progress-radius: ${prog.linear.borderRadius};`);
+      lines.push(`  --progress-bg: ${prog.linear.background};`);
+    }
+    if (prog.circular) {
+      lines.push(`  --progress-circular-size: ${prog.circular.size || '40px'};`);
+      lines.push(`  --progress-circular-stroke: ${prog.circular.strokeWidth || '4px'};`);
+    }
+  }
+
+  lines.push('}');
+
+  return lines.join('\n');
+}
+
+// ============================================================================
 // MAIN BUILD
 // ============================================================================
 
@@ -3474,6 +5313,16 @@ function build() {
     output.push('');
   }
 
+  // Visualization colors (moods, energy, status, chapters, etc.)
+  if (colors.visualization) {
+    output.push('/* ========================================');
+    output.push('   VISUALIZATION COLORS');
+    output.push('   Better Than Human data storytelling');
+    output.push('   ======================================== */');
+    output.push(generateVisualizationCSS(colors.visualization));
+    output.push('');
+  }
+
   // Typography
   output.push('/* ========================================');
   output.push('   TYPOGRAPHY');
@@ -3494,6 +5343,21 @@ function build() {
   output.push('   ======================================== */');
   output.push(generateAnimationCSS(animation));
   output.push('');
+
+  // Circadian System (Time-Aware Design)
+  output.push(generateCircadianCSS(animation));
+
+  // Breath-Sync System (Living Animations)
+  output.push(generateBreathSyncCSS(animation));
+
+  // Emotional Theming System (Better than Apple's light/dark)
+  output.push(generateEmotionalThemingCSS(animation));
+
+  // Persona Aura System (Better than Google's color schemes)
+  output.push(generatePersonaAuraCSS(animation));
+
+  // Relationship Depth System (UI that grows with your relationship)
+  output.push(generateRelationshipDepthCSS(animation));
 
   // Effects & Magical Utilities
   output.push('/* ========================================');
@@ -3531,6 +5395,66 @@ function build() {
   output.push('   ACCESSIBILITY - HIGH CONTRAST MODE');
   output.push('   ======================================== */');
   output.push(generateHighContrastCSS());
+
+  // Organic Conversation Flow (Better than Apple/Google)
+  output.push('');
+  output.push('/* ========================================');
+  output.push('   ORGANIC CONVERSATION FLOW');
+  output.push('   Flowing borders, breathing containers');
+  output.push('   ======================================== */');
+  output.push(generateOrganicConversationCSS(animation.organicConversationFlow || {}));
+
+  // Micro-Interactions Library (Better than Apple/Google)
+  output.push('');
+  output.push('/* ========================================');
+  output.push('   MICRO-INTERACTIONS LIBRARY');
+  output.push('   Touch feedback, state animations, hover effects');
+  output.push('   ======================================== */');
+  output.push(generateMicroInteractionsCSS(animation.microInteractions || {}));
+
+  // ============================================================================
+  // WORLD-CLASS DESIGN SYSTEM TOKENS (Material 3 + Apple HIG Parity)
+  // ============================================================================
+
+  // State Layers (Material 3 Style)
+  output.push('');
+  output.push('/* ========================================');
+  output.push('   STATE LAYERS (MATERIAL 3 STYLE)');
+  output.push('   Hover, focus, pressed, dragged, disabled states');
+  output.push('   ======================================== */');
+  output.push(generateStatesCSS(states));
+
+  // Icon System (SF Symbols-inspired)
+  output.push('');
+  output.push('/* ========================================');
+  output.push('   ICON SYSTEM (SF SYMBOLS-INSPIRED)');
+  output.push('   10 sizes, 8 weights, optical scaling');
+  output.push('   ======================================== */');
+  output.push(generateIconsCSS(icons));
+
+  // Shape System (Component-Specific Radius)
+  output.push('');
+  output.push('/* ========================================');
+  output.push('   SHAPE SYSTEM (MATERIAL 3 STYLE)');
+  output.push('   Component-specific corner radius mappings');
+  output.push('   ======================================== */');
+  output.push(generateShapeCSS(shape));
+
+  // Visualization System Tokens
+  output.push('');
+  output.push('/* ========================================');
+  output.push('   VISUALIZATION SYSTEM');
+  output.push('   Kintsugi, constellation, river, sankey, etc.');
+  output.push('   ======================================== */');
+  output.push(generateVisualizationsSystemCSS(visualizations));
+
+  // Extended Components System
+  output.push('');
+  output.push('/* ========================================');
+  output.push('   EXTENDED COMPONENTS SYSTEM');
+  output.push('   30+ fully-specified component tokens');
+  output.push('   ======================================== */');
+  output.push(generateComponentsExtendedCSS(componentsExtended));
 
   // Write output
   const outputDir = path.join(__dirname, 'dist');
@@ -4530,6 +6454,500 @@ export function getPersonalization(
   const tsPath = path.join(__dirname, 'dist/tokens.ts');
   fs.writeFileSync(tsPath, ts);
   console.log(`✅ Generated: ${tsPath}`);
+
+  // Also generate adaptive theming module
+  generateAdaptiveTheming();
+}
+
+// ============================================================================
+// ADAPTIVE THEMING GENERATION (Better Than Apple/Google)
+// ============================================================================
+
+function generateAdaptiveTheming() {
+  const circadian = animation.circadian || {};
+  const emotionalTheming = animation.emotionalTheming || {};
+  const personaAura = animation.personaAura || {};
+  const relationshipDepth = animation.relationshipDepth || {};
+
+  // Build circadian periods object
+  const circadianPeriods = Object.entries(circadian.periods || {})
+    .filter(([key]) => !key.startsWith('_'))
+    .reduce((acc, [key, value]) => {
+      acc[key] = value;
+      return acc;
+    }, {});
+
+  // Build emotional themes object
+  const emotionalThemes = Object.entries(emotionalTheming.themes || {})
+    .filter(([key]) => !key.startsWith('_'))
+    .reduce((acc, [key, value]) => {
+      acc[key] = value;
+      return acc;
+    }, {});
+
+  // Build persona auras object
+  const personaAuras = Object.entries(personaAura.auras || {})
+    .filter(([key]) => !key.startsWith('_'))
+    .reduce((acc, [key, value]) => {
+      acc[key] = value;
+      return acc;
+    }, {});
+
+  // Build relationship stages object
+  const relationshipStages = Object.entries(relationshipDepth.stages || {})
+    .filter(([key]) => !key.startsWith('_'))
+    .reduce((acc, [key, value]) => {
+      acc[key] = value;
+      return acc;
+    }, {});
+
+  const adaptiveTs = `/**
+ * Ferni Adaptive Theming System
+ * 🎨 AUTO-GENERATED FROM design-system/tokens/animation.json
+ * Do not edit directly - run: pnpm tokens:sync
+ *
+ * BETTER THAN APPLE: Not just light/dark mode
+ * BETTER THAN GOOGLE: Not just color extraction
+ *
+ * Four-layer adaptive theming:
+ * 1. Circadian Presence - Time-aware design
+ * 2. Emotional Theming - Context-responsive themes
+ * 3. Persona Aura - Ambient persona presence
+ * 4. Relationship Depth - UI that grows with you
+ *
+ * Generated: ${new Date().toISOString()}
+ */
+
+// =============================================================================
+// TYPES
+// =============================================================================
+
+export type CircadianPeriod = ${Object.keys(circadianPeriods).map(k => `'${k}'`).join(' | ') || "'midday'"};
+
+export type EmotionalTheme = ${Object.keys(emotionalThemes).map(k => `'${k}'`).join(' | ') || "'zen'"};
+
+export type PersonaId = ${Object.keys(personaAuras).map(k => `'${k}'`).join(' | ') || "'ferni'"};
+
+export type RelationshipStage = ${Object.keys(relationshipStages).map(k => `'${k}'`).join(' | ') || "'new'"};
+
+export interface CircadianConfig {
+  hours: [number, number];
+  name: string;
+  warmth: number;
+  brightness: number;
+  animationSpeed: number;
+  presence: string;
+}
+
+export interface EmotionalThemeConfig {
+  name: string;
+  emotionalState: string;
+  colorTemperature: number;
+  animationIntensity: number;
+  warmth: number;
+  saturation: number;
+  triggerEmotions?: string[];
+  description: string;
+}
+
+export interface PersonaAuraConfig {
+  name: string;
+  gradient: string;
+  glowColor: string;
+  glowSpread: string;
+  pulseRate: string;
+  presence: string;
+  ambientFilter: string;
+}
+
+export interface RelationshipStageConfig {
+  conversations: [number, number | null];
+  uiRichness: number;
+  animationComplexity: string;
+  personalization: string;
+  featureVisibility: string[];
+  visualDescription: string;
+}
+
+export interface AdaptiveThemingState {
+  circadian: CircadianPeriod;
+  emotional: EmotionalTheme;
+  persona: PersonaId | null;
+  relationship: RelationshipStage;
+}
+
+// =============================================================================
+// CONFIGURATION DATA (from animation.json)
+// =============================================================================
+
+const CIRCADIAN_PERIODS: Record<CircadianPeriod, CircadianConfig> = ${JSON.stringify(circadianPeriods, null, 2)};
+
+const EMOTIONAL_THEMES: Record<EmotionalTheme, EmotionalThemeConfig> = ${JSON.stringify(emotionalThemes, null, 2)};
+
+const PERSONA_AURAS: Record<PersonaId, PersonaAuraConfig> = ${JSON.stringify(personaAuras, null, 2)};
+
+const RELATIONSHIP_STAGES: Record<RelationshipStage, RelationshipStageConfig> = ${JSON.stringify(relationshipStages, null, 2)};
+
+// =============================================================================
+// DETECTION FUNCTIONS
+// =============================================================================
+
+/**
+ * Detect current circadian period from current time
+ */
+export function detectCircadianPeriod(date: Date = new Date()): CircadianPeriod {
+  const hour = date.getHours();
+
+  for (const [period, config] of Object.entries(CIRCADIAN_PERIODS)) {
+    const [start, end] = config.hours;
+    if (start <= end) {
+      if (hour >= start && hour < end) {
+        return period as CircadianPeriod;
+      }
+    } else {
+      if (hour >= start || hour < end) {
+        return period as CircadianPeriod;
+      }
+    }
+  }
+
+  return 'midday' as CircadianPeriod;
+}
+
+/**
+ * Detect emotional theme based on detected emotion
+ */
+export function detectEmotionalTheme(emotion: string | null): EmotionalTheme {
+  if (!emotion) return 'zen' as EmotionalTheme;
+
+  const lowerEmotion = emotion.toLowerCase();
+
+  for (const [theme, config] of Object.entries(EMOTIONAL_THEMES)) {
+    if (config.triggerEmotions?.some(
+      (trigger: string) => lowerEmotion.includes(trigger) || trigger.includes(lowerEmotion)
+    )) {
+      return theme as EmotionalTheme;
+    }
+  }
+
+  return 'zen' as EmotionalTheme;
+}
+
+/**
+ * Detect relationship stage from conversation count
+ */
+export function detectRelationshipStage(conversationCount: number): RelationshipStage {
+  for (const [stage, config] of Object.entries(RELATIONSHIP_STAGES)) {
+    const [min, max] = config.conversations;
+    if (max === null) {
+      if (conversationCount >= min) return stage as RelationshipStage;
+    } else {
+      if (conversationCount >= min && conversationCount < max) {
+        return stage as RelationshipStage;
+      }
+    }
+  }
+
+  return 'new' as RelationshipStage;
+}
+
+// =============================================================================
+// CSS APPLICATION FUNCTIONS
+// =============================================================================
+
+/**
+ * Apply circadian theme CSS variables
+ */
+export function applyCircadianTheme(
+  period: CircadianPeriod,
+  element: HTMLElement = document.documentElement
+): void {
+  const config = CIRCADIAN_PERIODS[period];
+
+  element.setAttribute('data-circadian', period);
+  element.style.setProperty('--circadian-warmth', String(config.warmth));
+  element.style.setProperty('--circadian-brightness', String(config.brightness));
+  element.style.setProperty('--circadian-animation-speed', String(config.animationSpeed));
+  element.style.setProperty(
+    '--circadian-filter',
+    \`sepia(\${config.warmth * 0.15}) saturate(\${1 + config.warmth * 0.1})\`
+  );
+}
+
+/**
+ * Apply emotional theme CSS variables
+ */
+export function applyEmotionalTheme(
+  theme: EmotionalTheme,
+  element: HTMLElement = document.documentElement
+): void {
+  const config = EMOTIONAL_THEMES[theme];
+
+  element.setAttribute('data-emotion', theme);
+  element.style.setProperty('--emotional-temperature', String(config.colorTemperature));
+  element.style.setProperty('--emotional-warmth', String(config.warmth));
+  element.style.setProperty('--emotional-saturation', String(config.saturation));
+  element.style.setProperty('--emotional-animation-intensity', String(config.animationIntensity));
+
+  const filterParts: string[] = [];
+  if (config.warmth > 0.5) {
+    filterParts.push(\`sepia(\${(config.warmth - 0.5) * 0.4})\`);
+  }
+  if (config.saturation !== 1) {
+    filterParts.push(\`saturate(\${config.saturation})\`);
+  }
+  if (config.colorTemperature !== 0) {
+    const hueShift = config.colorTemperature * -15;
+    filterParts.push(\`hue-rotate(\${hueShift}deg)\`);
+  }
+
+  element.style.setProperty(
+    '--emotional-filter',
+    filterParts.length > 0 ? filterParts.join(' ') : 'none'
+  );
+}
+
+/**
+ * Apply persona aura CSS variables
+ */
+export function applyPersonaAura(
+  persona: PersonaId | null,
+  element: HTMLElement = document.documentElement
+): void {
+  if (!persona) {
+    element.removeAttribute('data-persona');
+    element.style.setProperty('--persona-aura-gradient', 'none');
+    element.style.setProperty('--persona-aura-glow', 'transparent');
+    element.style.setProperty('--persona-aura-spread', '0px');
+    element.style.setProperty('--persona-aura-pulse', '5s');
+    element.style.setProperty('--persona-aura-filter', 'none');
+    return;
+  }
+
+  const config = PERSONA_AURAS[persona];
+
+  element.setAttribute('data-persona', persona);
+  element.style.setProperty('--persona-aura-gradient', config.gradient);
+  element.style.setProperty('--persona-aura-glow', config.glowColor);
+  element.style.setProperty('--persona-aura-spread', config.glowSpread);
+  element.style.setProperty('--persona-aura-pulse', config.pulseRate);
+  element.style.setProperty('--persona-aura-filter', config.ambientFilter);
+}
+
+/**
+ * Apply relationship depth CSS variables
+ */
+export function applyRelationshipDepth(
+  stage: RelationshipStage,
+  element: HTMLElement = document.documentElement
+): void {
+  const config = RELATIONSHIP_STAGES[stage];
+
+  element.setAttribute('data-relationship', stage);
+  element.style.setProperty('--relationship-richness', String(config.uiRichness));
+  element.style.setProperty('--relationship-complexity', config.animationComplexity);
+  element.style.setProperty('--relationship-personalization', config.personalization);
+}
+
+// =============================================================================
+// ADAPTIVE THEMING ORCHESTRATOR
+// =============================================================================
+
+type ThemeChangeListener = (state: AdaptiveThemingState) => void;
+
+class AdaptiveThemingOrchestrator {
+  private state: AdaptiveThemingState;
+  private updateInterval: ReturnType<typeof setInterval> | null = null;
+  private listeners: Set<ThemeChangeListener> = new Set();
+  private manualOverrides: Partial<AdaptiveThemingState> = {};
+
+  constructor() {
+    this.state = {
+      circadian: detectCircadianPeriod(),
+      emotional: 'zen' as EmotionalTheme,
+      persona: null,
+      relationship: 'new' as RelationshipStage,
+    };
+  }
+
+  /**
+   * Initialize the adaptive theming system
+   */
+  init(options?: {
+    autoCircadian?: boolean;
+    updateIntervalMs?: number;
+    initialConversationCount?: number;
+    initialPersona?: PersonaId;
+  }): void {
+    const {
+      autoCircadian = true,
+      updateIntervalMs = 60000,
+      initialConversationCount = 0,
+      initialPersona = null,
+    } = options ?? {};
+
+    this.state.relationship = detectRelationshipStage(initialConversationCount);
+    if (initialPersona) {
+      this.state.persona = initialPersona;
+    }
+
+    this.applyAll();
+
+    if (autoCircadian) {
+      this.startCircadianAutoUpdate(updateIntervalMs);
+    }
+
+    if (typeof window !== 'undefined' && (window as unknown as { __DEV__?: boolean }).__DEV__) {
+      console.log('🌅 Adaptive Theming initialized:', {
+        circadian: \`\${this.state.circadian} (\${CIRCADIAN_PERIODS[this.state.circadian].name})\`,
+        emotional: this.state.emotional,
+        persona: this.state.persona,
+        relationship: this.state.relationship,
+      });
+    }
+  }
+
+  private startCircadianAutoUpdate(intervalMs: number): void {
+    if (this.updateInterval) {
+      clearInterval(this.updateInterval);
+    }
+
+    this.updateInterval = setInterval(() => {
+      const newPeriod = detectCircadianPeriod();
+      if (newPeriod !== this.state.circadian && !this.manualOverrides.circadian) {
+        this.setCircadian(newPeriod);
+      }
+    }, intervalMs);
+  }
+
+  stopCircadianAutoUpdate(): void {
+    if (this.updateInterval) {
+      clearInterval(this.updateInterval);
+      this.updateInterval = null;
+    }
+  }
+
+  applyAll(element: HTMLElement = document.documentElement): void {
+    applyCircadianTheme(this.state.circadian, element);
+    applyEmotionalTheme(this.state.emotional, element);
+    applyPersonaAura(this.state.persona, element);
+    applyRelationshipDepth(this.state.relationship, element);
+  }
+
+  setCircadian(period: CircadianPeriod, manual = false): void {
+    this.state.circadian = period;
+    if (manual) {
+      this.manualOverrides.circadian = period;
+    }
+    applyCircadianTheme(period);
+    this.notifyListeners();
+  }
+
+  clearCircadianOverride(): void {
+    delete this.manualOverrides.circadian;
+    this.state.circadian = detectCircadianPeriod();
+    applyCircadianTheme(this.state.circadian);
+    this.notifyListeners();
+  }
+
+  setEmotionalTheme(theme: EmotionalTheme): void {
+    this.state.emotional = theme;
+    applyEmotionalTheme(theme);
+    this.notifyListeners();
+  }
+
+  setEmotionFromDetection(emotion: string | null): void {
+    const theme = detectEmotionalTheme(emotion);
+    this.setEmotionalTheme(theme);
+  }
+
+  setPersona(persona: PersonaId | null): void {
+    this.state.persona = persona;
+    applyPersonaAura(persona);
+    this.notifyListeners();
+  }
+
+  updateConversationCount(count: number): void {
+    const newStage = detectRelationshipStage(count);
+    if (newStage !== this.state.relationship) {
+      this.state.relationship = newStage;
+      applyRelationshipDepth(newStage);
+      this.notifyListeners();
+    }
+  }
+
+  getState(): Readonly<AdaptiveThemingState> {
+    return { ...this.state };
+  }
+
+  getCircadianConfig(period?: CircadianPeriod): CircadianConfig {
+    return CIRCADIAN_PERIODS[period ?? this.state.circadian];
+  }
+
+  getEmotionalConfig(theme?: EmotionalTheme): EmotionalThemeConfig {
+    return EMOTIONAL_THEMES[theme ?? this.state.emotional];
+  }
+
+  getPersonaConfig(persona?: PersonaId): PersonaAuraConfig | null {
+    const id = persona ?? this.state.persona;
+    return id ? PERSONA_AURAS[id] : null;
+  }
+
+  getRelationshipConfig(stage?: RelationshipStage): RelationshipStageConfig {
+    return RELATIONSHIP_STAGES[stage ?? this.state.relationship];
+  }
+
+  subscribe(listener: ThemeChangeListener): () => void {
+    this.listeners.add(listener);
+    return () => this.listeners.delete(listener);
+  }
+
+  private notifyListeners(): void {
+    const stateCopy = this.getState();
+    this.listeners.forEach((listener) => listener(stateCopy));
+  }
+
+  destroy(): void {
+    this.stopCircadianAutoUpdate();
+    this.listeners.clear();
+  }
+}
+
+// =============================================================================
+// SINGLETON INSTANCE
+// =============================================================================
+
+export const adaptiveTheming = new AdaptiveThemingOrchestrator();
+
+// =============================================================================
+// CONVENIENCE EXPORTS
+// =============================================================================
+
+export {
+  CIRCADIAN_PERIODS,
+  EMOTIONAL_THEMES,
+  PERSONA_AURAS,
+  RELATIONSHIP_STAGES,
+};
+
+// Auto-initialize on import (client-side only)
+if (typeof window !== 'undefined' && typeof document !== 'undefined') {
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => adaptiveTheming.init());
+  } else {
+    adaptiveTheming.init();
+  }
+}
+`;
+
+  // Write to apps/web/src/config/
+  const webConfigDir = path.join(__dirname, '../apps/web/src/config');
+  if (!fs.existsSync(webConfigDir)) {
+    fs.mkdirSync(webConfigDir, { recursive: true });
+  }
+  const adaptivePath = path.join(webConfigDir, 'adaptive-theming.generated.ts');
+  fs.writeFileSync(adaptivePath, adaptiveTs);
+  console.log('✅ Generated: ' + adaptivePath);
 }
 
 // ============================================================================

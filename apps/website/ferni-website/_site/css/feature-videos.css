@@ -213,7 +213,7 @@
   background: linear-gradient(
     135deg,
     var(--color-bg-secondary) 0%,
-    var(--color-bg-tertiary, #ebe6df) 100%
+    var(--color-bg-tertiary, var(--color-sand-warm)) 100%
   );
 }
 

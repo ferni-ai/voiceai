@@ -73,15 +73,16 @@
   },
 
   "semanticSpacing": {
-    "2xs": "0.25rem",
-    "xs": "0.5rem",
-    "sm": "0.75rem",
-    "md": "1.25rem",
-    "lg": "2rem",
-    "xl": "3rem",
-    "2xl": "4rem",
-    "3xl": "6rem",
-    "4xl": "8rem"
+    "_documentation": "Golden ratio (φ = 1.618) based spacing for harmonious visual rhythm",
+    "2xs": "0.125rem",
+    "xs": "0.25rem",
+    "sm": "0.5rem",
+    "md": "1rem",
+    "lg": "1.618rem",
+    "xl": "2.618rem",
+    "2xl": "4.236rem",
+    "3xl": "6.854rem",
+    "4xl": "11.09rem"
   },
 
   "borderRadius": {
@@ -105,7 +106,9 @@
   },
 
   "shadows": {
+    "_documentation": "Layered shadow system with theme variants. Use semantic names (xs-2xl) for consistent elevation.",
     "midnight": {
+      "2xs": "0 1px 2px rgba(0, 0, 0, 0.3), 0 1px 1px rgba(0, 0, 0, 0.4)",
       "xs": "0 1px 2px rgba(0, 0, 0, 0.5)",
       "sm": "0 2px 4px rgba(0, 0, 0, 0.4)",
       "md": "0 4px 8px rgba(0, 0, 0, 0.35), 0 2px 4px rgba(0, 0, 0, 0.3)",
@@ -116,6 +119,7 @@
       "inner": "inset 0 2px 4px rgba(0, 0, 0, 0.4)"
     },
     "zen": {
+      "2xs": "0 1px 2px rgba(0, 0, 0, 0.03), 0 1px 1px rgba(0, 0, 0, 0.04)",
       "xs": "0 1px 2px rgba(0, 0, 0, 0.04)",
       "sm": "0 2px 4px rgba(0, 0, 0, 0.06)",
       "md": "0 4px 8px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04)",
@@ -124,6 +128,12 @@
       "2xl": "0 24px 48px rgba(0, 0, 0, 0.12), 0 12px 24px rgba(0, 0, 0, 0.06)",
       "glow": "0 0 20px var(--color-accent-glow)",
       "inner": "inset 0 2px 4px rgba(0, 0, 0, 0.04)"
+    },
+    "persona": {
+      "_documentation": "Persona-tinted shadows for branded elevation effects",
+      "sm": "0 2px 8px color-mix(in srgb, var(--persona-primary) 15%, transparent)",
+      "md": "0 4px 16px color-mix(in srgb, var(--persona-primary) 20%, transparent)",
+      "lg": "0 8px 32px color-mix(in srgb, var(--persona-primary) 25%, transparent)"
     }
   },
 

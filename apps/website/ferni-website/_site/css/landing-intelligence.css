@@ -253,7 +253,7 @@
 }
 
 .ferni-chat-panel__action--app:hover {
-  background: var(--color-background-hover, #ebe7df);
+  background: var(--color-background-hover, var(--color-sand-warm));
 }
 
 /* Mobile adjustments */

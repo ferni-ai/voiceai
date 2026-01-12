@@ -1,0 +1,402 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "description": "Ferni Shape System Tokens - Material 3 inspired corner treatments with emotional awareness",
+  "version": "1.0.0",
+
+  "_designPhilosophy": {
+    "principle": "Corners communicate character - rounded feels warm, sharp feels precise",
+    "source": "Material 3 shape system + Apple HIG + Ferni warmth",
+    "emotionalMapping": "More rounded = more approachable, less rounded = more serious"
+  },
+
+  "cornerScale": {
+    "_description": "Base corner radius scale - semantic tokens for reuse",
+
+    "none": {
+      "value": "0px",
+      "usage": "Sharp edges, technical elements"
+    },
+    "xs": {
+      "value": "2px",
+      "usage": "Subtle rounding, inner elements"
+    },
+    "sm": {
+      "value": "4px",
+      "usage": "Small interactive elements"
+    },
+    "md": {
+      "value": "8px",
+      "usage": "Default rounding, most components"
+    },
+    "lg": {
+      "value": "12px",
+      "usage": "Cards, dialogs, larger containers"
+    },
+    "xl": {
+      "value": "16px",
+      "usage": "FABs, prominent interactive elements"
+    },
+    "2xl": {
+      "value": "20px",
+      "usage": "Feature cards, hero elements"
+    },
+    "3xl": {
+      "value": "24px",
+      "usage": "Bottom sheets (top corners)"
+    },
+    "4xl": {
+      "value": "28px",
+      "usage": "Dialogs, modals"
+    },
+    "5xl": {
+      "value": "32px",
+      "usage": "Large feature elements"
+    },
+    "full": {
+      "value": "9999px",
+      "usage": "Pills, chips, fully rounded"
+    }
+  },
+
+  "componentRadius": {
+    "_description": "Component-specific corner radius assignments (Material 3 style)",
+
+    "buttons": {
+      "xs": "var(--radius-sm)",
+      "sm": "var(--radius-md)",
+      "md": "var(--radius-md)",
+      "lg": "var(--radius-lg)",
+      "xl": "var(--radius-lg)",
+      "icon": "var(--radius-full)",
+      "fab": "var(--radius-xl)",
+      "extendedFab": "var(--radius-xl)"
+    },
+
+    "inputs": {
+      "text": "var(--radius-md)",
+      "textarea": "var(--radius-md)",
+      "select": "var(--radius-md)",
+      "search": "var(--radius-full)",
+      "focused": "var(--radius-md)"
+    },
+
+    "cards": {
+      "elevated": "var(--radius-lg)",
+      "filled": "var(--radius-lg)",
+      "outlined": "var(--radius-lg)",
+      "glass": "var(--radius-xl)",
+      "persona": "var(--radius-xl)",
+      "interactive": "var(--radius-lg)"
+    },
+
+    "dialogs": {
+      "default": "var(--radius-4xl)",
+      "fullscreen": "var(--radius-none)",
+      "sheet": {
+        "top": "var(--radius-3xl)",
+        "bottom": "var(--radius-none)"
+      }
+    },
+
+    "sheets": {
+      "bottom": {
+        "topLeft": "var(--radius-3xl)",
+        "topRight": "var(--radius-3xl)",
+        "bottomLeft": "var(--radius-none)",
+        "bottomRight": "var(--radius-none)"
+      },
+      "side": {
+        "default": "var(--radius-none)"
+      }
+    },
+
+    "chips": {
+      "default": "var(--radius-sm)",
+      "filter": "var(--radius-sm)",
+      "input": "var(--radius-sm)",
+      "suggestion": "var(--radius-full)"
+    },
+
+    "badges": {
+      "default": "var(--radius-full)",
+      "square": "var(--radius-xs)",
+      "status": "var(--radius-full)"
+    },
+
+    "avatars": {
+      "circular": "var(--radius-full)",
+      "rounded": "var(--radius-lg)",
+      "square": "var(--radius-md)"
+    },
+
+    "menus": {
+      "default": "var(--radius-md)",
+      "contextMenu": "var(--radius-md)",
+      "dropdown": "var(--radius-md)"
+    },
+
+    "tooltips": {
+      "default": "var(--radius-md)",
+      "rich": "var(--radius-lg)"
+    },
+
+    "toasts": {
+      "default": "var(--radius-lg)",
+      "action": "var(--radius-lg)"
+    },
+
+    "tabs": {
+      "container": "var(--radius-full)",
+      "indicator": "var(--radius-full)",
+      "item": "var(--radius-full)"
+    },
+
+    "progress": {
+      "linear": "var(--radius-full)",
+      "circular": "N/A"
+    },
+
+    "sliders": {
+      "track": "var(--radius-full)",
+      "thumb": "var(--radius-full)"
+    },
+
+    "switches": {
+      "track": "var(--radius-full)",
+      "thumb": "var(--radius-full)"
+    },
+
+    "checkboxes": {
+      "default": "var(--radius-xs)",
+      "rounded": "var(--radius-sm)"
+    },
+
+    "radios": {
+      "default": "var(--radius-full)"
+    },
+
+    "images": {
+      "default": "var(--radius-md)",
+      "thumbnail": "var(--radius-sm)",
+      "hero": "var(--radius-lg)",
+      "avatar": "var(--radius-full)"
+    },
+
+    "navigation": {
+      "bar": "var(--radius-none)",
+      "rail": "var(--radius-none)",
+      "drawer": "var(--radius-none)",
+      "item": "var(--radius-full)",
+      "indicator": "var(--radius-full)"
+    },
+
+    "lists": {
+      "container": "var(--radius-none)",
+      "item": "var(--radius-none)",
+      "itemActive": "var(--radius-md)"
+    },
+
+    "dividers": {
+      "default": "var(--radius-none)"
+    },
+
+    "skeletons": {
+      "text": "var(--radius-sm)",
+      "circular": "var(--radius-full)",
+      "rectangular": "var(--radius-md)"
+    },
+
+    "popovers": {
+      "default": "var(--radius-lg)"
+    },
+
+    "accordions": {
+      "container": "var(--radius-lg)",
+      "item": "var(--radius-none)",
+      "firstItem": {
+        "topLeft": "var(--radius-lg)",
+        "topRight": "var(--radius-lg)"
+      },
+      "lastItem": {
+        "bottomLeft": "var(--radius-lg)",
+        "bottomRight": "var(--radius-lg)"
+      }
+    }
+  },
+
+  "emotionalRadius": {
+    "_description": "Radius adjustments based on emotional context",
+
+    "calm": {
+      "multiplier": 1.1,
+      "description": "Slightly more rounded for softer feel"
+    },
+    "energized": {
+      "multiplier": 0.9,
+      "description": "Slightly sharper for dynamic feel"
+    },
+    "stressed": {
+      "multiplier": 1.2,
+      "description": "More rounded to reduce visual tension"
+    },
+    "focused": {
+      "multiplier": 1.0,
+      "description": "Standard - no distraction"
+    },
+    "playful": {
+      "multiplier": 1.3,
+      "description": "Extra rounded for friendliness"
+    }
+  },
+
+  "personaRadius": {
+    "_description": "Each persona has a signature corner style",
+
+    "ferni": {
+      "preference": "rounded",
+      "multiplier": 1.1,
+      "description": "Warm and approachable"
+    },
+    "maya": {
+      "preference": "balanced",
+      "multiplier": 1.0,
+      "description": "Clear and motivating"
+    },
+    "peter": {
+      "preference": "precise",
+      "multiplier": 0.85,
+      "description": "Analytical and structured"
+    },
+    "jordan": {
+      "preference": "balanced",
+      "multiplier": 1.0,
+      "description": "Organized and forward-thinking"
+    },
+    "alex": {
+      "preference": "clean",
+      "multiplier": 0.95,
+      "description": "Professional and efficient"
+    },
+    "nayan": {
+      "preference": "soft",
+      "multiplier": 1.15,
+      "description": "Contemplative and wise"
+    }
+  },
+
+  "cornerStyles": {
+    "_description": "Different corner treatments beyond simple radius",
+
+    "squircle": {
+      "description": "Apple-style superellipse corners",
+      "css": "border-radius with adjusted control points",
+      "usage": "iOS-style app icons, premium elements",
+      "svgPath": "Continuous curvature path"
+    },
+    "asymmetric": {
+      "description": "Different radii for different corners",
+      "usage": "Callout boxes, directional elements",
+      "example": {
+        "topLeft": "var(--radius-lg)",
+        "topRight": "var(--radius-sm)",
+        "bottomRight": "var(--radius-lg)",
+        "bottomLeft": "var(--radius-sm)"
+      }
+    },
+    "scallop": {
+      "description": "Decorative scalloped edges",
+      "usage": "Tickets, coupons, playful elements",
+      "svgPattern": "repeated concave curves"
+    },
+    "organic": {
+      "description": "Slightly irregular, hand-drawn feel",
+      "usage": "Illustrations, friendly UI",
+      "variationRange": "±2px"
+    }
+  },
+
+  "containerQueries": {
+    "_description": "Radius adjustments based on container size",
+
+    "small": {
+      "maxWidth": "200px",
+      "radiusScale": 0.75,
+      "description": "Smaller radius for compact containers"
+    },
+    "medium": {
+      "maxWidth": "400px",
+      "radiusScale": 1.0,
+      "description": "Standard radius"
+    },
+    "large": {
+      "minWidth": "401px",
+      "radiusScale": 1.25,
+      "description": "Larger radius for spacious containers"
+    }
+  },
+
+  "transitions": {
+    "_description": "Smooth radius transitions when state changes",
+
+    "default": {
+      "property": "border-radius",
+      "duration": "150ms",
+      "easing": "cubic-bezier(0.4, 0, 0.2, 1)"
+    },
+    "expand": {
+      "property": "border-radius",
+      "duration": "200ms",
+      "easing": "cubic-bezier(0.34, 1.56, 0.64, 1)"
+    },
+    "morphing": {
+      "property": "border-radius",
+      "duration": "300ms",
+      "easing": "cubic-bezier(0.4, 0, 0.2, 1)"
+    }
+  },
+
+  "cssVariables": {
+    "_description": "CSS custom property mappings",
+
+    "--radius-none": "0px",
+    "--radius-xs": "2px",
+    "--radius-sm": "4px",
+    "--radius-md": "8px",
+    "--radius-lg": "12px",
+    "--radius-xl": "16px",
+    "--radius-2xl": "20px",
+    "--radius-3xl": "24px",
+    "--radius-4xl": "28px",
+    "--radius-5xl": "32px",
+    "--radius-full": "9999px",
+
+    "--radius-button": "var(--radius-md)",
+    "--radius-input": "var(--radius-md)",
+    "--radius-card": "var(--radius-lg)",
+    "--radius-dialog": "var(--radius-4xl)",
+    "--radius-sheet-top": "var(--radius-3xl)",
+    "--radius-chip": "var(--radius-sm)",
+    "--radius-badge": "var(--radius-full)",
+    "--radius-avatar": "var(--radius-full)",
+    "--radius-tooltip": "var(--radius-md)",
+    "--radius-toast": "var(--radius-lg)",
+    "--radius-fab": "var(--radius-xl)"
+  },
+
+  "accessibility": {
+    "_description": "Accessibility considerations for shape",
+
+    "touchTargetMin": {
+      "size": "44px",
+      "description": "Minimum touch target regardless of visual size"
+    },
+    "focusRingOffset": {
+      "value": "2px",
+      "description": "Focus ring should follow shape with offset"
+    },
+    "reducedMotion": {
+      "disableRadiusTransitions": false,
+      "description": "Radius transitions are subtle enough to keep"
+    }
+  }
+}

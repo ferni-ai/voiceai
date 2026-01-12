@@ -546,6 +546,105 @@
     }
   },
 
+  "visualization": {
+    "_description": "Colors for data visualizations, storytelling graphics, and interactive insights",
+    "_philosophy": "Better Than Human visualizations - insights that transform into action",
+
+    "kintsugi": {
+      "_description": "Japanese art of golden repair - wounds become beautiful wisdom",
+      "primary": "#C9A227",
+      "bright": "#E5C84B",
+      "deep": "#9A7B1C",
+      "subtle": "#B8956A",
+      "glow": "rgba(201, 162, 39, 0.4)",
+      "tint": "rgba(201, 162, 39, 0.12)",
+      "gradient": {
+        "start": "#C9A227",
+        "end": "#E5C84B"
+      },
+      "_note": "Gold for 'wounds → wisdom' kintsugi visualization"
+    },
+    "river": {
+      "_description": "Conversation flow visualization colors",
+      "user": "#3a6b73",
+      "ferni": "#4a6741",
+      "silence": "rgba(139, 119, 91, 0.3)",
+      "flow": "rgba(58, 107, 115, 0.6)",
+      "_note": "Blues/greens for conversation river viz"
+    },
+    "constellation": {
+      "_description": "Relationship network visualization",
+      "node": "#b8956a",
+      "edge": "rgba(184, 149, 106, 0.4)",
+      "highlight": "#E5C84B",
+      "cluster": "rgba(166, 122, 106, 0.3)",
+      "_note": "Gold/amber for constellation nodes"
+    },
+    "seasons": {
+      "_description": "Life seasons timeline colors",
+      "spring": "#7a9060",
+      "summer": "#C9A227",
+      "autumn": "#c4856a",
+      "winter": "#5a6b8a",
+      "_note": "Natural season colors for life timeline"
+    },
+    "energy": {
+      "_description": "Energy flow Sankey diagram colors",
+      "source": "#4a6741",
+      "drain": "#c4856a",
+      "neutral": "#8a7a6a",
+      "flow": "rgba(74, 103, 65, 0.5)",
+      "_note": "Green=source, coral=drain for energy viz"
+    },
+    "growth": {
+      "_description": "Growth rings and progress visualization",
+      "ring": "rgba(74, 103, 65, 0.15)",
+      "ringActive": "#4a6741",
+      "milestone": "#C9A227",
+      "potential": "rgba(201, 162, 39, 0.3)",
+      "_note": "Concentric growth ring colors"
+    },
+    "moods": {
+      "_description": "Mood calendar and emotional state visualization colors",
+      "calm": "#3D5A45",
+      "joyful": "#c4956a",
+      "anxious": "#b5453a",
+      "tired": "#756a5e",
+      "focused": "#3a6b73",
+      "reflective": "#7a6a8a",
+      "stressed": "#a54545",
+      "energized": "#4a7a52",
+      "peaceful": "#5a8a73",
+      "uncertain": "#6a6a6a",
+      "_note": "Earthy, warm palette for emotional states"
+    },
+    "status": {
+      "_description": "Energy and capacity status indicators",
+      "thriving": "#3d7a52",
+      "balanced": "#3D5A45",
+      "stretched": "#a67c35",
+      "depleted": "#c67840",
+      "critical": "#b5453a",
+      "_note": "Green-to-red gradient for capacity states"
+    },
+    "priority": {
+      "_description": "Priority level indicators for tasks and loops",
+      "high": "#b5453a",
+      "medium": "#a67c35",
+      "low": "#756a5e",
+      "_note": "Semantic priority colors"
+    },
+    "chapters": {
+      "_description": "Life timeline chapter type colors",
+      "growth": "#3D5A45",
+      "challenge": "#b5453a",
+      "transition": "#c4956a",
+      "celebration": "#4a7a52",
+      "reflection": "#7a6a8a",
+      "_note": "Colors for life chapter narratives"
+    }
+  },
+
   "gradient": {
     "_description": "Gradient system for smooth, purposeful transitions",
     "_philosophy": "Gradients add depth and motion - use sparingly for emphasis",

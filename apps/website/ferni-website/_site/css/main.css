@@ -539,12 +539,12 @@
 .blog-post__author-role {
   font-size: var(--text-xs);
   font-weight: 500;
-  color: var(--color-text-muted, #8a7f72);
+  color: var(--color-text-muted, var(--color-stone));
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
 
 .blog-post__date {
   font-size: var(--text-sm);
-  color: var(--color-text-muted, #8a7f72);
+  color: var(--color-text-muted, var(--color-stone));
 }

@@ -107,7 +107,7 @@
 }
 
 .cookie-banner__btn--settings:hover {
-  background: var(--color-background-muted, #f5f1eb);
+  background: var(--color-background-muted, var(--color-paper-warm));
 }
 
 /* Mobile Responsive */

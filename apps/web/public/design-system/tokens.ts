@@ -135,7 +135,7 @@ export interface PersonaAnimationProfile {
   celebrationIntensity: string;
 }
 
-export type PersonaAnimationId = 'ferni' | 'peter-lynch' | 'alex-chen' | 'maya-santos' | 'jordan-taylor';
+export type PersonaAnimationId = 'ferni' | 'peter-john' | 'alex-chen' | 'maya-santos' | 'jordan-taylor';
 
 /**
  * Persona ID mapping - maps legacy frontend IDs to canonical design system IDs.
@@ -146,7 +146,7 @@ export const PERSONA_ID_MAPPING: Record<string, PersonaAnimationId> = {
   "comm-specialist": "alex-chen",
   "spend-save": "maya-santos",
   "event-planner": "jordan-taylor",
-  "peter-lynch": "peter-lynch",
+  "peter-john": "peter-john",
   "ferni": "ferni",
   "alex-chen": "alex-chen",
   "maya-santos": "maya-santos",
@@ -174,7 +174,7 @@ export const PERSONA_ANIMATION_PROFILES: Record<PersonaAnimationId, PersonaAnima
     "thinkingStyle": "curious-tilt",
     "celebrationIntensity": "warm"
   },
-  "peter-lynch": {
+  "peter-john": {
     "description": "Energetic, practical, quick - like Linguini's nervous energy",
     "timingMultiplier": 0.8,
     "bounciness": 0.6,
@@ -274,7 +274,7 @@ export const WAVEFORM_PROFILES: Record<string, WaveformProfile> = {
     "smoothing": 0.7,
     "speed": 1
   },
-  "peter-lynch": {
+  "peter-john": {
     "energy": 0.9,
     "smoothing": 0.55,
     "speed": 1.2
@@ -352,7 +352,7 @@ export const PARTICLE_PROFILES: Record<string, ParticleProfile> = {
     "wobble": true,
     "description": "Warm welcoming energy"
   },
-  "peter-lynch": {
+  "peter-john": {
     "speed": {
       "min": 1,
       "max": 3

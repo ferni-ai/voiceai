@@ -30,15 +30,16 @@
   --color-accent-glow: rgba(61, 90, 69, 0.15);
   --color-accent-subtle: rgba(61, 90, 69, 0.05);
   --color-info: var(--color-info-dark);
-  --color-wood: var(--color-wood);
-  --color-wood-light: var(--color-wood-light);
-  --color-bamboo: var(--color-bamboo);
-  --color-stone: var(--color-stone);
+  /* Natural palette - references to design system tokens */
+  --color-wood: var(--color-natural-cedar);
+  --color-wood-light: var(--color-natural-cedar-light);
+  --color-bamboo: var(--color-natural-bamboo);
+  --color-stone: var(--color-natural-stone-light);
   --color-sand: var(--color-bg-secondary);
-  --color-moss: var(--color-moss);
+  --color-moss: var(--color-natural-moss);
   --color-paper: var(--color-bg-primary);
   --color-ink: var(--color-text-primary);
-  --color-tea: var(--color-tea);
+  --color-tea: var(--color-natural-tea);
   --color-ferni-glow: rgba(74, 103, 65, 0.28);
   --color-border: rgba(44, 37, 32, 0.08);
   --color-border-medium: rgba(44, 37, 32, 0.12);

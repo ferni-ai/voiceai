@@ -27,6 +27,7 @@ const CONFIG = {
   sourceSpacing: path.join(__dirname, 'tokens/spacing.json'),
   sourceTypography: path.join(__dirname, 'tokens/typography.json'),
   sourceAnimation: path.join(__dirname, 'tokens/animation.json'),
+  sourceEffects: path.join(__dirname, 'tokens/effects.json'),
 
   // Output files (multiple destinations for consistency)
   // Light theme (Zen Garden) - for consumer-facing sites
@@ -610,6 +611,44 @@ function generateAnimationVars(animation) {
   return lines;
 }
 
+function generateEffectsVars(effects) {
+  const lines = [];
+
+  // Chromatic aberration effects (for holographic text, 3D effects)
+  if (effects.chromatic) {
+    lines.push('  /* ============================================');
+    lines.push('     EFFECTS - Chromatic Aberration');
+    lines.push('     ============================================ */');
+    if (effects.chromatic.red) {
+      lines.push(`  --effect-chromatic-red: ${effects.chromatic.red.solid};`);
+      lines.push(`  --effect-chromatic-red-tint: ${effects.chromatic.red.tint};`);
+    }
+    if (effects.chromatic.cyan) {
+      lines.push(`  --effect-chromatic-cyan: ${effects.chromatic.cyan.solid};`);
+      lines.push(`  --effect-chromatic-cyan-tint: ${effects.chromatic.cyan.tint};`);
+    }
+    if (effects.chromatic.offset) {
+      lines.push(`  --effect-chromatic-offset-subtle: ${effects.chromatic.offset.subtle};`);
+      lines.push(`  --effect-chromatic-offset-normal: ${effects.chromatic.offset.normal};`);
+      lines.push(`  --effect-chromatic-offset-strong: ${effects.chromatic.offset.strong};`);
+    }
+    lines.push('');
+  }
+
+  // Blur utilities
+  if (effects.blur) {
+    lines.push('  /* ============================================');
+    lines.push('     EFFECTS - Blur');
+    lines.push('     ============================================ */');
+    for (const [key, value] of Object.entries(effects.blur)) {
+      lines.push(`  --blur-${key}: ${value};`);
+    }
+    lines.push('');
+  }
+
+  return lines;
+}
+
 // ============================================================================
 // MAIN
 // ============================================================================
@@ -713,6 +752,7 @@ function build() {
   const spacing = loadJson(CONFIG.sourceSpacing);
   const typography = loadJson(CONFIG.sourceTypography);
   const animation = loadJson(CONFIG.sourceAnimation);
+  const effects = loadJson(CONFIG.sourceEffects);
 
   // Generate light theme CSS (Zen Garden) for consumer sites
   const lightThemeOutput = [
@@ -730,6 +770,7 @@ function build() {
     ...generateSpacingVars(spacing),
     ...generateTypographyVars(typography),
     ...generateAnimationVars(animation),
+    ...generateEffectsVars(effects),
     '}',
     ...generateDarkThemeVars(colors),
   ];

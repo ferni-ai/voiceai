@@ -1,5 +1,5 @@
 {
-  "generated": "2026-01-10T19:43:32.079Z",
+  "generated": "2026-01-12T16:40:20.044Z",
   "tokens": {
     "css": "tokens.css",
     "ts": "tokens.ts"
@@ -125,6 +125,7 @@
     "BRAND-VOICE-GUIDE.md",
     "COMMUNITY-FUNDED-BRAND-STRATEGY.md",
     "COMPONENT-DECISION-TREES.md",
+    "DESIGN-INSPIRATION-MATRIX.md",
     "FERNI-2025-DESIGN-DIRECTION.md",
     "FERNI-BRAND-GUIDELINES.md",
     "FERNI-DATA-VISUALIZATION.md",
