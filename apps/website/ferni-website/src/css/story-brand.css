@@ -16,7 +16,7 @@
  */
 
 /* Import design tokens - SINGLE SOURCE OF TRUTH */
-@import './tokens.css';
+@import './_tokens.css';
 @import './sections/persona-quiz.css';
 
 /* ============================================

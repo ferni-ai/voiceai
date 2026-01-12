@@ -7,9 +7,8 @@
   <meta name="description" content="{{ description or 'Join the waitlist for Ferni, your AI life coach who truly listens.' }}">
 
   {# ====== PRECONNECT & FONTS ====== #}
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+  {# Fonts (Single Source of Truth) #}
+  {% include "partials/fonts.njk" %}
 
   {# ====== FAVICONS ====== #}
   <link rel="icon" href="/images/favicon.png" type="image/png">

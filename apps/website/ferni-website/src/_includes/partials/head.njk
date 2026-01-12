@@ -60,13 +60,9 @@
 <!-- Apple Touch Icon -->
 <link rel="apple-touch-icon" href="/images/apple-touch-icon.png">
 
-<!-- Fonts - Preconnect and optimized loading -->
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="preload" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
-<noscript>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-</noscript>
+<!-- Fonts (Single Source of Truth) -->
+{% set includeMonoFont = true %}
+{% include "partials/fonts.njk" %}
 
 <!-- Design Tokens -->
 <link rel="stylesheet" href="/css/design-tokens.css">

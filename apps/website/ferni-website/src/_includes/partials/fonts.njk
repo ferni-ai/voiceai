@@ -1,0 +1,28 @@
+{# ============================================================================
+   FERNI FONTS - SINGLE SOURCE OF TRUTH
+   ============================================================================
+   All font loading MUST go through this partial to prevent missing font weights.
+   
+   REQUIRED WEIGHTS:
+   - Inter: 400 (body), 500 (medium), 600 (semibold)
+   - Plus Jakarta Sans: 400 (regular headlines), 500 (medium), 600 (semibold), 
+                        700 (bold), 800 (extrabold)
+   - JetBrains Mono: 400 (code), 500 (code medium) - only load when needed
+   
+   USAGE:
+   {% include "partials/fonts.njk" %}
+   OR with JetBrains Mono:
+   {% set includeMonoFont = true %}
+   {% include "partials/fonts.njk" %}
+   ============================================================================ #}
+
+{# Preconnect to Google Fonts for faster loading #}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+{# Main fonts - Plus Jakarta Sans for display, Inter for body #}
+{% if includeMonoFont %}
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+{% else %}
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+{% endif %}

@@ -6,12 +6,8 @@
   <title>{{ title }} | Ferni Blog</title>
   <meta name="description" content="{{ description or excerpt or site.tagline }}">
 
-  {# ====== PRECONNECT & PRELOAD ====== #}
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-
-  {# ====== FONTS ====== #}
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+  {# ====== FONTS (Single Source of Truth) ====== #}
+  {% include "partials/fonts.njk" %}
 
   {# ====== FAVICONS ====== #}
   <link rel="icon" href="/images/favicon.png" type="image/png">

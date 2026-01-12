@@ -25,22 +25,24 @@ const log = createLogger({ module: 'AdaptiveTiming' });
  * Research shows human turn-taking gaps are 200-500ms
  *
  * UPDATED Dec 2024: Lowered thresholds for more conversational feel
+ * UPDATED Jan 2026: Tightened for human-like conversation
+ * UPDATED Jan 2026: More aggressive targets - humans respond in 200-400ms
  */
 export const LATENCY_TARGETS = {
-  /** Ideal response time - feels instant */
-  INSTANT: 400, // Was 500 - aim higher
+  /** Ideal response time - feels instant (human-like) */
+  INSTANT: 250, // Was 300 - match human turn-taking
 
   /** Good response time - feels natural */
-  NATURAL: 800, // Was 1000 - tighter target
+  NATURAL: 500, // Was 600 - within human range
 
   /** Acceptable response time - user notices but tolerates */
-  ACCEPTABLE: 1500, // Was 2000 - lower tolerance
+  ACCEPTABLE: 800, // Was 1200 - tighter, humans notice >1s
 
   /** Slow response time - needs filler */
-  NEEDS_FILLER: 1800, // Was 2500 - inject filler earlier
+  NEEDS_FILLER: 1000, // Was 1500 - inject filler at 1s, not 1.5s
 
   /** Hard limit before giving up on rich context */
-  HARD_LIMIT: 4000, // Was 6000 - fail even faster for Better than Human latency
+  HARD_LIMIT: 3000, // Was 3500 - fail fast, use fallback
 } as const;
 
 /**
@@ -49,20 +51,23 @@ export const LATENCY_TARGETS = {
  * UPDATED Dec 2024: More aggressive filler for conversational feel
  * UPDATED Dec 25 2024: Further lowered thresholds for "Better than Human"
  * UPDATED Dec 29 2024: Even more aggressive - 600ms feels like human pausing to think
- * Research: Human turn-taking gaps are 200-500ms, anything >1s feels slow
+ * UPDATED Jan 2026: Human-like presence - fillers show "I'm processing"
+ *
+ * Research: Human turn-taking gaps are 200-500ms. Silence >600ms feels awkward.
+ * A quick "Hmm" at 400ms shows presence without being annoying.
  */
 export const FILLER_STRATEGY = {
-  /** Never inject filler below this latency */
-  MIN_LATENCY_FOR_FILLER: 600, // Was 800 - inject filler earlier for conversational feel
+  /** Never inject filler below this latency - response is fast enough */
+  MIN_LATENCY_FOR_FILLER: 400, // Was 500 - inject filler at 400ms (human thinking pause)
 
-  /** Always inject filler above this latency */
-  GUARANTEED_FILLER_LATENCY: 1200, // Was 1500 - guarantee filler at 1.2s
+  /** Always inject filler above this latency - silence is awkward */
+  GUARANTEED_FILLER_LATENCY: 700, // Was 1000 - 700ms of silence feels too long
 
   /** Buffer time to add to average latency for filler timing */
-  FILLER_BUFFER_MS: 200, // Was 300 - tighter buffer for more responsive filler
+  FILLER_BUFFER_MS: 100, // Was 150 - tighter buffer for snappier feel
 
-  /** Minimum time between fillers */
-  FILLER_COOLDOWN_MS: 5000, // Was 6000 - allow more frequent filler when needed
+  /** Minimum time between fillers - don't spam "hmm"s */
+  FILLER_COOLDOWN_MS: 3000, // Was 4000 - allow more frequent fillers when struggling
 } as const;
 
 // ============================================================================
@@ -98,8 +103,8 @@ function getSessionStats(sessionId: string): SessionLatencyStats {
   if (!sessionStats.has(sessionId)) {
     sessionStats.set(sessionId, {
       recentLatencies: [],
-      avgLatency: 1500, // Start with conservative estimate
-      p95Latency: 2500,
+      avgLatency: 300, // Start VERY aggressive - assume fast until proven otherwise
+      p95Latency: 600, // Optimistic p95 - will adjust based on actual performance
       lastFillerTime: 0,
       turnCount: 0,
       startTime: Date.now(),

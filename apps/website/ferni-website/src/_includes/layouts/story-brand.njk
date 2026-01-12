@@ -6,15 +6,11 @@
   <title>{{ title }} | Ferni</title>
   <meta name="description" content="{{ description or site.tagline }}">
   
-  {# ====== PRECONNECT & PRELOAD (Performance) ====== #}
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  {# ====== PRECONNECT (Performance) ====== #}
   <link rel="preconnect" href="https://www.googletagmanager.com">
   
-  {# Preload critical fonts - removed redundant preload since the stylesheet link handles loading #}
-  
-  {# ====== FONTS ====== #}
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+  {# ====== FONTS (Single Source of Truth) ====== #}
+  {% include "partials/fonts.njk" %}
   
   {# ====== FAVICONS ====== #}
   <link rel="icon" href="/images/favicon.png" type="image/png">
@@ -24,7 +20,7 @@
   
   {# ====== STYLES (with cache-busting) ====== #}
   {# CRITICAL: tokens.css MUST come first - defines all CSS variables #}
-  <link rel="stylesheet" href="/css/tokens.css?v=20251231">
+  <link rel="stylesheet" href="/css/tokens.css?v=20260112">
   <link rel="stylesheet" href="/css/story-brand.css?v=20260103">
   <link rel="stylesheet" href="/css/components.css?v=20251224">
   <link rel="stylesheet" href="/css/sections/footer.css?v=20251231">
