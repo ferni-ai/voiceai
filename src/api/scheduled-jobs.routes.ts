@@ -110,6 +110,13 @@ export async function handleScheduledJobsRoutes(
       await handleTTLCleanup(res);
       return true;
 
+    // ========================================================================
+    // ADMIN REPORTING JOBS
+    // ========================================================================
+    case '/api/jobs/daily-admin-report':
+      await handleDailyAdminReport(res);
+      return true;
+
     default:
       return false;
   }
@@ -826,7 +833,7 @@ async function handleTTLCleanup(res: ServerResponse): Promise<void> {
     log.info(
       {
         entitiesWithTTL,
-        deletedCount: result.totalDocsDeleted,
+        deletedCount: result.totalDeleted,
         entityTypesAffected: result.results?.length || 0,
       },
       'TTL cleanup completed'
@@ -837,7 +844,7 @@ async function handleTTLCleanup(res: ServerResponse): Promise<void> {
       job: 'ttl-cleanup',
       stats: {
         entitiesWithTTL,
-        deletedCount: result.totalDocsDeleted,
+        deletedCount: result.totalDeleted,
         entityTypesAffected: result.results?.length || 0,
         details: result.results,
       },
@@ -845,6 +852,97 @@ async function handleTTLCleanup(res: ServerResponse): Promise<void> {
     });
   } catch (error) {
     log.error({ error: String(error) }, 'TTL cleanup job failed');
+    sendJson(res, 500, {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+}
+
+// ============================================================================
+// ADMIN REPORTING HANDLERS
+// ============================================================================
+
+const ADMIN_REPORT_EMAIL = 'seth.ford@gmail.com';
+
+async function handleDailyAdminReport(res: ServerResponse): Promise<void> {
+  try {
+    log.info('Running daily admin report job (Cloud Scheduler)');
+
+    const { generateDailyReport } = await import('../services/admin/daily-report.js');
+    const { generateDailyReportHTML, generateDailyReportPlainText } = await import(
+      '../services/admin/daily-report-template.js'
+    );
+    const { sendEmail, isEmailDeliveryAvailable, initializeEmailDelivery } = await import(
+      '../services/outreach/delivery/email-delivery.js'
+    );
+
+    // Initialize email if not already done
+    if (!isEmailDeliveryAvailable()) {
+      const apiKey = process.env.SENDGRID_API_KEY;
+      if (!apiKey) {
+        throw new Error('SENDGRID_API_KEY not configured');
+      }
+      initializeEmailDelivery({
+        provider: 'sendgrid',
+        apiKey,
+        fromEmail: process.env.SENDGRID_FROM_EMAIL || 'hello@ferni.ai',
+        fromName: process.env.SENDGRID_FROM_NAME || 'Ferni',
+        trackOpens: true,
+        trackClicks: true,
+      });
+    }
+
+    // Generate the report (yesterday's data)
+    const reportData = await generateDailyReport();
+
+    // Generate HTML and plain text versions
+    const html = generateDailyReportHTML(reportData);
+    const plainText = generateDailyReportPlainText(reportData);
+
+    // Send the email
+    const emailResult = await sendEmail({
+      to: ADMIN_REPORT_EMAIL,
+      toName: 'Seth Ford',
+      subject: `Ferni Daily Report - ${reportData.date}`,
+      body: plainText,
+      html,
+      personaId: 'ferni',
+      userId: 'admin-reports',
+      outreachId: `daily-report-${reportData.date}`,
+      preheader: `${reportData.visitors.unique} visitors, ${reportData.callers.total} calls`,
+    });
+
+    if (!emailResult.success) {
+      throw new Error(emailResult.error || 'Failed to send email');
+    }
+
+    log.info(
+      {
+        date: reportData.date,
+        visitors: reportData.visitors.unique,
+        sessions: reportData.visitors.totalSessions,
+        calls: reportData.callers.total,
+        messageId: emailResult.messageId,
+      },
+      'Daily admin report sent successfully'
+    );
+
+    sendJson(res, 200, {
+      success: true,
+      job: 'daily-admin-report',
+      stats: {
+        date: reportData.date,
+        uniqueVisitors: reportData.visitors.unique,
+        totalSessions: reportData.visitors.totalSessions,
+        phoneCalls: reportData.callers.total,
+        emailSentTo: ADMIN_REPORT_EMAIL,
+        messageId: emailResult.messageId,
+      },
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    log.error({ error: String(error) }, 'Daily admin report job failed');
     sendJson(res, 500, {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error',

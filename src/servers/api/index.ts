@@ -99,6 +99,7 @@ import { handleCalendarRoutes } from '../../api/calendar-routes.js';
 import { handleTrustSystemsRoutes } from '../../api/trust-systems-routes.js';
 import { handleRelationshipArcRoutes } from '../../api/relationship-arc-routes.js';
 import { handleFeatureFlagsRoutes } from '../../api/feature-flags-routes.js';
+import { handleFeedbackRoutes, isFeedbackRoute } from '../../api/feedback-routes.js';
 import { handleBrandRoutes } from '../../api/brand-routes.js';
 import { handleCommandsRoutes } from '../../api/commands-routes.js';
 import { handleWidgetRoutes } from '../../api/widget-routes.js';
@@ -145,9 +146,11 @@ import { handleSubscriptionRequest, isSubscriptionRoute } from '../../api/subscr
 import { handleAnalyticsRoutes } from '../../api/user-analytics-routes.js';
 import { handleBuilderMetricsRoutes } from '../../api/routes/builder-metrics.js';
 import { handleMusicAnalyticsRoutes } from '../../api/music-analytics-routes.js';
+import { handleAdminRoutes } from '../../api/admin-routes.js';
 import { handleMonetizationRequest, isMonetizationRoute } from '../../api/monetization-routes.js';
 import { handleAppleRoutes, isAppleRoute } from '../../api/apple-iap-routes.js';
 import { handleV1Routes } from '../../api/v1/index.js';
+import { handleV2Routes } from '../../api/v2/index.js';
 import handleMigrationRoutes from '../../api/migration-routes.js';
 import handleAccountRoutes from '../../api/account-routes.js';
 import handleAuthMonitoringRoutes from '../../api/auth-monitoring-routes.js';
@@ -215,6 +218,12 @@ import { handleGamesRoutes } from '../../api/routes/games.js';
 import { handleSocialRoutes } from '../../api/routes/social-routes.js';
 import { handlePremiumRoutes } from '../../api/routes/premium-routes.js';
 import { groupConversationRoutes } from '../../api/group-conversation-routes.js';
+
+// Life Automation (workflows, templates, integrations)
+import {
+  handleLifeAutomationRoutes,
+  initWorkflowExecutionHandler,
+} from '../../api/life-automation-routes.js';
 
 // Orphaned routes (previously not registered but frontend calls them)
 import { handleRitualsRoutes } from '../../api/routes/rituals.js';
@@ -612,6 +621,21 @@ const server = http.createServer(async (req, res) => {
   }
 
   try {
+    // API v2 routes (Developer Platform)
+    if (pathname.startsWith('/api/v2/')) {
+      const handled = await handleV2Routes(req, res, pathname);
+      if (handled) return;
+    }
+  } catch (err) {
+    log.error({ error: String(err) }, 'API v2 route error');
+    if (!res.writableEnded) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Internal server error' }));
+    }
+    return;
+  }
+
+  try {
     // Migration routes
     if (pathname.startsWith('/api/auth/migrat')) {
       const handled = await handleMigrationRoutes(req, res, pathname);
@@ -815,6 +839,12 @@ const server = http.createServer(async (req, res) => {
     // Feature flags routes
     if (pathname.startsWith('/api/flags')) {
       const handled = await handleFeatureFlagsRoutes(req, res, pathname, parsedUrl);
+      if (handled) return;
+    }
+
+    // Feedback routes (contextual feedback system)
+    if (isFeedbackRoute(pathname)) {
+      const handled = await handleFeedbackRoutes(req, res);
       if (handled) return;
     }
 
@@ -1180,6 +1210,12 @@ const server = http.createServer(async (req, res) => {
       if (handled) return;
     }
 
+    // Life Automation routes (workflows, templates, integrations)
+    if (pathname.startsWith('/api/life-automation')) {
+      const handled = await handleLifeAutomationRoutes(req, res, pathname, parsedUrl);
+      if (handled) return;
+    }
+
     // EvalOps routes
     if (pathname.startsWith('/api/evalops')) {
       const handled = await handleEvalOpsRoutes(req, res, pathname, parsedUrl);
@@ -1243,6 +1279,12 @@ const server = http.createServer(async (req, res) => {
     // Music analytics admin routes
     if (pathname.startsWith('/api/admin/music-analytics')) {
       const handled = await handleMusicAnalyticsRoutes(req, res, pathname, parsedUrl);
+      if (handled) return;
+    }
+
+    // Admin routes (daily stats, callers, visitors, trigger report)
+    if (pathname.startsWith('/api/admin/')) {
+      const handled = await handleAdminRoutes(req, res, pathname);
       if (handled) return;
     }
 
@@ -1445,6 +1487,14 @@ server.listen(PORT, '0.0.0.0', async () => {
     log.info('💭 Proactive outreach scheduler started');
   } catch (error) {
     log.warn({ error: String(error) }, 'Proactive scheduler failed to start (non-blocking)');
+  }
+
+  // Initialize Life Automation workflow execution handler
+  try {
+    initWorkflowExecutionHandler();
+    log.info('🔄 Life Automation workflow handler initialized');
+  } catch (error) {
+    log.warn({ error: String(error) }, 'Workflow handler failed to start (non-blocking)');
   }
 
   // Initialize Twilio Stream Bridge for two-way conversational calls

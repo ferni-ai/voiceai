@@ -173,6 +173,21 @@ data:
       uri: "https://async-worker-xxxxx.run.app/health"
       httpMethod: GET
 
+    # ==========================================================================
+    # ADMIN REPORTING JOBS
+    # ==========================================================================
+
+    - name: daily-admin-report
+      description: "Send daily visitor and caller report to admin"
+      schedule: "0 8 * * *"  # 8 AM PT daily
+      timezone: "America/Los_Angeles"
+      uri: "https://john-bogle-ui-bmopaivmsq-uc.a.run.app/api/jobs/daily-admin-report"
+      httpMethod: POST
+      retryConfig:
+        retryCount: 2
+        minBackoffDuration: "60s"
+        maxBackoffDuration: "300s"
+
 ---
 # Terraform configuration for creating these jobs
 # File: infra/scheduler.tf
