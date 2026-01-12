@@ -362,13 +362,16 @@ export class ToolRegistry {
   buildToolSet(spec: ToolSetSpec, ctx: ToolContext): ToolSetResult {
     const startTime = Date.now();
 
+    // Use EnvironmentServiceRegistry if services not provided
+    const services = ctx.services ?? new EnvironmentServiceRegistry();
+
     // Log which services are available (helps debug tools being skipped)
     const serviceStatus = {
-      twilio: ctx.services.has('twilio'),
-      plaid: ctx.services.has('plaid'),
-      spotify: ctx.services.has('spotify'),
-      firebase: ctx.services.has('firebase'),
-      googleCalendar: ctx.services.has('google-calendar'),
+      twilio: services.has('twilio'),
+      plaid: services.has('plaid'),
+      spotify: services.has('spotify'),
+      firebase: services.has('firebase'),
+      googleCalendar: services.has('google-calendar'),
     };
     getLogger().debug({ serviceStatus }, '🔧 Building tool set with service availability');
 
@@ -399,7 +402,7 @@ export class ToolRegistry {
 
       // Check required services
       if (def.requiredServices) {
-        const missingServices = def.requiredServices.filter((s) => !ctx.services.has(s));
+        const missingServices = def.requiredServices.filter((s) => !services.has(s));
         if (missingServices.length > 0) {
           skipped.push({
             toolId: def.id,

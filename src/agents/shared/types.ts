@@ -66,6 +66,8 @@ export interface UserData {
   name?: string;
   userId?: string;
   userName?: string;
+  /** Active persona ID (e.g., 'ferni', 'peter-john') - used for TTS persona-specific traits */
+  personaId?: string;
 
   // Session state
   isReturningUser?: boolean;
@@ -404,6 +406,9 @@ export interface UserData {
 
   /** Whether this is a response to our proactive outreach */
   isOutreachResponse?: boolean;
+
+  /** Index signature for extensibility (compatible with PersonaSessionData) */
+  [key: string]: unknown;
 }
 
 // ============================================================================

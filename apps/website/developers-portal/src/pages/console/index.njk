@@ -170,6 +170,87 @@ description: Manage your API keys and monitor usage
       </div>
     </div>
 
+    <!-- Developer Platform Section -->
+    <div style="margin-bottom: var(--space-12);">
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-6);">
+        <h3>Developer Platform</h3>
+        <span class="key-badge test" style="font-size: var(--text-xs);">API v2</span>
+      </div>
+      <p style="color: var(--text-secondary); margin-bottom: var(--space-6); font-size: var(--text-sm);">
+        Extend agents with custom workflows, external services, and MCP servers.
+      </p>
+      <div class="grid grid-3" style="gap: var(--space-4);">
+        <a href="/console/mcp-servers/" class="card" style="padding: var(--space-5); border: 2px solid var(--accent-subtle);">
+          <div class="card-icon" style="margin-bottom: var(--space-3); color: var(--accent-primary);">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="2" y="3" width="20" height="14" rx="2"/>
+              <path d="M8 21h8"/>
+              <path d="M12 17v4"/>
+              <circle cx="8" cy="10" r="1" fill="currentColor"/>
+              <circle cx="12" cy="10" r="1" fill="currentColor"/>
+              <circle cx="16" cy="10" r="1" fill="currentColor"/>
+            </svg>
+          </div>
+          <h4 style="margin-bottom: var(--space-2);">MCP Servers</h4>
+          <p style="font-size: var(--text-sm); color: var(--text-secondary); margin: 0;">Connect external Model Context Protocol servers</p>
+        </a>
+        <a href="/console/tools/" class="card" style="padding: var(--space-5);">
+          <div class="card-icon" style="margin-bottom: var(--space-3); color: var(--accent-primary);">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+            </svg>
+          </div>
+          <h4 style="margin-bottom: var(--space-2);">Custom Tools</h4>
+          <p style="font-size: var(--text-sm); color: var(--text-secondary); margin: 0;">Register webhook, MCP, or prompt-based tools</p>
+        </a>
+        <a href="/console/webhooks/" class="card" style="padding: var(--space-5);">
+          <div class="card-icon" style="margin-bottom: var(--space-3); color: var(--accent-primary);">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M18 16.98h-5.99c-1.1 0-1.95.94-2.48 1.9A4 4 0 0 1 2 17c.01-.7.2-1.4.57-2"/>
+              <path d="m6 17 3.13-5.78c.53-.97.1-2.18-.5-3.1a4 4 0 1 1 6.89-4.06"/>
+              <path d="m12 6 3.13 5.73C15.66 12.7 16.9 13 18 13a4 4 0 0 1 0 8"/>
+            </svg>
+          </div>
+          <h4 style="margin-bottom: var(--space-2);">Webhooks</h4>
+          <p style="font-size: var(--text-sm); color: var(--text-secondary); margin: 0;">Subscribe to real-time Ferni events</p>
+        </a>
+        <a href="/console/workflows/" class="card" style="padding: var(--space-5);">
+          <div class="card-icon" style="margin-bottom: var(--space-3); color: var(--accent-primary);">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="6" height="6" rx="1"/>
+              <rect x="15" y="3" width="6" height="6" rx="1"/>
+              <rect x="9" y="15" width="6" height="6" rx="1"/>
+              <path d="M6 9v3a1 1 0 0 0 1 1h4"/>
+              <path d="M18 9v3a1 1 0 0 1-1 1h-4"/>
+            </svg>
+          </div>
+          <h4 style="margin-bottom: var(--space-2);">Workflows</h4>
+          <p style="font-size: var(--text-sm); color: var(--text-secondary); margin: 0;">Define multi-step automation DAGs</p>
+        </a>
+        <a href="/console/oauth/" class="card" style="padding: var(--space-5);">
+          <div class="card-icon" style="margin-bottom: var(--space-3); color: var(--accent-primary);">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+              <path d="M9.1 12a2.9 2.9 0 1 0 5.8 0 2.9 2.9 0 1 0-5.8 0"/>
+              <path d="M12 9v-1"/>
+              <path d="M12 16v1"/>
+            </svg>
+          </div>
+          <h4 style="margin-bottom: var(--space-2);">OAuth Providers</h4>
+          <p style="font-size: var(--text-sm); color: var(--text-secondary); margin: 0;">Connect external service authentication</p>
+        </a>
+        <a href="/console/activities/" class="card" style="padding: var(--space-5);">
+          <div class="card-icon" style="margin-bottom: var(--space-3); color: var(--accent-primary);">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+            </svg>
+          </div>
+          <h4 style="margin-bottom: var(--space-2);">Activities</h4>
+          <p style="font-size: var(--text-sm); color: var(--text-secondary); margin: 0;">Track custom metrics and events</p>
+        </a>
+      </div>
+    </div>
+
     <!-- Quick Actions -->
     <div style="margin-bottom: var(--space-12);">
       <h3 style="margin-bottom: var(--space-6);">Quick Actions</h3>

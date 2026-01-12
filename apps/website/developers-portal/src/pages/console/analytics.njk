@@ -91,7 +91,7 @@ description: Monitor your API usage and persona performance
 
       <div class="stat-card">
         <div class="stat-header">
-          <div class="stat-icon" style="background: rgba(52, 199, 89, 0.1); color: #34c759;">
+          <div class="stat-icon" style="background: var(--success-glow); color: var(--success);">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
               <circle cx="9" cy="7" r="4"/>
@@ -107,7 +107,7 @@ description: Monitor your API usage and persona performance
 
       <div class="stat-card">
         <div class="stat-header">
-          <div class="stat-icon" style="background: rgba(175, 82, 222, 0.1); color: #af52de;">
+          <div class="stat-icon" style="background: var(--info-glow); color: var(--info);">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <circle cx="12" cy="12" r="10"/>
               <path d="M8 14s1.5 2 4 2 4-2 4-2"/>
@@ -123,7 +123,7 @@ description: Monitor your API usage and persona performance
 
       <div class="stat-card">
         <div class="stat-header">
-          <div class="stat-icon" style="background: rgba(255, 149, 0, 0.1); color: #ff9500;">
+          <div class="stat-icon" style="background: var(--warning-glow); color: var(--warning);">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <circle cx="12" cy="12" r="10"/>
               <polyline points="12 6 12 12 16 14"/>
@@ -137,7 +137,7 @@ description: Monitor your API usage and persona performance
 
       <div class="stat-card">
         <div class="stat-header">
-          <div class="stat-icon" style="background: rgba(255, 59, 48, 0.1); color: #ff3b30;">
+          <div class="stat-icon" style="background: var(--error-glow); color: var(--error);">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
               <line x1="12" y1="9" x2="12" y2="13"/>
@@ -270,13 +270,13 @@ description: Monitor your API usage and persona performance
   }
 
   .stat-change.positive {
-    background: rgba(52, 199, 89, 0.1);
-    color: #34c759;
+    background: var(--success-glow);
+    color: var(--success);
   }
 
   .stat-change.negative {
-    background: rgba(255, 59, 48, 0.1);
-    color: #ff3b30;
+    background: var(--error-glow);
+    color: var(--error);
   }
 
   .stat-value {
@@ -405,7 +405,7 @@ description: Monitor your API usage and persona performance
     font-family: var(--font-mono);
     font-size: var(--text-sm);
     font-weight: 600;
-    color: #ff3b30;
+    color: var(--error);
     margin-bottom: var(--space-1);
   }
 
@@ -422,7 +422,7 @@ description: Monitor your API usage and persona performance
   .error-count-value {
     font-weight: 700;
     font-size: 1.125rem;
-    color: #ff3b30;
+    color: var(--error);
   }
 
   .error-count-label {

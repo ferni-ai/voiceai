@@ -304,9 +304,10 @@ function renderUsageChart(usage) {
   const apiCalls = usage.map((d) => d.apiCalls);
   const errors = usage.map((d) => d.errors);
 
-  // Chart colors
-  const accentColor = getComputedStyle(document.documentElement).getPropertyValue('--accent-primary').trim() || '#3D5A45';
-  const errorColor = '#ff3b30';
+  // Chart colors - use design tokens
+  const styles = getComputedStyle(document.documentElement);
+  const accentColor = styles.getPropertyValue('--accent-primary').trim() || '#d4a84a';
+  const errorColor = styles.getPropertyValue('--error').trim() || '#e07575';
 
   usageChart = new Chart(ctx, {
     type: 'line',

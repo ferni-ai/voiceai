@@ -525,7 +525,7 @@
 }
 
 .terminal {
-  background: #1a1a1a;
+  background: var(--bg-code);
   border-radius: var(--radius-xl);
   overflow: hidden;
   box-shadow: var(--shadow-2xl);
@@ -535,7 +535,7 @@
   display: flex;
   align-items: center;
   padding: var(--space-3) var(--space-4);
-  background: #2a2a2a;
+  background: var(--bg-code-inline);
   gap: var(--space-3);
 }
 
@@ -573,7 +573,7 @@
 }
 
 .terminal-prompt {
-  color: #28c840;
+  color: var(--success);
 }
 
 .terminal-command {
@@ -590,7 +590,7 @@
 }
 
 .terminal-success {
-  color: #28c840;
+  color: var(--success);
   display: flex;
   align-items: center;
   gap: 6px;
@@ -610,7 +610,7 @@
   display: inline-block;
   width: 8px;
   height: 18px;
-  background: #28c840;
+  background: var(--success);
   animation: blink 1s step-end infinite;
 }
 
@@ -732,7 +732,7 @@
 
 /* Code Block */
 .code-block {
-  background: #1a1a1a;
+  background: var(--bg-code);
   border-radius: var(--radius-xl);
   overflow: hidden;
   box-shadow: var(--shadow-xl);
@@ -742,7 +742,7 @@
   display: flex;
   align-items: center;
   padding: var(--space-3) var(--space-4);
-  background: #2a2a2a;
+  background: var(--bg-code-inline);
   gap: var(--space-3);
 }
 
@@ -779,7 +779,7 @@
 .code-content code {
   font-family: var(--font-mono);
   font-size: var(--text-sm);
-  color: #e0e0e0;
+  color: var(--text-secondary);
   line-height: 1.6;
 }
 

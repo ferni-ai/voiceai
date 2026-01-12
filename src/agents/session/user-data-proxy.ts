@@ -42,6 +42,8 @@ interface DirectFields {
   // Voice preferences
   voicePreference?: VoicePreference;
   preferredAccent?: EnglishAccent;
+  /** Preferred language for speech recognition validation (e.g., 'ja', 'es', 'en') */
+  preferredLanguage?: string;
 
   // Voice humanization - rapid changing state
   detectedLaughter?: LaughterDetectionResult;
@@ -138,6 +140,8 @@ export interface UserData {
   // Voice preferences
   voicePreference?: VoicePreference;
   preferredAccent?: EnglishAccent;
+  /** Preferred language for speech recognition validation (e.g., 'ja', 'es', 'en') */
+  preferredLanguage?: string;
 
   // Timing
   userSpeakingStartTime?: number;
@@ -257,6 +261,9 @@ export interface UserData {
 
   // Access to underlying state manager (for new code)
   readonly __stateManager?: SessionStateManager;
+
+  /** Index signature for extensibility (compatible with PersonaSessionData) */
+  [key: string]: unknown;
 }
 
 // ============================================================================

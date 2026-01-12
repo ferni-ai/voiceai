@@ -51,6 +51,7 @@ export type ToolDomain =
   | 'awareness' // World awareness - time, context, environment
   | 'engagement' // Daily rituals, games, streaks, team interactions
   | 'simple-utilities' // Everyday helpers: timers, tip calculator, unit conversions
+  | 'routines' // Ferni's care routines - "What I Do For You"
   // Life Coaching Domains
   | 'crisis' // Crisis support, grounding, safety planning
   | 'health' // Exercise, nutrition, sleep, energy management
@@ -127,7 +128,19 @@ export type ToolDomain =
   | 'superhuman-communication' // Alex's 10 superhuman communication capabilities
   | 'jordan-planning' // Jordan's superhuman planning: event patterns, guest intelligence, milestone detection
   | 'peter-analytics' // Peter's superhuman analytics: blind spots, counterfactuals, pattern predictions
-  | 'local-search'; // Local search: nearby restaurants, services, places
+  | 'local-search' // Local search: nearby restaurants, services, places
+  // Developer Platform
+  | 'developer-custom' // API-registered custom tools from Developer Platform
+  // Life Automation Domains
+  | 'commerce' // Grocery ordering, subscription management
+  | 'documents' // Receipts, warranties, IDs, expiration tracking
+  | 'email-intelligence' // Email prioritization, follow-ups, unsubscribe
+  | 'meal-planning' // Recipes, weekly plans, shopping lists
+  | 'projects' // Multi-task projects with templates
+  | 'social-events' // Birthdays, anniversaries, gift tracking
+  | 'transportation' // Uber/Lyft rides, commute tracking
+  | 'vehicle' // Maintenance schedules, registration alerts
+  | 'workflows'; // Custom automations, IFTTT-style triggers
 
 /**
  * All available tool domains
@@ -246,6 +259,18 @@ export const ALL_TOOL_DOMAINS: readonly ToolDomain[] = [
   'peter-analytics',
   // Local Search
   'local-search',
+  // Developer Platform
+  'developer-custom',
+  // Life Automation Domains
+  'commerce',
+  'documents',
+  'email-intelligence',
+  'meal-planning',
+  'projects',
+  'social-events',
+  'transportation',
+  'vehicle',
+  'workflows',
 ] as const;
 
 // ============================================================================
@@ -377,6 +402,19 @@ export const DOMAIN_TO_CATEGORY: Record<ToolDomain, ToolCategory> = {
   'jordan-planning': 'lifestyle', // Jordan's superhuman planning tools
   'peter-analytics': 'information', // Peter's superhuman analytics tools
   'local-search': 'information', // Local search for nearby restaurants, services, places
+  // Developer Platform
+  'developer-custom': 'core', // API-registered custom tools from Developer Platform
+  // Life Automation Domains
+  commerce: 'productivity', // Grocery ordering, subscription management
+  documents: 'productivity', // Receipts, warranties, IDs, expiration tracking
+  'email-intelligence': 'communication', // Email prioritization, follow-ups, unsubscribe
+  'meal-planning': 'lifestyle', // Recipes, weekly plans, shopping lists
+  projects: 'productivity', // Multi-task projects with templates
+  'social-events': 'lifestyle', // Birthdays, anniversaries, gift tracking
+  transportation: 'lifestyle', // Uber/Lyft rides, commute tracking
+  vehicle: 'lifestyle', // Maintenance schedules, registration alerts
+  workflows: 'productivity', // Custom automations, IFTTT-style triggers
+  routines: 'lifestyle', // Ferni's care routines - "What I Do For You"
 };
 
 // ============================================================================
@@ -424,8 +462,8 @@ export interface ToolContext {
   /** Agent's manifest configuration */
   agentManifest?: AgentManifestRef;
 
-  /** Initialized external services */
-  services: ServiceRegistry;
+  /** Initialized external services (defaults to EnvironmentServiceRegistry if not provided) */
+  services?: ServiceRegistry;
 
   /** Optional domain-specific configuration from manifest */
   domainConfig?: Record<string, unknown>;

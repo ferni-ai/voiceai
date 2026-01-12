@@ -1,0 +1,1436 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="cedar">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Workflows - Developer Console | Ferni Developers</title>
+  <meta name="description" content="Define multi-step agent workflows with triggers and conditions">
+
+  <!-- Fonts: Plus Jakarta Sans (display), Inter (body), JetBrains Mono (code) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23d4a84a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='4 17 10 11 4 5'/><line x1='12' x2='20' y1='19' y2='19'/></svg>">
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="Workflows - Developer Console | Ferni Developers">
+  <meta property="og:description" content="Define multi-step agent workflows with triggers and conditions">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://developers.ferni.ai/pages/console/workflows/">
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="/css/tokens.css">
+  <link rel="stylesheet" href="/css/components.css">
+  
+</head>
+<body>
+  <nav class="nav">
+  <div class="nav-inner">
+    <a href="/" class="nav-logo">
+      <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="16" cy="16" r="14" fill="var(--accent-primary)"/>
+        <path d="M10 12h12M10 16h8M10 20h10" stroke="var(--bg-code)" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+      <span>Ferni</span>
+      <span class="nav-badge">Developers</span>
+    </a>
+    
+    <ul class="nav-links">
+      <li><a href="/getting-started/" >Getting Started</a></li>
+      <li><a href="/api/" >API Reference</a></li>
+      <li><a href="/sdk/" >SDK</a></li>
+      <li><a href="/examples/" >Examples</a></li>
+    </ul>
+    
+    <div class="nav-cta">
+      <a href="https://github.com/ferni-ai" class="btn btn-ghost" target="_blank" rel="noopener">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+        </svg>
+        GitHub
+      </a>
+      <a href="/console/" class="btn btn-primary">Console</a>
+    </div>
+  </div>
+</nav>
+
+
+  <main>
+    
+<section class="hero" style="padding-bottom: var(--space-12);">
+  <div class="container">
+    <div class="hero-eyebrow">Developer Console</div>
+    <h1>Agent <span class="accent">Workflows</span></h1>
+    <p class="hero-subtitle">
+      Define multi-step workflows with triggers, conditions, and parallel execution.
+    </p>
+  </div>
+</section>
+
+<!-- Authentication Gate -->
+<section id="auth-gate" class="section" style="padding-top: var(--space-8); padding-bottom: var(--space-8);">
+  <div class="container container-narrow">
+    <div style="background: var(--bg-elevated); border: 1px solid var(--border-medium); border-radius: var(--radius-2xl); padding: var(--space-12); text-align: center;">
+      <p style="color: var(--text-secondary);">Please sign in to manage your workflows.</p>
+      <a href="/console/" class="btn btn-primary" style="margin-top: var(--space-4);">Go to Console</a>
+    </div>
+  </div>
+</section>
+
+<!-- Dashboard (shown after authentication) -->
+<section id="dashboard" class="section" style="background: var(--bg-secondary); padding-top: var(--space-16); display: none;">
+  <div class="container">
+    <!-- Header with back button -->
+    <div style="display: flex; align-items: center; gap: var(--space-4); margin-bottom: var(--space-8);">
+      <a href="/console/" class="btn btn-ghost" style="padding: var(--space-2);">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M19 12H5M12 19l-7-7 7-7"/>
+        </svg>
+      </a>
+      <div style="flex: 1;">
+        <h2 style="margin: 0;">Workflows</h2>
+        <p style="color: var(--text-secondary); margin: 0;">Automate multi-step agent tasks</p>
+      </div>
+      <button id="create-workflow-btn" class="btn btn-primary">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="12" y1="5" x2="12" y2="19"/>
+          <line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+        Create Workflow
+      </button>
+    </div>
+
+    <!-- Workflows list -->
+    <div id="workflows-list">
+      <div class="loading-state">Loading your workflows...</div>
+    </div>
+  </div>
+</section>
+
+<!-- Runs Modal -->
+<div id="runs-modal" class="modal-overlay" style="display: none;">
+  <div class="modal" style="max-width: 900px; max-height: 80vh; overflow: hidden; display: flex; flex-direction: column;">
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-6);">
+      <h3 id="runs-modal-title" style="margin: 0;">Execution History</h3>
+      <button id="close-runs-btn" class="btn btn-ghost" style="padding: var(--space-2);">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="6" x2="6" y2="18"/>
+          <line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+    <div id="runs-content" style="overflow-y: auto; flex: 1;">
+      <div class="loading-state">Loading runs...</div>
+    </div>
+  </div>
+</div>
+
+<!-- Visual Editor Modal -->
+<div id="visual-editor-modal" class="modal-overlay" style="display: none;">
+  <div class="modal" style="max-width: 95vw; max-height: 95vh; width: 1400px; overflow: hidden; display: flex; flex-direction: column;">
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-4); padding: 0 var(--space-4);">
+      <h3 id="visual-editor-title" style="margin: 0;">Visual Editor</h3>
+      <div style="display: flex; gap: var(--space-2);">
+        <button id="visual-add-node-btn" class="btn btn-ghost">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="12" y1="5" x2="12" y2="19"/>
+            <line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+          Add Node
+        </button>
+        <button id="visual-auto-layout-btn" class="btn btn-ghost">Auto Layout</button>
+        <button id="visual-fit-btn" class="btn btn-ghost">Fit View</button>
+        <button id="close-visual-editor-btn" class="btn btn-ghost" style="padding: var(--space-2);">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"/>
+            <line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <div style="display: flex; flex: 1; gap: var(--space-4); padding: 0 var(--space-4); min-height: 0;">
+      <!-- Canvas area -->
+      <div id="workflow-canvas-container" style="flex: 1; background: var(--bg-secondary); border-radius: var(--radius-lg); border: 1px solid var(--border-subtle); overflow: hidden; min-height: 500px;"></div>
+
+      <!-- Node properties panel -->
+      <div id="node-properties-panel" style="width: 320px; background: var(--bg-elevated); border-radius: var(--radius-lg); border: 1px solid var(--border-subtle); padding: var(--space-4); overflow-y: auto;">
+        <h4 style="margin: 0 0 var(--space-4) 0; font-size: var(--text-sm); text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">Node Properties</h4>
+        <div id="node-properties-content">
+          <p style="color: var(--text-muted); font-size: var(--text-sm);">Select a node to edit its properties</p>
+        </div>
+      </div>
+    </div>
+
+    <div style="display: flex; gap: var(--space-3); margin-top: var(--space-4); padding: var(--space-4); background: var(--bg-elevated); border-top: 1px solid var(--border-subtle);">
+      <button type="button" id="save-visual-workflow-btn" class="btn btn-primary" style="flex: 1;">Save Workflow</button>
+      <button type="button" id="cancel-visual-btn" class="btn btn-secondary">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Create/Edit Modal -->
+<div id="workflow-modal" class="modal-overlay" style="display: none;">
+  <div class="modal" style="max-width: 800px; max-height: 90vh; overflow: hidden; display: flex; flex-direction: column;">
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-6);">
+      <h3 id="modal-title" style="margin: 0;">Create Workflow</h3>
+      <button id="close-modal-btn" class="btn btn-ghost" style="padding: var(--space-2);">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="6" x2="6" y2="18"/>
+          <line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+
+    <form id="workflow-form" style="overflow-y: auto; flex: 1;">
+      <input type="hidden" id="workflow-id" name="id">
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4);">
+        <div class="form-group">
+          <label for="workflow-name">Workflow Name</label>
+          <input type="text" id="workflow-name" name="name" required placeholder="Daily Standup">
+        </div>
+
+        <div class="form-group">
+          <label for="workflow-version">Version</label>
+          <input type="text" id="workflow-version" name="version" placeholder="1.0.0" value="1.0.0">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="workflow-description">Description</label>
+        <textarea id="workflow-description" name="description" rows="2" placeholder="What does this workflow do?"></textarea>
+      </div>
+
+      <!-- Trigger Configuration -->
+      <div class="form-section">
+        <h4>Trigger</h4>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4);">
+          <div class="form-group">
+            <label for="trigger-type">Trigger Type</label>
+            <select id="trigger-type" name="triggerType" required>
+              <option value="voice_command">Voice Command</option>
+              <option value="tool_call">Tool Call</option>
+              <option value="schedule">Schedule (Cron)</option>
+              <option value="event">Event</option>
+              <option value="api">API Call</option>
+            </select>
+          </div>
+
+          <div class="form-group" id="trigger-config-group">
+            <label for="trigger-config">Trigger Value</label>
+            <input type="text" id="trigger-config" name="triggerConfig" placeholder="start daily standup">
+          </div>
+        </div>
+      </div>
+
+      <!-- Nodes Configuration -->
+      <div class="form-section">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-4);">
+          <h4 style="margin: 0;">Workflow Steps</h4>
+          <button type="button" id="add-node-btn" class="btn btn-ghost" style="padding: var(--space-2);">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="12" y1="5" x2="12" y2="19"/>
+              <line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            Add Step
+          </button>
+        </div>
+        <div id="nodes-container">
+          <!-- Nodes will be added here -->
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label style="display: flex; align-items: center; gap: var(--space-2); cursor: pointer;">
+          <input type="checkbox" id="workflow-enabled" name="enabled" checked>
+          <span>Enabled</span>
+        </label>
+      </div>
+
+      <div style="display: flex; gap: var(--space-3); margin-top: var(--space-8); position: sticky; bottom: 0; background: var(--bg-elevated); padding: var(--space-4) 0;">
+        <button type="submit" class="btn btn-primary" style="flex: 1;">Save Workflow</button>
+        <button type="button" id="cancel-btn" class="btn btn-secondary">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<style>
+  .workflow-card {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-xl);
+    padding: var(--space-6);
+    margin-bottom: var(--space-4);
+  }
+  .workflow-header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    margin-bottom: var(--space-4);
+  }
+  .workflow-icon {
+    width: 48px;
+    height: 48px;
+    background: var(--accent-subtle);
+    border-radius: var(--radius-lg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--accent-primary);
+    flex-shrink: 0;
+  }
+  .workflow-info {
+    flex: 1;
+    min-width: 0;
+  }
+  .workflow-info h4 {
+    margin: 0 0 var(--space-1) 0;
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+  .workflow-info p {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: var(--text-sm);
+  }
+  .workflow-actions {
+    display: flex;
+    gap: var(--space-2);
+  }
+  .workflow-trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-3);
+    background: var(--bg-code);
+    border-radius: var(--radius-md);
+    font-size: var(--text-sm);
+    margin-top: var(--space-3);
+  }
+  .workflow-trigger-type {
+    font-weight: 500;
+    color: var(--accent-primary);
+  }
+  .workflow-meta {
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    margin-top: var(--space-3);
+    display: flex;
+    gap: var(--space-4);
+  }
+  .status-badge {
+    font-size: var(--text-xs);
+    font-weight: 600;
+    padding: var(--space-1) var(--space-2);
+    border-radius: var(--radius-sm);
+  }
+  .status-active {
+    background: var(--success);
+    color: white;
+  }
+  .status-disabled {
+    background: var(--bg-code);
+    color: var(--text-muted);
+  }
+  .form-group {
+    margin-bottom: var(--space-4);
+  }
+  .form-group label {
+    display: block;
+    margin-bottom: var(--space-2);
+    font-weight: 500;
+  }
+  .form-group input, .form-group select, .form-group textarea {
+    width: 100%;
+    padding: var(--space-3);
+    border: 1px solid var(--border-medium);
+    border-radius: var(--radius-md);
+    background: var(--bg-primary);
+    font-size: var(--text-base);
+    font-family: inherit;
+  }
+  .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+  }
+  .form-section {
+    margin-bottom: var(--space-6);
+    padding: var(--space-4);
+    background: var(--bg-secondary);
+    border-radius: var(--radius-lg);
+  }
+  .form-section h4 {
+    margin: 0 0 var(--space-4) 0;
+    font-size: var(--text-sm);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+  }
+  .node-item {
+    background: var(--bg-primary);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    padding: var(--space-4);
+    margin-bottom: var(--space-3);
+  }
+  .node-header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    margin-bottom: var(--space-3);
+  }
+  .node-number {
+    width: 24px;
+    height: 24px;
+    background: var(--accent-subtle);
+    color: var(--accent-primary);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: var(--text-xs);
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+  .node-remove {
+    margin-left: auto;
+    padding: var(--space-1);
+    cursor: pointer;
+    color: var(--text-muted);
+  }
+  .node-remove:hover {
+    color: var(--error);
+  }
+  .empty-state, .loading-state, .error-state {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-xl);
+    padding: var(--space-12);
+    text-align: center;
+    color: var(--text-muted);
+  }
+  .error-state {
+    border-color: var(--error);
+    color: var(--error);
+  }
+  .run-entry {
+    padding: var(--space-3);
+    border-bottom: 1px solid var(--border-subtle);
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+  }
+  .run-entry:last-child {
+    border-bottom: none;
+  }
+  .run-status {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .run-status.completed {
+    background: var(--success);
+  }
+  .run-status.failed {
+    background: var(--error);
+  }
+  .run-status.running {
+    background: var(--warning);
+  }
+  .run-details {
+    flex: 1;
+    min-width: 0;
+  }
+  .run-details .run-id {
+    font-weight: 500;
+    font-size: var(--text-sm);
+    font-family: var(--font-mono);
+  }
+  .run-details .run-meta {
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+  }
+
+  /* Visual Editor Styles */
+  .node-type-palette {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-2);
+    margin-bottom: var(--space-4);
+  }
+  .node-type-btn {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-3);
+    background: var(--bg-primary);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    font-size: var(--text-sm);
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .node-type-btn:hover {
+    border-color: var(--accent-primary);
+    background: var(--accent-subtle);
+  }
+  .node-type-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+  }
+  .property-group {
+    margin-bottom: var(--space-4);
+  }
+  .property-group label {
+    display: block;
+    margin-bottom: var(--space-2);
+    font-weight: 500;
+    font-size: var(--text-sm);
+  }
+  .property-group input,
+  .property-group select,
+  .property-group textarea {
+    width: 100%;
+    padding: var(--space-2);
+    border: 1px solid var(--border-medium);
+    border-radius: var(--radius-sm);
+    background: var(--bg-primary);
+    font-size: var(--text-sm);
+    font-family: inherit;
+  }
+  .property-group input:focus,
+  .property-group select:focus,
+  .property-group textarea:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+  }
+  .visual-editor-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-1) var(--space-2);
+    background: var(--accent-subtle);
+    color: var(--accent-primary);
+    border-radius: var(--radius-sm);
+    font-size: var(--text-xs);
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .visual-editor-toggle:hover {
+    background: var(--accent-primary);
+    color: white;
+  }
+</style>
+
+<script src="/js/console-auth.js"></script>
+<script src="/js/developer-platform-v2.js"></script>
+<script src="/js/workflow-visual-editor.js"></script>
+<script>
+  // Node types
+  const NODE_TYPES = [
+    { value: 'mcp_call', label: 'MCP Tool Call' },
+    { value: 'webhook', label: 'HTTP Webhook' },
+    { value: 'llm_prompt', label: 'LLM Prompt' },
+    { value: 'condition', label: 'Condition' },
+    { value: 'wait', label: 'Wait/Delay' },
+    { value: 'set_variable', label: 'Set Variable' },
+  ];
+
+  // State
+  let currentWorkflows = [];
+  let nodeCounter = 0;
+
+  // Show dashboard when authenticated
+  window.addEventListener('load', () => {
+    setTimeout(async () => {
+      const token = await window.getIdToken?.();
+      if (token) {
+        document.getElementById('auth-gate').style.display = 'none';
+        document.getElementById('dashboard').style.display = 'block';
+        loadWorkflows();
+      }
+    }, 1000);
+  });
+
+  // Load workflows
+  async function loadWorkflows() {
+    const container = document.getElementById('workflows-list');
+    showLoading(container);
+
+    try {
+      const response = await window.workflows.list();
+      currentWorkflows = response.data || [];
+      renderWorkflows(currentWorkflows);
+    } catch (error) {
+      showError(container, 'Failed to load workflows: ' + error.message);
+    }
+  }
+
+  // Render workflows list
+  function renderWorkflows(workflows) {
+    const container = document.getElementById('workflows-list');
+    container.textContent = '';
+
+    if (!workflows || workflows.length === 0) {
+      container.appendChild(createEmptyState(
+        'No workflows defined yet. Create one to automate multi-step agent tasks.',
+        'Create Your First Workflow',
+        openCreateModal
+      ));
+      return;
+    }
+
+    workflows.forEach(workflow => {
+      container.appendChild(createWorkflowCard(workflow));
+    });
+  }
+
+  // Create workflow card
+  function createWorkflowCard(workflow) {
+    const card = document.createElement('div');
+    card.className = 'workflow-card';
+
+    // Header
+    const header = document.createElement('div');
+    header.className = 'workflow-header';
+
+    // Icon
+    const icon = document.createElement('div');
+    icon.className = 'workflow-icon';
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('width', '24');
+    svg.setAttribute('height', '24');
+    svg.setAttribute('viewBox', '0 0 24 24');
+    svg.setAttribute('fill', 'none');
+    svg.setAttribute('stroke', 'currentColor');
+    svg.setAttribute('stroke-width', '2');
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+    path.setAttribute('points', '16 3 21 3 21 8');
+    svg.appendChild(path);
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    line.setAttribute('x1', '4');
+    line.setAttribute('y1', '20');
+    line.setAttribute('x2', '21');
+    line.setAttribute('y2', '3');
+    svg.appendChild(line);
+    icon.appendChild(svg);
+    header.appendChild(icon);
+
+    // Info
+    const info = document.createElement('div');
+    info.className = 'workflow-info';
+
+    const title = document.createElement('h4');
+    title.textContent = workflow.name;
+
+    const badge = createStatusBadge(workflow.enabled ? 'active' : 'disabled');
+    title.appendChild(badge);
+    info.appendChild(title);
+
+    if (workflow.description) {
+      const desc = document.createElement('p');
+      desc.textContent = workflow.description;
+      info.appendChild(desc);
+    }
+
+    header.appendChild(info);
+
+    // Actions
+    const actions = document.createElement('div');
+    actions.className = 'workflow-actions';
+
+    const runBtn = document.createElement('button');
+    runBtn.className = 'btn btn-ghost';
+    runBtn.textContent = 'Run';
+    runBtn.addEventListener('click', () => executeWorkflow(workflow.id));
+    actions.appendChild(runBtn);
+
+    const runsBtn = document.createElement('button');
+    runsBtn.className = 'btn btn-ghost';
+    runsBtn.textContent = 'History';
+    runsBtn.addEventListener('click', () => showRuns(workflow.id, workflow.name));
+    actions.appendChild(runsBtn);
+
+    const editBtn = document.createElement('button');
+    editBtn.className = 'btn btn-ghost';
+    editBtn.textContent = 'Edit';
+    editBtn.addEventListener('click', () => openEditModal(workflow));
+    actions.appendChild(editBtn);
+
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'btn btn-ghost btn-danger';
+    deleteBtn.textContent = 'Delete';
+    deleteBtn.addEventListener('click', () => deleteWorkflow(workflow.id, workflow.name));
+    actions.appendChild(deleteBtn);
+
+    header.appendChild(actions);
+    card.appendChild(header);
+
+    // Trigger info
+    if (workflow.trigger) {
+      const trigger = document.createElement('div');
+      trigger.className = 'workflow-trigger';
+
+      const typeSpan = document.createElement('span');
+      typeSpan.className = 'workflow-trigger-type';
+      typeSpan.textContent = workflow.trigger.type;
+      trigger.appendChild(typeSpan);
+
+      const valueSpan = document.createElement('span');
+      const triggerValue = workflow.trigger.config?.command ||
+                          workflow.trigger.config?.toolName ||
+                          workflow.trigger.config?.schedule ||
+                          workflow.trigger.config?.eventType ||
+                          'API';
+      valueSpan.textContent = triggerValue;
+      trigger.appendChild(valueSpan);
+
+      card.appendChild(trigger);
+    }
+
+    // Meta
+    const meta = document.createElement('div');
+    meta.className = 'workflow-meta';
+
+    const nodesSpan = document.createElement('span');
+    nodesSpan.textContent = (workflow.nodes?.length || 0) + ' steps';
+    meta.appendChild(nodesSpan);
+
+    const runsSpan = document.createElement('span');
+    runsSpan.textContent = (workflow.runCount || 0) + ' runs';
+    meta.appendChild(runsSpan);
+
+    const versionSpan = document.createElement('span');
+    versionSpan.textContent = 'v' + (workflow.version || '1.0.0');
+    meta.appendChild(versionSpan);
+
+    card.appendChild(meta);
+
+    return card;
+  }
+
+  // Modal functions
+  function openCreateModal() {
+    document.getElementById('modal-title').textContent = 'Create Workflow';
+    document.getElementById('workflow-form').reset();
+    document.getElementById('workflow-id').value = '';
+    document.getElementById('nodes-container').textContent = '';
+    nodeCounter = 0;
+    addNode(); // Start with one node
+    updateTriggerConfigLabel();
+    document.getElementById('workflow-modal').style.display = 'flex';
+  }
+
+  function openEditModal(workflow) {
+    document.getElementById('modal-title').textContent = 'Edit Workflow';
+    document.getElementById('workflow-id').value = workflow.id;
+    document.getElementById('workflow-name').value = workflow.name || '';
+    document.getElementById('workflow-version').value = workflow.version || '1.0.0';
+    document.getElementById('workflow-description').value = workflow.description || '';
+    document.getElementById('trigger-type').value = workflow.trigger?.type || 'voice_command';
+    document.getElementById('trigger-config').value =
+      workflow.trigger?.config?.command ||
+      workflow.trigger?.config?.toolName ||
+      workflow.trigger?.config?.schedule ||
+      workflow.trigger?.config?.eventType || '';
+    document.getElementById('workflow-enabled').checked = workflow.enabled !== false;
+
+    // Populate nodes
+    document.getElementById('nodes-container').textContent = '';
+    nodeCounter = 0;
+
+    if (workflow.nodes && workflow.nodes.length > 0) {
+      workflow.nodes.forEach(node => {
+        addNode(node);
+      });
+    } else {
+      addNode();
+    }
+
+    updateTriggerConfigLabel();
+    document.getElementById('workflow-modal').style.display = 'flex';
+  }
+
+  function closeModal() {
+    document.getElementById('workflow-modal').style.display = 'none';
+  }
+
+  function updateTriggerConfigLabel() {
+    const type = document.getElementById('trigger-type').value;
+    const label = document.querySelector('#trigger-config-group label');
+    const input = document.getElementById('trigger-config');
+
+    const labels = {
+      voice_command: { label: 'Voice Command', placeholder: 'start daily standup' },
+      tool_call: { label: 'Tool Name', placeholder: 'my-custom-tool' },
+      schedule: { label: 'Cron Expression', placeholder: '0 9 * * 1-5' },
+      event: { label: 'Event Type', placeholder: 'session.started' },
+      api: { label: 'API Endpoint', placeholder: '/trigger/my-workflow' },
+    };
+
+    const config = labels[type] || labels.voice_command;
+    label.textContent = config.label;
+    input.placeholder = config.placeholder;
+  }
+
+  // Node management
+  function addNode(existingNode) {
+    nodeCounter++;
+    const container = document.getElementById('nodes-container');
+
+    const nodeDiv = document.createElement('div');
+    nodeDiv.className = 'node-item';
+    nodeDiv.dataset.nodeIndex = nodeCounter;
+
+    // Header
+    const header = document.createElement('div');
+    header.className = 'node-header';
+
+    const number = document.createElement('span');
+    number.className = 'node-number';
+    number.textContent = nodeCounter;
+    header.appendChild(number);
+
+    const nameInput = document.createElement('input');
+    nameInput.type = 'text';
+    nameInput.name = 'node-name-' + nodeCounter;
+    nameInput.placeholder = 'Step name';
+    nameInput.value = existingNode?.name || '';
+    nameInput.style.flex = '1';
+    header.appendChild(nameInput);
+
+    const removeBtn = document.createElement('span');
+    removeBtn.className = 'node-remove';
+    removeBtn.textContent = '✕';
+    removeBtn.addEventListener('click', () => removeNode(nodeDiv));
+    header.appendChild(removeBtn);
+
+    nodeDiv.appendChild(header);
+
+    // Type and config
+    const row = document.createElement('div');
+    row.style.display = 'grid';
+    row.style.gridTemplateColumns = '1fr 1fr';
+    row.style.gap = 'var(--space-3)';
+
+    // Type select
+    const typeGroup = document.createElement('div');
+    typeGroup.className = 'form-group';
+    typeGroup.style.marginBottom = '0';
+
+    const typeLabel = document.createElement('label');
+    typeLabel.textContent = 'Type';
+    typeLabel.style.fontSize = 'var(--text-xs)';
+    typeGroup.appendChild(typeLabel);
+
+    const typeSelect = document.createElement('select');
+    typeSelect.name = 'node-type-' + nodeCounter;
+
+    NODE_TYPES.forEach(nt => {
+      const opt = document.createElement('option');
+      opt.value = nt.value;
+      opt.textContent = nt.label;
+      if (existingNode?.type === nt.value) opt.selected = true;
+      typeSelect.appendChild(opt);
+    });
+
+    typeGroup.appendChild(typeSelect);
+    row.appendChild(typeGroup);
+
+    // Config input
+    const configGroup = document.createElement('div');
+    configGroup.className = 'form-group';
+    configGroup.style.marginBottom = '0';
+
+    const configLabel = document.createElement('label');
+    configLabel.textContent = 'Configuration';
+    configLabel.style.fontSize = 'var(--text-xs)';
+    configGroup.appendChild(configLabel);
+
+    const configInput = document.createElement('input');
+    configInput.type = 'text';
+    configInput.name = 'node-config-' + nodeCounter;
+    configInput.placeholder = 'Tool name, URL, or prompt';
+    configInput.value = existingNode?.config ? JSON.stringify(existingNode.config) : '';
+    configGroup.appendChild(configInput);
+
+    row.appendChild(configGroup);
+    nodeDiv.appendChild(row);
+
+    container.appendChild(nodeDiv);
+    renumberNodes();
+  }
+
+  function removeNode(nodeDiv) {
+    nodeDiv.remove();
+    renumberNodes();
+  }
+
+  function renumberNodes() {
+    const nodes = document.querySelectorAll('.node-item');
+    nodes.forEach((node, index) => {
+      const number = node.querySelector('.node-number');
+      if (number) number.textContent = index + 1;
+    });
+  }
+
+  // Collect nodes from form
+  function collectNodes() {
+    const nodes = [];
+    const nodeItems = document.querySelectorAll('.node-item');
+
+    nodeItems.forEach((item, index) => {
+      const idx = item.dataset.nodeIndex;
+      const name = document.querySelector('[name="node-name-' + idx + '"]')?.value || 'Step ' + (index + 1);
+      const type = document.querySelector('[name="node-type-' + idx + '"]')?.value || 'llm_prompt';
+      const configStr = document.querySelector('[name="node-config-' + idx + '"]')?.value || '';
+
+      let config = {};
+      if (configStr) {
+        try {
+          config = JSON.parse(configStr);
+        } catch (e) {
+          // Treat as simple value based on type
+          if (type === 'webhook') config = { url: configStr };
+          else if (type === 'mcp_call') config = { toolName: configStr };
+          else if (type === 'llm_prompt') config = { prompt: configStr };
+          else if (type === 'wait') config = { duration: parseInt(configStr) || 1000 };
+          else if (type === 'set_variable') config = { variable: configStr };
+          else config = { value: configStr };
+        }
+      }
+
+      nodes.push({
+        id: 'node_' + (index + 1),
+        name: name,
+        type: type,
+        config: config,
+      });
+    });
+
+    return nodes;
+  }
+
+  // Build edges from sequential nodes
+  function buildEdges(nodes) {
+    const edges = [];
+    for (let i = 0; i < nodes.length - 1; i++) {
+      edges.push({
+        id: 'edge_' + (i + 1),
+        sourceId: nodes[i].id,
+        targetId: nodes[i + 1].id,
+      });
+    }
+    return edges;
+  }
+
+  // Runs modal
+  async function showRuns(workflowId, workflowName) {
+    document.getElementById('runs-modal-title').textContent = 'Execution History - ' + workflowName;
+    document.getElementById('runs-modal').style.display = 'flex';
+
+    const container = document.getElementById('runs-content');
+    showLoading(container);
+
+    try {
+      const response = await window.workflows.runs(workflowId, { limit: 50 });
+      renderRuns(response.data || []);
+    } catch (error) {
+      showError(container, 'Failed to load runs: ' + error.message);
+    }
+  }
+
+  function renderRuns(runs) {
+    const container = document.getElementById('runs-content');
+    container.textContent = '';
+
+    if (!runs || runs.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'empty-state';
+      empty.textContent = 'No executions yet.';
+      container.appendChild(empty);
+      return;
+    }
+
+    runs.forEach(run => {
+      const entry = document.createElement('div');
+      entry.className = 'run-entry';
+
+      const status = document.createElement('div');
+      status.className = 'run-status ' + run.status;
+      entry.appendChild(status);
+
+      const details = document.createElement('div');
+      details.className = 'run-details';
+
+      const runId = document.createElement('div');
+      runId.className = 'run-id';
+      runId.textContent = run.id;
+      details.appendChild(runId);
+
+      const meta = document.createElement('div');
+      meta.className = 'run-meta';
+      meta.textContent = formatTimestamp(run.startedAt) + ' • ' + run.triggeredBy;
+      if (run.error) {
+        meta.textContent += ' • ' + run.error;
+      }
+      details.appendChild(meta);
+
+      entry.appendChild(details);
+      container.appendChild(entry);
+    });
+  }
+
+  function closeRunsModal() {
+    document.getElementById('runs-modal').style.display = 'none';
+  }
+
+  // Workflow operations
+  async function saveWorkflow(event) {
+    event.preventDefault();
+    const form = event.target;
+    const id = form.id.value;
+
+    const nodes = collectNodes();
+    const edges = buildEdges(nodes);
+
+    const data = {
+      name: form.name.value,
+      version: form.version.value || '1.0.0',
+      description: form.description.value,
+      trigger: {
+        type: form.triggerType.value,
+        config: {},
+      },
+      nodes: nodes,
+      edges: edges,
+      entryNodeId: nodes.length > 0 ? nodes[0].id : undefined,
+      exitNodeIds: nodes.length > 0 ? [nodes[nodes.length - 1].id] : [],
+      enabled: form.enabled.checked,
+    };
+
+    // Set trigger config based on type
+    const triggerValue = form.triggerConfig.value;
+    switch (data.trigger.type) {
+      case 'voice_command':
+        data.trigger.config.command = triggerValue;
+        break;
+      case 'tool_call':
+        data.trigger.config.toolName = triggerValue;
+        break;
+      case 'schedule':
+        data.trigger.config.schedule = triggerValue;
+        break;
+      case 'event':
+        data.trigger.config.eventType = triggerValue;
+        break;
+      case 'api':
+        data.trigger.config.endpoint = triggerValue;
+        break;
+    }
+
+    try {
+      if (id) {
+        await window.workflows.update(id, data);
+        showToast('Workflow updated', 'success');
+      } else {
+        await window.workflows.create(data);
+        showToast('Workflow created', 'success');
+      }
+      closeModal();
+      loadWorkflows();
+    } catch (error) {
+      showToast('Failed to save: ' + error.message, 'error');
+    }
+  }
+
+  async function executeWorkflow(id) {
+    try {
+      showToast('Starting workflow...', 'info');
+      const result = await window.workflows.execute(id, {});
+      showToast('Workflow started: ' + result.data?.executionId, 'success');
+    } catch (error) {
+      showToast('Failed to start: ' + error.message, 'error');
+    }
+  }
+
+  async function deleteWorkflow(id, name) {
+    if (!confirm('Are you sure you want to delete "' + name + '"? This cannot be undone.')) {
+      return;
+    }
+
+    try {
+      await window.workflows.delete(id);
+      showToast('Workflow deleted', 'success');
+      loadWorkflows();
+    } catch (error) {
+      showToast('Failed to delete: ' + error.message, 'error');
+    }
+  }
+
+  // Event listeners
+  document.getElementById('create-workflow-btn').addEventListener('click', openCreateModal);
+  document.getElementById('close-modal-btn').addEventListener('click', closeModal);
+  document.getElementById('cancel-btn').addEventListener('click', closeModal);
+  document.getElementById('workflow-form').addEventListener('submit', saveWorkflow);
+  document.getElementById('trigger-type').addEventListener('change', updateTriggerConfigLabel);
+  document.getElementById('add-node-btn').addEventListener('click', () => addNode());
+  document.getElementById('close-runs-btn').addEventListener('click', closeRunsModal);
+
+  // ===== VISUAL EDITOR INTEGRATION =====
+  let workflowCanvas = null;
+  let currentVisualWorkflowId = null;
+  let currentVisualWorkflowData = null;
+
+  function openVisualEditor(workflow) {
+    currentVisualWorkflowId = workflow?.id || null;
+    currentVisualWorkflowData = workflow || {};
+
+    document.getElementById('visual-editor-title').textContent = workflow?.name
+      ? 'Edit: ' + workflow.name
+      : 'New Workflow';
+    document.getElementById('visual-editor-modal').style.display = 'flex';
+
+    // Initialize canvas if not already
+    if (!workflowCanvas) {
+      workflowCanvas = new WorkflowCanvas('workflow-canvas-container');
+
+      // Handle node selection
+      workflowCanvas.onNodeSelect = (node) => {
+        if (node) {
+          renderNodeProperties(node);
+        } else {
+          clearNodeProperties();
+        }
+      };
+
+      // Handle node double-click (edit)
+      workflowCanvas.onNodeEdit = (node) => {
+        renderNodeProperties(node);
+      };
+    }
+
+    // Load workflow into canvas
+    workflowCanvas.loadWorkflow(currentVisualWorkflowData);
+    clearNodeProperties();
+  }
+
+  function closeVisualEditor() {
+    document.getElementById('visual-editor-modal').style.display = 'none';
+    currentVisualWorkflowId = null;
+    currentVisualWorkflowData = null;
+  }
+
+  function renderNodeProperties(node) {
+    const container = document.getElementById('node-properties-content');
+
+    // Clear container
+    while (container.firstChild) {
+      container.removeChild(container.firstChild);
+    }
+
+    // Node name
+    const nameGroup = document.createElement('div');
+    nameGroup.className = 'property-group';
+    const nameLabel = document.createElement('label');
+    nameLabel.textContent = 'Name';
+    nameGroup.appendChild(nameLabel);
+    const nameInput = document.createElement('input');
+    nameInput.type = 'text';
+    nameInput.id = 'prop-name';
+    nameInput.value = node.name || '';
+    nameInput.addEventListener('change', () => updateSelectedNode('name', nameInput.value));
+    nameGroup.appendChild(nameInput);
+    container.appendChild(nameGroup);
+
+    // Node type
+    const typeGroup = document.createElement('div');
+    typeGroup.className = 'property-group';
+    const typeLabel = document.createElement('label');
+    typeLabel.textContent = 'Type';
+    typeGroup.appendChild(typeLabel);
+    const typeSelect = document.createElement('select');
+    typeSelect.id = 'prop-type';
+
+    Object.entries(NODE_TYPE_CONFIG).forEach(([type, config]) => {
+      const opt = document.createElement('option');
+      opt.value = type;
+      opt.textContent = config.label;
+      if (node.type === type) opt.selected = true;
+      typeSelect.appendChild(opt);
+    });
+
+    typeSelect.addEventListener('change', () => {
+      updateSelectedNode('type', typeSelect.value);
+      renderNodeProperties(workflowCanvas.nodes.get(node.id));
+    });
+    typeGroup.appendChild(typeSelect);
+    container.appendChild(typeGroup);
+
+    // Type-specific config
+    const configGroup = document.createElement('div');
+    configGroup.className = 'property-group';
+    const configLabel = document.createElement('label');
+    configLabel.textContent = 'Configuration';
+    configGroup.appendChild(configLabel);
+
+    const configArea = document.createElement('textarea');
+    configArea.id = 'prop-config';
+    configArea.rows = 4;
+    configArea.placeholder = 'JSON configuration';
+    configArea.value = node.config ? JSON.stringify(node.config, null, 2) : '';
+    configArea.addEventListener('change', () => {
+      try {
+        const cfg = JSON.parse(configArea.value || '{}');
+        updateSelectedNode('config', cfg);
+      } catch (e) {
+        showToast('Invalid JSON in configuration', 'error');
+      }
+    });
+    configGroup.appendChild(configArea);
+    container.appendChild(configGroup);
+
+    // Delete button
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'btn btn-danger';
+    deleteBtn.style.width = '100%';
+    deleteBtn.style.marginTop = 'var(--space-4)';
+    deleteBtn.textContent = 'Delete Node';
+    deleteBtn.addEventListener('click', () => {
+      if (confirm('Delete this node?')) {
+        workflowCanvas.removeNode(node.id);
+        clearNodeProperties();
+      }
+    });
+    container.appendChild(deleteBtn);
+  }
+
+  function clearNodeProperties() {
+    const container = document.getElementById('node-properties-content');
+    while (container.firstChild) {
+      container.removeChild(container.firstChild);
+    }
+    const msg = document.createElement('p');
+    msg.style.color = 'var(--text-muted)';
+    msg.style.fontSize = 'var(--text-sm)';
+    msg.textContent = 'Select a node to edit its properties';
+    container.appendChild(msg);
+  }
+
+  function updateSelectedNode(prop, value) {
+    if (!workflowCanvas.selectedNode) return;
+    const node = workflowCanvas.nodes.get(workflowCanvas.selectedNode);
+    if (node) {
+      node[prop] = value;
+      workflowCanvas.renderNode(node);
+    }
+  }
+
+  function addNodeToVisualEditor() {
+    const node = workflowCanvas.addNode({
+      type: 'llm_prompt',
+      name: 'New Step',
+      position: { x: 300, y: 200 + workflowCanvas.nodes.size * 100 },
+    });
+
+    workflowCanvas.selectNode(node.id);
+    workflowCanvas.autoLayout();
+  }
+
+  async function saveVisualWorkflow() {
+    const graphData = workflowCanvas.getWorkflow();
+
+    // Get basic workflow info from original data or defaults
+    const workflowData = {
+      name: currentVisualWorkflowData.name || 'Untitled Workflow',
+      description: currentVisualWorkflowData.description || '',
+      version: currentVisualWorkflowData.version || '1.0.0',
+      trigger: currentVisualWorkflowData.trigger || {
+        type: 'api',
+        config: {},
+      },
+      enabled: currentVisualWorkflowData.enabled !== false,
+      ...graphData,
+    };
+
+    try {
+      if (currentVisualWorkflowId) {
+        await window.workflows.update(currentVisualWorkflowId, workflowData);
+        showToast('Workflow updated', 'success');
+      } else {
+        await window.workflows.create(workflowData);
+        showToast('Workflow created', 'success');
+      }
+      closeVisualEditor();
+      loadWorkflows();
+    } catch (error) {
+      showToast('Failed to save: ' + error.message, 'error');
+    }
+  }
+
+  // Add visual editor button to workflow cards
+  function createWorkflowCardWithVisual(workflow) {
+    const card = createWorkflowCard(workflow);
+
+    // Add visual edit button
+    const actions = card.querySelector('.workflow-actions');
+    if (actions) {
+      const visualBtn = document.createElement('button');
+      visualBtn.className = 'btn btn-ghost visual-editor-toggle';
+      visualBtn.style.order = '-1';
+
+      const icon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      icon.setAttribute('width', '14');
+      icon.setAttribute('height', '14');
+      icon.setAttribute('viewBox', '0 0 24 24');
+      icon.setAttribute('fill', 'none');
+      icon.setAttribute('stroke', 'currentColor');
+      icon.setAttribute('stroke-width', '2');
+
+      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      path.setAttribute('d', 'M4 6h16M4 12h16M4 18h16');
+      icon.appendChild(path);
+
+      visualBtn.appendChild(icon);
+
+      const text = document.createTextNode(' Visual');
+      visualBtn.appendChild(text);
+
+      visualBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openVisualEditor(workflow);
+      });
+
+      actions.insertBefore(visualBtn, actions.firstChild);
+    }
+
+    return card;
+  }
+
+  // Override renderWorkflows to use visual-enabled cards
+  const originalRenderWorkflows = renderWorkflows;
+  renderWorkflows = function(workflows) {
+    const container = document.getElementById('workflows-list');
+    container.textContent = '';
+
+    if (!workflows || workflows.length === 0) {
+      container.appendChild(createEmptyState(
+        'No workflows defined yet. Create one to automate multi-step agent tasks.',
+        'Create Your First Workflow',
+        openCreateModal
+      ));
+      return;
+    }
+
+    workflows.forEach(workflow => {
+      container.appendChild(createWorkflowCardWithVisual(workflow));
+    });
+  };
+
+  // Visual editor event listeners
+  document.getElementById('close-visual-editor-btn').addEventListener('click', closeVisualEditor);
+  document.getElementById('cancel-visual-btn').addEventListener('click', closeVisualEditor);
+  document.getElementById('save-visual-workflow-btn').addEventListener('click', saveVisualWorkflow);
+  document.getElementById('visual-add-node-btn').addEventListener('click', addNodeToVisualEditor);
+  document.getElementById('visual-auto-layout-btn').addEventListener('click', () => {
+    if (workflowCanvas) workflowCanvas.autoLayout();
+  });
+  document.getElementById('visual-fit-btn').addEventListener('click', () => {
+    if (workflowCanvas) workflowCanvas.fitToView();
+  });
+</script>
+
+  </main>
+
+  <footer class="footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <a href="/" class="nav-logo">
+          <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="16" cy="16" r="14" fill="var(--accent-primary)"/>
+            <path d="M10 12h12M10 16h8M10 20h10" stroke="var(--bg-code)" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          <span>Ferni Developers</span>
+        </a>
+        <p>Build voice AI agents with the same platform that powers Ferni's AI life coaching team.</p>
+      </div>
+      
+      <div class="footer-column">
+        <h4>Documentation</h4>
+        <ul class="footer-links">
+          <li><a href="/getting-started/">Getting Started</a></li>
+          <li><a href="/api/">API Reference</a></li>
+          <li><a href="/sdk/">SDK</a></li>
+          <li><a href="/examples/">Examples</a></li>
+        </ul>
+      </div>
+      
+      <div class="footer-column">
+        <h4>Resources</h4>
+        <ul class="footer-links">
+          <li><a href="/console/">Developer Console</a></li>
+          <li><a href="https://github.com/ferni-ai">GitHub</a></li>
+          <li><a href="https://discord.gg/ferni">Discord Community</a></li>
+          <li><a href="/changelog/">Changelog</a></li>
+        </ul>
+      </div>
+      
+      <div class="footer-column">
+        <h4>Company</h4>
+        <ul class="footer-links">
+          <li><a href="https://ferni.ai">Ferni.ai</a></li>
+          <li><a href="https://marketplace.ferni.ai">Marketplace</a></li>
+          <li><a href="https://ferni.ai/privacy">Privacy</a></li>
+          <li><a href="https://ferni.ai/terms">Terms</a></li>
+        </ul>
+      </div>
+    </div>
+    
+    <div class="footer-bottom">
+      <p>&copy; 2026 Ferni AI. All rights reserved.</p>
+      <p>API Status: <span style="color: var(--success);">●</span> Operational</p>
+    </div>
+  </div>
+</footer>
+
+
+  <!-- Theme Toggle Button -->
+  <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">
+    <svg class="sun-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="12" cy="12" r="5"/>
+      <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+    </svg>
+    <svg class="moon-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+    </svg>
+  </button>
+
+  <script>
+    // Theme toggle
+    function toggleTheme() {
+      const html = document.documentElement;
+      const current = html.getAttribute('data-theme');
+      const next = current === 'cedar' ? 'zen' : 'cedar';
+      html.setAttribute('data-theme', next);
+      localStorage.setItem('ferni-theme', next);
+    }
+
+    // Load saved theme
+    const saved = localStorage.getItem('ferni-theme');
+    if (saved) {
+      document.documentElement.setAttribute('data-theme', saved);
+    }
+  </script>
+
+  
+</body>
+</html>
