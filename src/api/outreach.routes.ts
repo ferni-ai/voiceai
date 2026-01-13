@@ -280,6 +280,55 @@ export async function handleOutreachRoutes(
       return true;
     }
 
+    // GET /api/outreach/pending-checkin - Get pending check-in for badge UI
+    // Returns the most relevant check-in Ferni wants to have with the user
+    if (route === '/pending-checkin' && method === 'GET') {
+      const userId = authenticatedUserId;
+
+      const pending = getPendingOutreach(userId);
+
+      // Find the most relevant check-in type item
+      const checkinTypes = [
+        'thinking_of_you',
+        'emotional_support',
+        'commitment_check',
+        'growth_reflection',
+        'gentle_checkin',
+      ];
+      const checkinItem = pending.find((item) => checkinTypes.includes(item.type));
+
+      if (!checkinItem) {
+        sendJsonResponse(res, 200, {
+          hasCheckin: false,
+          checkin: null,
+        });
+        return true;
+      }
+
+      // Map outreach type to badge icon type
+      type BadgeType = 'thinking_of_you' | 'gentle_checkin' | 'celebration' | 'support';
+      const iconTypes: Record<string, BadgeType> = {
+        thinking_of_you: 'thinking_of_you',
+        emotional_support: 'support',
+        commitment_check: 'gentle_checkin',
+        growth_reflection: 'celebration',
+        gentle_checkin: 'gentle_checkin',
+        celebration: 'celebration',
+      };
+
+      sendJsonResponse(res, 200, {
+        hasCheckin: true,
+        checkin: {
+          id: checkinItem.id,
+          type: iconTypes[checkinItem.type] || 'thinking_of_you',
+          message: checkinItem.reason || "I've been thinking about you",
+          personaId: checkinItem.suggestedPersona || 'ferni',
+          timestamp: checkinItem.suggestedTime?.toISOString() || new Date().toISOString(),
+        },
+      });
+      return true;
+    }
+
     // GET /api/outreach/upcoming - formatted for UI
     if (route === '/upcoming' && method === 'GET') {
       // Use authenticated userId

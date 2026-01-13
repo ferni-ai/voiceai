@@ -90,9 +90,7 @@ DELIVERY GUIDANCE:
 
 The messages will be marked as delivered after this conversation.`,
           {
-            priority: 9, // High priority - messages should be delivered
             category: 'family',
-            source: 'family-messages-context',
           }
         )
       );
@@ -114,9 +112,7 @@ ${JSON.stringify(
   2
 )}`,
           {
-            priority: 5,
             category: 'family',
-            source: 'family-messages-context',
           }
         )
       );

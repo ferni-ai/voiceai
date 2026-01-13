@@ -1,0 +1,1 @@
+{"version":3,"file":"game-context.d.ts","sourceRoot":"","sources":["game-context.ts"],"names":[],"mappings":"AAAA;;;;;;;GAOG;AAIH,OAAO,EAGL,KAAK,mBAAmB,EACxB,KAAK,gBAAgB,EACtB,MAAM,aAAa,CAAC;AAIrB;;GAEG;AACH,iBAAe,gBAAgB,CAAC,KAAK,EAAE,mBAAmB,GAAG,OAAO,CAAC,gBAAgB,EAAE,CAAC,CA+FvF;AAQD,OAAO,EAAE,gBAAgB,EAAE,CAAC;AAC5B,eAAe,gBAAgB,CAAC"}

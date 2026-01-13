@@ -121,12 +121,12 @@ describe('Family Context Sharing Service', () => {
         fromName: 'Seth',
         fromRelationship: 'sponsor',
         toUserId: 'family_456',
-        message: "I got the promotion!",
+        message: 'I got the promotion!',
       });
 
       expect(context).not.toBeNull();
       expect(context!.type).toBe('explicit_share');
-      expect(context!.summary).toBe("I got the promotion!");
+      expect(context!.summary).toBe('I got the promotion!');
     });
   });
 
@@ -137,7 +137,7 @@ describe('Family Context Sharing Service', () => {
         fromName: 'Seth',
         fromRelationship: 'sponsor',
         toUserId: 'family_456',
-        reason: "she seemed stressed last time",
+        reason: 'she seemed stressed last time',
       });
 
       expect(context).not.toBeNull();
@@ -184,14 +184,14 @@ describe('Family Context Sharing Service', () => {
         fromName: 'Test',
         fromRelationship: 'sponsor',
         toUserId: 'family_456',
-        summary: "Just saying hello",
+        summary: 'Just saying hello',
       });
 
       expect(context).not.toBeNull();
-      
+
       const now = new Date();
       const threeDaysFromNow = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
-      
+
       // Expiry should be within a few seconds of 3 days from now
       expect(context!.expiresAt.getTime()).toBeGreaterThan(now.getTime());
       expect(context!.expiresAt.getTime()).toBeLessThanOrEqual(threeDaysFromNow.getTime() + 5000);
@@ -201,7 +201,7 @@ describe('Family Context Sharing Service', () => {
   describe('Summary Sanitization', () => {
     it('should truncate long summaries', async () => {
       const longMessage = 'A'.repeat(300);
-      
+
       const context = await createShareableContext({
         type: 'explicit_share',
         fromUserId: 'user_123',
@@ -223,7 +223,7 @@ describe('Family Context Sharing Service', () => {
         fromName: 'Test',
         fromRelationship: 'sponsor',
         toUserId: 'family_456',
-        summary: "My balance is 12345 dollars",
+        summary: 'My balance is 12345 dollars',
       });
 
       // Should replace the number but keep the rest

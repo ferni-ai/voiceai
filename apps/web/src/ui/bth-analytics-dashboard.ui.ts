@@ -325,8 +325,8 @@ async function fetchDashboardData(): Promise<DashboardData> {
   }
 
   return {
-    stats: statsRes.data?.stats || [],
-    topCapabilities: topRes.data?.capabilities || [],
+    stats: (statsRes.data?.stats || []),
+    topCapabilities: (topRes.data?.capabilities || []).map(c => ({ capability: String(c.capability || ''), score: Number(c.effectivenessScore || 0) })),
     trend: trendRes.data?.trend || [],
   };
 }

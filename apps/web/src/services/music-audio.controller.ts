@@ -24,16 +24,20 @@ const log = createLogger('MusicAudio');
 
 /**
  * Gain levels for different scenarios (0-1 scale)
+ * 
+ * TUNED 2026-01-12: Reduced ducking levels significantly.
+ * 12% was still too loud for energetic music like bluegrass.
+ * Agent voice needs to clearly dominate over any music.
  */
 const GAIN = {
   /** Full volume when no one is speaking */
   NORMAL: 1.0,
-  /** Very quiet when agent speaks - agent voice should dominate */
-  AGENT_SPEAKING: 0.12,
-  /** Slightly louder when user speaks - they still want some music */
-  USER_SPEAKING: 0.2,
-  /** Minimum gain - never fully silent */
-  MINIMUM: 0.05,
+  /** Nearly silent when agent speaks - agent voice must clearly dominate */
+  AGENT_SPEAKING: 0.04, // Was 0.12, now 4% - much quieter
+  /** Quieter when user speaks - still some ambiance */
+  USER_SPEAKING: 0.08, // Was 0.2, now 8%
+  /** Minimum gain - never fully silent (prevents abrupt cutoff) */
+  MINIMUM: 0.02, // Was 0.05, now 2%
 } as const;
 
 /**
@@ -86,6 +90,8 @@ interface MusicTrackState {
 /**
  * Controls music audio with real-time ducking capabilities.
  * Singleton pattern - one controller manages all music tracks.
+ *
+ * NEW: Includes fallback ducking via HTMLAudioElement.volume when Web Audio fails.
  */
 class MusicAudioController {
   private audioContext: AudioContext | null = null;
@@ -100,14 +106,18 @@ class MusicAudioController {
   // Cleanup functions for event listeners
   private cleanupFunctions: Array<() => void> = [];
 
-  // 🐛 FIX: Track which audio elements have been connected to Web Audio
+  // Track which audio elements have been connected to Web Audio
   // createMediaElementSource() can only be called ONCE per element!
   private connectedElements: WeakMap<HTMLAudioElement, MediaElementAudioSourceNode> = new WeakMap();
 
-  // 🎵 Visualization callback and animation loop
+  // Visualization callback and animation loop
   private visualizationCallback: ((volume: number) => void) | null = null;
   private visualizationAnimationFrame: number | null = null;
   private visualizationDataArray: Uint8Array<ArrayBuffer> | null = null;
+
+  // FALLBACK: When Web Audio fails, use direct volume control
+  private fallbackAudioElement: HTMLAudioElement | null = null;
+  private usingFallback = false;
 
   constructor() {
     log.debug('MusicAudioController created');
@@ -281,20 +291,71 @@ class MusicAudioController {
         }
       }
 
-      // 🐛 FIX: Log actionable error instead of silent failure
-      log.error('🎚️ Failed to attach music track - DUCKING WILL NOT WORK', {
+      // Web Audio failed - use fallback CSS volume ducking
+      log.warn('🎚️ Web Audio failed - using CSS volume fallback for ducking', {
         trackId,
         error: errorMessage,
         retryCount,
-        hint: 'Check if audio element is being used by another service',
       });
 
-      // Return a no-op cleanup function instead of throwing
-      // This allows the app to continue working (without ducking)
+      // Store audio element for fallback ducking
+      this.fallbackAudioElement = audioElement;
+      this.usingFallback = true;
+
+      // Apply any pending ducking state to fallback
+      if (this.agentSpeaking || this.userSpeaking || this.backendDucking) {
+        this.applyFallbackDuck();
+      }
+
       return () => {
-        log.debug('🎚️ No-op cleanup for failed track attachment', { trackId });
+        log.debug('🎚️ Fallback cleanup', { trackId });
+        if (this.fallbackAudioElement === audioElement) {
+          this.fallbackAudioElement = null;
+          this.usingFallback = false;
+        }
       };
     }
+  }
+
+  // ==========================================================================
+  // FALLBACK DUCKING (CSS Volume)
+  // ==========================================================================
+
+  /**
+   * Apply ducking via direct HTMLAudioElement.volume
+   * Used when Web Audio API fails to attach.
+   */
+  private applyFallbackDuck(): void {
+    if (!this.fallbackAudioElement) return;
+
+    let targetVolume: number;
+    if (this.agentSpeaking) {
+      targetVolume = GAIN.AGENT_SPEAKING;
+    } else if (this.userSpeaking) {
+      targetVolume = GAIN.USER_SPEAKING;
+    } else if (this.backendDucking) {
+      targetVolume = GAIN.USER_SPEAKING;
+    } else {
+      targetVolume = GAIN.NORMAL;
+    }
+
+    // Direct volume control (instant, no ramp)
+    this.fallbackAudioElement.volume = Math.max(targetVolume, GAIN.MINIMUM);
+
+    log.info('🎚️ Fallback ducking applied', {
+      volume: this.fallbackAudioElement.volume.toFixed(2),
+      reason: this.agentSpeaking ? 'agent' : this.userSpeaking ? 'user' : 'backend',
+    });
+  }
+
+  /**
+   * Restore volume via fallback.
+   */
+  private restoreFallbackVolume(): void {
+    if (!this.fallbackAudioElement) return;
+
+    this.fallbackAudioElement.volume = GAIN.NORMAL;
+    log.debug('🎚️ Fallback volume restored');
   }
 
   /**
@@ -338,11 +399,31 @@ class MusicAudioController {
    */
   duckForAgent(): boolean {
     this.agentSpeaking = true;
+
+    // Try Web Audio first
     const success = this.updateDucking();
+    
+    // Fall back to CSS volume if Web Audio isn't available
+    if (!success && this.usingFallback) {
+      this.applyFallbackDuck();
+      log.info('🎚️ ✅ FALLBACK DUCKING for agent speech', {
+        volume: this.fallbackAudioElement?.volume.toFixed(2),
+      });
+      return true;
+    }
+    
     if (success) {
-      log.debug('🎚️ Ducking for agent speech');
+      log.info('🎚️ ✅ DUCKING APPLIED for agent speech', {
+        currentGain: this.currentTrack?.gainNode.gain.value.toFixed(2),
+        targetGain: this.currentTrack?.targetGain.toFixed(2),
+        trackId: this.currentTrack?.trackId,
+      });
     } else {
-      log.warn('🎚️ [BUG] duckForAgent called but no music track attached - ducking will NOT work!');
+      log.warn('🎚️ ❌ DUCKING FAILED - no music track attached!', {
+        hasTrack: this.currentTrack !== null,
+        usingFallback: this.usingFallback,
+        agentSpeaking: this.agentSpeaking,
+      });
     }
     return success;
   }
@@ -355,6 +436,13 @@ class MusicAudioController {
   unduckForAgent(): boolean {
     this.agentSpeaking = false;
     const success = this.updateDucking();
+    
+    // Fallback unduck
+    if (!success && this.usingFallback) {
+      this.applyFallbackDuck(); // Will restore if nothing else is ducking
+      return true;
+    }
+    
     if (success) {
       log.debug('🎚️ Agent stopped, restoring gain');
     }
@@ -370,10 +458,15 @@ class MusicAudioController {
   duckForUser(): boolean {
     this.userSpeaking = true;
     const success = this.updateDucking();
+    
+    if (!success && this.usingFallback) {
+      this.applyFallbackDuck();
+      log.debug('🎚️ Fallback ducking for user speech');
+      return true;
+    }
+    
     if (success) {
       log.debug('🎚️ Ducking for user speech');
-    } else {
-      log.warn('🎚️ [BUG] duckForUser called but no music track attached - ducking will NOT work!');
     }
     return success;
   }
@@ -386,6 +479,12 @@ class MusicAudioController {
   unduckForUser(): boolean {
     this.userSpeaking = false;
     const success = this.updateDucking();
+    
+    if (!success && this.usingFallback) {
+      this.applyFallbackDuck();
+      return true;
+    }
+    
     if (success) {
       log.debug('🎚️ User stopped, restoring gain');
     }
@@ -395,14 +494,25 @@ class MusicAudioController {
   /**
    * Duck based on backend message.
    * Lowest priority - only applies if no one is speaking.
-   * 
+   *
    * @returns true if ducking was applied, false if no track attached
    */
   duckFromBackend(): boolean {
     this.backendDucking = true;
     const success = this.updateDucking();
+    
+    if (!success && this.usingFallback) {
+      this.applyFallbackDuck();
+      log.info('🎚️ Backend requested duck - FALLBACK APPLIED');
+      return true;
+    }
+    
     if (success) {
-      log.debug('🎚️ Backend requested duck');
+      log.info('🎚️ Backend requested duck - DUCKING APPLIED', {
+        hasTrack: !!this.currentTrack,
+        trackId: this.currentTrack?.trackId,
+        targetGain: this.currentTrack?.targetGain,
+      });
     } else {
       log.warn('🎚️ [BUG] duckFromBackend called but no music track attached - ducking will NOT work!');
     }
@@ -462,9 +572,11 @@ class MusicAudioController {
     if (this.currentTrack.targetGain === targetGain) {
       // Log when redundant ducking is detected (both frontend and backend triggering)
       if (targetGain !== GAIN.NORMAL) {
-        log.debug('🎚️ Ducking already at target level (redundant trigger ignored)', {
+        // 🎚️ FIX: Use info level so we can see when ducking is skipped
+        log.info('🎚️ Ducking ALREADY at target level (skipping ramp)', {
           targetGain: targetGain.toFixed(2),
           priority,
+          currentGain: this.currentTrack.gainNode.gain.value.toFixed(2),
         });
       }
       return true; // Already at target - ducking is working
@@ -503,10 +615,12 @@ class MusicAudioController {
     const clampedGain = Math.max(targetGain, GAIN.MINIMUM);
     gainNode.gain.linearRampToValueAtTime(clampedGain, endTime);
 
-    log.debug('🎚️ Ramping gain', {
+    // 🎚️ FIX: Use info level so volume changes are visible in console
+    log.info('🎚️ RAMPING GAIN (volume change!)', {
       from: gainNode.gain.value.toFixed(2),
       to: clampedGain.toFixed(2),
       durationMs,
+      trackId: this.currentTrack.trackId,
     });
   }
 

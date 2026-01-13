@@ -458,7 +458,9 @@
           const teamAttention = state.attentionMap.get('team');
           return teamAttention && teamAttention.duration > 5000;
         },
-        action: () => this.highlightCTA('Meet the team →', '#team'),
+        // Note: Use PredictivePresence instead of 'this' because arrow functions
+        // capture 'this' from definition scope, not the object
+        action: () => PredictivePresence.highlightCTA('Meet the team →', '#team'),
       },
 
       // Pattern: User read pricing carefully
@@ -467,19 +469,19 @@
           const pricingAttention = state.attentionMap.get('pricing');
           return pricingAttention && pricingAttention.duration > 8000;
         },
-        action: () => this.showSoftNudge('Ready to start? Your first 5 conversations are free.'),
+        action: () => PredictivePresence.showSoftNudge('Ready to start? Your first 5 conversations are free.'),
       },
 
       // Pattern: User scrolled past CTA multiple times
       ctaHesitation: {
         trigger: () => state.interactionCount > 10 && !state.hasClickedCTA,
-        action: () => this.showSoftNudge('No pressure. Just try talking to Ferni.'),
+        action: () => PredictivePresence.showSoftNudge('No pressure. Just try talking to Ferni.'),
       },
 
       // Pattern: High engagement, not converted
       highEngagementNoConversion: {
         trigger: () => state.sentiment > 0.7 && state.engagementLevel >= 2 && !state.hasConverted,
-        action: () => this.pulseDemo(),
+        action: () => PredictivePresence.pulseDemo(),
       },
     },
 

@@ -4,7 +4,7 @@
  *
  * 🎨 AUTO-GENERATED FROM design-system/tokens/
  * Do not edit directly - run: pnpm tokens:sync
- * Generated: 2026-01-03T15:29:48.245Z
+ * Generated: 2026-01-12T19:50:54.943Z
  */
 
 :root {
@@ -137,6 +137,7 @@
   /* ============================================
      SHADOWS
      ============================================ */
+  --shadow-2xs: 0 1px 2px rgba(0, 0, 0, 0.03), 0 1px 1px rgba(0, 0, 0, 0.04);
   --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.04);
   --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.06);
   --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04);
@@ -218,6 +219,29 @@
   --duration-meditative: 3000ms;
   --duration-ambient: 8000ms;
 
+  /* ============================================
+     EFFECTS - Chromatic Aberration
+     ============================================ */
+  --effect-chromatic-red: #ff0000;
+  --effect-chromatic-red-tint: rgba(255, 0, 0, 0.2);
+  --effect-chromatic-cyan: #00ffff;
+  --effect-chromatic-cyan-tint: rgba(0, 255, 255, 0.2);
+  --effect-chromatic-offset-subtle: 1px;
+  --effect-chromatic-offset-normal: 2px;
+  --effect-chromatic-offset-strong: 4px;
+
+  /* ============================================
+     EFFECTS - Blur
+     ============================================ */
+  --blur-none: 0;
+  --blur-xs: 2px;
+  --blur-sm: 4px;
+  --blur-md: 8px;
+  --blur-lg: 16px;
+  --blur-xl: 24px;
+  --blur-2xl: 40px;
+  --blur-glass: 12px;
+
   /* ========================================
      LAYOUT
      ======================================== */
@@ -225,61 +249,4 @@
   --container-narrow: 768px;
   --sidebar-width: 280px;
   --header-height: 64px;
-  --leading-tight: 1.25;
-  --leading-normal: 1.5;
-  --leading-relaxed: 1.75;
-}
-
-/* ========================================
-   ZEN GARDEN - Light Theme
-   Toggle with data-theme="zen"
-   ======================================== */
-
-[data-theme="zen"] {
-  /* Backgrounds */
-  --bg-primary: #FAF8F5;
-  --bg-secondary: #F5F2ED;
-  --bg-tertiary: #EFEBE4;
-  --bg-elevated: #FFFFFF;
-  --bg-glass: rgba(255, 255, 255, 0.8);
-  --bg-overlay: rgba(250, 248, 245, 0.95);
-  --bg-code: #F0EDE6;
-  --bg-code-inline: rgba(44, 37, 32, 0.06);
-
-  /* Text */
-  --text-primary: #2C2520;
-  --text-secondary: #4A4641;
-  --text-muted: #6B665F;
-  --text-dimmed: #8A847C;
-  --text-inverse: #FFFFFF;
-
-  /* Accent - Forest Green */
-  --accent-primary: #3D5A45;
-  --accent-hover: #4A6B52;
-  --accent-pressed: #2F4636;
-  --accent-glow: rgba(61, 90, 69, 0.15);
-  --accent-subtle: rgba(61, 90, 69, 0.08);
-  --accent-text: #3D5A45;
-
-  /* Borders */
-  --border-subtle: rgba(44, 37, 32, 0.08);
-  --border-medium: rgba(44, 37, 32, 0.12);
-  --border-strong: rgba(44, 37, 32, 0.20);
-
-  /* Semantic */
-  --success: #3D7A52;
-  --success-glow: rgba(61, 122, 82, 0.15);
-  --error: #B5453A;
-  --error-glow: rgba(181, 69, 58, 0.15);
-  --warning: #A67C35;
-  --warning-glow: rgba(166, 124, 53, 0.15);
-  --info: #3A6B73;
-  --info-glow: rgba(58, 107, 115, 0.15);
-
-  /* Shadows */
-  --shadow-xs: 0 1px 2px rgba(44, 37, 32, 0.04);
-  --shadow-sm: 0 2px 4px rgba(44, 37, 32, 0.06);
-  --shadow-md: 0 4px 8px rgba(44, 37, 32, 0.08), 0 2px 4px rgba(44, 37, 32, 0.04);
-  --shadow-lg: 0 8px 16px rgba(44, 37, 32, 0.08), 0 4px 8px rgba(44, 37, 32, 0.04);
-  --shadow-xl: 0 16px 32px rgba(44, 37, 32, 0.10), 0 8px 16px rgba(44, 37, 32, 0.05);
 }

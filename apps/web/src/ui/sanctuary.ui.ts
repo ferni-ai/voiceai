@@ -389,15 +389,18 @@ class SanctuaryUI {
         // Add commitment/dream insights
         if (insightsResult.data.holding) {
           if (insightsResult.data.holding.commitments && insightsResult.data.holding.commitments.length > 0) {
-            apiInsights.push({
-              id: 'commitment',
-              type: 'memory',
-              icon: 'heart',
-              title: 'Better than human memory',
-              description: `You said you'd ${insightsResult.data.holding.commitments[0].text}. That was ${insightsResult.data.holding.commitments[0].daysAgo} days ago.`,
-              actionable: true,
-              action: 'Check in on this',
-            });
+            const commitment = insightsResult.data.holding.commitments[0];
+            if (commitment) {
+              apiInsights.push({
+                id: 'commitment',
+                type: 'memory',
+                icon: 'heart',
+                title: 'Better than human memory',
+                description: `You said you'd ${commitment.text}. That was ${commitment.daysAgo} days ago.`,
+                actionable: true,
+                action: 'Check in on this',
+              });
+            }
           }
         }
         

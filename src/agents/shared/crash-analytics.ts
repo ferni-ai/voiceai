@@ -78,6 +78,52 @@ let crashCount = 0;
 let lastCrashTime: number | null = null;
 
 // ============================================================================
+// EXPECTED ERRORS (Not real crashes - filter these out)
+// ============================================================================
+
+/**
+ * These error messages are expected during normal operation and should NOT
+ * be logged as crashes. They typically occur during:
+ * - User interruptions (generateReply superseded)
+ * - Clean session transitions
+ * - Network reconnections
+ * - LiveKit agent task cleanup
+ */
+const EXPECTED_ERROR_PATTERNS = [
+  // User interrupted the agent - this is normal conversation flow
+  'Superseded by new generate_reply call',
+  // Clean cancellation during handoffs
+  'generation cancelled',
+  'Generation cancelled',
+  // Clean session cleanup
+  'session is closing',
+  'Session is closing',
+  // LiveKit agent cleanup - happens when participant disconnects and tasks are cancelled
+  'Task cancellation timed out',
+  // Normal playout completion
+  'playout completed',
+] as const;
+
+/**
+ * Check if an error is expected (not a real crash)
+ * Uses duck typing to handle errors from different realms/modules
+ */
+function isExpectedError(error: Error | unknown): boolean {
+  // Duck typing: check if it has message/stack properties (handles cross-realm errors)
+  const errorLike = error as { message?: string; stack?: string; name?: string };
+  const message = errorLike?.message ?? '';
+  const stack = errorLike?.stack ?? '';
+
+  // Also check if the raw error string matches (handles edge cases)
+  const rawString = typeof error === 'string' ? error : String(error);
+
+  // Check all possible representations of the error
+  const allText = `${message} ${stack} ${rawString}`.toLowerCase();
+
+  return EXPECTED_ERROR_PATTERNS.some((pattern) => allText.includes(pattern.toLowerCase()));
+}
+
+// ============================================================================
 // SESSION TRACKING
 // ============================================================================
 
@@ -189,20 +235,30 @@ export function unregisterSession(sessionId: string, reason: string): void {
 
 /**
  * Record a crash event with full context
+ * Returns null if the error is expected (not a real crash)
  */
 export function recordCrash(
   type: CrashEvent['type'],
   error: Error | unknown,
   sessionId?: string,
   additionalContext?: Partial<CrashContext>
-): CrashEvent {
-  crashCount++;
-  lastCrashTime = Date.now();
-
+): CrashEvent | null {
   const errorObj =
     error instanceof Error
       ? error
       : new Error(typeof error === 'string' ? error : JSON.stringify(error));
+
+  // Skip expected errors - these are normal operation, not crashes
+  if (isExpectedError(errorObj)) {
+    log.debug(
+      { type, errorMessage: errorObj.message, sessionId },
+      '📊 [CRASH-ANALYTICS] Ignored expected error (not a crash)'
+    );
+    return null;
+  }
+
+  crashCount++;
+  lastCrashTime = Date.now();
 
   const session = sessionId ? activeSessions.get(sessionId) : undefined;
   const messages = sessionId ? sessionMessages.get(sessionId) : undefined;
@@ -284,7 +340,11 @@ export function recordConnectionDrop(
 /**
  * Record a timeout (operation took too long)
  */
-export function recordTimeout(sessionId: string, operation: string, timeoutMs: number): CrashEvent {
+export function recordTimeout(
+  sessionId: string,
+  operation: string,
+  timeoutMs: number
+): CrashEvent | null {
   return recordCrash(
     'timeout',
     new Error(`Operation timed out: ${operation} (${timeoutMs}ms)`),
@@ -330,6 +390,17 @@ export function initCrashAnalytics(): void {
   process.on('unhandledRejection', (reason: unknown, promise: Promise<unknown>) => {
     const error = reason instanceof Error ? reason : new Error(String(reason));
 
+    // Skip expected errors (like user interruptions, task cancellation) - these are not real crashes
+    // IMPORTANT: Check this BEFORE any logging to avoid noisy logs
+    if (isExpectedError(error)) {
+      log.debug(
+        { errorMessage: error.message },
+        '📊 [CRASH-ANALYTICS] Ignored expected unhandled rejection'
+      );
+      return;
+    }
+
+    // Only log and record if it's a real unexpected error
     log.error(
       {
         errorName: error.name,

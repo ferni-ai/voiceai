@@ -25,6 +25,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { recordToolExecution } from './dev-telemetry.js';
+import { getModelProvider } from '../model-provider/index.js';
 
 const log = createLogger({ module: 'function-call-telemetry' });
 
@@ -408,7 +409,9 @@ export interface GeminiHealthMetrics {
  * Used by the /health/gemini endpoint for monitoring.
  */
 export function getGeminiHealthMetrics(): GeminiHealthMetrics {
-  const isGemini = process.env.USE_OPENAI_REALTIME !== 'true';
+  // Use provider abstraction to determine if using Gemini
+  const provider = getModelProvider();
+  const isGemini = provider.id === 'gemini-live';
 
   // Aggregate metrics across all sessions
   let totalToolCalls = 0;

@@ -200,7 +200,14 @@ function extractEmotionVocabulary(
   // Look for alternative emotion expressions
   for (const [emotion, alternatives] of Object.entries(EMOTION_ALTERNATIVES)) {
     for (const alt of alternatives) {
-      if (lowerMessage.includes(alt)) {
+      // Use word boundary check to prevent false positives like "bluegrass" matching "blue"
+      // For multi-word phrases, use includes (they're specific enough)
+      // For single words, require word boundaries
+      const isMatch = alt.includes(' ')
+        ? lowerMessage.includes(alt)
+        : new RegExp(`\\b${alt}\\b`, 'i').test(lowerMessage);
+
+      if (isMatch) {
         if (!profile.emotionVocabulary[emotion]) {
           profile.emotionVocabulary[emotion] = [];
         }

@@ -127,6 +127,10 @@ export interface MusicStateMessage extends BaseMessage {
   track?: {
     name: string;
     artist?: string;
+    /** Track duration in milliseconds */
+    duration?: number;
+    /** Album artwork URL (from Spotify/iTunes) */
+    albumArt?: string;
   };
   isAmbient: boolean;
   /** 💚 Is this a shared musical memory ("our song")? */
@@ -530,13 +534,15 @@ export class FrontendPublisher {
    */
   async sendMusicState(
     state: 'playing' | 'ducking' | 'fading' | 'changing' | 'paused' | 'stopped' | 'idle',
-    track?: { name: string; artist?: string },
+    track?: { name: string; artist?: string; duration?: number; albumArt?: string },
     isAmbient = false,
     ourSongInfo?: { isOurSong: boolean; context?: string }
   ): Promise<boolean> {
     diag.state('🎧 [PUBLISHER] sendMusicState called', {
       state,
       track: track?.name,
+      duration: track?.duration,
+      albumArt: track?.albumArt ? 'present' : 'none',
       isAmbient,
       isOurSong: ourSongInfo?.isOurSong,
       hasLocalParticipant: !!this.room?.localParticipant,

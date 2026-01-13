@@ -33,20 +33,20 @@
         <defs>
           <!-- Brand Persona Colors: Peter (Work), Maya (Family), Ferni (Self), Jordan (Stress) -->
           <linearGradient id="flowWork" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stop-color="#3A6B73"/>
-            <stop offset="100%" stop-color="#2d545c"/>
+            <stop offset="0%" style="stop-color: var(--color-peter)"/>
+            <stop offset="100%" style="stop-color: var(--color-peter-dark)"/>
           </linearGradient>
           <linearGradient id="flowFamily" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stop-color="#A67A6A"/>
-            <stop offset="100%" stop-color="#8a6252"/>
+            <stop offset="0%" style="stop-color: var(--color-maya)"/>
+            <stop offset="100%" style="stop-color: var(--color-maya-dark)"/>
           </linearGradient>
           <linearGradient id="flowSelf" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stop-color="#4A6741"/>
-            <stop offset="100%" stop-color="#3a5a35"/>
+            <stop offset="0%" style="stop-color: var(--color-ferni)"/>
+            <stop offset="100%" style="stop-color: var(--color-ferni-dark)"/>
           </linearGradient>
           <linearGradient id="flowStress" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stop-color="#C4856A"/>
-            <stop offset="100%" stop-color="#a86c52"/>
+            <stop offset="0%" style="stop-color: var(--color-jordan)"/>
+            <stop offset="100%" style="stop-color: var(--color-jordan-dark)"/>
           </linearGradient>
         </defs>
 
@@ -57,10 +57,10 @@
         <text x="20" y="240" class="sankey-label" fill="var(--text-secondary)" font-size="12">Purpose</text>
 
         <!-- Source nodes (Ferni green, Jordan coral, Ferni green, Nayan gold) -->
-        <rect class="sankey-node" x="80" y="45" width="8" height="40" fill="#4A6741" rx="2"/>
-        <rect class="sankey-node" x="80" y="105" width="8" height="35" fill="#C4856A" rx="2"/>
-        <rect class="sankey-node" x="80" y="165" width="8" height="25" fill="#4A6741" rx="2"/>
-        <rect class="sankey-node" x="80" y="225" width="8" height="30" fill="#B8956A" rx="2"/>
+        <rect class="sankey-node" x="80" y="45" width="8" height="40" fill="var(--color-ferni)" rx="2"/>
+        <rect class="sankey-node" x="80" y="105" width="8" height="35" fill="var(--color-jordan)" rx="2"/>
+        <rect class="sankey-node" x="80" y="165" width="8" height="25" fill="var(--color-ferni)" rx="2"/>
+        <rect class="sankey-node" x="80" y="225" width="8" height="30" fill="var(--color-nayan)" rx="2"/>
 
         <!-- Destination labels (right) -->
         <text x="700" y="50" class="sankey-label" fill="var(--text-secondary)" font-size="12" text-anchor="start">Work</text>
@@ -69,10 +69,10 @@
         <text x="700" y="230" class="sankey-label" fill="var(--text-secondary)" font-size="12" text-anchor="start">Stress</text>
 
         <!-- Destination nodes (Peter, Maya, Ferni, Jordan) -->
-        <rect class="sankey-node" x="692" y="35" width="8" height="45" fill="#3A6B73" rx="2"/>
-        <rect class="sankey-node" x="692" y="95" width="8" height="35" fill="#A67A6A" rx="2"/>
-        <rect class="sankey-node" x="692" y="155" width="8" height="25" fill="#4A6741" rx="2"/>
-        <rect class="sankey-node" x="692" y="215" width="8" height="35" fill="#C4856A" rx="2"/>
+        <rect class="sankey-node" x="692" y="35" width="8" height="45" fill="var(--color-peter)" rx="2"/>
+        <rect class="sankey-node" x="692" y="95" width="8" height="35" fill="var(--color-maya)" rx="2"/>
+        <rect class="sankey-node" x="692" y="155" width="8" height="25" fill="var(--color-ferni)" rx="2"/>
+        <rect class="sankey-node" x="692" y="215" width="8" height="35" fill="var(--color-jordan)" rx="2"/>
 
         <!-- Flow paths (curved Bezier) -->
         <!-- Sleep to Work -->
@@ -109,19 +109,19 @@
 
     <div class="river-legend">
       <div class="river-legend-item">
-        <div class="river-legend-dot" style="background: #3A6B73;"></div>
+        <div class="river-legend-dot" style="background: var(--color-peter);"></div>
         <span>Work (35%)</span>
       </div>
       <div class="river-legend-item">
-        <div class="river-legend-dot" style="background: #A67A6A;"></div>
+        <div class="river-legend-dot" style="background: var(--color-maya);"></div>
         <span>Family (25%)</span>
       </div>
       <div class="river-legend-item">
-        <div class="river-legend-dot" style="background: #4A6741;"></div>
+        <div class="river-legend-dot" style="background: var(--color-ferni);"></div>
         <span>Self (15%)</span>
       </div>
       <div class="river-legend-item">
-        <div class="river-legend-dot" style="background: #C4856A;"></div>
+        <div class="river-legend-dot" style="background: var(--color-jordan);"></div>
         <span>Stress (25%)</span>
       </div>
     </div>

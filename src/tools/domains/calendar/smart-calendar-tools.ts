@@ -1257,18 +1257,21 @@ const smartRescheduleDef: ToolDefinition = {
 const findBestTimeDef: ToolDefinition = {
   id: 'findBestTime',
   name: 'Find Best Time',
-  description: 'Find the optimal time for a new event based on preferences',
+  description: 'Find the optimal time for a new event based on preferences and learned patterns',
   domain: 'calendar',
-  tags: ['calendar', 'schedule', 'suggest', 'optimal'],
+  tags: ['calendar', 'schedule', 'suggest', 'optimal', 'better-than-human'],
 
   create: (ctx: ToolContext) =>
     llm.tool({
       description:
-        'Find the best time for a new event based on user preferences and patterns. Use when user asks "when should I schedule this?" or needs help finding a good time.',
+        'Find the best time for a new event based on user preferences, learned patterns, and energy levels. Uses "Better Than Human" energy-aware scheduling to suggest times when the user is typically most productive. Use when user asks "when should I schedule this?" or needs help finding a good time.',
       parameters: z.object({
         duration: z.number().describe('Duration in minutes'),
         preferMorning: z.boolean().optional().describe('Prefer morning slots'),
         preferAfternoon: z.boolean().optional().describe('Prefer afternoon slots'),
+        meetingType: z.enum(['oneOnOne', 'teamMeeting', 'clientCall', 'standup', 'general'])
+          .optional()
+          .describe('Type of meeting for better time optimization'),
       }),
       execute: async (params) => {
         const { userId } = ctx;
@@ -1279,13 +1282,14 @@ const findBestTimeDef: ToolDefinition = {
         const suggestions = await findBestTimeFor(userId, params.duration, {
           preferMorning: params.preferMorning,
           preferAfternoon: params.preferAfternoon,
+          meetingType: params.meetingType,
         });
 
         if (suggestions.length === 0) {
           return "I couldn't find any good times in the next few days. Your calendar looks pretty full.";
         }
 
-        let response = 'Here are the best times I found:\n';
+        let response = 'Here are the best times I found based on your patterns:\n';
 
         for (const suggestion of suggestions.slice(0, 3)) {
           const time = suggestion.time.toLocaleTimeString('en-US', {
@@ -1302,7 +1306,7 @@ const findBestTimeDef: ToolDefinition = {
 
         response += '\nWould any of these work for you?';
 
-        log.info({ userId, suggestionCount: suggestions.length }, 'Found best times');
+        log.info({ userId, suggestionCount: suggestions.length }, 'Found best times with energy awareness');
         return response;
       },
     }),

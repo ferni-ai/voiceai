@@ -199,7 +199,7 @@ To run the agent:
   npm run dev
 
 To run with a specific persona:
-  PERSONA_ID=peter-lynch npm run dev
+  PERSONA_ID=peter-john npm run dev
 `);
 
   return true;

@@ -131,6 +131,26 @@ const COMPLETION_MARKERS = [
   /\b(right|you know\?|make sense\?)\s*$/i, // Question seeking response
 ];
 
+/**
+ * Action request patterns - these indicate a COMPLETE turn requesting an action
+ * Even if they start with "Yeah" or "Okay", an action request is complete
+ */
+const ACTION_REQUEST_MARKERS = [
+  // Music requests
+  /\b(play|put on|start|queue)\s+(some\s+)?(more\s+)?(music|songs?|tunes?)/i,
+  /\b(play|put on)\s+.+\s+(music|by\s+)/i,
+  // Weather requests
+  /\b(check|what('s| is)|how('s| is))\s+(the\s+)?weather/i,
+  // Communication requests
+  /\b(call|text|message|email)\s+/i,
+  // Calendar/reminder requests
+  /\b(set|create|schedule|remind)\s+(a\s+)?(reminder|meeting|appointment|event)/i,
+  // Handoff requests
+  /\b(talk to|speak with|switch to|transfer to|let me talk to)\s+(maya|peter|alex|jordan|nayan|ferni)/i,
+  // Generic action verbs at the end
+  /\b(play|check|get|find|search|look up|tell me)\s+\w+$/i,
+];
+
 /** Phrases that indicate urgency */
 const URGENCY_MARKERS = [
   /\b(help|urgent|emergency|need to|have to|quickly|asap|right now)\b/i,
@@ -280,6 +300,10 @@ export function analyzeTurnSignals(sessionId: string, context: TurnContext): Tur
   // Check for urgency (not in Rust yet - few patterns, fast in JS)
   const isUrgent = URGENCY_MARKERS.some((pattern) => pattern.test(transcript));
 
+  // Check for action requests - these should always be treated as complete turns
+  // "Yeah, play some morning music." is a complete action request, not a partial thought
+  const isActionRequest = ACTION_REQUEST_MARKERS.some((pattern) => pattern.test(transcript));
+
   const isSentenceLengthNormal = wordCount >= state.avgSentenceLength * 0.5;
 
   // Emotional state analysis
@@ -297,9 +321,15 @@ export function analyzeTurnSignals(sessionId: string, context: TurnContext): Tur
   if (context.isFinal) completionConfidence += 0.2;
   if (isSentenceLengthNormal) completionConfidence += 0.1;
 
+  // Action requests are ALWAYS complete - boost confidence significantly
+  // This prevents the system from waiting when user says "play some music"
+  if (isActionRequest) completionConfidence += 0.4;
+
   // Negative signals (user might continue)
   if (isHesitating) completionConfidence -= 0.25;
-  if (hasContinuationMarker) completionConfidence -= 0.4;
+  // Don't penalize continuation markers for action requests
+  // "Yeah, play some music" starts with "Yeah" but is still a complete request
+  if (hasContinuationMarker && !isActionRequest) completionConfidence -= 0.4;
   if (!context.isFinal) completionConfidence -= 0.2;
 
   // Silence duration factor
@@ -393,15 +423,20 @@ export function analyzeTurnSignals(sessionId: string, context: TurnContext): Tur
   // RESULT
   // =========================================================================
 
+  // Action requests should be marked as complete even with lower confidence threshold
+  // because they are explicit commands that don't need continuation
+  const isComplete = context.isFinal && (completionConfidence > 0.6 || isActionRequest);
+
   const result: TurnSignals = {
-    isComplete: context.isFinal && completionConfidence > 0.6,
+    isComplete,
     completionConfidence,
     shouldBackchannel,
     backchannelSuggestion,
-    wantsToContinue: hasContinuationMarker || (isHesitating && completionConfidence < 0.5),
-    isUrgent,
+    // Action requests don't want to continue - they want the action executed
+    wantsToContinue: !isActionRequest && (hasContinuationMarker || (isHesitating && completionConfidence < 0.5)),
+    isUrgent: isUrgent || isActionRequest, // Action requests have implicit urgency
     isHesitating,
-    recommendedDelay,
+    recommendedDelay: isActionRequest ? 80 : recommendedDelay, // Respond faster to action requests
     shouldYieldFloor,
   };
 

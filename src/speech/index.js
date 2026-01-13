@@ -1,0 +1,280 @@
+/**
+ * Speech Module
+ *
+ * Provides adaptive speech synthesis capabilities.
+ * Tracks user speaking patterns and adapts SSML accordingly.
+ *
+ * This module includes:
+ * - Voice management for persona switching
+ * - Adaptive SSML generation
+ * - Audio prosody analysis for emotion detection
+ * - Backchanneling (standard and live)
+ * - Response naturalness (acknowledgments, fillers)
+ * - Emotion matching for TTS
+ * - Cognitive speech integration
+ * - Pronunciation memory
+ * - TTS context for prosody continuity
+ * - Session cleanup utilities
+ */
+// ============================================================================
+// SESSION CLEANUP (Call this when sessions end!)
+// ============================================================================
+export { cleanupAllSpeechSessions, cleanupSpeechSession, emergencySpeechCleanup, getActiveSpeechSessionCount, getActiveSpeechSessions, registerSpeechSession, } from './session-cleanup.js';
+// ============================================================================
+// FEEDBACK COORDINATOR (Global budget to prevent over-feedback)
+// ============================================================================
+export { advanceTurn, canAddFeedback, getFeedbackStats, recordFeedback, resetAllFeedbackCoordinators, resetFeedbackCoordinator, } from './feedback-coordinator.js';
+// ============================================================================
+// SESSION DEBUG & MONITORING (For diagnostics)
+// ============================================================================
+export { checkForLeaks, cleanupSessionTracking, getAllSessionsDebugInfo, getSessionDebugInfo, getSpeechModuleDebugInfo, logModuleState, trackBackchannel, trackEmotionDetected, trackProsodyAnalysis, trackSessionStart, trackTurnPrediction, } from './session-debug.js';
+// ============================================================================
+// SESSION SERVICE MANAGER (Abstraction for session-scoped services)
+// ============================================================================
+export { cleanupRegisteredServices, createSessionManager, getRegisteredManagerCount, registerSessionManager, } from './session-service.js';
+// ============================================================================
+// PERSONA PHRASES (Single source of truth for all persona-specific phrases)
+// ============================================================================
+export { ACKNOWLEDGMENT_PREFIXES, BACKCHANNEL_LIBRARY, PERSONA_BACKCHANNEL_STYLE, PERSONA_CATCHPHRASES, SOFT_BACKCHANNELS, 
+// THINKING_FILLERS - DEPRECATED: Use ProcessingIntelligence instead
+getAcknowledgmentPrefix, getBackchannelPhrase, getCatchphraseWithSsml, getPersonaBackchannelStyle, getSoftBackchannel, 
+// getThinkingFiller - DEPRECATED: Use getContextAwareThinkingFiller
+getContextAwareThinkingFiller, // Context-aware ProcessingIntelligence integration
+normalizePersonaId, } from './persona-phrases.js';
+// ============================================================================
+// UNIFIED BACKCHANNELING (Consolidated module for all backchanneling modes)
+// ============================================================================
+export { BackchannelEngine, BreathPauseDetector, DEFAULT_BREATH_PAUSE_CONFIG, ENHANCED_TIMING, LIVE_TIMING, STANDARD_TIMING, SessionBackchannelManager, adjustTimingForTopic, createBackchannelEngine, getActiveBackchannelSessionCount, getBackchannelEngine, getBackchannelManager, getSessionBreathPauseDetector, getTimingForMode, resetAllBackchanneling, resetBackchanneling, signalNewTurn, } from './backchanneling/index.js';
+// ============================================================================
+// SPEECH CONTEXT
+// ============================================================================
+export { 
+// Persona speech characteristic defaults
+DEFAULT_SPEECH_CHARACTERISTICS, WPMTracker, buildSpeechContext, deriveSpeechCharacteristicsFromEnergy, detectEnergyLevel, determineTopicWeight, getSessionWPMTracker, resetSessionWPMTracker, } from './speech-context.js';
+// ============================================================================
+// ADAPTIVE SSML
+// ============================================================================
+export { 
+// Phase-specific personality tagging
+applyPhasePersonality, clearCognitiveSpeechState, getCognitiveSpeechStats, tagAdvice, tagAdviceWithPersonality, tagGreeting, tagGreetingWithPersonality, tagStory, tagSupportResponse, tagSupportWithPersonality, 
+// Cognitive-aware SSML
+tagTextWithCognitiveSsml, tagTextWithSsmlAdaptive, tagWrapUp, tagWrapUpWithPersonality, } from './adaptive-ssml.js';
+// Re-export SSML functions from canonical source (src/ssml/)
+// The ssml module now has an alias: tagTextWithSsml → tagTextWithSsmlPersonaAware
+export { sanitizeSsml, tagTextWithSsml, tagTextWithSsmlPersonaAware } from '../ssml/index.js';
+// ============================================================================
+// RESPONSE NATURALNESS
+// Note: ACKNOWLEDGMENT_PREFIXES, PERSONA_CATCHPHRASES, etc.
+// are exported from persona-phrases.js (canonical source)
+// THINKING_FILLERS is deprecated - use ProcessingIntelligence
+// ============================================================================
+export { CatchphraseTracker, determineAcknowledgmentMood, getResponseEnhancements, 
+// Session-scoped catchphrase tracking
+getSessionCatchphraseTracker, resetAllCatchphraseTrackers, resetCatchphraseTracking, resetSessionCatchphraseTracker, shouldAddPrefix, shouldInjectCatchphrase, } from './response-naturalness.js';
+// ============================================================================
+// AUDIO PROSODY (Voice Emotion Detection)
+// ============================================================================
+export { AudioProsodyAnalyzer, clearProsodyMetrics, 
+// Prosody metrics
+getProsodyMetrics, getSessionAudioProsodyAnalyzer, recordProsodyAnalysis, resetSessionAudioProsodyAnalyzer, } from './audio-prosody.js';
+// ============================================================================
+// EMOTION MATCHING
+// ============================================================================
+export { EMOTION_RESPONSES, adjustTTSSpeed, getEmotionGuidance, getEmotionModulation, getRegisteredEmotions, isEmotionRegistered, registerEmotionResponse, wrapWithEmotionProsody, } from './emotion-matching.js';
+// ============================================================================
+// BACKCHANNELING (Standard)
+// ============================================================================
+export { BackchannelingSystem, getSessionBackchannelingSystem, resetSessionBackchannelingSystem, } from './backchanneling.js';
+// ============================================================================
+// LIVE BACKCHANNELING (Real-time, breath-pause aware)
+// Note: BreathPauseDetector is exported from backchanneling/index.js (canonical source)
+// ============================================================================
+export { LiveBackchannelingService, getBreathPauseDetector, getLiveBackchannelingService, resetLiveBackchanneling, } from './live-backchanneling.js';
+// ============================================================================
+// COGNITIVE SPEECH
+// ============================================================================
+export { applyCognitiveAdjustments, buildPauseSSML, calculateCognitiveSpeechAdjustments, getCognitiveThinkingSound, getPauseDuration, } from './cognitive-speech.js';
+export { applyCognitiveSpeechAdjustments, buildCognitiveSSML, getReasoningStyleSpeechPreset, } from './cognitive-speech-integration.js';
+// ============================================================================
+// AUTHENTIC THINKING (Cognitive load → natural pauses)
+// ============================================================================
+export { analyzeQuestionComplexity, calculateThinkingPause, createThinkingContext, generateThinkingSSML, personaThinkingPhrases, wrapWithThinkingPause, } from './authentic-thinking.js';
+// ============================================================================
+// TTS CONTEXT (Prosody continuity)
+// ============================================================================
+export { TtsContextService, getTtsContextService, resetTtsContextService, } from './tts-context.js';
+// ============================================================================
+// PRONUNCIATION MEMORY
+// ============================================================================
+export { PronunciationMemoryService, analyzePronunciationNeeds, getPronunciationMemory, resetAllPronunciationMemory, resetPronunciationMemory, } from './pronunciation-memory.js';
+// ============================================================================
+// CONSONANT SMOOTHING
+// ============================================================================
+export { applyConsonantSmoothing, detectDifficultClusters, getClusterStats, } from './consonant-smoothing.js';
+// ============================================================================
+// VOICE MANAGER
+// ============================================================================
+export { DynamicTTS, PersonaAwareTTS, VOICES, createDynamicTTS, createPersonaAwareTTS, 
+// Session-scoped managers (production-ready)
+getSessionVoiceManager, getSessionVoiceManagerCount, 
+// Legacy global manager (deprecated)
+getVoiceManager, resetAllSessionVoiceManagers, resetSessionVoiceManager, resetVoiceManager, } from './voice-manager.js';
+// ============================================================================
+// PROSODY-TURN PREDICTION BRIDGE
+// ============================================================================
+export { createTurnPredictionContext, getIntonationFromVoiceEmotion, mapPitchContourToIntonation, predictTurnWithVoice, voiceSuggestsTurnComplete, } from './prosody-turn-bridge.js';
+// ============================================================================
+// MUSIC REACTIONS
+// ============================================================================
+export { getAirDJMoment, getDancingComment, getExcitedMusicReaction, 
+// Fun DJ moments
+getFunDJMoment, getGenreReaction, getMoodMusicReaction, getMusicReaction, getPlayfulMusicComment, getPlayfulMusicIntro, shouldReactToMusic, } from './music-reactions.js';
+// ============================================================================
+// CARTESIA CONTEXT MANAGEMENT
+// ============================================================================
+export { clearAllContexts, clearSessionContextId, generateContextId, getActiveContextCount, 
+// Monitoring
+getAllSessionContexts, 
+// Cartesia TTS options helper
+getCartesiaContextOptions, getOrCreateContextId, getSessionContextId, 
+// Context ID management
+setSessionContextId, } from './cartesia-context-patch.js';
+// ============================================================================
+// HUMAN LISTENING PIPELINE - "Better than Human" listening capabilities
+// ============================================================================
+export { HumanListeningPipeline, getHumanListeningPipeline, resetAllHumanListeningPipelines, resetHumanListeningPipeline, } from './human-listening-pipeline.js';
+// ============================================================================
+// BREATH DETECTION
+// ============================================================================
+export { BreathDetector, getBreathDetector, resetAllBreathDetectors, resetBreathDetector, } from './breath-detection.js';
+// ============================================================================
+// VOICE TREMOR / STRAIN DETECTION
+// ============================================================================
+export { VoiceTremorDetector, getVoiceTremorDetector, resetAllVoiceTremorDetectors, resetVoiceTremorDetector, } from './voice-tremor.js';
+// ============================================================================
+// VOLUME DYNAMICS
+// ============================================================================
+export { VolumeDynamicsTracker, getVolumeDynamicsTracker, resetAllVolumeDynamicsTrackers, resetVolumeDynamicsTracker, } from './volume-dynamics.js';
+// ============================================================================
+// ENERGY DYNAMICS (Voice Fade Detection)
+// ============================================================================
+export { EnergyDynamicsTracker, getEnergyDynamicsTracker, resetAllEnergyDynamicsTrackers, resetEnergyDynamicsTracker, } from './energy-dynamics.js';
+// ============================================================================
+// FLUENCY ANALYSIS
+// ============================================================================
+export { FluencyAnalyzer, getFluencyAnalyzer, resetAllFluencyAnalyzers, resetFluencyAnalyzer, } from './fluency-analysis.js';
+// ============================================================================
+// FILLER ANALYSIS (Um, Uh, Like patterns)
+// ============================================================================
+export { FillerAnalyzer, getFillerAnalyzer, resetAllFillerAnalyzers, resetFillerAnalyzer, } from './filler-analysis.js';
+// ============================================================================
+// FFT ANALYZER (Spectral Analysis)
+// ============================================================================
+export { FFTAnalyzerService, analyzeLaughterSpectral, analyzeSpectrum, classifyEnvironment, getFFTAnalyzer, resetFFTAnalyzer, } from './fft-analyzer.js';
+// ============================================================================
+// ADVANCED HUMANIZATION (Research-backed natural speech)
+// See docs/VOICE-HUMANIZATION-RESEARCH.md for research basis
+// ============================================================================
+export { 
+// Emotion mapping (50+ Cartesia emotions)
+ALL_CARTESIA_EMOTIONS, CARTESIA_EMOTIONS, 
+// Breath group pacing
+addBreathGroupPauses, 
+// Speech rhythm variation
+analyzeRhythm, applyRhythmVariations, getEmotionTransition, 
+// Main pipeline
+humanizeText, 
+// Natural fillers ("um", "well", etc.)
+injectNaturalFillers, mapContextToEmotion, 
+// Persona emotion profiles (standalone module for circular dep avoidance)
+getEmotionProfile, PERSONA_EMOTION_PROFILES, } from './advanced-humanization.js';
+// ============================================================================
+// ENHANCED BACKCHANNELING (Active Listening)
+// Research-backed: faster response, context-aware, persona-specific
+// Note: BACKCHANNEL_LIBRARY, PERSONA_BACKCHANNEL_STYLE, BackchannelTiming
+// are exported from persona-phrases.js and backchanneling/index.js (canonical sources)
+// ============================================================================
+export { EnhancedBackchannelingEngine, getEnhancedBackchannelingEngine, getQuickBackchannel, resetEnhancedBackchannelingEngine, } from './enhanced-backchanneling.js';
+// ============================================================================
+// DYNAMIC SPEED CONTROL (NEW)
+// Real-time speech speed adjustment based on context
+// ============================================================================
+export { DEFAULT_SPEED_CONFIG, applyDynamicSpeedSsml, calculateDynamicSpeed, getSpeedControlSession, getSpeedTrend, recordSpeedDecision, resetAllSpeedControlSessions, resetSpeedControlSession, } from './adaptive-ssml/dynamic-speed-control.js';
+// ============================================================================
+// REAL-TIME AUDIO ANALYZER (NEW)
+// Optimized streaming audio analysis for lower latency
+// ============================================================================
+export { DEFAULT_REALTIME_CONFIG, RealTimeAudioAnalyzer, getActiveRealTimeAnalyzerCount, getRealTimeAnalyzer, resetAllRealTimeAnalyzers, resetRealTimeAnalyzer, } from './audio-prosody/real-time-analyzer.js';
+// ============================================================================
+// SPEECH METRICS & OBSERVABILITY (NEW)
+// Performance and quality metrics collection
+// ============================================================================
+export { getLatencyMetrics, getQualityMetrics, getSpeechMetrics, getSpeechMetricsSnapshot, getUsageMetrics, recordBackchannelTiming, recordEmotionConfidence, recordLatency, recordOperation, recordSessionEnd, recordSessionStart, recordTurnPredictionAccuracy, resetSpeechMetrics, withTiming, withTimingSync, } from './metrics/index.js';
+// ============================================================================
+// SESAME-INSPIRED PROSODY (State-of-the-art voice expressiveness)
+// Inspired by Sesame AI's Conversational Speech Model
+// ============================================================================
+export { 
+// Micro-Reactions - quick vocal reactions (<150ms)
+COMPOUND_REACTIONS, 
+// Rich Disfluencies - natural speech patterns
+DISFLUENCY_PATTERNS, MICRO_REACTIONS, 
+// Conversation Prosody - context-aware across turns
+addContextualPause, addExcitedInterruption, addRealizationMoment, addThinkingStart, addTrailingOff, 
+// Anticipatory Prosody - react before user finishes speaking
+anticipateResponse, applyProsodyRecommendation, calculateTrajectory, detectContext, detectContexts, detectTrajectory, detectTrajectoryType, 
+// Pipeline Integration - optimized emotion→SSML path
+enhanceResponseWithSesame, findInjectionPoints, getActiveAnticipatorySessionCount, getActiveConversationStateCount, getActiveDisfluencySessionCount, getActiveMicroReactionSessionCount, getActiveSesamePipelineSessionCount, getAnticipatorySession, getCompoundReaction, getConversationState, getDisfluenciesForEmotion, getDisfluencySession, getImmediateMicroReaction, getLastAnticipation, getMicroReaction, getMicroReactionSession, getPreparedResponse, getProsodyRecommendation, getRandomSsmlPattern, getReactionsForContext, getSesamePipelineMetrics, getSessionMicroReaction, getSessionProsodyRecommendation, injectDisfluency, isHeavyTopic, processPartialTranscript, quickEnhance, recordReaction, resetAnticipatorySession, resetConversationState, resetDisfluencySession, resetMicroReactionSession, resetSesamePipeline, selectMicroReaction, selectWeightedDisfluency, shouldAnticipate, shouldUseReaction, smartInjectDisfluency, startNewTurn, updateAnticipation, updateConversationState, } from './sesame-inspired/index.js';
+// ============================================================================
+// SPEECH ORCHESTRATOR (Unified coordination layer - NEW!)
+// ============================================================================
+export { SpeechOrchestrator, getActiveOrchestratorCount, getOrchestrator, resetAllOrchestrators, resetOrchestrator, } from './orchestrator/index.js';
+// ============================================================================
+// SPEECH CONFIG (Centralized constants - NEW!)
+// ============================================================================
+export { ANTICIPATION_CONFIG, BACKCHANNELING_CONFIG, BREATH_DETECTION_CONFIG, EMOTION_DETECTION_CONFIG, FEEDBACK_COORDINATION_CONFIG, FFT_CONFIG, HUMANIZATION_CONFIG, LATENCY_TARGETS_MS, TURN_PREDICTION_CONFIG, adjustTimingForTopicWeight, getBackchannelConfig, } from './config/index.js';
+// ============================================================================
+// PERSONA VOICE LOADER (Dynamic loading from bundles - NEW!)
+// ============================================================================
+export { clearVoiceDataCache, getBackchannelByCategorySync, getBackchannelSync, getCatchphraseSync, getExpressionSync, getLoadedPersonaCount, getSilenceFillerSync, hasVoiceDataLoaded, loadPersonaVoiceData, preloadCommonPersonaVoice, } from './persona-voice-loader.js';
+// ============================================================================
+// UNIFIED ANTICIPATION PIPELINE (NEW!)
+// ============================================================================
+export { AnticipationPipeline, EmotionPredictor, IntentPredictor, getActiveAnticipationPipelineCount, getAnticipationPipeline, resetAllAnticipationPipelines, resetAnticipationPipeline, DEFAULT_ANTICIPATION_OPTIONS, } from './anticipation/index.js';
+// ============================================================================
+// GRACEFUL INTERRUPT (Natural interrupt handling - NEW!)
+// ============================================================================
+export { 
+// State management
+getInterruptState, resetInterruptState, 
+// Core functions
+addCushioning, senseInterrupt, getTrailingSsml, getRecoverySsml, endRecovery, 
+// Main integration
+wrapWithInterruptAwareness, 
+// Speech wrapper (recommended for new code)
+wrapSpeechWithInterruptAwareness, createInterruptAwareTransform, markRecoveryComplete, isInRecoveryPhase, 
+// Constants
+CUSHION_TIMING, TRAILING_TRIGGERS, } from './graceful-interrupt/index.js';
+// ============================================================================
+// TTS BULKHEAD (Session isolation for voice synthesis - SET-17)
+// ============================================================================
+export { 
+// Main class
+TTSBulkhead, TimeoutError, 
+// Singleton access
+getTTSBulkhead, resetTTSBulkhead, 
+// Convenience functions
+executeWithBulkhead, canAcceptTTSRequest, isTTSUnderPressure, getTTSBulkheadStats, cleanupTTSSession, } from './tts-bulkhead.js';
+// ============================================================================
+// SPEECH HUMANIZATION (Better Than Human - JSON behavior injection)
+// ============================================================================
+export { 
+// Main humanization function (async)
+humanizeSpeech, quickHumanize, getAvailableCategories, 
+// Sync humanization (for persona-fingerprints sync pipeline)
+quickHumanizeSync, 
+// Behavior loading (async)
+loadSpeechProfile, clearSpeechProfileCache, preloadAllSpeechProfiles, selectImperfection, selectThinkingSound, selectBackchannel, selectBreathSound, getInjectionConfig, 
+// Sync accessors (for use after preloading)
+getSpeechProfileSync, areSpeechProfilesPreloaded, selectThinkingSoundSync, selectImperfectionSync, selectBreathSoundSync, } from './humanization/index.js';
+//# sourceMappingURL=index.js.map

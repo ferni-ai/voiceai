@@ -277,7 +277,15 @@ export class GoogleCalendarProvider implements CalendarProviderAdapter {
    */
   async getCalendars(
     userId: string
-  ): Promise<Array<{ id: string; name: string; primary: boolean }>> {
+  ): Promise<Array<{
+    id: string;
+    name: string;
+    primary: boolean;
+    color?: string;
+    owner?: string;
+    canEdit?: boolean;
+    description?: string;
+  }>> {
     const accessToken = await getValidAccessToken(userId);
     if (!accessToken) {
       return [];
@@ -293,12 +301,25 @@ export class GoogleCalendarProvider implements CalendarProviderAdapter {
       }
 
       const data = (await response.json()) as {
-        items?: Array<{ id: string; summary: string; primary?: boolean }>;
+        items?: Array<{
+          id: string;
+          summary: string;
+          primary?: boolean;
+          backgroundColor?: string;
+          accessRole?: string;
+          description?: string;
+        }>;
       };
       return (data.items || []).map((cal) => ({
         id: cal.id,
         name: cal.summary,
         primary: !!cal.primary,
+        color: cal.backgroundColor,
+        // Owner is only set for shared calendars - extract from ID if it looks like an email
+        owner: cal.id.includes('@') && !cal.primary ? cal.id : undefined,
+        // Google accessRole: 'owner', 'writer', 'reader', 'freeBusyReader'
+        canEdit: cal.accessRole === 'owner' || cal.accessRole === 'writer',
+        description: cal.description,
       }));
     } catch (error) {
       log.error({ error: String(error), userId }, 'Failed to fetch calendar list');

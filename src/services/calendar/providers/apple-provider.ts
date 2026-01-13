@@ -725,7 +725,15 @@ export class AppleCalendarProvider implements CalendarProviderAdapter {
    */
   async getCalendars(
     userId: string
-  ): Promise<Array<{ id: string; name: string; primary: boolean }>> {
+  ): Promise<Array<{
+    id: string;
+    name: string;
+    primary: boolean;
+    color?: string;
+    owner?: string;
+    canEdit?: boolean;
+    description?: string;
+  }>> {
     const creds = await this.getCredentials(userId);
     if (!creds) {
       return [];
@@ -749,6 +757,11 @@ export class AppleCalendarProvider implements CalendarProviderAdapter {
         id: c.url,
         name: c.displayName,
         primary: i === 0,
+        // CalDAV doesn't expose color/owner/canEdit in basic listing
+        color: undefined,
+        owner: undefined,
+        canEdit: true, // Assume editable for own calendars
+        description: undefined,
       }));
     } catch (error) {
       log.error({ error: String(error), userId }, 'Error listing Apple calendars');

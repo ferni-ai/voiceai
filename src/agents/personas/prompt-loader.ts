@@ -21,8 +21,104 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { getModelProvider } from '../model-provider/index.js';
 
 const log = createLogger({ module: 'PromptLoader' });
+
+/**
+ * Estimate token count (rough approximation: ~4 chars per token for English)
+ */
+function estimateTokens(text: string): number {
+  return Math.ceil(text.length / 4);
+}
+
+/**
+ * Truncate prompt to fit within token limit, preserving the most important sections.
+ * Priority order:
+ * 1. Core identity (WHO the persona IS)
+ * 2. Critical behavior rules
+ * 3. Additional context
+ *
+ * @param prompt - The full system prompt
+ * @param maxTokens - Maximum tokens allowed
+ * @returns Truncated prompt that fits within the limit
+ */
+function truncatePromptToTokenLimit(prompt: string, maxTokens: number): string {
+  const currentTokens = estimateTokens(prompt);
+
+  if (currentTokens <= maxTokens) {
+    return prompt;
+  }
+
+  log.warn(
+    {
+      currentTokens,
+      maxTokens,
+      overageTokens: currentTokens - maxTokens,
+      promptLength: prompt.length,
+    },
+    '⚠️ System prompt exceeds token limit, truncating'
+  );
+
+  // Split by sections (marked by "---")
+  const sections = prompt.split(/\n---\n/);
+
+  // If single section, just truncate from the end
+  if (sections.length === 1) {
+    const maxChars = maxTokens * 4;
+    const truncated = prompt.slice(0, maxChars);
+    log.info(
+      { originalTokens: currentTokens, newTokens: estimateTokens(truncated), sectionsRemoved: 0 },
+      '📏 Truncated prompt (single section)'
+    );
+    return truncated + '\n\n[Content truncated to fit token limit]';
+  }
+
+  // Keep first section (core identity) always
+  const result: string[] = [sections[0]];
+  let currentLength = estimateTokens(sections[0]);
+  const maxAllowed = maxTokens - 100; // Leave room for truncation message
+
+  // Try to fit remaining sections in order of appearance (priority)
+  for (let i = 1; i < sections.length; i++) {
+    const sectionTokens = estimateTokens(sections[i]);
+    if (currentLength + sectionTokens <= maxAllowed) {
+      result.push(sections[i]);
+      currentLength += sectionTokens;
+    } else {
+      // Try to include a truncated version of important sections
+      const remaining = maxAllowed - currentLength;
+      if (remaining > 500) {
+        // Only truncate if we have reasonable space
+        const truncatedSection = sections[i].slice(0, remaining * 4);
+        result.push(truncatedSection + '\n[Section truncated]');
+        currentLength += remaining;
+      }
+      // Skip remaining sections
+      log.info(
+        { sectionsKept: result.length, sectionsTotal: sections.length, sectionsSkipped: sections.length - result.length },
+        '📏 Skipping remaining sections to fit token limit'
+      );
+      break;
+    }
+  }
+
+  const finalPrompt = result.join('\n\n---\n\n');
+  const finalTokens = estimateTokens(finalPrompt);
+
+  log.info(
+    {
+      originalTokens: currentTokens,
+      finalTokens,
+      reduction: currentTokens - finalTokens,
+      sectionsKept: result.length,
+      sectionsTotal: sections.length,
+    },
+    '✅ Prompt truncated to fit OpenAI Realtime token limit'
+  );
+
+  return finalPrompt;
+}
 
 // ============================================================================
 // CONFIGURATION
@@ -132,9 +228,12 @@ async function loadSafetyDisclaimer(): Promise<string | null> {
  *
  * Falls back to legacy identity/function-calling.md if new files don't exist.
  *
- * SKIP when SEMANTIC_ROUTING_PRIMARY=true:
- * When semantic routing handles all tool calls, we don't want the LLM
- * to output JSON function calls (they would be spoken as text).
+ * SKIP when:
+ * - SEMANTIC_ROUTING_PRIMARY=true: Semantic routing handles all tool calls
+ * - Provider has native function calling (e.g., OpenAI Realtime)
+ *
+ * When these are active, we don't want the LLM to output JSON function calls
+ * (they would be spoken as text like "fn:speak args:...").
  */
 async function loadFunctionCallingWithBase(bundleDir: string): Promise<string | null> {
   // 🎯 SEMANTIC ROUTING PRIMARY: Skip function calling prompts entirely
@@ -144,6 +243,18 @@ async function loadFunctionCallingWithBase(bundleDir: string): Promise<string | 
     log.info(
       { bundleDir },
       '🎯 SEMANTIC_ROUTING_PRIMARY=true: Skipping function-calling prompts (semantic router handles tools)'
+    );
+    return null;
+  }
+
+  // Check if provider needs JSON function calling prompts
+  const provider = getModelProvider();
+  const promptConfig = provider.getPromptModules();
+
+  if (!promptConfig.includeFunctionCallingBase) {
+    log.info(
+      { bundleDir, providerId: provider.id },
+      `${provider.getLogPrefix()} Skipping JSON function-calling prompts (provider has native function calling)`
     );
     return null;
   }
@@ -227,8 +338,19 @@ export async function loadSystemPrompt(
 
     if (!config) {
       // No assembly config - fall back to legacy system-prompt.md
-      const legacyPrompt = await loadFile(bundleDir, 'identity/system-prompt.md');
+      let legacyPrompt = await loadFile(bundleDir, 'identity/system-prompt.md');
       if (legacyPrompt) {
+        // Apply token limiting based on provider's limit
+        const provider = getModelProvider();
+        const tokenLimit = provider.getTokenLimit();
+        const tokens = estimateTokens(legacyPrompt);
+        if (tokens > tokenLimit) {
+          log.warn(
+            { personaId, tokens, limit: tokenLimit, providerId: provider.id },
+            `${provider.getLogPrefix()} Legacy prompt exceeds token limit, truncating`
+          );
+          legacyPrompt = truncatePromptToTokenLimit(legacyPrompt, tokenLimit);
+        }
         log.debug({ personaId, bundleDir, mode: 'legacy' }, 'Loaded legacy system prompt');
         return legacyPrompt;
       }
@@ -271,7 +393,25 @@ export async function loadSystemPrompt(
       return fallback;
     }
 
-    const assembled = sections.join('\n\n---\n\n');
+    let assembled = sections.join('\n\n---\n\n');
+
+    // Apply token limiting based on provider's limit
+    // Different providers have different token limits for system instructions.
+    const systemPromptProvider = getModelProvider();
+    const systemPromptTokenLimit = systemPromptProvider.getTokenLimit();
+    const estimatedTokenCount = estimateTokens(assembled);
+    if (estimatedTokenCount > systemPromptTokenLimit) {
+      log.warn(
+        {
+          personaId,
+          estimatedTokens: estimatedTokenCount,
+          limit: systemPromptTokenLimit,
+          providerId: systemPromptProvider.id,
+        },
+        `${systemPromptProvider.getLogPrefix()} System prompt exceeds token limit, truncating`
+      );
+      assembled = truncatePromptToTokenLimit(assembled, systemPromptTokenLimit);
+    }
 
     log.info(
       {
@@ -281,6 +421,7 @@ export async function loadSystemPrompt(
         modules: loadedModules,
         length: assembled.length,
         estimatedTokens: Math.round(assembled.length / 4),
+        providerId: systemPromptProvider.id,
       },
       'Assembled modular prompt'
     );
@@ -374,61 +515,29 @@ let modelBaseInstructionsCache: string | null = null;
  *
  * Includes:
  * - Platform context (Ferni team)
- * - Critical tool calling format (JSON) - SKIPPED for OpenAI Realtime
+ * - Critical tool calling format (JSON) - SKIPPED for providers with native FC
  * - Honesty rules
  * - Voice output guidance
  * - Safety boundaries
  *
- * NOTE: OpenAI Realtime has native function calling, so JSON format
- * instructions are SKIPPED to prevent the LLM from outputting "fn:speak" etc.
+ * NOTE: Providers with native function calling (e.g., OpenAI Realtime) use
+ * minimal instructions to prevent the LLM from outputting "fn:speak" etc.
  */
 export async function loadModelBaseInstructions(): Promise<string> {
-  // 🔮 OpenAI Realtime: Return minimal instructions without JSON format
-  // OpenAI has native function calling - we don't want JSON format instructions
-  // that would cause the LLM to output "fn:speak" as speech
-  if (process.env.USE_OPENAI_REALTIME === 'true') {
-    const openAIInstructions = `You are part of **Ferni**, a voice-first life coaching platform. You help people navigate life with warmth, wisdom, and genuine care.
+  // Check if provider uses minimal instructions (native function calling)
+  const provider = getModelProvider();
+  const promptConfig = provider.getPromptModules();
 
-**The Ferni Team:**
-- **Ferni** - Life coach coordinator, curious and warm
-- **Peter** - Research and analysis
-- **Alex** - Communications and productivity
-- **Maya** - Habits and routines
-- **Jordan** - Events and celebrations
-- **Nayan** - Wisdom and philosophy
-
-**Output Rules:**
-- For conversation → Output natural speech
-- For tool calls → Use the native function calling (NOT JSON output)
-- Never output JSON as speech (no "fn:speak" or similar)
-
-**Reading News, Weather, Sports:**
-When you get news/weather/sports results from a tool, READ THEM OUT LOUD like a friendly radio announcer would. Don't just acknowledge getting them - actually share the content!
-- News: "Here's what's happening... [read each headline with natural pauses]"
-- Weather: "It's currently 72 degrees and sunny..."
-- Sports: "The Eagles won 24-17 last night..."
-Add natural transitions between items: "Also...", "And...", "Oh, interesting one..."
-
-**Honesty Rules:**
-- Never claim capabilities you don't have
-- If a tool fails → Say "That didn't work"
-- If you don't know → Say "I don't know"
-- Never fabricate outcomes
-
-**Voice Output:**
-- Short sentences for voice
-- Natural reactions: "Oh!" "Hmm." "Wait—"
-- No asterisks or stage directions
-
-**Safety:**
-- You're a coach, not an advisor
-- Never give medical, financial, or legal advice`;
-
-    log.info('🔮 OpenAI Realtime: Using minimal instructions (native function calling)');
-    return openAIInstructions;
+  if (promptConfig.useMinimalInstructions) {
+    const minimalInstructions = provider.getMinimalInstructions();
+    log.info(
+      { providerId: provider.id, length: minimalInstructions.length },
+      `${provider.getLogPrefix()} Using minimal instructions (native function calling)`
+    );
+    return minimalInstructions;
   }
 
-  // Return cached if available (Gemini path)
+  // Return cached if available (providers that need full instructions)
   if (modelBaseInstructionsCache) {
     return modelBaseInstructionsCache;
   }

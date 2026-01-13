@@ -13,6 +13,7 @@
 
 import { createLogger } from '../utils/logger';
 import { getFirebaseUid } from './firebase-auth.service';
+import { getApiHeadersAsync } from '../utils/api';
 
 const log = createLogger('IntelligenceService');
 
@@ -91,11 +92,13 @@ async function apiRequest<T>(
   }
 
   try {
+    // Use getApiHeadersAsync for proper Firebase auth
+    const authHeaders = await getApiHeadersAsync(true);
+    
     const response = await fetch(`${API_BASE}${endpoint}`, {
       ...options,
       headers: {
-        'Content-Type': 'application/json',
-        'x-user-id': userId,
+        ...authHeaders,
         ...options.headers,
       },
     });

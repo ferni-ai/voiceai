@@ -28,8 +28,35 @@ import {
 import { generateReply } from '../shared/generate-reply-gateway.js';
 // Safe fire-and-forget for non-critical async operations
 import { fireAndForget } from '../../utils/safe-fire-and-forget.js';
+// Model provider abstraction
+import { getModelProvider } from '../model-provider/index.js';
 
 const log = createLogger({ module: 'FerniAgent' });
+
+/**
+ * Estimate token count (~4 chars per token for English)
+ */
+function estimateTokens(text: string): number {
+  return Math.ceil(text.length / 4);
+}
+
+/**
+ * Emergency truncation for system prompt if it exceeds token limit.
+ * This is a last-resort defense - should rarely trigger if prompt-loader works correctly.
+ */
+function emergencyTruncate(prompt: string, maxTokens: number): string {
+  const tokens = estimateTokens(prompt);
+  if (tokens <= maxTokens) return prompt;
+
+  log.warn(
+    { currentTokens: tokens, maxTokens, promptLength: prompt.length },
+    '🚨 EMERGENCY: System prompt still exceeds token limit after prompt-loader truncation!'
+  );
+
+  // Simple character-based truncation (prompt-loader should have done smart truncation)
+  const maxChars = maxTokens * 4;
+  return prompt.slice(0, maxChars) + '\n\n[EMERGENCY TRUNCATION - prompt exceeded OpenAI Realtime limit]';
+}
 
 // ============================================================================
 // TYPES
@@ -421,6 +448,26 @@ export class PersonaVoiceAgent extends voice.Agent<PersonaSessionData> {
   private skipGreeting: boolean;
 
   constructor(systemPrompt: string, options: PersonaVoiceAgentOptions = {}) {
+    // TOKEN LIMIT - Defense-in-depth
+    // Primary truncation happens in prompt-loader.ts, but this is a safety net
+    // Uses provider's token limit for flexibility across different LLM providers
+    const provider = getModelProvider();
+    const tokenLimit = provider.getTokenLimit();
+    let finalSystemPrompt = systemPrompt;
+    const estimatedTokenCount = estimateTokens(systemPrompt);
+    if (estimatedTokenCount > tokenLimit) {
+      finalSystemPrompt = emergencyTruncate(systemPrompt, tokenLimit);
+      log.warn(
+        {
+          originalTokens: estimatedTokenCount,
+          newTokens: estimateTokens(finalSystemPrompt),
+          limit: tokenLimit,
+          providerId: provider.id,
+        },
+        `${provider.getLogPrefix()} Applied emergency truncation in agent constructor`
+      );
+    }
+
     // Use orchestrator-selected tools if provided, otherwise build all tools
     let allTools: ToolSet;
     let toolSource: 'orchestrator' | 'internal';
@@ -486,7 +533,7 @@ export class PersonaVoiceAgent extends voice.Agent<PersonaSessionData> {
     }
 
     super({
-      instructions: systemPrompt,
+      instructions: finalSystemPrompt,
       chatCtx: options.chatCtx,
       tools: allTools,
     });

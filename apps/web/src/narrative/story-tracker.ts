@@ -20,7 +20,7 @@
  */
 
 import { createLogger } from '../utils/logger.js';
-import { apiGet } from '../utils/api.js';
+import { apiGet, getApiHeadersAsync } from '../utils/api.js';
 import { type StoryBeat, type NarrativeContext } from './narrative-director.js';
 import { type StoryArcDefinition } from './story-arcs.js';
 
@@ -493,13 +493,13 @@ export class StoryTracker {
     if (!this.syncEnabled || !this.pendingSync || !this.userId) return;
     
     try {
+      // Use getApiHeadersAsync for proper Firebase auth
+      const authHeaders = await getApiHeadersAsync(true);
+      
       // Use PUT to update full journey - backend expects this at /api/story-journey/:userId
       const response = await fetch(`/api/story-journey/${this.userId}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-User-Id': this.userId,
-        },
+        headers: authHeaders,
         body: JSON.stringify(this.journey),
       });
       

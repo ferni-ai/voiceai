@@ -67,7 +67,8 @@ async function loadEmotionalTrajectory(userId: string): Promise<EmotionalTraject
           trendDuration: semanticTrajectory.durationDescription || 'recently',
           recentEmotions: semanticTrajectory.recentEmotions || [],
           distressLevel: semanticTrajectory.avgDistress || 0,
-          patterns: semanticTrajectory.patterns,
+          // patterns from semantic trajectory are string[], convert to expected format
+          patterns: undefined,
           alerts: semanticTrajectory.alerts,
         };
       }
@@ -78,9 +79,10 @@ async function loadEmotionalTrajectory(userId: string): Promise<EmotionalTraject
     // Merge with real-time cached state if available
     if (cachedState && trajectory) {
       trajectory.currentMood = cachedState.primary || trajectory.currentMood;
+      // Use intensity as a proxy for distress (high intensity often correlates with distress)
       trajectory.distressLevel = Math.max(
         trajectory.distressLevel,
-        cachedState.distressLevel || 0
+        cachedState.intensity || 0
       );
     } else if (cachedState && !trajectory) {
       // Only have real-time state, no trajectory
@@ -89,7 +91,7 @@ async function loadEmotionalTrajectory(userId: string): Promise<EmotionalTraject
         trend: 'stable',
         trendDuration: 'now',
         recentEmotions: [cachedState.primary || 'neutral'],
-        distressLevel: cachedState.distressLevel || 0,
+        distressLevel: cachedState.intensity || 0,
       };
     }
 
@@ -165,7 +167,8 @@ async function buildEmotionalTrajectoryAwareness(
 
     injections.push(
       createHighInjection('emotional_trajectory_alert', urgency, {
-        priority: trajectory.distressLevel > 0.7 ? 95 : 75,
+        category: 'emotional_safety',
+        confidence: trajectory.distressLevel,
       })
     );
   }
@@ -179,7 +182,7 @@ ${trajectory.trend === 'improving' ? "They're on an upswing - celebrate small wi
 
     injections.push(
       createHintInjection('emotional_trajectory_hint', hint, {
-        priority: 55,
+        category: 'emotional_awareness',
       })
     );
   }

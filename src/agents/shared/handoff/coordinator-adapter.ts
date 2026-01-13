@@ -416,6 +416,9 @@ export class CoordinatorAdapter {
    * Uses safeGenerateReply with ACTUAL SPEECH (not meta-instructions).
    * generateReply adds text as role:"model" - the model thinks IT said it and continues.
    * So we pass the goodbye phrase directly, and model naturally wraps up.
+   *
+   * CRITICAL: Must wait for speech to complete before returning, otherwise the
+   * voice switch happens mid-speech and cuts off the departing persona!
    */
   private async handleSoftOpen(
     fromPersonaId: string,
@@ -436,15 +439,28 @@ export class CoordinatorAdapter {
         '🎭 Speaking soft open (goodbye)'
       );
 
+      // Estimate speech duration BEFORE speaking so we can wait for it
+      const estimatedDurationMs = this.estimateSpeechDuration(finalGoodbye);
+      log.debug(
+        { estimatedDurationMs, wordCount: finalGoodbye.split(/\s+/).length },
+        '🎭 Estimated soft open duration'
+      );
+
       // Try safeGenerateReply first
       const result = await safeGenerateReply(this.session, {
         instructions: finalGoodbye,
         allowInterruptions: false,
         timeoutMs: 4000,
         context: 'handoff-soft-open',
+        waitForPlayout: true, // CRITICAL: Wait for audio to finish before returning
       });
 
       if (result.success) {
+        // CRITICAL FIX: Wait for speech to complete before returning!
+        // safeGenerateReply returns when text is sent to TTS, not when audio finishes.
+        // Without this wait, the voice switch cuts off the departing persona mid-speech.
+        log.debug({ estimatedDurationMs }, '🎭 Waiting for soft open speech to complete...');
+        await this.waitForSpeechComplete(estimatedDurationMs);
         diag.entry('🎭 Soft open complete (safeGenerateReply)');
         return;
       }
@@ -457,20 +473,51 @@ export class CoordinatorAdapter {
 
       try {
         coordinatedSay(this.sessionId, finalGoodbye, { allowInterruptions: false });
-        await new Promise<void>((resolve) => {
-          setTimeout(resolve, 600);
-        });
+        await this.waitForSpeechComplete(estimatedDurationMs);
         diag.entry('🎭 Soft open complete (coordinatedSay)');
       } catch {
         this.session.say(finalGoodbye, { allowInterruptions: false });
-        await new Promise<void>((resolve) => {
-          setTimeout(resolve, 600);
-        });
+        await this.waitForSpeechComplete(estimatedDurationMs);
         diag.entry('🎭 Soft open complete (session.say)');
       }
     } catch (err) {
       log.warn({ error: String(err), fromPersonaId, toPersonaId }, '🎭 Soft open error - skipping');
     }
+  }
+
+  /**
+   * Estimate speech duration based on text content.
+   * Uses a conservative pace to ensure speech completes before transitions.
+   */
+  private estimateSpeechDuration(text: string): number {
+    // Extract and sum SSML break times (e.g., <break time='200ms'/>)
+    const breakMatches = text.match(/<break\s+time=['"](\d+)ms['"]\s*\/>/g) || [];
+    const breakTimeMs = breakMatches.reduce((total, match) => {
+      const ms = parseInt(match.match(/(\d+)ms/)?.[1] || '0', 10);
+      return total + ms;
+    }, 0);
+
+    // Remove SSML tags to count actual words
+    const cleanText = text.replace(/<[^>]+>/g, '').trim();
+    const wordCount = cleanText.split(/\s+/).filter(Boolean).length;
+
+    // Conservative pace: ~150 words per minute = 400ms per word
+    // TTS tends to be slower than natural conversational speech
+    const speakingTimeMs = wordCount * 400;
+
+    // Buffer for TTS processing, network latency, and safety margin
+    const buffer = 500;
+
+    return speakingTimeMs + breakTimeMs + buffer;
+  }
+
+  /**
+   * Wait for speech to complete (timeout-based estimation).
+   */
+  private async waitForSpeechComplete(estimatedMs: number): Promise<void> {
+    return new Promise<void>((resolve) => {
+      setTimeout(resolve, estimatedMs);
+    });
   }
 
   /**
@@ -509,12 +556,16 @@ export class CoordinatorAdapter {
         log.info({ toPersonaId, hasTeamContext: true }, '🤝 Using Team Huddle enhanced greeting');
       }
 
+      // Estimate speech duration BEFORE speaking so we can wait for it
+      const estimatedDurationMs = this.estimateSpeechDuration(finalGreeting);
+
       log.info(
         {
           toPersonaId,
           fromPersonaId,
           hasSpecificBanter: !!greetingPhrase,
           greeting: finalGreeting,
+          estimatedDurationMs,
         },
         '🎭 Speaking arriving welcome'
       );
@@ -531,9 +582,15 @@ export class CoordinatorAdapter {
         sessionId: this.sessionId,
         bypassCircuitBreaker: true, // CRITICAL: Don't let old failures block greeting
         bypassSessionClosingCheck: true, // CRITICAL: Session is valid for new agent
+        waitForPlayout: true, // CRITICAL: Wait for audio to finish before returning
       });
 
       if (result.success) {
+        // CRITICAL FIX: Wait for speech to complete before returning!
+        // safeGenerateReply returns when text is sent to TTS, not when audio finishes.
+        // Without this wait, the handoff completes before the greeting finishes speaking.
+        log.debug({ estimatedDurationMs }, '🎭 Waiting for arriving welcome to complete...');
+        await this.waitForSpeechComplete(estimatedDurationMs);
         diag.entry('🎭 Arriving welcome complete (safeGenerateReply)');
         return;
       }
@@ -546,9 +603,7 @@ export class CoordinatorAdapter {
 
       try {
         coordinatedSay(this.sessionId, finalGreeting, { allowInterruptions: false });
-        await new Promise<void>((resolve) => {
-          setTimeout(resolve, 800);
-        });
+        await this.waitForSpeechComplete(estimatedDurationMs);
         diag.entry('🎭 Arriving welcome complete (coordinatedSay)');
         return;
       } catch (coordErr) {
@@ -558,9 +613,7 @@ export class CoordinatorAdapter {
       // Fallback 2: Direct session.say (last resort - always works if session is valid)
       try {
         this.session.say(finalGreeting, { allowInterruptions: false });
-        await new Promise<void>((resolve) => {
-          setTimeout(resolve, 800);
-        });
+        await this.waitForSpeechComplete(estimatedDurationMs);
         diag.entry('🎭 Arriving welcome complete (session.say)');
       } catch (sayErr) {
         log.error({ error: String(sayErr), toPersonaId }, '🎭 ALL greeting methods failed!');

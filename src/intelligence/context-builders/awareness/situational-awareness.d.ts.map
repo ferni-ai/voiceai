@@ -1,0 +1,1 @@
+{"version":3,"file":"situational-awareness.d.ts","sourceRoot":"","sources":["situational-awareness.ts"],"names":[],"mappings":"AAAA;;;;;;;;;;;;;GAaG;AAGH,OAAO,EAGL,KAAK,mBAAmB,EACxB,KAAK,gBAAgB,EACtB,MAAM,aAAa,CAAC;AAMrB,QAAA,MAAM,kBAAkB,UAYvB,CAAC;AA8EF,iBAAe,yBAAyB,CAAC,KAAK,EAAE,mBAAmB,GAAG,OAAO,CAAC,gBAAgB,EAAE,CAAC,CA6FhG;AAmBD,OAAO,EAAE,yBAAyB,EAAE,kBAAkB,EAAE,CAAC"}

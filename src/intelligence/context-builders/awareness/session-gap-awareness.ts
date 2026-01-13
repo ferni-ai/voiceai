@@ -187,7 +187,7 @@ async function buildSessionGapAwareness(input: ContextBuilderInput): Promise<Con
       const guidance = getReconnectionGuidance(daysSinceLastSession, lastSessionMood);
       injections.push(
         createHighInjection('session_gap_reconnection', guidance, {
-          priority: 70, // High priority for meaningful reconnection
+          category: 'session_awareness',
         })
       );
       log.debug(
@@ -200,7 +200,7 @@ async function buildSessionGapAwareness(input: ContextBuilderInput): Promise<Con
       const guidance = getCheckInGuidance(daysSinceLastSession, lastSessionMood);
       injections.push(
         createHighInjection('session_gap_checkin', guidance, {
-          priority: 60,
+          category: 'session_awareness',
         })
       );
       log.debug(
@@ -213,7 +213,7 @@ async function buildSessionGapAwareness(input: ContextBuilderInput): Promise<Con
       const guidance = getWarmAcknowledgmentGuidance(daysSinceLastSession);
       injections.push(
         createHintInjection('session_gap_warm', guidance, {
-          priority: 45,
+          category: 'session_awareness',
         })
       );
       log.debug(

@@ -47,7 +47,7 @@ export async function toggleFlag(flagId: string, enabled: boolean): Promise<bool
       return true;
     } else {
       const error = (await response.json()) as { error?: string };
-      toast.error(error.error ?? 'Failed to update flag');
+      toast.error(error.error ?? "Couldn't update flag");
       return false;
     }
   } catch (error) {
@@ -71,7 +71,7 @@ export async function setFlagRollout(flagId: string, percentage: number): Promis
       return true;
     } else {
       const error = (await response.json()) as { error?: string };
-      toast.error(error.error ?? 'Failed to update rollout');
+      toast.error(error.error ?? "Couldn't update rollout");
       return false;
     }
   } catch (error) {
@@ -165,7 +165,7 @@ export async function toggleAgent(agentId: string, enabled: boolean): Promise<bo
       return true;
     } else {
       const error = (await response.json()) as { error?: string };
-      toast.error(error.error ?? 'Failed to update agent');
+      toast.error(error.error ?? "Couldn't update agent");
       return false;
     }
   } catch (error) {
@@ -526,7 +526,7 @@ export async function createAgentFromTemplate(templateId: string): Promise<void>
           window.location.reload();
         } else {
           const error = (await response.json()) as { error?: string };
-          toast.error(error.error ?? 'Failed to create agent');
+          toast.error(error.error ?? "Couldn't create agent");
         }
       } catch (error) {
         log.error({ error, templateId }, 'Failed to create agent from template');

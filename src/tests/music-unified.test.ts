@@ -106,9 +106,8 @@ describe('Unified Music Provider', () => {
 
   describe('Source Selection', () => {
     it('should select Sonos when explicitly requested', async () => {
-      const { selectBestSource, buildSourceConfig } = await import(
-        '../services/music/music-provider.js'
-      );
+      const { selectBestSource, buildSourceConfig } =
+        await import('../services/music/music-provider.js');
 
       const config = buildSourceConfig({
         sonosLinked: true,
@@ -120,9 +119,8 @@ describe('Unified Music Provider', () => {
     });
 
     it('should select Spotify when explicitly requested and available', async () => {
-      const { selectBestSource, buildSourceConfig } = await import(
-        '../services/music/music-provider.js'
-      );
+      const { selectBestSource, buildSourceConfig } =
+        await import('../services/music/music-provider.js');
 
       const config = buildSourceConfig({
         spotifyLinked: true,
@@ -135,9 +133,8 @@ describe('Unified Music Provider', () => {
     });
 
     it('should select Sonos when room is specified', async () => {
-      const { selectBestSource, buildSourceConfig } = await import(
-        '../services/music/music-provider.js'
-      );
+      const { selectBestSource, buildSourceConfig } =
+        await import('../services/music/music-provider.js');
 
       const config = buildSourceConfig({
         sonosLinked: true,
@@ -149,9 +146,8 @@ describe('Unified Music Provider', () => {
     });
 
     it('should select iTunes for ambient intent', async () => {
-      const { selectBestSource, buildSourceConfig } = await import(
-        '../services/music/music-provider.js'
-      );
+      const { selectBestSource, buildSourceConfig } =
+        await import('../services/music/music-provider.js');
 
       const config = buildSourceConfig({
         spotifyLinked: true,
@@ -164,9 +160,8 @@ describe('Unified Music Provider', () => {
     });
 
     it('should select Spotify for listening when Premium + device ready', async () => {
-      const { selectBestSource, buildSourceConfig } = await import(
-        '../services/music/music-provider.js'
-      );
+      const { selectBestSource, buildSourceConfig } =
+        await import('../services/music/music-provider.js');
 
       const config = buildSourceConfig({
         spotifyLinked: true,
@@ -179,9 +174,8 @@ describe('Unified Music Provider', () => {
     });
 
     it('should fall back to Sonos when Spotify device not ready', async () => {
-      const { selectBestSource, buildSourceConfig } = await import(
-        '../services/music/music-provider.js'
-      );
+      const { selectBestSource, buildSourceConfig } =
+        await import('../services/music/music-provider.js');
 
       const config = buildSourceConfig({
         spotifyLinked: true,
@@ -196,9 +190,8 @@ describe('Unified Music Provider', () => {
     });
 
     it('should fall back to iTunes when nothing else available', async () => {
-      const { selectBestSource, buildSourceConfig } = await import(
-        '../services/music/music-provider.js'
-      );
+      const { selectBestSource, buildSourceConfig } =
+        await import('../services/music/music-provider.js');
 
       const config = buildSourceConfig({
         spotifyLinked: false,
@@ -306,8 +299,22 @@ describe('Sonos Music Service', () => {
       const { matchRoomName } = await import('../services/smart-home/sonos-music.js');
 
       const groups = [
-        { id: '1', name: 'Living Room', playbackState: 'idle', volume: 50, muted: false, coordinatorId: '1' },
-        { id: '2', name: 'Kitchen', playbackState: 'idle', volume: 50, muted: false, coordinatorId: '2' },
+        {
+          id: '1',
+          name: 'Living Room',
+          playbackState: 'idle',
+          volume: 50,
+          muted: false,
+          coordinatorId: '1',
+        },
+        {
+          id: '2',
+          name: 'Kitchen',
+          playbackState: 'idle',
+          volume: 50,
+          muted: false,
+          coordinatorId: '2',
+        },
       ] as const;
 
       const match = matchRoomName('Living Room', groups as any);
@@ -318,7 +325,14 @@ describe('Sonos Music Service', () => {
       const { matchRoomName } = await import('../services/smart-home/sonos-music.js');
 
       const groups = [
-        { id: '1', name: 'Living Room Sonos', playbackState: 'idle', volume: 50, muted: false, coordinatorId: '1' },
+        {
+          id: '1',
+          name: 'Living Room Sonos',
+          playbackState: 'idle',
+          volume: 50,
+          muted: false,
+          coordinatorId: '1',
+        },
       ] as const;
 
       const match = matchRoomName('living', groups as any);
@@ -329,7 +343,14 @@ describe('Sonos Music Service', () => {
       const { matchRoomName } = await import('../services/smart-home/sonos-music.js');
 
       const groups = [
-        { id: '1', name: 'Living Room', playbackState: 'idle', volume: 50, muted: false, coordinatorId: '1' },
+        {
+          id: '1',
+          name: 'Living Room',
+          playbackState: 'idle',
+          volume: 50,
+          muted: false,
+          coordinatorId: '1',
+        },
       ] as const;
 
       const match = matchRoomName('lounge', groups as any);
@@ -340,7 +361,14 @@ describe('Sonos Music Service', () => {
       const { matchRoomName } = await import('../services/smart-home/sonos-music.js');
 
       const groups = [
-        { id: '1', name: 'Kitchen', playbackState: 'idle', volume: 50, muted: false, coordinatorId: '1' },
+        {
+          id: '1',
+          name: 'Kitchen',
+          playbackState: 'idle',
+          volume: 50,
+          muted: false,
+          coordinatorId: '1',
+        },
       ] as const;
 
       const match = matchRoomName('garage', groups as any);
@@ -350,9 +378,8 @@ describe('Sonos Music Service', () => {
 
   describe('Last Used Room', () => {
     it('should remember last used room per user', async () => {
-      const { setLastUsedRoom, getLastUsedRoom } = await import(
-        '../services/smart-home/sonos-music.js'
-      );
+      const { setLastUsedRoom, getLastUsedRoom } =
+        await import('../services/smart-home/sonos-music.js');
 
       setLastUsedRoom('user123', {
         groupId: 'group1',
@@ -468,9 +495,8 @@ describe('Local Music Intent Detection', () => {
 describe('iTunes Fallback Behavior', () => {
   describe('Fallback Source Selection', () => {
     it('should select iTunes when Spotify not linked', async () => {
-      const { selectBestSource, buildSourceConfig } = await import(
-        '../services/music/music-provider.js'
-      );
+      const { selectBestSource, buildSourceConfig } =
+        await import('../services/music/music-provider.js');
 
       const config = buildSourceConfig({
         spotifyLinked: false,
@@ -482,9 +508,8 @@ describe('iTunes Fallback Behavior', () => {
     });
 
     it('should select iTunes when Spotify not Premium', async () => {
-      const { selectBestSource, buildSourceConfig } = await import(
-        '../services/music/music-provider.js'
-      );
+      const { selectBestSource, buildSourceConfig } =
+        await import('../services/music/music-provider.js');
 
       const config = buildSourceConfig({
         spotifyLinked: true,
@@ -498,9 +523,8 @@ describe('iTunes Fallback Behavior', () => {
     });
 
     it('should select iTunes when Spotify device not ready', async () => {
-      const { selectBestSource, buildSourceConfig } = await import(
-        '../services/music/music-provider.js'
-      );
+      const { selectBestSource, buildSourceConfig } =
+        await import('../services/music/music-provider.js');
 
       const config = buildSourceConfig({
         spotifyLinked: true,
@@ -514,9 +538,8 @@ describe('iTunes Fallback Behavior', () => {
     });
 
     it('should select iTunes for ambient intent (always)', async () => {
-      const { selectBestSource, buildSourceConfig } = await import(
-        '../services/music/music-provider.js'
-      );
+      const { selectBestSource, buildSourceConfig } =
+        await import('../services/music/music-provider.js');
 
       // Even with everything available, ambient uses iTunes
       const config = buildSourceConfig({
@@ -606,9 +629,8 @@ describe('Spotify to iTunes Fallback', () => {
     it('should detect when no devices available', async () => {
       // This would trigger fallback to iTunes
       // We test the source selection logic
-      const { selectBestSource, buildSourceConfig } = await import(
-        '../services/music/music-provider.js'
-      );
+      const { selectBestSource, buildSourceConfig } =
+        await import('../services/music/music-provider.js');
 
       const config = buildSourceConfig({
         spotifyLinked: true,
@@ -629,9 +651,8 @@ describe('Spotify to iTunes Fallback', () => {
 
 describe('Circuit Breaker Fallback', () => {
   it('should report Sonos circuit breaker status', async () => {
-    const { getSonosCircuitBreakerStatus, resetSonosCircuitBreaker } = await import(
-      '../services/smart-home/sonos.js'
-    );
+    const { getSonosCircuitBreakerStatus, resetSonosCircuitBreaker } =
+      await import('../services/smart-home/sonos.js');
 
     // Reset to known state
     resetSonosCircuitBreaker();

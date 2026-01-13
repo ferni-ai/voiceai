@@ -117,6 +117,22 @@ export async function recordSharedMoment(
     );
 
     log.info({ userId, type, essence }, 'Recorded shared moment');
+
+    // Memory Lane: Capture inside joke as potential memory
+    if (type === 'inside_joke' || type === 'running_gag' || type === 'silly_moment') {
+      try {
+        const { captureInsideJoke } = await import('../memory-lane/real-time-collector.js');
+        void captureInsideJoke({
+          userId,
+          jokeId: docRef.id,
+          joke: essence,
+          context,
+        });
+      } catch {
+        // Memory capture is optional
+      }
+    }
+
     return docRef.id;
   } catch (error) {
     log.warn({ error: String(error), userId }, 'Failed to record shared moment');

@@ -302,22 +302,28 @@ export async function handleLandingOptimizationRoutes(
           log.info({ experimentId: experiment.id }, 'Experiment started immediately');
         } else {
           // Store the scheduled start time for manual activation
-          log.info({
-            experimentId: experiment.id,
-            scheduledStart: body.scheduledStart,
-          }, 'Experiment created, scheduled for manual activation');
+          log.info(
+            {
+              experimentId: experiment.id,
+              scheduledStart: body.scheduledStart,
+            },
+            'Experiment created, scheduled for manual activation'
+          );
         }
 
         // Save the approval to Firestore for tracking
-        await db.collection('approved_experiments').doc(experiment.id).set({
-          originalSuggestionId: experimentId,
-          reportId: report.id,
-          experimentId: experiment.id,
-          approvedBy: 'admin',
-          approvedAt: new Date(),
-          scheduledStart: body.scheduledStart || null,
-          status: body.scheduledStart ? 'scheduled' : 'running',
-        });
+        await db
+          .collection('approved_experiments')
+          .doc(experiment.id)
+          .set({
+            originalSuggestionId: experimentId,
+            reportId: report.id,
+            experimentId: experiment.id,
+            approvedBy: 'admin',
+            approvedAt: new Date(),
+            scheduledStart: body.scheduledStart || null,
+            status: body.scheduledStart ? 'scheduled' : 'running',
+          });
 
         sendJSON(res, {
           success: true,

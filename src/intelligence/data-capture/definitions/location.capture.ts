@@ -54,14 +54,38 @@ const PLACE_TYPES: Record<string, string> = {
 const POSITIVE_SENTIMENT = ['love', 'favorite', 'best', 'amazing', 'wonderful', 'great', 'awesome', 'perfect'];
 const NEGATIVE_SENTIMENT = ['hate', 'worst', 'terrible', 'awful', 'avoid', 'dislike'];
 
-function detectPlaceType(text: string): string {
+// Valid place types for FavoritePlaceEntity
+type ValidPlaceType = 'restaurant' | 'cafe' | 'park' | 'store' | 'venue' | 'neighborhood' | 'city' | 'country' | 'other';
+
+// Map internal place types to valid FavoritePlaceEntity types
+const PLACE_TYPE_MAPPING: Record<string, ValidPlaceType> = {
+  restaurant: 'restaurant',
+  cafe: 'cafe',
+  bar: 'venue',
+  beach: 'other',
+  gym: 'venue',
+  library: 'venue',
+  bookstore: 'store',
+  museum: 'venue',
+  entertainment: 'venue',
+  shopping: 'store',
+  religious: 'venue',
+  medical: 'venue',
+  education: 'venue',
+  work: 'venue',
+  travel: 'venue',
+  place: 'other',
+  park: 'park',
+};
+
+function detectPlaceType(text: string): ValidPlaceType {
   const lowerText = text.toLowerCase();
   for (const [keyword, type] of Object.entries(PLACE_TYPES)) {
     if (lowerText.includes(keyword)) {
-      return type;
+      return PLACE_TYPE_MAPPING[type] || 'other';
     }
   }
-  return 'place';
+  return 'other';
 }
 
 function extractPlaceName(text: string): string | null {
@@ -207,7 +231,10 @@ export const locationCaptureDefinition: DataCaptureDefinition = {
 
     // Extract or use provided values
     const placeName = (args.placeName as string) || extractPlaceName(transcript);
-    const placeType = (args.placeType as string) || detectPlaceType(transcript);
+    const placeTypeRaw = (args.placeType as string) || null;
+    const placeType: ValidPlaceType = placeTypeRaw
+      ? (PLACE_TYPE_MAPPING[placeTypeRaw] || 'other')
+      : detectPlaceType(transcript);
     const location = (args.location as string) || extractLocation(transcript);
 
     // Check for memory-related patterns (special places)
@@ -224,7 +251,11 @@ export const locationCaptureDefinition: DataCaptureDefinition = {
     const hasPositiveSentiment = POSITIVE_SENTIMENT.some((s) =>
       transcript.toLowerCase().includes(s)
     );
-    const significance = isMemoryLocation ? 'milestone' : hasPositiveSentiment ? 'meaningful' : 'casual';
+    const significance: 'casual' | 'meaningful' | 'life_changing' = isMemoryLocation
+      ? 'life_changing'
+      : hasPositiveSentiment
+        ? 'meaningful'
+        : 'casual';
 
     if (isMemoryLocation) {
       // Store as location memory
@@ -233,7 +264,6 @@ export const locationCaptureDefinition: DataCaptureDefinition = {
         memory: transcript.slice(0, 200),
         emotion: hasPositiveSentiment ? 'happy' : 'nostalgic',
         significance,
-        createdAt: new Date(),
       };
 
       try {
@@ -246,14 +276,13 @@ export const locationCaptureDefinition: DataCaptureDefinition = {
       }
     }
 
-    if (placeName || (hasPositiveSentiment && placeType !== 'place')) {
+    if (placeName || (hasPositiveSentiment && placeType !== 'other')) {
       // Store as favorite place
       const placeData = {
         name: placeName || `${placeType} (unnamed)`,
         type: placeType,
         location: location || undefined,
-        whyLoved: hasPositiveSentiment ? 'User mentioned loving this place' : undefined,
-        createdAt: new Date(),
+        whyLoved: hasPositiveSentiment ? 'User mentioned loving this place' : 'Mentioned in conversation',
       };
 
       try {

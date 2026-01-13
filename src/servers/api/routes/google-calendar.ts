@@ -39,9 +39,11 @@ export async function handleGoogleCalendarRoutes(
   parsedUrl: URL
 ): Promise<boolean> {
   // Start Google Calendar OAuth flow
-  if (pathname === '/auth/google/login') {
-    const userId = parsedUrl.searchParams.get('user_id');
-    const returnUrl = parsedUrl.searchParams.get('return_url');
+  // Support both /auth/google/login and /auth/google/calendar for flexibility
+  if (pathname === '/auth/google/login' || pathname === '/auth/google/calendar') {
+    // Support both user_id and userId query params for flexibility
+    const userId = parsedUrl.searchParams.get('user_id') || parsedUrl.searchParams.get('userId');
+    const returnUrl = parsedUrl.searchParams.get('return_url') || parsedUrl.searchParams.get('redirect');
 
     if (!GOOGLE_CALENDAR_CLIENT_ID || !GOOGLE_CALENDAR_CLIENT_SECRET) {
       res.writeHead(503, { 'Content-Type': 'application/json' });
@@ -170,8 +172,14 @@ export async function handleGoogleCalendarRoutes(
 
       log.info({ userId: userId || 'unknown' }, 'Google Calendar linked');
 
-      // Redirect back to app
-      const returnUrl = stateData.return_url ?? '/?calendar_linked=true';
+      // Redirect back to app with success indicator
+      // Default to settings page with calendar=google&status=connected
+      let returnUrl = stateData.return_url ?? '/settings?calendar=google&status=connected';
+      // Ensure success indicator is added if not present
+      if (!returnUrl.includes('status=') && !returnUrl.includes('calendar_linked')) {
+        const separator = returnUrl.includes('?') ? '&' : '?';
+        returnUrl = `${returnUrl}${separator}calendar=google&status=connected`;
+      }
       res.writeHead(302, { Location: returnUrl });
       res.end();
     } catch (err) {

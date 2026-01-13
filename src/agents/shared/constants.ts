@@ -44,6 +44,29 @@ export const SILENCE_THRESHOLDS = {
    * See turn-handler.ts:148 and session-state-handler.ts:451
    */
   EARLY_ACKNOWLEDGMENT_SECONDS: 5.0,
+
+  /**
+   * Response intervals for progressive silence handling (seconds)
+   * First response at INTERVALS[0], second at INTERVALS[1], etc.
+   * Values are randomized ±20% for natural feel.
+   *
+   * Configurable via SILENCE_INTERVALS env var (comma-separated):
+   * e.g., SILENCE_INTERVALS=6,15,30 for faster responses
+   *
+   * Default: [10, 22, 38] - First response at ~10s, second at ~22s, third at ~38s
+   * Faster: [6, 15, 30] - More responsive for active conversations
+   * Slower: [15, 35, 60] - More patient for contemplative conversations
+   */
+  get intervals(): number[] {
+    const envValue = process.env.SILENCE_INTERVALS;
+    if (envValue) {
+      const parsed = envValue.split(',').map((s) => parseInt(s.trim(), 10));
+      if (parsed.length > 0 && parsed.every((n) => !isNaN(n) && n > 0)) {
+        return parsed;
+      }
+    }
+    return [10, 22, 38]; // Default: first at 10s, second at 22s, third at 38s
+  },
 } as const;
 
 // ============================================================================
@@ -279,7 +302,7 @@ export const VAD_CONFIG = {
    * Duration of silence required to end speech detection (ms)
    * Lower = faster response, Higher = more tolerant of natural pauses
    *
-   * UPDATED Dec 2024: Reduced from 600ms → 400ms for snappier conversation
+   * UPDATED Jan 2026: Reduced from 400ms → 300ms for human-like turn-taking
    * Research: Human turn-taking gaps are 200-500ms
    */
   get silenceDurationMs(): number {
@@ -290,7 +313,7 @@ export const VAD_CONFIG = {
         return parsed;
       }
     }
-    return 400; // Default: 400ms silence before turn end (reduced from 600ms)
+    return 300; // Default: 300ms silence before turn end (human-like turn-taking)
   },
 
   /** Whether to create a response after speech ends */

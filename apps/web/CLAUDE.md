@@ -485,6 +485,203 @@ Once authenticated, toggle with `Cmd/Ctrl+Shift+D`. See `README.md` for full det
 
 ---
 
+## Architecture Overview
+
+### Module Structure
+
+The frontend follows a modular architecture with clear separation of concerns:
+
+```
+src/
+├── app/                 # Application orchestration
+│   ├── panel-methods.ts    # Panel show/hide functions
+│   ├── data-message-handlers.ts  # Backend message processing
+│   └── brand-integration.ts      # Brand system hooks
+├── eq/                  # Emotional Intelligence System
+│   ├── capabilities/   # Five EQ capabilities
+│   │   ├── micro-expressions.ts
+│   │   ├── active-listening.ts
+│   │   ├── breath-sync.ts
+│   │   ├── concern-detection.ts
+│   │   └── anticipation.ts
+│   ├── bridge/         # Backend signal handlers
+│   │   └── humanization-bridge.ts
+│   ├── state/          # Emotion state management
+│   │   ├── emotion-machine.ts
+│   │   ├── emotion-groups.ts
+│   │   └── emotion-interpolator.ts
+│   ├── utils/          # Shared utilities
+│   └── index.ts        # Public API
+├── components/          # Reusable UI components
+│   └── base/           # Foundation components
+│       ├── component.ts  # BaseComponent class
+│       ├── modal.ts      # Modal component
+│       └── panel.ts      # Panel component
+├── services/            # Business logic
+├── state/               # Application state
+├── ui/                  # UI implementations
+└── utils/               # Shared utilities
+```
+
+### EQ System (Emotional Intelligence)
+
+The `eq/` module implements Ferni's "Better than Human" emotional intelligence:
+
+```typescript
+import { ferni, initFerniEQ } from './eq/index.js';
+
+// Initialize on app start
+initFerniEQ();
+
+// Use EQ capabilities
+ferni.playMicroExpression('recognition');      // 40-150ms subliminal flash
+ferni.startActiveListening();                   // Micro-nods during user speech
+ferni.setBreathSyncEnabled(true);              // Sync with user breathing
+ferni.analyzeConcern({ transcript, voiceStrain }); // Detect distress
+ferni.anticipateEmotion({ transcript, tone });  // Predict emotions
+```
+
+**Key files:**
+- `eq/index.ts` - Public API with lazy-loaded `ferni` object
+- `eq/capabilities/*.ts` - Individual EQ capability implementations
+- `eq/bridge/humanization-bridge.ts` - Backend signal handlers
+
+### Component System
+
+Use the base components for consistent, brand-compliant UI:
+
+```typescript
+import { Modal, Panel, BaseComponent } from './components/base/index.js';
+
+// Modal (centered floating)
+class MyModal extends Modal {
+  constructor() {
+    super({
+      title: 'My Title',
+      eyebrow: 'SECTION',
+    }, {
+      closeOnBackdropClick: true,
+      closeOnEscape: true,
+    });
+  }
+
+  protected override buildContent(): string {
+    return `<p>Dynamic content here</p>`;
+  }
+}
+
+// Panel (slides from right)
+class MyPanel extends Panel {
+  constructor() {
+    super({
+      title: 'Settings',
+      showBackButton: true,
+    });
+  }
+}
+
+// Usage
+const modal = new MyModal();
+modal.mount(document.body);
+modal.open();
+```
+
+**BaseComponent features:**
+- Lifecycle management (`mount`, `afterMount`, `dispose`)
+- Event listener tracking (prevents memory leaks)
+- HMR protection (`cleanupOrphanedElements`)
+- Style injection utilities
+
+### App Module
+
+The `app/` module contains orchestration utilities used by `app.ts`:
+
+```typescript
+// Panel methods (show various UI panels)
+import { showAnalyticsDashboard, showTeamHuddle } from './app/panel-methods.js';
+
+// Data message handlers (process backend messages)
+import { handleDataMessage } from './app/data-message-handlers.js';
+
+// Brand integration (theming hooks)
+import { onBrandChange } from './app/brand-integration.js';
+```
+
+### Backward Compatibility
+
+All existing imports continue to work via re-export shims:
+- `better-than-human.ui.ts` → re-exports from `eq/`
+- Direct `app.ts` imports → still available
+
+### Music System Architecture (January 2026)
+
+The frontend music system uses a **single source of truth** pattern that mirrors the backend DJController:
+
+```
+Backend DJController → music_state events → MusicStateManager → UI Components
+```
+
+```mermaid
+flowchart TB
+    subgraph Backend
+        DJController[DJController]
+    end
+
+    subgraph WebSocket
+        MusicEvents["music_state events"]
+    end
+
+    subgraph Frontend
+        MusicStateManager["MusicStateManager<br/>(Single Source of Truth)"]
+        NowPlayingUI["NowPlayingUI<br/>(Pure View)"]
+        MusicAudioController["MusicAudioController<br/>(Ducking)"]
+        SpeechDispatcher["SpeechEventDispatcher<br/>(Speaking state)"]
+    end
+
+    DJController -->|"music_state"| MusicEvents
+    MusicEvents -->|"handleMusic()"| MusicStateManager
+    MusicStateManager -->|"subscribe()"| NowPlayingUI
+    MusicStateManager -->|"isDucked()"| MusicAudioController
+    SpeechDispatcher -->|"notifyAgentSpeaking*()"| MusicStateManager
+```
+
+**Key files:**
+
+| File | Purpose |
+|------|---------|
+| `services/music-state-manager.ts` | Single source of truth for music state |
+| `ui/now-playing.ui.ts` | Pure view - subscribes to MusicStateManager |
+| `services/music-audio.controller.ts` | Web Audio ducking with CSS fallback |
+| `services/speech-event-dispatcher.ts` | Notifies MusicStateManager of speaking |
+| `app/data-message-handlers.ts` | Routes backend events to MusicStateManager |
+| `ui/music-history.ui.ts` | Recently played tracks drawer |
+| `ui/music-dashboard.ui.ts` | Musical insights dashboard |
+
+**State flow:**
+
+1. Backend sends `music_state` event via data channel
+2. `handleMusic()` in `data-message-handlers.ts` passes to `MusicStateManager`
+3. `MusicStateManager` updates state and emits typed events
+4. `NowPlayingUI` receives events via subscription and updates view
+5. Control buttons send commands back to backend (no optimistic updates)
+6. Backend confirms state change via new `music_state` event
+
+**Ducking coordination:**
+
+1. `SpeechEventDispatcher` detects agent/user speaking
+2. Notifies `MusicStateManager.notifyAgentSpeakingStart/End()`
+3. `MusicStateManager` emits `ducking_started/ended` events
+4. `MusicAudioController` applies volume ducking (Web Audio or CSS fallback)
+
+**Key patterns:**
+
+- **NO optimistic updates** - Control buttons wait for backend confirmation
+- **Pure views** - UI subscribes to state, doesn't manage it
+- **Fallback ducking** - CSS volume when Web Audio fails
+- **Stale detection** - Heartbeat resets state if backend goes silent
+
+---
+
 ## Summary
 
 1. **Use tokens** - Hardcoded values block commits
@@ -499,3 +696,5 @@ Once authenticated, toggle with `Cmd/Ctrl+Shift+D`. See `README.md` for full det
 10. **Validate at boundaries** - Use Zod schemas for external data
 11. **Use assertNever** - Exhaustive switch/if checks for unions
 12. **Use invariant** - Make runtime assumptions explicit
+13. **Use eq/ module** - For all emotional intelligence features
+14. **Use BaseComponent** - For new modals/panels (see `components/base/`)

@@ -47,7 +47,7 @@ interface ProactiveMessagesState {
 // STATE
 // ============================================================================
 
-let state: ProactiveMessagesState = {
+const state: ProactiveMessagesState = {
   messages: [],
   currentIndex: 0,
   isVisible: false,

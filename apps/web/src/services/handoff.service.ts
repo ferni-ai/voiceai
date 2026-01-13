@@ -39,6 +39,8 @@ import type { PersonaId } from '../types/persona.js';
 import { getHandoffTimeoutMs } from '../utils/environment.js';
 import { createLogger } from '../utils/logger.js';
 import { audioService, type SoundEffect } from './audio.service.js';
+// 🌟 Transcendent Animation Systems - Signature handoff moments
+import { handleMomentTrigger, setEmotionalState } from '../systems/index.js';
 
 const log = createLogger('Handoff');
 
@@ -1159,6 +1161,12 @@ class HandoffService {
     // Track that we've met this persona
     this.metPersonas.add(handoff.toPersona);
 
+    // 🌟 Transcendent: Trigger recognition moment for first meetings
+    // This is the powerful "I see you" moment that creates instant connection
+    if (isFirstMeeting) {
+      handleMomentTrigger('recognition');
+    }
+
     // Calculate post-sound pause for human-like timing
     const pauseAfterSound = this.calculatePauseAfterSound(handoff.direction, isFirstMeeting);
 
@@ -1177,6 +1185,12 @@ class HandoffService {
 
     // Update active persona in state
     setActivePersona(handoff.toPersona);
+
+    // 🌟 Transcendent: Trigger the signature handoff moment
+    // This creates a multi-phase orchestrated transition animation
+    handleMomentTrigger('handoff');
+    // Set emotional state to anticipation (excitement for the new persona)
+    setEmotionalState('anticipation');
 
     // Notify all callbacks
     for (const callback of this.callbacks) {

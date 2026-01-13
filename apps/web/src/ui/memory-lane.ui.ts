@@ -1,24 +1,26 @@
 /**
- * Memory Lane UI - "On This Day" memories and highlights
+ * Memory Lane UI - Your Journey with Ferni
  *
- * Surfaces meaningful moments from past conversations, creating
- * a sense of shared history between the user and Ferni.
+ * A centered modal that surfaces meaningful moments from past conversations,
+ * creating a sense of shared history between the user and Ferni.
+ *
+ * Features:
+ * - Highlights tab: Top-scored memorable moments
+ * - On This Day tab: Anniversary memories from previous years
+ * - Timeline tab: Chronological view grouped by month
+ * - Reaction buttons: Love or dismiss memories
  *
  * Design principles:
- * - Nostalgic but not intrusive
- * - "On this day" style anniversary moments
- * - Emotional highlights from conversations
+ * - Centered modal (per brand guidelines, not side drawer)
+ * - Warm, nostalgic feel with emotional theming
  * - Deepens the relationship feeling
- *
- * Security note: Memory content comes from backend API only.
- * All DOM content is created via safe DOM methods, no innerHTML.
  *
  * @module ui/memory-lane
  */
 
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
-import { apiGet } from '../utils/api.js';
+import { apiGet, apiPatch } from '../utils/api.js';
 import { toast } from './toast.ui.js';
 import { getAuthState } from '../services/firebase-auth.service.js';
 
@@ -28,18 +30,45 @@ const log = createLogger('MemoryLane');
 // TYPES
 // ============================================================================
 
+type TabId = 'highlights' | 'on-this-day' | 'timeline';
+
 interface Memory {
   id: string;
-  date: string; // ISO date
   content: string;
-  emotionalTone: 'joyful' | 'meaningful' | 'growth' | 'milestone' | 'funny';
+  title?: string;
+  type: string;
+  emotionalTone: string;
+  occurredAt: string;
   personaId?: string;
-  yearAgo: number; // How many years ago
+  personaName?: string;
+  topicTags: string[];
+  yearAgo: number;
+  score?: number;
+  userReaction?: 'loved' | 'dismissed' | 'shared' | 'revisited';
 }
 
-interface MemoryLaneResponse {
+interface HighlightsResponse {
   memories: Memory[];
-  hasMoreMemories: boolean;
+  hasMore: boolean;
+  nextCursor?: string;
+}
+
+interface OnThisDayResponse {
+  memories: Memory[];
+  today: { month: number; date: number; formatted: string };
+  hasContent: boolean;
+}
+
+interface TimelineGroup {
+  label: string;
+  memories: Memory[];
+  count: number;
+}
+
+interface TimelineResponse {
+  groups: TimelineGroup[];
+  totalMemories: number;
+  hasMore: boolean;
 }
 
 // ============================================================================
@@ -48,10 +77,12 @@ interface MemoryLaneResponse {
 
 let isInitialized = false;
 let styleElement: HTMLStyleElement | null = null;
-let memoryLaneButton: HTMLElement | null = null;
-let memoryLaneDrawer: HTMLElement | null = null;
-let memories: Memory[] = [];
-let isDrawerOpen = false;
+let modalElement: HTMLElement | null = null;
+let isModalOpen = false;
+let currentTab: TabId = 'highlights';
+let highlightsCache: Memory[] = [];
+let onThisDayCache: Memory[] = [];
+let timelineCache: TimelineGroup[] = [];
 let hasCheckedToday = false;
 
 // ============================================================================
@@ -60,13 +91,26 @@ let hasCheckedToday = false;
 
 const STORAGE_KEY = 'ferni_memory_lane_last_check';
 
-// Emotion-specific icons (using text symbols for simplicity)
+// Lucide-style SVG icons (consistent with brand)
+const ICONS = {
+  close: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`,
+  heart: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>`,
+  heartFilled: `<svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>`,
+  x: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>`,
+};
+
+// Emotion tone icons (text-based for simplicity)
 const EMOTION_ICONS: Record<string, string> = {
   joyful: '✨',
   meaningful: '💫',
+  proud: '🏆',
+  tender: '💕',
+  funny: '😊',
+  bittersweet: '🌅',
+  hopeful: '🌱',
+  grateful: '🙏',
   growth: '🌱',
   milestone: '⭐',
-  funny: '😊',
 };
 
 // ============================================================================
@@ -77,9 +121,6 @@ export function initMemoryLaneUI(): void {
   if (isInitialized) return;
 
   injectStyles();
-  createMemoryLaneButton();
-
-  // Check for "on this day" memories on load (once per day)
   checkForTodayMemories();
 
   isInitialized = true;
@@ -87,70 +128,12 @@ export function initMemoryLaneUI(): void {
 }
 
 // ============================================================================
-// BUTTON CREATION
-// ============================================================================
-
-function createMemoryLaneButton(): void {
-  const avatarContainer = document.querySelector('.avatar-container');
-  if (!avatarContainer) {
-    // Retry after delay
-    setTimeout(() => {
-      const retryContainer = document.querySelector('.avatar-container');
-      if (retryContainer) {
-        createButtonElement(retryContainer as HTMLElement);
-      }
-    }, 1000);
-    return;
-  }
-
-  createButtonElement(avatarContainer as HTMLElement);
-}
-
-function createButtonElement(container: HTMLElement): void {
-  memoryLaneButton = document.createElement('button');
-  memoryLaneButton.className = 'memory-lane-button';
-  memoryLaneButton.setAttribute('aria-label', 'View memories');
-  memoryLaneButton.setAttribute('title', 'Memory Lane');
-
-  // Book/photo album icon via SVG (created with DOM)
-  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-  svg.setAttribute('viewBox', '0 0 24 24');
-  svg.setAttribute('fill', 'none');
-  svg.setAttribute('stroke', 'currentColor');
-  svg.setAttribute('stroke-width', '1.5');
-  svg.setAttribute('width', '18');
-  svg.setAttribute('height', '18');
-
-  // Book path
-  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-  path.setAttribute(
-    'd',
-    'M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253'
-  );
-  path.setAttribute('stroke-linecap', 'round');
-  path.setAttribute('stroke-linejoin', 'round');
-
-  svg.appendChild(path);
-  memoryLaneButton.appendChild(svg);
-
-  memoryLaneButton.addEventListener('click', toggleMemoryLane);
-
-  container.appendChild(memoryLaneButton);
-
-  // Animate in
-  requestAnimationFrame(() => {
-    memoryLaneButton?.classList.add('memory-lane-button--visible');
-  });
-}
-
-// ============================================================================
-// MEMORY CHECKING
+// MEMORY CHECKING (for proactive notification)
 // ============================================================================
 
 async function checkForTodayMemories(): Promise<void> {
   if (hasCheckedToday) return;
 
-  // Check if we already checked today
   const lastCheck = getLastCheckDate();
   const today = new Date().toDateString();
   if (lastCheck === today) {
@@ -161,22 +144,91 @@ async function checkForTodayMemories(): Promise<void> {
   hasCheckedToday = true;
   saveLastCheckDate(today);
 
-  // Fetch "on this day" memories
   const authState = getAuthState();
   if (!authState.isAuthenticated) return;
 
   try {
-    const response = await apiGet<MemoryLaneResponse>('/api/memories/on-this-day');
+    const response = await apiGet<OnThisDayResponse>('/api/memories/on-this-day');
     if (response.ok && response.data?.memories?.length) {
-      memories = response.data.memories;
-      const firstMemory = memories[0];
+      onThisDayCache = response.data.memories;
+      const firstMemory = onThisDayCache[0];
       if (firstMemory) {
-        showMemoryNotification(firstMemory);
+        showAnniversaryNotification(firstMemory, onThisDayCache.length);
       }
     }
   } catch (err) {
-    log.debug('Could not fetch memories', { error: String(err) });
+    log.debug('Could not fetch on-this-day memories', { error: String(err) });
   }
+}
+
+/**
+ * Show a beautiful anniversary notification that can be clicked to open Memory Lane
+ */
+function showAnniversaryNotification(memory: Memory, totalCount: number): void {
+  // Don't show if Memory Lane is already open
+  if (isModalOpen) return;
+
+  // Create notification element
+  const notification = document.createElement('div');
+  notification.className = 'memory-lane-anniversary-notification';
+  notification.setAttribute('role', 'button');
+  notification.setAttribute('tabindex', '0');
+  notification.setAttribute('aria-label', 'View memory from this day');
+
+  const yearsText = memory.yearAgo === 1 ? 'year' : 'years';
+  const moreText = totalCount > 1 ? ` and ${totalCount - 1} more` : '';
+
+  // Truncate content for preview
+  const previewContent = memory.content.length > 80
+    ? memory.content.slice(0, 77) + '...'
+    : memory.content;
+
+  notification.innerHTML = `
+    <div class="anniversary-notification-icon">
+      ${ICONS.heart}
+    </div>
+    <div class="anniversary-notification-content">
+      <div class="anniversary-notification-title">
+        ${memory.yearAgo} ${yearsText} ago today${moreText}
+      </div>
+      <div class="anniversary-notification-preview">
+        "${previewContent}"
+      </div>
+    </div>
+    <div class="anniversary-notification-action">
+      View →
+    </div>
+  `;
+
+  // Click handler to open Memory Lane
+  const handleClick = () => {
+    notification.remove();
+    currentTab = 'on-this-day';
+    void openMemoryLane();
+  };
+
+  notification.addEventListener('click', handleClick);
+  notification.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      handleClick();
+    }
+  });
+
+  document.body.appendChild(notification);
+
+  // Animate in
+  requestAnimationFrame(() => {
+    notification.classList.add('visible');
+  });
+
+  // Auto-dismiss after 8 seconds
+  setTimeout(() => {
+    notification.classList.remove('visible');
+    setTimeout(() => notification.remove(), DURATION.SLOW);
+  }, 8000);
+
+  log.info({ yearAgo: memory.yearAgo, totalCount }, 'Showed anniversary notification');
 }
 
 function getLastCheckDate(): string | null {
@@ -191,210 +243,471 @@ function saveLastCheckDate(date: string): void {
   try {
     localStorage.setItem(STORAGE_KEY, date);
   } catch {
-    // Ignore localStorage errors
+    // Ignore
   }
-}
-
-function showMemoryNotification(memory: Memory): void {
-  // Add a subtle indicator to the button
-  memoryLaneButton?.classList.add('memory-lane-button--has-memory');
-
-  // Show a gentle toast
-  const yearsText = memory.yearAgo === 1 ? 'year' : 'years';
-  toast.info(`${memory.yearAgo} ${yearsText} ago today...`);
 }
 
 // ============================================================================
-// DRAWER
+// MODAL MANAGEMENT
 // ============================================================================
 
-function toggleMemoryLane(): void {
-  if (isDrawerOpen) {
-    closeDrawer();
-  } else {
-    openDrawer();
-  }
-}
+export async function openMemoryLane(): Promise<void> {
+  if (isModalOpen) return;
 
-async function openDrawer(): Promise<void> {
-  if (isDrawerOpen) return;
+  isModalOpen = true;
+  createModal();
 
-  isDrawerOpen = true;
-  createDrawer();
-
-  // Fetch memories if we haven't already
-  if (memories.length === 0) {
-    await fetchMemories();
-  }
-
-  renderMemories();
+  // Fetch data for current tab
+  await loadTabData(currentTab);
+  renderTabContent();
 
   // Animate open
   requestAnimationFrame(() => {
-    memoryLaneDrawer?.classList.add('memory-lane-drawer--open');
+    modalElement?.classList.add('memory-lane-modal--open');
   });
 }
 
-function closeDrawer(): void {
-  if (!isDrawerOpen || !memoryLaneDrawer) return;
+export function closeMemoryLane(): void {
+  if (!isModalOpen || !modalElement) return;
 
-  isDrawerOpen = false;
-  memoryLaneDrawer.classList.remove('memory-lane-drawer--open');
+  isModalOpen = false;
+  modalElement.classList.remove('memory-lane-modal--open');
 
-  // Remove after animation
   setTimeout(() => {
-    memoryLaneDrawer?.remove();
-    memoryLaneDrawer = null;
-  }, 300);
+    modalElement?.remove();
+    modalElement = null;
+  }, DURATION.SLOW);
 }
 
-function createDrawer(): void {
-  if (memoryLaneDrawer) return;
+function createModal(): void {
+  // Cleanup any existing modal
+  document.querySelectorAll('.memory-lane-modal').forEach((el) => el.remove());
 
-  memoryLaneDrawer = document.createElement('div');
-  memoryLaneDrawer.className = 'memory-lane-drawer';
-  memoryLaneDrawer.setAttribute('role', 'dialog');
-  memoryLaneDrawer.setAttribute('aria-label', 'Memory Lane');
+  modalElement = document.createElement('div');
+  modalElement.className = 'memory-lane-modal';
+  modalElement.setAttribute('role', 'dialog');
+  modalElement.setAttribute('aria-label', 'Memory Lane');
+  modalElement.setAttribute('aria-modal', 'true');
+
+  // Backdrop
+  const backdrop = document.createElement('div');
+  backdrop.className = 'memory-lane-modal__backdrop';
+  backdrop.addEventListener('click', closeMemoryLane);
+
+  // Card
+  const card = document.createElement('div');
+  card.className = 'memory-lane-modal__card';
 
   // Header
-  const header = document.createElement('div');
-  header.className = 'memory-lane-drawer__header';
+  const header = document.createElement('header');
+  header.className = 'memory-lane-modal__header';
+
+  const headerText = document.createElement('div');
+  const eyebrow = document.createElement('span');
+  eyebrow.className = 'memory-lane-modal__eyebrow';
+  eyebrow.textContent = 'YOUR JOURNEY';
 
   const title = document.createElement('h2');
-  title.className = 'memory-lane-drawer__title';
+  title.className = 'memory-lane-modal__title';
   title.textContent = 'Memory Lane';
 
-  const closeBtn = document.createElement('button');
-  closeBtn.className = 'memory-lane-drawer__close';
-  closeBtn.setAttribute('aria-label', 'Close');
-  closeBtn.textContent = '×';
-  closeBtn.addEventListener('click', closeDrawer);
+  headerText.appendChild(eyebrow);
+  headerText.appendChild(title);
 
-  header.appendChild(title);
+  const closeBtn = document.createElement('button');
+  closeBtn.className = 'memory-lane-modal__close';
+  closeBtn.setAttribute('aria-label', 'Close');
+  closeBtn.innerHTML = ICONS.close;
+  closeBtn.addEventListener('click', closeMemoryLane);
+
+  header.appendChild(headerText);
   header.appendChild(closeBtn);
 
-  // Content
+  // Tabs
+  const tabs = createTabs();
+
+  // Content area
   const content = document.createElement('div');
-  content.className = 'memory-lane-drawer__content';
+  content.className = 'memory-lane-modal__content';
   content.id = 'memory-lane-content';
 
-  // Loading state (safe DOM creation)
-  const loadingText = document.createElement('p');
-  loadingText.className = 'memory-lane-loading';
-  loadingText.textContent = 'Loading memories...';
-  content.appendChild(loadingText);
+  // Loading state
+  const loading = document.createElement('div');
+  loading.className = 'memory-lane-loading';
+  loading.textContent = 'Loading memories...';
+  content.appendChild(loading);
 
-  memoryLaneDrawer.appendChild(header);
-  memoryLaneDrawer.appendChild(content);
+  card.appendChild(header);
+  card.appendChild(tabs);
+  card.appendChild(content);
 
-  document.body.appendChild(memoryLaneDrawer);
+  modalElement.appendChild(backdrop);
+  modalElement.appendChild(card);
 
-  // Close on backdrop click
-  memoryLaneDrawer.addEventListener('click', (e) => {
-    if (e.target === memoryLaneDrawer) {
-      closeDrawer();
-    }
-  });
+  document.body.appendChild(modalElement);
 
   // Close on Escape
   const handleEscape = (e: KeyboardEvent) => {
     if (e.key === 'Escape') {
-      closeDrawer();
+      closeMemoryLane();
       document.removeEventListener('keydown', handleEscape);
     }
   };
   document.addEventListener('keydown', handleEscape);
 }
 
-async function fetchMemories(): Promise<void> {
-  const authState = getAuthState();
-  if (!authState.isAuthenticated) {
-    memories = [];
-    return;
+function createTabs(): HTMLElement {
+  const tabsContainer = document.createElement('div');
+  tabsContainer.className = 'memory-lane-modal__tabs';
+  tabsContainer.setAttribute('role', 'tablist');
+
+  const tabs: Array<{ id: TabId; label: string }> = [
+    { id: 'highlights', label: 'Highlights' },
+    { id: 'on-this-day', label: 'On This Day' },
+    { id: 'timeline', label: 'Timeline' },
+  ];
+
+  for (const tab of tabs) {
+    const tabBtn = document.createElement('button');
+    tabBtn.className = 'memory-lane-modal__tab';
+    tabBtn.setAttribute('role', 'tab');
+    tabBtn.setAttribute('aria-selected', tab.id === currentTab ? 'true' : 'false');
+    tabBtn.setAttribute('data-tab', tab.id);
+    tabBtn.textContent = tab.label;
+
+    if (tab.id === currentTab) {
+      tabBtn.classList.add('memory-lane-modal__tab--active');
+    }
+
+    tabBtn.addEventListener('click', () => switchTab(tab.id));
+    tabsContainer.appendChild(tabBtn);
   }
 
+  return tabsContainer;
+}
+
+async function switchTab(tabId: TabId): Promise<void> {
+  if (tabId === currentTab) return;
+
+  currentTab = tabId;
+
+  // Update tab UI
+  const tabs = modalElement?.querySelectorAll('.memory-lane-modal__tab');
+  tabs?.forEach((tab) => {
+    const isActive = tab.getAttribute('data-tab') === tabId;
+    tab.classList.toggle('memory-lane-modal__tab--active', isActive);
+    tab.setAttribute('aria-selected', isActive ? 'true' : 'false');
+  });
+
+  // Load and render data
+  const content = document.getElementById('memory-lane-content');
+  if (content) {
+    content.innerHTML = '<div class="memory-lane-loading">Loading...</div>';
+  }
+
+  await loadTabData(tabId);
+  renderTabContent();
+}
+
+// ============================================================================
+// DATA LOADING
+// ============================================================================
+
+async function loadTabData(tabId: TabId): Promise<void> {
+  const authState = getAuthState();
+  if (!authState.isAuthenticated) return;
+
   try {
-    const response = await apiGet<MemoryLaneResponse>('/api/memories/highlights');
-    if (response.ok && response.data) {
-      memories = response.data.memories ?? [];
+    switch (tabId) {
+      case 'highlights':
+        if (highlightsCache.length === 0) {
+          const response = await apiGet<HighlightsResponse>('/api/memories/highlights');
+          if (response.ok && response.data) {
+            highlightsCache = response.data.memories ?? [];
+          }
+        }
+        break;
+
+      case 'on-this-day':
+        if (onThisDayCache.length === 0) {
+          const response = await apiGet<OnThisDayResponse>('/api/memories/on-this-day');
+          if (response.ok && response.data) {
+            onThisDayCache = response.data.memories ?? [];
+          }
+        }
+        break;
+
+      case 'timeline':
+        if (timelineCache.length === 0) {
+          const response = await apiGet<TimelineResponse>('/api/memories/timeline');
+          if (response.ok && response.data) {
+            timelineCache = response.data.groups ?? [];
+          }
+        }
+        break;
     }
   } catch (err) {
-    log.warn('Failed to fetch memories', { error: String(err) });
-    memories = [];
+    log.warn('Failed to load memory data', { error: String(err), tabId });
   }
 }
 
-function renderMemories(): void {
+// ============================================================================
+// RENDERING
+// ============================================================================
+
+function renderTabContent(): void {
   const content = document.getElementById('memory-lane-content');
   if (!content) return;
 
-  // Clear existing content
-  content.textContent = '';
+  content.innerHTML = '';
 
-  if (memories.length === 0) {
-    // Empty state (safe DOM creation)
-    const emptyDiv = document.createElement('div');
-    emptyDiv.className = 'memory-lane-empty';
+  switch (currentTab) {
+    case 'highlights':
+      renderMemoryList(content, highlightsCache);
+      break;
 
-    const emptyText = document.createElement('p');
-    emptyText.className = 'memory-lane-empty__text';
-    emptyText.textContent = 'No memories yet';
+    case 'on-this-day':
+      renderOnThisDay(content);
+      break;
 
-    const emptySubtext = document.createElement('p');
-    emptySubtext.className = 'memory-lane-empty__subtext';
-    emptySubtext.textContent = 'Keep talking with Ferni to build your shared history';
-
-    emptyDiv.appendChild(emptyText);
-    emptyDiv.appendChild(emptySubtext);
-    content.appendChild(emptyDiv);
-    return;
-  }
-
-  // Render each memory
-  for (const memory of memories) {
-    const card = createMemoryCard(memory);
-    content.appendChild(card);
+    case 'timeline':
+      renderTimeline(content);
+      break;
   }
 }
 
-function createMemoryCard(memory: Memory): HTMLElement {
+function renderMemoryList(container: HTMLElement, memories: Memory[]): void {
+  if (memories.length === 0) {
+    renderEmptyState(container, 'highlights');
+    return;
+  }
+
+  const list = document.createElement('div');
+  list.className = 'memory-lane-list';
+
+  for (const memory of memories) {
+    const card = createMemoryCard(memory);
+    list.appendChild(card);
+  }
+
+  container.appendChild(list);
+}
+
+function renderOnThisDay(container: HTMLElement): void {
+  if (onThisDayCache.length === 0) {
+    renderEmptyState(container, 'on-this-day');
+    return;
+  }
+
+  // Date header
+  const today = new Date();
+  const dateHeader = document.createElement('div');
+  dateHeader.className = 'memory-lane-date-header';
+  dateHeader.textContent = today.toLocaleDateString(undefined, {
+    month: 'long',
+    day: 'numeric',
+  });
+  container.appendChild(dateHeader);
+
+  const list = document.createElement('div');
+  list.className = 'memory-lane-list';
+
+  for (const memory of onThisDayCache) {
+    const card = createMemoryCard(memory, true);
+    list.appendChild(card);
+  }
+
+  container.appendChild(list);
+}
+
+function renderTimeline(container: HTMLElement): void {
+  if (timelineCache.length === 0) {
+    renderEmptyState(container, 'timeline');
+    return;
+  }
+
+  const timeline = document.createElement('div');
+  timeline.className = 'memory-lane-timeline';
+
+  for (const group of timelineCache) {
+    const groupEl = document.createElement('div');
+    groupEl.className = 'memory-lane-timeline__group';
+
+    const groupHeader = document.createElement('div');
+    groupHeader.className = 'memory-lane-timeline__header';
+    groupHeader.textContent = group.label;
+    groupEl.appendChild(groupHeader);
+
+    for (const memory of group.memories) {
+      const card = createMemoryCard(memory);
+      groupEl.appendChild(card);
+    }
+
+    timeline.appendChild(groupEl);
+  }
+
+  container.appendChild(timeline);
+}
+
+function renderEmptyState(container: HTMLElement, tab: TabId): void {
+  const empty = document.createElement('div');
+  empty.className = 'memory-lane-empty';
+
+  const text = document.createElement('p');
+  text.className = 'memory-lane-empty__text';
+
+  const subtext = document.createElement('p');
+  subtext.className = 'memory-lane-empty__subtext';
+
+  switch (tab) {
+    case 'highlights':
+      text.textContent = 'No highlights yet';
+      subtext.textContent = 'Keep talking with Ferni to build your shared history';
+      break;
+    case 'on-this-day':
+      text.textContent = 'No memories on this day';
+      subtext.textContent = 'Check back on another date!';
+      break;
+    case 'timeline':
+      text.textContent = 'Your timeline is empty';
+      subtext.textContent = 'Memories will appear here as you chat with Ferni';
+      break;
+  }
+
+  empty.appendChild(text);
+  empty.appendChild(subtext);
+  container.appendChild(empty);
+}
+
+function createMemoryCard(memory: Memory, showYearsAgo = false): HTMLElement {
   const card = document.createElement('div');
   card.className = `memory-lane-card memory-lane-card--${memory.emotionalTone}`;
+  card.setAttribute('data-memory-id', memory.id);
 
   // Date badge
   const dateBadge = document.createElement('div');
   dateBadge.className = 'memory-lane-card__date';
-  dateBadge.textContent = formatMemoryDate(memory.date, memory.yearAgo);
+  dateBadge.textContent = formatMemoryDate(memory.occurredAt, memory.yearAgo, showYearsAgo);
+  card.appendChild(dateBadge);
 
   // Emotion icon
   const icon = document.createElement('span');
   icon.className = 'memory-lane-card__icon';
   icon.textContent = EMOTION_ICONS[memory.emotionalTone] ?? '💭';
   icon.setAttribute('aria-hidden', 'true');
+  card.appendChild(icon);
 
   // Content
-  const contentDiv = document.createElement('p');
-  contentDiv.className = 'memory-lane-card__content';
-  contentDiv.textContent = memory.content;
+  const content = document.createElement('p');
+  content.className = 'memory-lane-card__content';
+  content.textContent = memory.content;
+  card.appendChild(content);
 
-  card.appendChild(dateBadge);
-  card.appendChild(icon);
-  card.appendChild(contentDiv);
+  // Persona badge (if applicable)
+  if (memory.personaName) {
+    const persona = document.createElement('span');
+    persona.className = 'memory-lane-card__persona';
+    persona.textContent = `with ${memory.personaName}`;
+    card.appendChild(persona);
+  }
+
+  // Reaction buttons
+  const reactions = document.createElement('div');
+  reactions.className = 'memory-lane-card__reactions';
+
+  const loveBtn = document.createElement('button');
+  loveBtn.className = 'memory-lane-card__reaction';
+  if (memory.userReaction === 'loved') {
+    loveBtn.classList.add('memory-lane-card__reaction--active');
+  }
+  loveBtn.innerHTML = memory.userReaction === 'loved' ? ICONS.heartFilled : ICONS.heart;
+  loveBtn.setAttribute('aria-label', 'Love this memory');
+  loveBtn.setAttribute('title', 'Love');
+  loveBtn.addEventListener('click', () => handleReaction(memory.id, 'loved', loveBtn));
+
+  const dismissBtn = document.createElement('button');
+  dismissBtn.className = 'memory-lane-card__reaction memory-lane-card__reaction--dismiss';
+  dismissBtn.innerHTML = ICONS.x;
+  dismissBtn.setAttribute('aria-label', 'Dismiss this memory');
+  dismissBtn.setAttribute('title', 'Not for me');
+  dismissBtn.addEventListener('click', () => handleReaction(memory.id, 'dismissed', dismissBtn));
+
+  reactions.appendChild(loveBtn);
+  reactions.appendChild(dismissBtn);
+  card.appendChild(reactions);
 
   return card;
 }
 
-function formatMemoryDate(isoDate: string, yearAgo: number): string {
+function formatMemoryDate(isoDate: string, yearAgo: number, showYearsAgo: boolean): string {
   const date = new Date(isoDate);
   const month = date.toLocaleString('default', { month: 'short' });
   const day = date.getDate();
 
+  if (showYearsAgo && yearAgo > 0) {
+    const yearsText = yearAgo === 1 ? '1 year ago' : `${yearAgo} years ago`;
+    return `${month} ${day}, ${yearsText}`;
+  }
+
   if (yearAgo === 0) {
     return 'Earlier this year';
-  } else if (yearAgo === 1) {
-    return `${month} ${day}, 1 year ago`;
-  } else {
-    return `${month} ${day}, ${yearAgo} years ago`;
+  }
+
+  return `${month} ${day}, ${date.getFullYear()}`;
+}
+
+// ============================================================================
+// REACTIONS
+// ============================================================================
+
+async function handleReaction(
+  memoryId: string,
+  reaction: 'loved' | 'dismissed',
+  button: HTMLButtonElement
+): Promise<void> {
+  try {
+    const response = await apiPatch(`/api/memories/${memoryId}/reaction`, { reaction });
+
+    if (response.ok) {
+      if (reaction === 'loved') {
+        button.classList.add('memory-lane-card__reaction--active');
+        button.innerHTML = ICONS.heartFilled;
+        toast.success('Loved!');
+      } else {
+        // Remove the card with animation
+        const card = button.closest('.memory-lane-card');
+        if (card) {
+          card.classList.add('memory-lane-card--dismissed');
+          setTimeout(() => card.remove(), DURATION.SLOW);
+        }
+        toast.info('Got it');
+      }
+
+      // Update cache
+      updateMemoryInCache(memoryId, reaction);
+    }
+  } catch (err) {
+    log.warn('Failed to record reaction', { error: String(err), memoryId, reaction });
+    toast.error("Couldn't save that");
+  }
+}
+
+function updateMemoryInCache(memoryId: string, reaction: 'loved' | 'dismissed'): void {
+  const updateMemory = (memories: Memory[]) => {
+    const memory = memories.find((m) => m.id === memoryId);
+    if (memory) {
+      memory.userReaction = reaction;
+    }
+    if (reaction === 'dismissed') {
+      return memories.filter((m) => m.id !== memoryId);
+    }
+    return memories;
+  };
+
+  highlightsCache = updateMemory(highlightsCache);
+  onThisDayCache = updateMemory(onThisDayCache);
+  for (const group of timelineCache) {
+    group.memories = updateMemory(group.memories);
   }
 }
 
@@ -409,180 +722,224 @@ function injectStyles(): void {
   styleElement.id = 'memory-lane-styles';
   styleElement.textContent = `
     /* ========================================
-       MEMORY LANE
-       On This Day memories and highlights
+       MEMORY LANE MODAL
+       Centered modal with tabs (brand compliant)
        ======================================== */
 
-    /* Memory Lane Button */
-    .memory-lane-button {
-      position: absolute;
-      top: var(--space-xs, 4px);
-      left: var(--space-xs, 4px);
-      width: 32px;
-      height: 32px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: var(--glass-background, rgba(255, 255, 255, 0.1));
-      backdrop-filter: blur(var(--glass-blur-subtle, 8px));
-      -webkit-backdrop-filter: blur(var(--glass-blur-subtle, 8px));
-      border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.1));
-      border-radius: var(--radius-full, 999px);
-      color: var(--color-text-secondary, rgba(255, 255, 255, 0.7));
-      cursor: pointer;
-      opacity: 0;
-      transform: scale(0.8);
-      transition:
-        opacity ${DURATION.NORMAL}ms ${EASING.EXPO_OUT},
-        transform ${DURATION.NORMAL}ms ${EASING.SPRING},
-        background ${DURATION.FAST}ms,
-        color ${DURATION.FAST}ms;
-      z-index: var(--z-floating, 20);
-    }
-
-    .memory-lane-button--visible {
-      opacity: 1;
-      transform: scale(1);
-    }
-
-    .memory-lane-button:hover {
-      background: var(--color-bg-elevated, rgba(255, 255, 255, 0.15));
-      color: var(--color-text-primary, #ffffff);
-    }
-
-    .memory-lane-button:focus-visible {
-      outline: 2px solid var(--color-accent-primary, #4a6741);
-      outline-offset: 2px;
-    }
-
-    /* Has memory indicator */
-    .memory-lane-button--has-memory::after {
-      content: '';
-      position: absolute;
-      top: 2px;
-      right: 2px;
-      width: 8px;
-      height: 8px;
-      background: var(--color-semantic-warning, #f59e0b);
-      border-radius: 50%;
-      animation: memoryPulse 2s infinite;
-    }
-
-    @keyframes memoryPulse {
-      0%, 100% { transform: scale(1); opacity: 1; }
-      50% { transform: scale(1.2); opacity: 0.8; }
-    }
-
-    /* Memory Lane Drawer */
-    .memory-lane-drawer {
+    .memory-lane-modal {
       position: fixed;
       inset: 0;
-      background: rgba(0, 0, 0, 0.6);
-      backdrop-filter: blur(4px);
-      -webkit-backdrop-filter: blur(4px);
       display: flex;
-      align-items: flex-end;
+      align-items: center;
       justify-content: center;
       z-index: var(--z-modal, 2100);
       opacity: 0;
-      transition: opacity ${DURATION.NORMAL}ms;
+      pointer-events: none;
+      transition: opacity ${DURATION.NORMAL}ms ${EASING.EXPO_OUT};
     }
 
-    .memory-lane-drawer--open {
+    .memory-lane-modal--open {
       opacity: 1;
+      pointer-events: auto;
     }
 
-    .memory-lane-drawer__header {
+    .memory-lane-modal__backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(44, 37, 32, 0.4);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+    }
+
+    .memory-lane-modal__card {
+      position: relative;
+      background: var(--color-background-elevated, #FFFDFB);
+      border-radius: var(--radius-2xl, 24px);
+      box-shadow: var(--shadow-2xl, 0 25px 50px -12px rgba(0, 0, 0, 0.25));
+      width: 90%;
+      max-width: 520px;
+      max-height: 80vh;
       display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: var(--space-md, 16px);
-      border-bottom: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.1));
+      flex-direction: column;
+      overflow: hidden;
+      transform: scale(0.95);
+      transition: transform ${DURATION.SLOW}ms ${EASING.SPRING};
     }
 
-    .memory-lane-drawer__title {
-      font-family: var(--font-display, 'Plus Jakarta Sans', system-ui);
-      font-size: var(--font-size-lg, 1.125rem);
+    .memory-lane-modal--open .memory-lane-modal__card {
+      transform: scale(1);
+    }
+
+    /* Header */
+    .memory-lane-modal__header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      padding: var(--space-lg, 24px) var(--space-lg, 24px) var(--space-md, 16px);
+    }
+
+    .memory-lane-modal__eyebrow {
+      display: block;
+      font-size: var(--font-size-xs, 0.75rem);
       font-weight: 600;
-      color: var(--color-text-primary, #ffffff);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--color-accent, #3D5A45);
+      margin-bottom: var(--space-xs, 4px);
+    }
+
+    .memory-lane-modal__title {
+      font-family: var(--font-display, 'Plus Jakarta Sans', system-ui);
+      font-size: var(--font-size-xl, 1.5rem);
+      font-weight: 600;
+      color: var(--color-text-primary, #2C2520);
       margin: 0;
     }
 
-    .memory-lane-drawer__close {
-      width: 32px;
-      height: 32px;
+    .memory-lane-modal__close {
+      width: 36px;
+      height: 36px;
       display: flex;
       align-items: center;
       justify-content: center;
       background: transparent;
       border: none;
       border-radius: var(--radius-full, 999px);
-      color: var(--color-text-secondary, rgba(255, 255, 255, 0.7));
-      font-size: 24px;
+      color: var(--color-text-secondary, #70605a);
       cursor: pointer;
       transition: background ${DURATION.FAST}ms, color ${DURATION.FAST}ms;
     }
 
-    .memory-lane-drawer__close:hover {
-      background: var(--color-bg-elevated, rgba(255, 255, 255, 0.1));
-      color: var(--color-text-primary, #ffffff);
+    .memory-lane-modal__close:hover {
+      background: var(--color-bg-subtle, rgba(0, 0, 0, 0.05));
+      color: var(--color-text-primary, #2C2520);
     }
 
-    .memory-lane-drawer__content {
-      background: var(--color-bg-secondary, #1a1612);
-      border-radius: var(--radius-xl, 24px) var(--radius-xl, 24px) 0 0;
-      max-height: 60vh;
-      width: 100%;
-      max-width: 480px;
+    .memory-lane-modal__close svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    /* Tabs */
+    .memory-lane-modal__tabs {
+      display: flex;
+      gap: var(--space-xs, 4px);
+      padding: 0 var(--space-lg, 24px);
+      border-bottom: 1px solid var(--color-border-subtle, rgba(0, 0, 0, 0.08));
+    }
+
+    .memory-lane-modal__tab {
+      padding: var(--space-sm, 12px) var(--space-md, 16px);
+      background: transparent;
+      border: none;
+      border-bottom: 2px solid transparent;
+      font-family: var(--font-body, 'Inter', system-ui);
+      font-size: var(--font-size-sm, 0.875rem);
+      font-weight: 500;
+      color: var(--color-text-muted, #9a8a82);
+      cursor: pointer;
+      transition: color ${DURATION.FAST}ms, border-color ${DURATION.FAST}ms;
+    }
+
+    .memory-lane-modal__tab:hover {
+      color: var(--color-text-secondary, #70605a);
+    }
+
+    .memory-lane-modal__tab--active {
+      color: var(--color-accent, #3D5A45);
+      border-bottom-color: var(--color-accent, #3D5A45);
+    }
+
+    /* Content */
+    .memory-lane-modal__content {
+      flex: 1;
       overflow-y: auto;
-      transform: translateY(100%);
-      transition: transform ${DURATION.SLOW}ms ${EASING.EXPO_OUT};
+      padding: var(--space-md, 16px) var(--space-lg, 24px) var(--space-lg, 24px);
     }
 
-    .memory-lane-drawer--open .memory-lane-drawer__content {
-      transform: translateY(0);
-    }
-
-    /* Loading state */
+    /* Loading */
     .memory-lane-loading {
-      padding: var(--space-xl, 42px);
+      padding: var(--space-xl, 48px);
       text-align: center;
-      color: var(--color-text-muted, rgba(255, 255, 255, 0.5));
+      color: var(--color-text-muted, #9a8a82);
       font-style: italic;
     }
 
     /* Empty state */
     .memory-lane-empty {
-      padding: var(--space-xl, 42px);
+      padding: var(--space-xl, 48px) var(--space-lg, 24px);
       text-align: center;
     }
 
     .memory-lane-empty__text {
-      color: var(--color-text-secondary, rgba(255, 255, 255, 0.7));
       font-size: var(--font-size-md, 1rem);
-      margin: 0 0 var(--space-sm, 8px);
+      color: var(--color-text-secondary, #70605a);
+      margin: 0 0 var(--space-xs, 8px);
     }
 
     .memory-lane-empty__subtext {
-      color: var(--color-text-muted, rgba(255, 255, 255, 0.5));
       font-size: var(--font-size-sm, 0.875rem);
+      color: var(--color-text-muted, #9a8a82);
       margin: 0;
+    }
+
+    /* Date header (On This Day) */
+    .memory-lane-date-header {
+      font-family: var(--font-display, 'Plus Jakarta Sans', system-ui);
+      font-size: var(--font-size-lg, 1.125rem);
+      font-weight: 600;
+      color: var(--color-text-primary, #2C2520);
+      text-align: center;
+      padding: var(--space-sm, 12px) 0 var(--space-md, 16px);
+    }
+
+    /* Memory list */
+    .memory-lane-list {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-sm, 12px);
+    }
+
+    /* Timeline */
+    .memory-lane-timeline {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-lg, 24px);
+    }
+
+    .memory-lane-timeline__header {
+      font-family: var(--font-display, 'Plus Jakarta Sans', system-ui);
+      font-size: var(--font-size-sm, 0.875rem);
+      font-weight: 600;
+      color: var(--color-text-muted, #9a8a82);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: var(--space-sm, 12px);
+    }
+
+    .memory-lane-timeline__group {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-sm, 12px);
     }
 
     /* Memory Cards */
     .memory-lane-card {
+      background: var(--color-bg-subtle, rgba(0, 0, 0, 0.02));
+      border-radius: var(--radius-lg, 16px);
       padding: var(--space-md, 16px);
-      border-bottom: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.05));
       position: relative;
+      transition: transform ${DURATION.FAST}ms, opacity ${DURATION.SLOW}ms;
     }
 
-    .memory-lane-card:last-child {
-      border-bottom: none;
+    .memory-lane-card--dismissed {
+      opacity: 0;
+      transform: translateX(-20px);
     }
 
     .memory-lane-card__date {
       font-size: var(--font-size-xs, 0.75rem);
-      color: var(--color-text-muted, rgba(255, 255, 255, 0.5));
+      color: var(--color-text-muted, #9a8a82);
       margin-bottom: var(--space-xs, 4px);
     }
 
@@ -591,57 +948,221 @@ function injectStyles(): void {
       top: var(--space-md, 16px);
       right: var(--space-md, 16px);
       font-size: 1.25rem;
-      opacity: 0.8;
+      opacity: 0.7;
     }
 
     .memory-lane-card__content {
       font-size: var(--font-size-sm, 0.875rem);
-      color: var(--color-text-primary, #ffffff);
+      color: var(--color-text-primary, #2C2520);
       line-height: 1.5;
       margin: 0;
-      padding-right: var(--space-xl, 42px);
+      padding-right: var(--space-xl, 48px);
+    }
+
+    .memory-lane-card__persona {
+      display: block;
+      font-size: var(--font-size-xs, 0.75rem);
+      color: var(--color-text-muted, #9a8a82);
+      margin-top: var(--space-xs, 4px);
+    }
+
+    .memory-lane-card__reactions {
+      display: flex;
+      gap: var(--space-xs, 8px);
+      margin-top: var(--space-sm, 12px);
+    }
+
+    .memory-lane-card__reaction {
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: transparent;
+      border: 1px solid var(--color-border-subtle, rgba(0, 0, 0, 0.1));
+      border-radius: var(--radius-full, 999px);
+      color: var(--color-text-muted, #9a8a82);
+      cursor: pointer;
+      transition: all ${DURATION.FAST}ms;
+    }
+
+    .memory-lane-card__reaction:hover {
+      background: var(--color-bg-hover, rgba(0, 0, 0, 0.05));
+      color: var(--color-text-secondary, #70605a);
+    }
+
+    .memory-lane-card__reaction--active {
+      background: var(--color-accent-subtle, rgba(61, 90, 69, 0.1));
+      border-color: var(--color-accent, #3D5A45);
+      color: var(--color-accent, #3D5A45);
+    }
+
+    .memory-lane-card__reaction--dismiss:hover {
+      border-color: var(--color-semantic-error, #dc2626);
+      color: var(--color-semantic-error, #dc2626);
+    }
+
+    .memory-lane-card__reaction svg {
+      width: 16px;
+      height: 16px;
     }
 
     /* Emotion-specific card tints */
     .memory-lane-card--joyful {
-      background: rgba(255, 220, 100, 0.05);
+      background: rgba(255, 220, 100, 0.08);
     }
 
     .memory-lane-card--meaningful {
-      background: rgba(180, 200, 255, 0.05);
+      background: rgba(100, 150, 200, 0.08);
     }
 
-    .memory-lane-card--growth {
-      background: rgba(100, 200, 150, 0.05);
+    .memory-lane-card--proud {
+      background: rgba(255, 180, 100, 0.08);
     }
 
-    .memory-lane-card--milestone {
-      background: rgba(255, 200, 100, 0.05);
+    .memory-lane-card--tender {
+      background: rgba(255, 180, 200, 0.08);
     }
 
     .memory-lane-card--funny {
-      background: rgba(255, 180, 180, 0.05);
+      background: rgba(255, 200, 180, 0.08);
+    }
+
+    .memory-lane-card--hopeful {
+      background: rgba(100, 200, 150, 0.08);
+    }
+
+    .memory-lane-card--growth {
+      background: rgba(100, 200, 150, 0.08);
+    }
+
+    .memory-lane-card--grateful {
+      background: rgba(200, 180, 150, 0.08);
+    }
+
+    .memory-lane-card--milestone {
+      background: rgba(255, 200, 100, 0.08);
+    }
+
+    .memory-lane-card--bittersweet {
+      background: rgba(180, 150, 200, 0.08);
+    }
+
+    /* ========================================
+       ANNIVERSARY NOTIFICATION
+       Proactive surfacing of "On This Day" memories
+       ======================================== */
+
+    .memory-lane-anniversary-notification {
+      position: fixed;
+      bottom: calc(var(--safe-area-bottom, 0px) + 100px);
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: var(--color-background-elevated, #FFFDFB);
+      border-radius: var(--radius-xl, 20px);
+      box-shadow: var(--shadow-xl, 0 20px 40px -12px rgba(0, 0, 0, 0.2));
+      display: flex;
+      align-items: center;
+      gap: var(--space-md, 16px);
+      padding: var(--space-md, 16px) var(--space-lg, 20px);
+      max-width: min(400px, 90vw);
+      cursor: pointer;
+      opacity: 0;
+      z-index: var(--z-toast, 9000);
+      transition: opacity ${DURATION.SLOW}ms ${EASING.EXPO_OUT},
+                  transform ${DURATION.SLOW}ms ${EASING.SPRING};
+    }
+
+    .memory-lane-anniversary-notification.visible {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .memory-lane-anniversary-notification:hover {
+      transform: translateX(-50%) scale(1.02);
+    }
+
+    .memory-lane-anniversary-notification:active {
+      transform: translateX(-50%) scale(0.98);
+    }
+
+    .anniversary-notification-icon {
+      flex-shrink: 0;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--color-accent-soft, rgba(61, 90, 69, 0.1));
+      border-radius: var(--radius-full, 999px);
+      color: var(--color-accent, #3D5A45);
+    }
+
+    .anniversary-notification-icon svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    .anniversary-notification-content {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .anniversary-notification-title {
+      font-family: var(--font-display, 'Plus Jakarta Sans', system-ui);
+      font-size: var(--font-size-sm, 0.875rem);
+      font-weight: 600;
+      color: var(--color-text-primary, #2C2520);
+      margin-bottom: 2px;
+    }
+
+    .anniversary-notification-preview {
+      font-family: var(--font-body, 'Inter', system-ui);
+      font-size: var(--font-size-xs, 0.75rem);
+      color: var(--color-text-muted, #9a8a82);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-style: italic;
+    }
+
+    .anniversary-notification-action {
+      flex-shrink: 0;
+      font-size: var(--font-size-sm, 0.875rem);
+      font-weight: 500;
+      color: var(--color-accent, #3D5A45);
     }
 
     /* Reduced motion */
     @media (prefers-reduced-motion: reduce) {
-      .memory-lane-button,
-      .memory-lane-drawer,
-      .memory-lane-drawer__content {
+      .memory-lane-modal,
+      .memory-lane-modal__card,
+      .memory-lane-card,
+      .memory-lane-anniversary-notification {
         transition: opacity ${DURATION.FAST}ms;
+      }
+
+      .memory-lane-modal__card {
         transform: none !important;
       }
 
-      .memory-lane-button--has-memory::after {
-        animation: none;
+      .memory-lane-anniversary-notification {
+        transform: translateX(-50%) !important;
       }
     }
 
     /* Mobile adjustments */
     @media (max-width: 480px) {
-      .memory-lane-drawer__content {
-        max-height: 80vh;
-        border-radius: var(--radius-lg, 16px) var(--radius-lg, 16px) 0 0;
+      .memory-lane-modal__card {
+        width: 100%;
+        max-width: none;
+        max-height: 90vh;
+        border-radius: var(--radius-xl, 20px) var(--radius-xl, 20px) 0 0;
+        margin-top: auto;
+      }
+
+      .memory-lane-modal {
+        align-items: flex-end;
       }
     }
   `;
@@ -654,20 +1175,16 @@ function injectStyles(): void {
 // ============================================================================
 
 export function disposeMemoryLaneUI(): void {
-  if (memoryLaneButton) {
-    memoryLaneButton.remove();
-    memoryLaneButton = null;
-  }
-
-  closeDrawer();
+  closeMemoryLane();
 
   if (styleElement) {
     styleElement.remove();
     styleElement = null;
   }
 
-  memories = [];
-  isDrawerOpen = false;
+  highlightsCache = [];
+  onThisDayCache = [];
+  timelineCache = [];
   hasCheckedToday = false;
   isInitialized = false;
 
@@ -681,6 +1198,6 @@ export function disposeMemoryLaneUI(): void {
 export const memoryLaneUI = {
   init: initMemoryLaneUI,
   dispose: disposeMemoryLaneUI,
-  open: openDrawer,
-  close: closeDrawer,
+  open: openMemoryLane,
+  close: closeMemoryLane,
 };

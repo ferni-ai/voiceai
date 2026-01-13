@@ -45,7 +45,7 @@ import {
 } from '../services/trust-systems/index.js';
 
 // Context Builder
-import { memoryEnhancementBuilder } from '../intelligence/context-builders/memory-enhancement.js';
+import { memoryEnhancementBuilder } from '../intelligence/context-builders/memory/memory-enhancement.js';
 import type { ContextBuilderInput } from '../intelligence/context-builders/index.js';
 
 describe('Memory Enhancement Integration', () => {

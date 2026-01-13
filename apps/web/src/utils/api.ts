@@ -424,6 +424,80 @@ export async function apiPut<T = unknown>(
 }
 
 /**
+ * Make an authenticated PATCH request with self-healing retry logic.
+ * Automatically retries on transient failures with exponential backoff.
+ */
+export async function apiPatch<T = unknown>(
+  path: string,
+  body?: unknown,
+  retryOptions?: Partial<FetchRetryOptions>
+): Promise<{ ok: boolean; data?: T; error?: string; status: number; retries?: number; offline?: boolean }> {
+  // Early exit if offline
+  if (isOffline()) {
+    log.warn('API PATCH skipped: device is offline', { path });
+    return { ok: false, error: 'Device is offline', status: 0, offline: true };
+  }
+
+  try {
+    const url = new URL(path, window.location.origin);
+
+    // Always include userId in body if not already present
+    const userId = getUserId();
+    const bodyWithUser = body && typeof body === 'object'
+      ? { userId, ...(body as Record<string, unknown>) }
+      : body;
+
+    // Get async headers with Firebase auth token
+    const headers = await getApiHeadersAsync(true);
+
+    // Use fetchWithRetry for self-healing
+    const result = await fetchWithRetry<T>(
+      url.toString(),
+      {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify(bodyWithUser),
+      },
+      { ...DEFAULT_RETRY_OPTIONS, ...retryOptions }
+    );
+
+    if (result.error) {
+      if (result.status === 401) {
+        log.debug('API PATCH unauthorized (auth pending)', { path });
+      } else {
+        log.warn('API PATCH failed', { 
+          path, 
+          status: result.status, 
+          error: result.error.message,
+          retries: result.retries 
+        });
+      }
+      return {
+        ok: false,
+        error: result.error.message,
+        status: result.status ?? 0,
+        retries: result.retries,
+        offline: result.offline,
+      };
+    }
+
+    if (result.retries > 0) {
+      log.debug('API PATCH succeeded after retry', { path, retries: result.retries });
+    }
+
+    return { 
+      ok: true, 
+      data: result.data!, 
+      status: result.status ?? 200,
+      retries: result.retries,
+    };
+  } catch (err) {
+    log.error('API PATCH error', { path, error: err });
+    return { ok: false, error: String(err), status: 0 };
+  }
+}
+
+/**
  * Make an authenticated DELETE request with self-healing retry logic.
  * Automatically retries on transient failures with exponential backoff.
  *

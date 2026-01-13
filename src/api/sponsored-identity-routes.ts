@@ -289,7 +289,11 @@ export async function handleSponsoredIdentityRoutes(
 /**
  * Sanitize identity for API response.
  */
-function sanitizeIdentity(identity: ReturnType<typeof getSponsoredIdentity> extends Promise<infer T> ? NonNullable<T> : never) {
+function sanitizeIdentity(
+  identity: ReturnType<typeof getSponsoredIdentity> extends Promise<infer T>
+    ? NonNullable<T>
+    : never
+) {
   return {
     id: identity.id,
     displayName: identity.displayName,
@@ -314,5 +318,5 @@ function sanitizeIdentity(identity: ReturnType<typeof getSponsoredIdentity> exte
  */
 function maskPhone(phone: string): string {
   if (phone.length < 6) return '***';
-  return phone.slice(0, 4) + '****' + phone.slice(-2);
+  return `${phone.slice(0, 4)}****${phone.slice(-2)}`;
 }

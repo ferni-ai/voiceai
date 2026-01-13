@@ -310,8 +310,8 @@ export interface HumanizationOrchestratorConfig {
 // ============================================================================
 
 const DEFAULT_ORCHESTRATOR_CONFIG: HumanizationOrchestratorConfig = {
-  maxPerResponse: 2, // Don't over-humanize
-  maxPerSession: 15,
+  maxPerResponse: 3, // Was 2 - Allow more natural speech patterns per response
+  maxPerSession: 25, // Was 15 - Humans are consistently human throughout
   features: {},
   debug: false,
 };

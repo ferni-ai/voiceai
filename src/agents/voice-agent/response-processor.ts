@@ -529,10 +529,8 @@ async function signalConversationEnd(sessionId: string | undefined): Promise<voi
 
   try {
     // 🎧 Play the exit sound - "Wrap the show"
-    const { getDJIntegration } = await import('../dj-integration.js');
-    const dj = getDJIntegration();
-    const wrapResult = await dj.wrapShow();
-    diag.info('🎧 Session wrap sound', { playedSound: wrapResult.playedSound });
+    // Note: Session end sounds are now handled by the session cleanup handler
+    diag.info('🎧 Session end - cleanup handler will handle exit sound');
   } catch (wrapErr) {
     diag.debug('Failed to play session-end sound', { error: String(wrapErr) });
   }

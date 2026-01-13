@@ -51,9 +51,13 @@ describe('Leave Message Tool', () => {
     vi.clearAllMocks();
     mockContext = {
       agentId: 'ferni',
+      agentDisplayName: 'Ferni',
       userId: 'test_user',
+      sessionId: 'test_session',
       services: {
-        sessionId: 'test_session',
+        has: () => false,
+        get: () => { throw new Error('Service not available'); },
+        getOptional: () => undefined,
       },
     } as ToolContext;
   });

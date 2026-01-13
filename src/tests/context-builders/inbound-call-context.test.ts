@@ -156,7 +156,7 @@ describe('Inbound Call Context Builder', () => {
       expect(result.length).toBeGreaterThan(0);
 
       // Should have caller identity injection
-      const identityInjection = result.find((i) => i.key === 'inbound_call_identity');
+      const identityInjection = result.find((i) => i.source === 'inbound_call_identity');
       expect(identityInjection).toBeDefined();
       expect(identityInjection?.content).toContain(TEST_CALLER_NAME);
       expect(identityInjection?.content).toContain('KNOWN CALLER');
@@ -181,7 +181,7 @@ describe('Inbound Call Context Builder', () => {
       } as never);
 
       // Should have unknown caller injection
-      const unknownInjection = result.find((i) => i.key === 'inbound_call_unknown');
+      const unknownInjection = result.find((i) => i.source === 'inbound_call_unknown');
       expect(unknownInjection).toBeDefined();
       expect(unknownInjection?.content).toContain('UNKNOWN');
     });
@@ -205,7 +205,7 @@ describe('Inbound Call Context Builder', () => {
       } as never);
 
       // Should have voice verification guidance
-      const verificationInjection = result.find((i) => i.key === 'inbound_call_verification');
+      const verificationInjection = result.find((i) => i.source === 'inbound_call_verification');
       expect(verificationInjection).toBeDefined();
       expect(verificationInjection?.content).toContain('voice');
     });
@@ -229,7 +229,7 @@ describe('Inbound Call Context Builder', () => {
       } as never);
 
       // Should NOT have voice verification guidance
-      const verificationInjection = result.find((i) => i.key === 'inbound_call_verification');
+      const verificationInjection = result.find((i) => i.source === 'inbound_call_verification');
       expect(verificationInjection).toBeUndefined();
     });
 
@@ -255,7 +255,7 @@ describe('Inbound Call Context Builder', () => {
         persona: { id: 'ferni', name: 'Ferni' },
       } as never);
 
-      const sponsoredInjection = result.find((i) => i.key === 'inbound_call_sponsored');
+      const sponsoredInjection = result.find((i) => i.source === 'inbound_call_sponsored');
       expect(sponsoredInjection).toBeDefined();
       expect(sponsoredInjection?.content).toContain('sponsored');
       expect(sponsoredInjection?.content).toContain('mother');
@@ -281,7 +281,7 @@ describe('Inbound Call Context Builder', () => {
         persona: { id: 'ferni', name: 'Ferni' },
       } as never);
 
-      const restrictionInjection = result.find((i) => i.key === 'inbound_call_restrictions');
+      const restrictionInjection = result.find((i) => i.source === 'inbound_call_restrictions');
       expect(restrictionInjection).toBeDefined();
       expect(restrictionInjection?.content).toContain('LIMITED');
     });
@@ -305,7 +305,7 @@ describe('Inbound Call Context Builder', () => {
         persona: { id: 'ferni', name: 'Ferni' },
       } as never);
 
-      const restrictionInjection = result.find((i) => i.key === 'inbound_call_restrictions');
+      const restrictionInjection = result.find((i) => i.source === 'inbound_call_restrictions');
       expect(restrictionInjection).toBeUndefined();
     });
   });

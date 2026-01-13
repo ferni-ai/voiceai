@@ -820,10 +820,10 @@ async function showPreview(outreachId: string): Promise<void> {
       <div class="outreach-preview-modal" data-persona="${personaId}">
         <header class="outreach-preview-header">
           <div class="outreach-preview-persona">
-            ${(item.persona || item.personaId || 'F').charAt(0).toUpperCase()}
+            ${(item.personaId || 'F').charAt(0).toUpperCase()}
           </div>
           <div>
-            <h3 class="outreach-preview-title">${item.persona || getPersonaName(item.personaId)}</h3>
+            <h3 class="outreach-preview-title">${getPersonaName(item.personaId)}</h3>
             <span class="outreach-preview-channel">${(item.channel || 'sms').toUpperCase()} • ${item.type.replace(/_/g, ' ')}</span>
           </div>
           <button class="outreach-preview-close" aria-label="${t('common.close')}">${ICONS.close}</button>
@@ -833,7 +833,7 @@ async function showPreview(outreachId: string): Promise<void> {
           <div class="outreach-preview-message">${item.preview?.body || item.reason}</div>
         </div>
         <footer class="outreach-preview-footer">
-          <span class="outreach-preview-time">${ICONS.clock} Scheduled for ${formatTime(new Date(item.scheduledFor || item.suggestedTime))}</span>
+          <span class="outreach-preview-time">${ICONS.clock} Scheduled for ${formatTime(new Date(item.scheduledFor))}</span>
         </footer>
       </div>
     `;

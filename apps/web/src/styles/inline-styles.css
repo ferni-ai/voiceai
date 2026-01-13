@@ -1545,6 +1545,21 @@ html.theme-transitioning *::after {
   animation-delay: 250ms;
 }
 
+/* CRITICAL: Ensure persona name stays visible after entrance animation completes.
+   This explicit opacity prevents any animation conflicts from hiding the name.
+   Fixes bug where persona transitions leave opacity: 0 stuck on element. */
+.app-loaded .entrance-name.entrance-complete,
+.app-loaded .entrance-name {
+  /* Override any stuck animation states */
+  animation-fill-mode: forwards;
+}
+
+/* Force visibility after animation completes - higher specificity for reliability */
+.app-loaded h1.entrance-name.entrance-complete {
+  opacity: 1 !important;
+  transform: none !important;
+}
+
 .app-loaded .entrance-subtitle {
   animation: entranceSlideUp 400ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
   animation-delay: 300ms;

@@ -1,0 +1,1679 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Ferni Developer Platform API",
+    "description": "Extend Ferni agents with custom workflows, external services, MCP servers, and webhooks.",
+    "version": "2.0.0",
+    "contact": {
+      "name": "Ferni Developer Support",
+      "url": "https://developers.ferni.ai",
+      "email": "developers@ferni.ai"
+    },
+    "license": {
+      "name": "Proprietary",
+      "url": "https://ferni.ai/terms"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://api.ferni.ai/api/v2",
+      "description": "Production"
+    },
+    {
+      "url": "http://localhost:3002/api/v2",
+      "description": "Local Development"
+    }
+  ],
+  "security": [
+    {
+      "ApiKeyAuth": []
+    }
+  ],
+  "tags": [
+    {
+      "name": "MCP Servers",
+      "description": "Register and manage external Model Context Protocol servers"
+    },
+    {
+      "name": "Custom Tools",
+      "description": "Create webhook, MCP, or prompt-based tools"
+    },
+    {
+      "name": "Webhooks",
+      "description": "Subscribe to real-time Ferni events"
+    },
+    {
+      "name": "Workflows",
+      "description": "Define multi-step automation DAGs"
+    },
+    {
+      "name": "OAuth Providers",
+      "description": "Connect external service authentication (BYOC)"
+    },
+    {
+      "name": "Activities",
+      "description": "Track custom metrics and events"
+    }
+  ],
+  "paths": {
+    "/developers/mcp-servers": {
+      "get": {
+        "tags": ["MCP Servers"],
+        "summary": "List MCP servers",
+        "description": "Returns all MCP servers registered by the authenticated publisher",
+        "operationId": "listMcpServers",
+        "parameters": [
+          {
+            "name": "personaId",
+            "in": "query",
+            "description": "Filter by persona ID",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "enabled",
+            "in": "query",
+            "description": "Filter by enabled status",
+            "schema": { "type": "boolean" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of MCP servers",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "servers": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/McpServer" }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      },
+      "post": {
+        "tags": ["MCP Servers"],
+        "summary": "Register MCP server",
+        "description": "Register a new external MCP server",
+        "operationId": "createMcpServer",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/McpServerCreate" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Server created",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/McpServer" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/developers/mcp-servers/{serverId}": {
+      "get": {
+        "tags": ["MCP Servers"],
+        "summary": "Get MCP server",
+        "operationId": "getMcpServer",
+        "parameters": [
+          { "$ref": "#/components/parameters/ServerId" }
+        ],
+        "responses": {
+          "200": {
+            "description": "MCP server details",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/McpServer" }
+              }
+            }
+          },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      },
+      "put": {
+        "tags": ["MCP Servers"],
+        "summary": "Update MCP server",
+        "operationId": "updateMcpServer",
+        "parameters": [
+          { "$ref": "#/components/parameters/ServerId" }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/McpServerUpdate" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Server updated",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/McpServer" }
+              }
+            }
+          },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      },
+      "delete": {
+        "tags": ["MCP Servers"],
+        "summary": "Delete MCP server",
+        "operationId": "deleteMcpServer",
+        "parameters": [
+          { "$ref": "#/components/parameters/ServerId" }
+        ],
+        "responses": {
+          "204": { "description": "Server deleted" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/developers/mcp-servers/{serverId}/test": {
+      "post": {
+        "tags": ["MCP Servers"],
+        "summary": "Test MCP server connection",
+        "operationId": "testMcpServer",
+        "parameters": [
+          { "$ref": "#/components/parameters/ServerId" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Connection test result",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/McpTestResult" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/developers/mcp-servers/{serverId}/tools": {
+      "get": {
+        "tags": ["MCP Servers"],
+        "summary": "List tools from MCP server",
+        "operationId": "getMcpServerTools",
+        "parameters": [
+          { "$ref": "#/components/parameters/ServerId" }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of available tools",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "tools": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/McpTool" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/developers/tools": {
+      "get": {
+        "tags": ["Custom Tools"],
+        "summary": "List custom tools",
+        "operationId": "listTools",
+        "parameters": [
+          {
+            "name": "personaId",
+            "in": "query",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": ["webhook", "mcp", "prompt"]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of tools",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "tools": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/CustomTool" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Custom Tools"],
+        "summary": "Register custom tool",
+        "operationId": "createTool",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CustomToolCreate" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Tool created",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/CustomTool" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/developers/tools/{toolId}": {
+      "get": {
+        "tags": ["Custom Tools"],
+        "summary": "Get custom tool",
+        "operationId": "getTool",
+        "parameters": [
+          { "$ref": "#/components/parameters/ToolId" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Tool details",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/CustomTool" }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": ["Custom Tools"],
+        "summary": "Update custom tool",
+        "operationId": "updateTool",
+        "parameters": [
+          { "$ref": "#/components/parameters/ToolId" }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CustomToolUpdate" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Tool updated",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/CustomTool" }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Custom Tools"],
+        "summary": "Delete custom tool",
+        "operationId": "deleteTool",
+        "parameters": [
+          { "$ref": "#/components/parameters/ToolId" }
+        ],
+        "responses": {
+          "204": { "description": "Tool deleted" }
+        }
+      }
+    },
+    "/developers/tools/{toolId}/test": {
+      "post": {
+        "tags": ["Custom Tools"],
+        "summary": "Test custom tool",
+        "operationId": "testTool",
+        "parameters": [
+          { "$ref": "#/components/parameters/ToolId" }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "input": {
+                    "type": "object",
+                    "description": "Test input parameters"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Test result",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ToolTestResult" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/developers/webhooks": {
+      "get": {
+        "tags": ["Webhooks"],
+        "summary": "List webhook subscriptions",
+        "operationId": "listWebhooks",
+        "responses": {
+          "200": {
+            "description": "List of webhooks",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "webhooks": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/Webhook" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Webhooks"],
+        "summary": "Create webhook subscription",
+        "operationId": "createWebhook",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/WebhookCreate" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Webhook created",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Webhook" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/developers/webhooks/{webhookId}": {
+      "get": {
+        "tags": ["Webhooks"],
+        "summary": "Get webhook",
+        "operationId": "getWebhook",
+        "parameters": [
+          { "$ref": "#/components/parameters/WebhookId" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Webhook details",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Webhook" }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": ["Webhooks"],
+        "summary": "Update webhook",
+        "operationId": "updateWebhook",
+        "parameters": [
+          { "$ref": "#/components/parameters/WebhookId" }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/WebhookUpdate" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Webhook updated",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Webhook" }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Webhooks"],
+        "summary": "Delete webhook",
+        "operationId": "deleteWebhook",
+        "parameters": [
+          { "$ref": "#/components/parameters/WebhookId" }
+        ],
+        "responses": {
+          "204": { "description": "Webhook deleted" }
+        }
+      }
+    },
+    "/developers/webhooks/{webhookId}/test": {
+      "post": {
+        "tags": ["Webhooks"],
+        "summary": "Send test event",
+        "operationId": "testWebhook",
+        "parameters": [
+          { "$ref": "#/components/parameters/WebhookId" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Test event sent",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/WebhookTestResult" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/developers/webhooks/{webhookId}/logs": {
+      "get": {
+        "tags": ["Webhooks"],
+        "summary": "Get delivery logs",
+        "operationId": "getWebhookLogs",
+        "parameters": [
+          { "$ref": "#/components/parameters/WebhookId" },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": { "type": "integer", "default": 50 }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Delivery logs",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "logs": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/WebhookLog" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/developers/workflows": {
+      "get": {
+        "tags": ["Workflows"],
+        "summary": "List workflows",
+        "operationId": "listWorkflows",
+        "parameters": [
+          {
+            "name": "personaId",
+            "in": "query",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "enabled",
+            "in": "query",
+            "schema": { "type": "boolean" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of workflows",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "workflows": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/Workflow" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Workflows"],
+        "summary": "Create workflow",
+        "operationId": "createWorkflow",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/WorkflowCreate" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Workflow created",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Workflow" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/developers/workflows/{workflowId}": {
+      "get": {
+        "tags": ["Workflows"],
+        "summary": "Get workflow",
+        "operationId": "getWorkflow",
+        "parameters": [
+          { "$ref": "#/components/parameters/WorkflowId" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Workflow details",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Workflow" }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": ["Workflows"],
+        "summary": "Update workflow",
+        "operationId": "updateWorkflow",
+        "parameters": [
+          { "$ref": "#/components/parameters/WorkflowId" }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/WorkflowUpdate" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Workflow updated",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Workflow" }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Workflows"],
+        "summary": "Delete workflow",
+        "operationId": "deleteWorkflow",
+        "parameters": [
+          { "$ref": "#/components/parameters/WorkflowId" }
+        ],
+        "responses": {
+          "204": { "description": "Workflow deleted" }
+        }
+      }
+    },
+    "/developers/workflows/{workflowId}/execute": {
+      "post": {
+        "tags": ["Workflows"],
+        "summary": "Execute workflow",
+        "operationId": "executeWorkflow",
+        "parameters": [
+          { "$ref": "#/components/parameters/WorkflowId" }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "variables": {
+                    "type": "object",
+                    "description": "Initial workflow variables"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Execution started",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/WorkflowExecution" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/developers/workflows/{workflowId}/executions": {
+      "get": {
+        "tags": ["Workflows"],
+        "summary": "List workflow executions",
+        "operationId": "listWorkflowExecutions",
+        "parameters": [
+          { "$ref": "#/components/parameters/WorkflowId" },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": { "type": "integer", "default": 50 }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Execution history",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "executions": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/WorkflowExecution" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/developers/oauth/providers": {
+      "get": {
+        "tags": ["OAuth Providers"],
+        "summary": "List OAuth providers",
+        "operationId": "listOAuthProviders",
+        "responses": {
+          "200": {
+            "description": "List of providers",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "providers": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/OAuthProvider" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["OAuth Providers"],
+        "summary": "Register OAuth provider",
+        "operationId": "createOAuthProvider",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/OAuthProviderCreate" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Provider created",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/OAuthProvider" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/developers/oauth/providers/{providerId}": {
+      "get": {
+        "tags": ["OAuth Providers"],
+        "summary": "Get OAuth provider",
+        "operationId": "getOAuthProvider",
+        "parameters": [
+          { "$ref": "#/components/parameters/ProviderId" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Provider details",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/OAuthProvider" }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": ["OAuth Providers"],
+        "summary": "Update OAuth provider",
+        "operationId": "updateOAuthProvider",
+        "parameters": [
+          { "$ref": "#/components/parameters/ProviderId" }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/OAuthProviderUpdate" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Provider updated",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/OAuthProvider" }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["OAuth Providers"],
+        "summary": "Delete OAuth provider",
+        "operationId": "deleteOAuthProvider",
+        "parameters": [
+          { "$ref": "#/components/parameters/ProviderId" }
+        ],
+        "responses": {
+          "204": { "description": "Provider deleted" }
+        }
+      }
+    },
+    "/developers/oauth/authorize": {
+      "post": {
+        "tags": ["OAuth Providers"],
+        "summary": "Start OAuth flow",
+        "operationId": "startOAuthFlow",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["providerId"],
+                "properties": {
+                  "providerId": { "type": "string" },
+                  "scopes": {
+                    "type": "array",
+                    "items": { "type": "string" }
+                  },
+                  "redirectUri": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OAuth authorization URL",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "authorizationUrl": { "type": "string", "format": "uri" },
+                    "state": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/developers/oauth/tokens": {
+      "get": {
+        "tags": ["OAuth Providers"],
+        "summary": "List OAuth tokens",
+        "operationId": "listOAuthTokens",
+        "responses": {
+          "200": {
+            "description": "List of tokens",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "tokens": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/OAuthToken" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/developers/oauth/tokens/{tokenId}": {
+      "delete": {
+        "tags": ["OAuth Providers"],
+        "summary": "Revoke OAuth token",
+        "operationId": "revokeOAuthToken",
+        "parameters": [
+          { "$ref": "#/components/parameters/TokenId" }
+        ],
+        "responses": {
+          "204": { "description": "Token revoked" }
+        }
+      }
+    },
+    "/developers/activities": {
+      "get": {
+        "tags": ["Activities"],
+        "summary": "List activities",
+        "operationId": "listActivities",
+        "parameters": [
+          {
+            "name": "type",
+            "in": "query",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": ["started", "completed", "failed"]
+            }
+          },
+          {
+            "name": "startDate",
+            "in": "query",
+            "schema": { "type": "string", "format": "date-time" }
+          },
+          {
+            "name": "endDate",
+            "in": "query",
+            "schema": { "type": "string", "format": "date-time" }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": { "type": "integer", "default": 50 }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": { "type": "integer", "default": 0 }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of activities",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "activities": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/Activity" }
+                    },
+                    "total": { "type": "integer" },
+                    "limit": { "type": "integer" },
+                    "offset": { "type": "integer" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Activities"],
+        "summary": "Log activity",
+        "operationId": "createActivity",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ActivityCreate" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Activity created",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Activity" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/developers/activities/stats": {
+      "get": {
+        "tags": ["Activities"],
+        "summary": "Get activity stats",
+        "operationId": "getActivityStats",
+        "parameters": [
+          {
+            "name": "startDate",
+            "in": "query",
+            "schema": { "type": "string", "format": "date-time" }
+          },
+          {
+            "name": "endDate",
+            "in": "query",
+            "schema": { "type": "string", "format": "date-time" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Activity statistics",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ActivityStats" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/developers/activities/{activityId}": {
+      "get": {
+        "tags": ["Activities"],
+        "summary": "Get activity",
+        "operationId": "getActivity",
+        "parameters": [
+          { "$ref": "#/components/parameters/ActivityId" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Activity details",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Activity" }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Activities"],
+        "summary": "Delete activity",
+        "operationId": "deleteActivity",
+        "parameters": [
+          { "$ref": "#/components/parameters/ActivityId" }
+        ],
+        "responses": {
+          "204": { "description": "Activity deleted" }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "ApiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-API-Key",
+        "description": "Publisher API key (pk_live_xxx or pk_test_xxx)"
+      }
+    },
+    "parameters": {
+      "ServerId": {
+        "name": "serverId",
+        "in": "path",
+        "required": true,
+        "schema": { "type": "string" },
+        "description": "MCP server ID (mcp_xxx)"
+      },
+      "ToolId": {
+        "name": "toolId",
+        "in": "path",
+        "required": true,
+        "schema": { "type": "string" },
+        "description": "Tool ID (tool_xxx)"
+      },
+      "WebhookId": {
+        "name": "webhookId",
+        "in": "path",
+        "required": true,
+        "schema": { "type": "string" },
+        "description": "Webhook ID (wh_xxx)"
+      },
+      "WorkflowId": {
+        "name": "workflowId",
+        "in": "path",
+        "required": true,
+        "schema": { "type": "string" },
+        "description": "Workflow ID (wf_xxx)"
+      },
+      "ProviderId": {
+        "name": "providerId",
+        "in": "path",
+        "required": true,
+        "schema": { "type": "string" },
+        "description": "OAuth provider ID (oauth_xxx)"
+      },
+      "TokenId": {
+        "name": "tokenId",
+        "in": "path",
+        "required": true,
+        "schema": { "type": "string" },
+        "description": "OAuth token ID (token_xxx)"
+      },
+      "ActivityId": {
+        "name": "activityId",
+        "in": "path",
+        "required": true,
+        "schema": { "type": "string" },
+        "description": "Activity ID (act_xxx)"
+      }
+    },
+    "responses": {
+      "Unauthorized": {
+        "description": "Authentication required",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/Error" }
+          }
+        }
+      },
+      "BadRequest": {
+        "description": "Invalid request",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/Error" }
+          }
+        }
+      },
+      "NotFound": {
+        "description": "Resource not found",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/Error" }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "object",
+            "properties": {
+              "code": { "type": "string" },
+              "message": { "type": "string" }
+            }
+          }
+        }
+      },
+      "McpServer": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "example": "mcp_abc123" },
+          "publisherId": { "type": "string" },
+          "personaId": { "type": "string" },
+          "name": { "type": "string", "example": "My CRM Tools" },
+          "description": { "type": "string" },
+          "transport": {
+            "type": "string",
+            "enum": ["stdio", "http", "websocket"]
+          },
+          "command": { "type": "string" },
+          "args": { "type": "array", "items": { "type": "string" } },
+          "endpoint": { "type": "string", "format": "uri" },
+          "headers": { "type": "object", "additionalProperties": { "type": "string" } },
+          "autoConnect": { "type": "boolean" },
+          "enabled": { "type": "boolean" },
+          "timeout": { "type": "integer" },
+          "status": {
+            "type": "string",
+            "enum": ["active", "error", "disabled"]
+          },
+          "lastConnected": { "type": "string", "format": "date-time" },
+          "lastError": { "type": "string" },
+          "toolCount": { "type": "integer" },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "McpServerCreate": {
+        "type": "object",
+        "required": ["name", "transport"],
+        "properties": {
+          "personaId": { "type": "string" },
+          "name": { "type": "string" },
+          "description": { "type": "string" },
+          "transport": {
+            "type": "string",
+            "enum": ["stdio", "http", "websocket"]
+          },
+          "command": { "type": "string" },
+          "args": { "type": "array", "items": { "type": "string" } },
+          "endpoint": { "type": "string", "format": "uri" },
+          "headers": { "type": "object", "additionalProperties": { "type": "string" } },
+          "secrets": { "type": "object", "additionalProperties": { "type": "string" } },
+          "autoConnect": { "type": "boolean", "default": true },
+          "enabled": { "type": "boolean", "default": true },
+          "timeout": { "type": "integer", "default": 30000 }
+        }
+      },
+      "McpServerUpdate": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "description": { "type": "string" },
+          "transport": {
+            "type": "string",
+            "enum": ["stdio", "http", "websocket"]
+          },
+          "command": { "type": "string" },
+          "args": { "type": "array", "items": { "type": "string" } },
+          "endpoint": { "type": "string", "format": "uri" },
+          "headers": { "type": "object", "additionalProperties": { "type": "string" } },
+          "secrets": { "type": "object", "additionalProperties": { "type": "string" } },
+          "autoConnect": { "type": "boolean" },
+          "enabled": { "type": "boolean" },
+          "timeout": { "type": "integer" }
+        }
+      },
+      "McpTestResult": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean" },
+          "latencyMs": { "type": "integer" },
+          "toolCount": { "type": "integer" },
+          "error": { "type": "string" }
+        }
+      },
+      "McpTool": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "description": { "type": "string" },
+          "inputSchema": { "type": "object" }
+        }
+      },
+      "CustomTool": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "example": "tool_abc123" },
+          "publisherId": { "type": "string" },
+          "personaId": { "type": "string" },
+          "name": { "type": "string" },
+          "displayName": { "type": "string" },
+          "description": { "type": "string" },
+          "llmDescription": { "type": "string" },
+          "type": {
+            "type": "string",
+            "enum": ["webhook", "mcp", "prompt"]
+          },
+          "config": {
+            "type": "object",
+            "properties": {
+              "url": { "type": "string", "format": "uri" },
+              "method": { "type": "string", "enum": ["GET", "POST"] },
+              "headers": { "type": "object", "additionalProperties": { "type": "string" } },
+              "serverId": { "type": "string" },
+              "toolName": { "type": "string" },
+              "prompt": { "type": "string" }
+            }
+          },
+          "parameters": { "type": "object" },
+          "returns": { "type": "object" },
+          "enabled": { "type": "boolean" },
+          "requiresAuth": { "type": "boolean" },
+          "version": { "type": "string" },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "CustomToolCreate": {
+        "type": "object",
+        "required": ["name", "type"],
+        "properties": {
+          "personaId": { "type": "string" },
+          "name": { "type": "string" },
+          "displayName": { "type": "string" },
+          "description": { "type": "string" },
+          "llmDescription": { "type": "string" },
+          "type": {
+            "type": "string",
+            "enum": ["webhook", "mcp", "prompt"]
+          },
+          "config": { "type": "object" },
+          "parameters": { "type": "object" },
+          "returns": { "type": "object" },
+          "enabled": { "type": "boolean", "default": true },
+          "requiresAuth": { "type": "boolean", "default": false }
+        }
+      },
+      "CustomToolUpdate": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "displayName": { "type": "string" },
+          "description": { "type": "string" },
+          "llmDescription": { "type": "string" },
+          "type": {
+            "type": "string",
+            "enum": ["webhook", "mcp", "prompt"]
+          },
+          "config": { "type": "object" },
+          "parameters": { "type": "object" },
+          "returns": { "type": "object" },
+          "enabled": { "type": "boolean" },
+          "requiresAuth": { "type": "boolean" }
+        }
+      },
+      "ToolTestResult": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean" },
+          "result": { "type": "object" },
+          "latencyMs": { "type": "integer" },
+          "error": { "type": "string" }
+        }
+      },
+      "Webhook": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "example": "wh_abc123" },
+          "publisherId": { "type": "string" },
+          "personaId": { "type": "string" },
+          "name": { "type": "string" },
+          "url": { "type": "string", "format": "uri" },
+          "events": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "enabled": { "type": "boolean" },
+          "secret": { "type": "string" },
+          "successCount": { "type": "integer" },
+          "failureCount": { "type": "integer" },
+          "lastDelivery": { "type": "string", "format": "date-time" },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "WebhookCreate": {
+        "type": "object",
+        "required": ["name", "url", "events"],
+        "properties": {
+          "personaId": { "type": "string" },
+          "name": { "type": "string" },
+          "url": { "type": "string", "format": "uri" },
+          "events": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "enabled": { "type": "boolean", "default": true }
+        }
+      },
+      "WebhookUpdate": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "url": { "type": "string", "format": "uri" },
+          "events": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "enabled": { "type": "boolean" }
+        }
+      },
+      "WebhookTestResult": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean" },
+          "statusCode": { "type": "integer" },
+          "latencyMs": { "type": "integer" },
+          "error": { "type": "string" }
+        }
+      },
+      "WebhookLog": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "webhookId": { "type": "string" },
+          "eventType": { "type": "string" },
+          "statusCode": { "type": "integer" },
+          "success": { "type": "boolean" },
+          "latencyMs": { "type": "integer" },
+          "error": { "type": "string" },
+          "attempt": { "type": "integer" },
+          "createdAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "Workflow": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "example": "wf_abc123" },
+          "publisherId": { "type": "string" },
+          "personaId": { "type": "string" },
+          "name": { "type": "string" },
+          "description": { "type": "string" },
+          "version": { "type": "string" },
+          "trigger": { "$ref": "#/components/schemas/WorkflowTrigger" },
+          "nodes": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/WorkflowNode" }
+          },
+          "edges": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/WorkflowEdge" }
+          },
+          "entryNodeId": { "type": "string" },
+          "exitNodeIds": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "enabled": { "type": "boolean" },
+          "timeout": { "type": "integer" },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "WorkflowCreate": {
+        "type": "object",
+        "required": ["name", "trigger", "nodes"],
+        "properties": {
+          "personaId": { "type": "string" },
+          "name": { "type": "string" },
+          "description": { "type": "string" },
+          "version": { "type": "string", "default": "1.0.0" },
+          "trigger": { "$ref": "#/components/schemas/WorkflowTrigger" },
+          "nodes": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/WorkflowNode" }
+          },
+          "edges": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/WorkflowEdge" }
+          },
+          "entryNodeId": { "type": "string" },
+          "enabled": { "type": "boolean", "default": true },
+          "timeout": { "type": "integer" }
+        }
+      },
+      "WorkflowUpdate": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "description": { "type": "string" },
+          "version": { "type": "string" },
+          "trigger": { "$ref": "#/components/schemas/WorkflowTrigger" },
+          "nodes": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/WorkflowNode" }
+          },
+          "edges": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/WorkflowEdge" }
+          },
+          "entryNodeId": { "type": "string" },
+          "enabled": { "type": "boolean" },
+          "timeout": { "type": "integer" }
+        }
+      },
+      "WorkflowTrigger": {
+        "type": "object",
+        "required": ["type"],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": ["voice_command", "tool_call", "schedule", "event", "api"]
+          },
+          "config": {
+            "type": "object",
+            "properties": {
+              "command": { "type": "string" },
+              "toolName": { "type": "string" },
+              "schedule": { "type": "string" },
+              "eventType": { "type": "string" }
+            }
+          }
+        }
+      },
+      "WorkflowNode": {
+        "type": "object",
+        "required": ["id", "type"],
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "type": {
+            "type": "string",
+            "enum": ["start", "end", "mcp_call", "webhook", "llm_prompt", "condition", "parallel", "join", "wait", "set_variable", "activity", "sub_workflow"]
+          },
+          "config": { "type": "object" },
+          "position": {
+            "type": "object",
+            "properties": {
+              "x": { "type": "number" },
+              "y": { "type": "number" }
+            }
+          }
+        }
+      },
+      "WorkflowEdge": {
+        "type": "object",
+        "required": ["id", "sourceId", "targetId"],
+        "properties": {
+          "id": { "type": "string" },
+          "sourceId": { "type": "string" },
+          "targetId": { "type": "string" },
+          "label": { "type": "string" },
+          "condition": { "type": "string" }
+        }
+      },
+      "WorkflowExecution": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "example": "exec_abc123" },
+          "workflowId": { "type": "string" },
+          "publisherId": { "type": "string" },
+          "userId": { "type": "string" },
+          "sessionId": { "type": "string" },
+          "triggeredBy": {
+            "type": "string",
+            "enum": ["voice", "api", "schedule", "event"]
+          },
+          "status": {
+            "type": "string",
+            "enum": ["running", "completed", "failed", "cancelled"]
+          },
+          "currentNodeIds": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "completedNodeIds": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "variables": { "type": "object" },
+          "result": { "type": "object" },
+          "error": { "type": "string" },
+          "startedAt": { "type": "string", "format": "date-time" },
+          "completedAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "OAuthProvider": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "example": "oauth_abc123" },
+          "publisherId": { "type": "string" },
+          "name": { "type": "string" },
+          "type": {
+            "type": "string",
+            "enum": ["google", "spotify", "github", "slack", "notion", "linear", "discord", "custom"]
+          },
+          "clientId": { "type": "string" },
+          "authorizationUrl": { "type": "string", "format": "uri" },
+          "tokenUrl": { "type": "string", "format": "uri" },
+          "scopes": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "enabled": { "type": "boolean" },
+          "tokenCount": { "type": "integer" },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "OAuthProviderCreate": {
+        "type": "object",
+        "required": ["name", "type", "clientId", "clientSecret"],
+        "properties": {
+          "name": { "type": "string" },
+          "type": {
+            "type": "string",
+            "enum": ["google", "spotify", "github", "slack", "notion", "linear", "discord", "custom"]
+          },
+          "clientId": { "type": "string" },
+          "clientSecret": { "type": "string" },
+          "authorizationUrl": { "type": "string", "format": "uri" },
+          "tokenUrl": { "type": "string", "format": "uri" },
+          "scopes": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "enabled": { "type": "boolean", "default": true }
+        }
+      },
+      "OAuthProviderUpdate": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "clientId": { "type": "string" },
+          "clientSecret": { "type": "string" },
+          "authorizationUrl": { "type": "string", "format": "uri" },
+          "tokenUrl": { "type": "string", "format": "uri" },
+          "scopes": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "enabled": { "type": "boolean" }
+        }
+      },
+      "OAuthToken": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "example": "token_abc123" },
+          "providerId": { "type": "string" },
+          "providerName": { "type": "string" },
+          "userId": { "type": "string" },
+          "scopes": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "expiresAt": { "type": "string", "format": "date-time" },
+          "createdAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "Activity": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "example": "act_abc123" },
+          "publisherId": { "type": "string" },
+          "personaId": { "type": "string" },
+          "userId": { "type": "string" },
+          "sessionId": { "type": "string" },
+          "type": { "type": "string" },
+          "name": { "type": "string" },
+          "data": { "type": "object" },
+          "startedAt": { "type": "string", "format": "date-time" },
+          "completedAt": { "type": "string", "format": "date-time" },
+          "duration": { "type": "integer" },
+          "status": {
+            "type": "string",
+            "enum": ["started", "completed", "failed"]
+          },
+          "createdAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "ActivityCreate": {
+        "type": "object",
+        "required": ["type", "name"],
+        "properties": {
+          "personaId": { "type": "string" },
+          "userId": { "type": "string" },
+          "sessionId": { "type": "string" },
+          "type": { "type": "string" },
+          "name": { "type": "string" },
+          "data": { "type": "object" },
+          "status": {
+            "type": "string",
+            "enum": ["started", "completed", "failed"],
+            "default": "completed"
+          }
+        }
+      },
+      "ActivityStats": {
+        "type": "object",
+        "properties": {
+          "total": { "type": "integer" },
+          "completed": { "type": "integer" },
+          "failed": { "type": "integer" },
+          "avgDuration": { "type": "number" },
+          "byType": {
+            "type": "object",
+            "additionalProperties": { "type": "integer" }
+          }
+        }
+      }
+    }
+  }
+}

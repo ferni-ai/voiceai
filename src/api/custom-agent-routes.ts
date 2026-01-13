@@ -584,14 +584,17 @@ router.post('/:agentId/voice/preview', async (req: Request, res: Response) => {
       return res.status(400).json({
         error: 'Voice is not ready',
         status: agent.voice?.status,
-        hint: agent.voice?.status === 'pending' ? 'Voice clone is still processing' : 'Voice configuration incomplete',
+        hint:
+          agent.voice?.status === 'pending'
+            ? 'Voice clone is still processing'
+            : 'Voice configuration incomplete',
       });
     }
 
     // Check cache first (keyed by voiceId + text hash)
     const cacheKey = `${voiceId}:${Buffer.from(text).toString('base64').slice(0, 32)}`;
     const cached = voicePreviewCache.get(cacheKey);
-    if (cached && (Date.now() - cached.timestamp) < VOICE_PREVIEW_CACHE_TTL_MS) {
+    if (cached && Date.now() - cached.timestamp < VOICE_PREVIEW_CACHE_TTL_MS) {
       log.debug({ userId, agentId, voiceId, cached: true }, 'Voice preview served from cache');
       return res.json(cached.data);
     }
@@ -620,7 +623,10 @@ router.post('/:agentId/voice/preview', async (req: Request, res: Response) => {
       }
     }
 
-    log.info({ userId, agentId, voiceId, durationSeconds: preview.durationSeconds }, 'Voice preview generated');
+    log.info(
+      { userId, agentId, voiceId, durationSeconds: preview.durationSeconds },
+      'Voice preview generated'
+    );
 
     return res.json(responseData);
   } catch (error) {

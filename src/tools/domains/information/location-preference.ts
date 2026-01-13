@@ -32,6 +32,88 @@ const locationCache = new Map<
   { location: string; timestamp: number; source: 'session' | 'explicit' }
 >();
 
+// ============================================================================
+// CURRENT ACTIVE SESSION (for native tools that don't have context)
+// ============================================================================
+
+/**
+ * Stores the currently active session's info.
+ * Since there's only ONE session per voice agent worker instance,
+ * native tools can use this to get the user's location without
+ * having userId passed to them directly.
+ *
+ * This is set when a session starts and cleared when it ends.
+ */
+let currentActiveSession: {
+  userId: string;
+  location?: string;
+  sessionId?: string;
+} | null = null;
+
+/**
+ * Set the current active session for native tool access.
+ * Called when a voice session starts.
+ */
+export function setCurrentActiveSession(
+  userId: string,
+  location?: string,
+  sessionId?: string
+): void {
+  currentActiveSession = { userId, location, sessionId };
+  log.info(
+    { userId, hasLocation: !!location, sessionId },
+    '📍 Current active session set (for native tools)'
+  );
+}
+
+/**
+ * Clear the current active session.
+ * Called when a voice session ends.
+ */
+export function clearCurrentActiveSession(): void {
+  const wasSet = !!currentActiveSession;
+  currentActiveSession = null;
+  if (wasSet) {
+    log.debug('📍 Current active session cleared');
+  }
+}
+
+/**
+ * Get location for the current active session.
+ * Used by native tools that don't receive userId in their execute function.
+ *
+ * Priority:
+ * 1. Direct session location (set at session start)
+ * 2. Cached location for the user (from IP geo or explicit preference)
+ */
+export function getCurrentSessionLocation(): string | null {
+  if (!currentActiveSession) {
+    log.debug('📍 No active session set - cannot determine location');
+    return null;
+  }
+
+  // Priority 1: Direct session location
+  if (currentActiveSession.location) {
+    log.debug(
+      { location: currentActiveSession.location, source: 'active-session' },
+      '📍 Using active session location'
+    );
+    return currentActiveSession.location;
+  }
+
+  // Priority 2: Check location cache for this user
+  const cachedLocation = getUserLocationPreference(currentActiveSession.userId);
+  if (cachedLocation) {
+    return cachedLocation;
+  }
+
+  log.debug(
+    { userId: currentActiveSession.userId },
+    '📍 No location available for active session'
+  );
+  return null;
+}
+
 /**
  * Evict oldest entries if cache exceeds max size (LRU-style).
  * Prioritizes removing session entries over explicit user preferences.

@@ -195,6 +195,24 @@ export async function startup(): Promise<AppConfig> {
   startReminderScheduler(60000); // Check every minute
   startProactiveScheduler({ checkIntervalMs: 300000 }); // Check every 5 minutes
 
+  // Start scheduled actions worker (for workflow routine reminders)
+  try {
+    const { startScheduledActionsWorker } = await import('./services/workflows/scheduled-actions.js');
+    await startScheduledActionsWorker();
+    logger.info('📅 Scheduled actions worker started');
+  } catch (error) {
+    logger.warn({ error: String(error) }, 'Failed to start scheduled actions worker');
+  }
+
+  // Start calendar trigger worker (for calendar-based workflow triggers)
+  try {
+    const { startCalendarTriggerWorker } = await import('./services/workflows/calendar-trigger-worker.js');
+    startCalendarTriggerWorker();
+    logger.info('📅 Calendar trigger worker started');
+  } catch (error) {
+    logger.warn({ error: String(error) }, 'Failed to start calendar trigger worker');
+  }
+
   // Start scheduled outreach executor (for multiOutreach scheduled messages)
   try {
     const { startScheduledOutreachExecutor } = await import(
@@ -340,7 +358,7 @@ export async function startup(): Promise<AppConfig> {
       import('./services/data-layer/ttl-cleanup.js').then(async ({ runTTLCleanup }) => {
         const result = await runTTLCleanup({ dryRun: false });
         logger.debug(
-          { deletedCount: result.totalDocsDeleted },
+          { deletedCount: result.totalDeleted },
           '✓ TTL cleanup completed (deferred)'
         );
         return 'ttl_cleanup';
@@ -413,6 +431,22 @@ export async function shutdown(): Promise<void> {
     // Stop schedulers
     stopReminderScheduler();
     stopProactiveScheduler();
+
+    // Stop scheduled actions worker
+    try {
+      const { stopScheduledActionsWorker } = await import('./services/workflows/scheduled-actions.js');
+      stopScheduledActionsWorker();
+    } catch {
+      // Ignore if not running
+    }
+
+    // Stop calendar trigger worker
+    try {
+      const { stopCalendarTriggerWorker } = await import('./services/workflows/calendar-trigger-worker.js');
+      stopCalendarTriggerWorker();
+    } catch {
+      // Ignore if not running
+    }
 
     // Stop background workers
     logger.info('Stopping background workers...');

@@ -122,7 +122,7 @@ import {
   buildLovablePresenceContext,
   clearLovableContentCache,
   clearLovableSessionStates,
-} from '../intelligence/context-builders/lovable-presence.js';
+} from '../intelligence/context-builders/personas/lovable-presence.js';
 
 // ============================================================================
 // TEST FIXTURES

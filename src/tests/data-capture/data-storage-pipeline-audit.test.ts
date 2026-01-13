@@ -322,17 +322,17 @@ describe('PATH 2a: Hardcoded Contact Extraction (phones, emails)', () => {
 // PATH 2b: DEFINITION-BASED CAPTURES
 // ============================================================================
 
-describe('PATH 2b: Definition-Based Data Capture (10 definitions)', () => {
+describe('PATH 2b: Definition-Based Data Capture (13 definitions)', () => {
   beforeEach(() => {
     resetStorageCalls();
     mockFirestoreData.clear();
     vi.clearAllMocks();
   });
 
-  it('should have all 10 definitions loaded', () => {
-    expect(allDataCaptureDefinitions.length).toBe(10);
+  it('should have all 13 definitions loaded', () => {
+    expect(allDataCaptureDefinitions.length).toBe(13);
 
-    // Actual IDs from definition files
+    // Actual IDs from definition files (updated Jan 2026 with 3 new definitions)
     const expectedIds = [
       'capture_boundary',
       'capture_contact_info',      // Note: _info suffix
@@ -344,6 +344,10 @@ describe('PATH 2b: Definition-Based Data Capture (10 definitions)', () => {
       'capture_mood',
       'capture_inside_joke',
       'capture_relationship',
+      // V3 Domain Hooks - added Jan 2026
+      'capture_location_info',     // Location preferences (Note: _info suffix)
+      'capture_pet_info',          // Pet information (Note: _info suffix)
+      'capture_actionable_intent', // Actionable intents for LLM
     ];
 
     const actualIds = allDataCaptureDefinitions.map((d) => d.id);
@@ -705,7 +709,7 @@ describe('Pipeline Completeness Audit', () => {
 
     const definitions = await import('../../intelligence/data-capture/definitions/index.js');
     expect(definitions.allDataCaptureDefinitions).toBeDefined();
-    expect(definitions.allDataCaptureDefinitions.length).toBe(10);
+    expect(definitions.allDataCaptureDefinitions.length).toBe(13);
   });
 
   it('should have captureDataBetterThanHuman as unified entry point', async () => {

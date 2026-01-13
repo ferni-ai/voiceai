@@ -16,6 +16,7 @@ import { readFile } from 'fs/promises';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import { createLogger } from '../../utils/safe-logger.js';
+import { getModelProvider } from '../../agents/model-provider/index.js';
 import type { BundlePromptAssembly } from './types.js';
 
 const log = createLogger({ module: 'PromptAssembler' });
@@ -163,7 +164,7 @@ async function loadSuperhumanModules(): Promise<{
  *
  * SKIP when:
  * - SEMANTIC_ROUTING_PRIMARY=true: Semantic routing handles all tool calls
- * - USE_OPENAI_REALTIME=true: OpenAI has native function calling (no JSON format needed)
+ * - Provider has native function calling (e.g., OpenAI Realtime)
  *
  * When these are active, we don't want the LLM to output JSON function calls
  * (they would be spoken as text like "fn:speak args:...")
@@ -183,14 +184,14 @@ async function loadFunctionCallingWithBase(
     return '';
   }
 
-  // 🔮 OPENAI REALTIME: Skip JSON function calling prompts
-  // OpenAI Realtime has NATIVE function calling - the LLM calls functions directly
-  // via the API, not by outputting JSON. If we include JSON format instructions,
-  // the LLM will output "fn:speak" etc. as speech (like Alex was doing!)
-  if (process.env.USE_OPENAI_REALTIME === 'true') {
+  // Check if provider needs JSON function calling prompts
+  const provider = getModelProvider();
+  const promptConfig = provider.getPromptModules();
+
+  if (!promptConfig.includeFunctionCallingBase) {
     log.info(
-      { personaId },
-      '🔮 USE_OPENAI_REALTIME=true: Skipping JSON function-calling prompts (OpenAI has native function calling)'
+      { personaId, providerId: provider.id },
+      `${provider.getLogPrefix()} Skipping JSON function-calling prompts (provider has native function calling)`
     );
     return '';
   }

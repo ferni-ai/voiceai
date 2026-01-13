@@ -3,6 +3,10 @@
  *
  * Celebration opportunities, proactive discoveries, and timeline alerts.
  *
+ * Cross-Domain Integration:
+ * - CEO coaching wins are surfaced as celebration opportunities
+ * - Jordan sees professional achievements alongside personal milestones
+ *
  * @module intelligence/context-builders/jordan-milestone-insights/opportunities
  */
 
@@ -13,6 +17,53 @@ import type {
   PlanningMetrics,
   JordanInsightBriefing,
 } from './types.js';
+import type { CEOWin } from '../../../../tools/domains/ceo-coaching/types.js';
+
+// ============================================================================
+// CEO COACHING WIN PATTERNS
+// ============================================================================
+
+// Significant win keywords that warrant celebration
+const SIGNIFICANT_WIN_PATTERNS = [
+  /shipped/i,
+  /launched/i,
+  /closed/i,
+  /signed/i,
+  /promoted/i,
+  /hired/i,
+  /funded/i,
+  /raised/i,
+  /won/i,
+  /completed/i,
+  /delivered/i,
+  /achieved/i,
+  /million/i,
+  /partnership/i,
+  /revenue/i,
+];
+
+/**
+ * Get days since a date string (YYYY-MM-DD format)
+ * Uses string comparison to avoid timezone issues
+ */
+function getDaysAgo(dateStr: string): number {
+  // Parse date parts directly to avoid timezone issues
+  const [year, month, day] = dateStr.split('-').map(Number);
+  const inputDate = new Date(year, month - 1, day); // Month is 0-indexed
+  inputDate.setHours(0, 0, 0, 0);
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  return Math.floor((today.getTime() - inputDate.getTime()) / (1000 * 60 * 60 * 24));
+}
+
+/**
+ * Check if a win is significant based on keyword patterns
+ */
+function isSignificantWin(win: CEOWin): boolean {
+  return SIGNIFICANT_WIN_PATTERNS.some((pattern) => pattern.test(win.text));
+}
 
 // ============================================================================
 // CELEBRATION OPPORTUNITY DETECTION
@@ -21,9 +72,31 @@ import type {
 export function detectCelebrationOpportunities(
   goalsOverview: GoalsOverview,
   planningMetrics: PlanningMetrics,
-  memoryInsights: MemoryInsights
+  memoryInsights: MemoryInsights,
+  ceoWins: CEOWin[] = []
 ): string[] {
   const opportunities: string[] = [];
+
+  // CEO Coaching wins (Cross-Domain Integration)
+  // Prioritize recent significant wins for celebration
+  const recentSignificantWins = ceoWins
+    .filter((win) => getDaysAgo(win.date) <= 7 && isSignificantWin(win))
+    .slice(0, 3);
+
+  for (const win of recentSignificantWins) {
+    const daysAgo = getDaysAgo(win.date);
+    const timing = daysAgo === 0 ? 'today' : daysAgo === 1 ? 'yesterday' : `${daysAgo} days ago`;
+    opportunities.push(`🚀 PROFESSIONAL WIN (${timing}): "${win.text}" - this deserves celebration!`);
+  }
+
+  // Also surface any wins from today (regardless of significance)
+  const todayWins = ceoWins
+    .filter((win) => getDaysAgo(win.date) === 0 && !recentSignificantWins.includes(win))
+    .slice(0, 2);
+
+  for (const win of todayWins) {
+    opportunities.push(`⭐ Fresh win today: "${win.text}" - momentum builder!`);
+  }
 
   // Near completion celebrations
   for (const goal of goalsOverview.nearingCompletion) {

@@ -340,8 +340,8 @@ export async function getSubscriptionStatus(userId: string): Promise<Subscriptio
     }
 
     return {
-      tier: response.data.tier || 'free',
-      status: response.data.status || 'active',
+      tier: (response.data.tier || 'free') as 'free' | 'friend' | 'partner',
+      status: (response.data.status || 'active') as 'active' | 'canceled' | 'expired' | 'past_due',
       expiresDate: response.data.expiresDate,
       provider: 'apple',
     };
@@ -368,8 +368,8 @@ async function checkStripeStatus(userId: string): Promise<SubscriptionStatus> {
     }
 
     return {
-      tier: response.data.tier || 'free',
-      status: response.data.status || 'active',
+      tier: (response.data.tier || 'free') as 'free' | 'friend' | 'partner',
+      status: (response.data.status || 'active') as 'active' | 'canceled' | 'expired' | 'past_due',
       expiresDate: response.data.currentPeriodEnd,
       provider: response.data.tier !== 'free' ? 'stripe' : 'none',
     };

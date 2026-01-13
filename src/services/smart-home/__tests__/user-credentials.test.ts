@@ -27,14 +27,20 @@ vi.mock('firebase-admin/firestore', () => ({
   getFirestore: () => mockDb,
 }));
 
-vi.mock('../../../utils/safe-logger.js', () => ({
-  createLogger: () => ({
+// Mock logger - must include both createLogger and getLogger
+vi.mock('../../../utils/safe-logger.js', () => {
+  const mockLogger = {
     debug: vi.fn(),
     info: vi.fn(),
     warn: vi.fn(),
     error: vi.fn(),
-  }),
-}));
+    child: () => mockLogger,
+  };
+  return {
+    createLogger: () => mockLogger,
+    getLogger: () => mockLogger,
+  };
+});
 
 // Import after mocks
 import {

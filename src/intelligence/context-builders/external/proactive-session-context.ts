@@ -274,10 +274,10 @@ export const proactiveSessionContextBuilder: ContextBuilder = {
     // Fallback: Check conversation context bridge for recent outreach
     if (!context && userId) {
       try {
-        const { getConversationContext } = await import(
+        const { getConversationBridgeContext } = await import(
           '../../../services/outreach/conversation-context-bridge.js'
         );
-        const bridgeContext = await getConversationContext(userId);
+        const bridgeContext = await getConversationBridgeContext(userId);
 
         if (bridgeContext && bridgeContext.isDirectResponse) {
           // Convert bridge context to proactive context format
@@ -336,7 +336,7 @@ export const proactiveSessionContextBuilder: ContextBuilder = {
     // Return high-priority injection
     return [
       createHighInjection('proactive_session_context', formattedContext, {
-        priority: 95, // Very high - shapes the entire conversation
+        category: 'proactive_session',
       }),
     ];
   },

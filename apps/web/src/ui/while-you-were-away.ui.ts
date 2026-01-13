@@ -207,10 +207,11 @@ function groupByType(updates: BackgroundUpdate[]): Record<string, BackgroundUpda
   const groups: Record<string, BackgroundUpdate[]> = {};
 
   for (const update of updates) {
-    if (!groups[update.type]) {
+    const group = groups[update.type];
+    if (!group) {
       groups[update.type] = [];
     }
-    groups[update.type].push(update);
+    groups[update.type]?.push(update);
   }
 
   return groups;

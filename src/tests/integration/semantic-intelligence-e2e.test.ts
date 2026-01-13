@@ -284,7 +284,7 @@ describe('Semantic Intelligence E2E', () => {
   describe('Session Priming Integration', () => {
     it('should include semantic intelligence in session priming', async () => {
       const { buildSuperhumanSessionPriming, clearAllSuperhumanPrimingSessions } =
-        await import('../../intelligence/context-builders/superhuman-session-priming.js');
+        await import('../../intelligence/context-builders/superhuman/superhuman-session-priming.js');
 
       // Clear any cached sessions
       clearAllSuperhumanPrimingSessions();

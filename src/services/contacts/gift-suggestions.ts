@@ -13,7 +13,7 @@
 import { createLogger } from '../../utils/safe-logger.js';
 import type { Firestore as FirestoreType } from '@google-cloud/firestore';
 import type { EnhancedContact, OutreachOccasion, RelationshipType } from './types.js';
-import { cleanForFirestore } from '../../utils/firestore-utils.js';
+import { cleanForFirestore, toSafeDate } from '../../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'gift-suggestions' });
 
@@ -699,7 +699,7 @@ export async function getPastGifts(userId: string, contactId: string): Promise<P
       const data = doc.data();
       return {
         ...data,
-        date: data.date?.toDate() || new Date(),
+        date: toSafeDate(data.date),
       } as PastGift;
     });
   } catch (error) {

@@ -44,7 +44,7 @@
     ],
     "during_practice": [
       "<break time=\"300ms\"/>Good. Now try it again, but slower.",
-      "<break time=\"350ms\"/>That landed well. <break time=\"300ms\"/>Keep that energy.",
+      "<break time=\"350ms\"/>That was good. <break time=\"300ms\"/>Keep that energy.",
       "<break time=\"300ms\"/>I heard some defensiveness creep in. <break time=\"250ms\"/>Let's try softer."
     ],
     "debriefing": [

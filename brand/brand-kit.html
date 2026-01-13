@@ -58,19 +58,19 @@
       align-items: center;
       gap: 8px;
       background: var(--color-ferni);
-      color: white;
+      color: var(--color-text-inverse);
       padding: 16px 32px;
       border-radius: 12px;
       text-decoration: none;
       font-weight: 600;
       font-size: 16px;
       transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
-      box-shadow: 0 4px 16px rgba(74, 103, 65, 0.25);
+      box-shadow: 0 4px 16px var(--color-ferni-glow);
     }
 
     .download-all-btn:hover {
       transform: translateY(-2px);
-      box-shadow: 0 8px 24px rgba(74, 103, 65, 0.35);
+      box-shadow: 0 8px 24px var(--color-ferni-glow);
     }
 
     /* Main Content */
@@ -120,7 +120,7 @@
 
     .asset-card:hover {
       transform: translateY(-4px);
-      box-shadow: 0 12px 32px rgba(44, 37, 32, 0.1);
+      box-shadow: var(--shadow-lg);
     }
 
     .asset-preview {
@@ -189,7 +189,7 @@
 
     .format-tag:hover {
       background: var(--color-ferni);
-      color: white;
+      color: var(--color-text-inverse);
     }
 
     /* Color Palette Section */
@@ -241,7 +241,7 @@
 
     .color-card:hover {
       transform: translateY(-2px);
-      box-shadow: 0 8px 24px rgba(44, 37, 32, 0.12);
+      box-shadow: var(--shadow-md);
     }
 
     .color-card:active {
@@ -271,8 +271,8 @@
     }
 
     .color-card.copied .copy-hint {
-      background: var(--color-ferni, #4a6741);
-      color: white;
+      background: var(--color-ferni);
+      color: var(--color-text-inverse);
     }
 
     .color-card.copied {
@@ -291,7 +291,7 @@
     }
 
     .color-value.hex:hover {
-      color: var(--color-ferni, #4a6741);
+      color: var(--color-ferni);
     }
 
     /* Typography Section */
@@ -357,7 +357,7 @@
     .guideline-icon {
       width: 48px;
       height: 48px;
-      background: rgba(74, 103, 65, 0.1);
+      background: var(--color-ferni-subtle);
       border-radius: 12px;
       display: flex;
       align-items: center;
@@ -368,7 +368,7 @@
     .guideline-icon svg {
       width: 24px;
       height: 24px;
-      color: var(--color-ferni, #4a6741);
+      color: var(--color-ferni);
     }
 
     .guideline-card h3 {
@@ -502,7 +502,7 @@
         <div class="asset-card">
           <div class="asset-preview light-bg">
             <svg viewBox="0 0 100 100" width="80" height="80">
-              <circle cx="50" cy="50" r="45" fill="#4a6741"/>
+              <circle cx="50" cy="50" r="45" fill="var(--color-ferni)"/>
               <ellipse cx="36" cy="48" rx="7" ry="10" fill="white"/>
               <ellipse cx="64" cy="48" rx="7" ry="10" fill="white"/>
             </svg>
@@ -522,7 +522,7 @@
           <div class="asset-preview light-bg">
             <div style="display: flex; align-items: center; gap: 12px;">
               <svg viewBox="0 0 50 50" width="40" height="40">
-                <circle cx="25" cy="25" r="23" fill="#4a6741"/>
+                <circle cx="25" cy="25" r="23" fill="var(--color-ferni)"/>
                 <ellipse cx="18" cy="24" rx="3.5" ry="5" fill="white"/>
                 <ellipse cx="32" cy="24" rx="3.5" ry="5" fill="white"/>
               </svg>
@@ -542,7 +542,7 @@
         <div class="asset-card">
           <div class="asset-preview gradient-bg">
             <svg viewBox="0 0 100 100" width="70" height="70">
-              <rect width="100" height="100" rx="22" fill="#4a6741"/>
+              <rect width="100" height="100" rx="22" fill="var(--color-ferni)"/>
               <ellipse cx="36" cy="48" rx="8" ry="11" fill="white"/>
               <ellipse cx="64" cy="48" rx="8" ry="11" fill="white"/>
             </svg>
@@ -562,7 +562,7 @@
         <div class="asset-card">
           <div class="asset-preview light-bg">
             <svg viewBox="0 0 32 32" width="48" height="48">
-              <circle cx="16" cy="16" r="15" fill="#4a6741"/>
+              <circle cx="16" cy="16" r="15" fill="var(--color-ferni)"/>
               <ellipse cx="11" cy="15" rx="2.5" ry="3.5" fill="white"/>
               <ellipse cx="21" cy="15" rx="2.5" ry="3.5" fill="white"/>
             </svg>
@@ -594,7 +594,7 @@
         <div class="asset-card">
           <div class="asset-preview light-bg">
             <svg viewBox="0 0 80 80" width="70" height="70">
-              <circle cx="40" cy="40" r="36" fill="#4a6741"/>
+              <circle cx="40" cy="40" r="36" fill="var(--color-ferni)"/>
               <ellipse cx="29" cy="39" rx="5.5" ry="8" fill="white"/>
               <ellipse cx="51" cy="39" rx="5.5" ry="8" fill="white"/>
             </svg>
@@ -612,7 +612,7 @@
         <div class="asset-card">
           <div class="asset-preview light-bg">
             <svg viewBox="0 0 80 80" width="70" height="70">
-              <circle cx="40" cy="40" r="36" fill="#a67a6a"/>
+              <circle cx="40" cy="40" r="36" fill="var(--color-maya)"/>
               <ellipse cx="29" cy="39" rx="5.5" ry="8" fill="white"/>
               <ellipse cx="51" cy="39" rx="5.5" ry="8" fill="white"/>
             </svg>
@@ -630,7 +630,7 @@
         <div class="asset-card">
           <div class="asset-preview light-bg">
             <svg viewBox="0 0 80 80" width="70" height="70">
-              <circle cx="40" cy="40" r="36" fill="#3a6b73"/>
+              <circle cx="40" cy="40" r="36" fill="var(--color-peter)"/>
               <ellipse cx="29" cy="39" rx="5.5" ry="8" fill="white"/>
               <ellipse cx="51" cy="39" rx="5.5" ry="8" fill="white"/>
             </svg>
@@ -648,7 +648,7 @@
         <div class="asset-card">
           <div class="asset-preview light-bg">
             <svg viewBox="0 0 80 80" width="70" height="70">
-              <circle cx="40" cy="40" r="36" fill="#c4856a"/>
+              <circle cx="40" cy="40" r="36" fill="var(--color-jordan)"/>
               <ellipse cx="29" cy="39" rx="5.5" ry="8" fill="white"/>
               <ellipse cx="51" cy="39" rx="5.5" ry="8" fill="white"/>
             </svg>
@@ -666,7 +666,7 @@
         <div class="asset-card">
           <div class="asset-preview light-bg">
             <svg viewBox="0 0 80 80" width="70" height="70">
-              <circle cx="40" cy="40" r="36" fill="#5a6b8a"/>
+              <circle cx="40" cy="40" r="36" fill="var(--color-alex)"/>
               <ellipse cx="29" cy="39" rx="5.5" ry="8" fill="white"/>
               <ellipse cx="51" cy="39" rx="5.5" ry="8" fill="white"/>
             </svg>
@@ -684,7 +684,7 @@
         <div class="asset-card">
           <div class="asset-preview light-bg">
             <svg viewBox="0 0 80 80" width="70" height="70">
-              <circle cx="40" cy="40" r="36" fill="#b8956a"/>
+              <circle cx="40" cy="40" r="36" fill="var(--color-nayan)"/>
               <ellipse cx="29" cy="39" rx="5.5" ry="8" fill="white"/>
               <ellipse cx="51" cy="39" rx="5.5" ry="8" fill="white"/>
             </svg>

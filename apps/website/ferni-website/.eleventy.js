@@ -129,6 +129,7 @@ module.exports = function (eleventyConfig) {
   eleventyConfig.addPassthroughCopy('images/sequence');
   eleventyConfig.addPassthroughCopy('images/blog');
   eleventyConfig.addPassthroughCopy('images/building');
+  eleventyConfig.addPassthroughCopy('images/dev-blog');
 
   // Developers directory
   eleventyConfig.addPassthroughCopy('developers');
@@ -156,16 +157,32 @@ module.exports = function (eleventyConfig) {
   // Add current year filter
   eleventyConfig.addFilter('year', () => new Date().getFullYear());
 
+  // RSS date filter (ISO 8601 format for Atom feeds)
+  eleventyConfig.addFilter('rssDate', (dateObj) => {
+    if (!dateObj) return '';
+    const date = (dateObj === 'now') ? new Date() : new Date(dateObj);
+    if (isNaN(date.getTime())) return '';
+    return date.toISOString();
+  });
+
   // Add date formatting filter
   eleventyConfig.addFilter('date', (dateObj, format) => {
     if (!dateObj) return '';
-    const date = new Date(dateObj);
-    const months = ['January', 'February', 'March', 'April', 'May', 'June', 
+
+    // Handle 'now' as current date
+    const date = (dateObj === 'now') ? new Date() : new Date(dateObj);
+
+    // Check for invalid date
+    if (isNaN(date.getTime())) return '';
+
+    const months = ['January', 'February', 'March', 'April', 'May', 'June',
                     'July', 'August', 'September', 'October', 'November', 'December'];
-    const monthsShort = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
+    const monthsShort = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
                          'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    
-    if (format === 'MMMM d, yyyy') {
+
+    if (format === 'yyyy') {
+      return date.getFullYear().toString();
+    } else if (format === 'MMMM d, yyyy') {
       return `${months[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
     } else if (format === 'MMM d, yyyy') {
       return `${monthsShort[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
@@ -217,6 +234,13 @@ module.exports = function (eleventyConfig) {
     return collectionApi
       .getFilteredByGlob('src/developers/*.md')
       .sort((a, b) => (a.data.order || 99) - (b.data.order || 99));
+  });
+
+  // Developer blog posts collection (sorted by date, newest first)
+  eleventyConfig.addCollection('devPosts', function (collectionApi) {
+    return collectionApi
+      .getFilteredByGlob('src/dev-blog/*.md')
+      .sort((a, b) => new Date(b.date) - new Date(a.date));
   });
 
   return {

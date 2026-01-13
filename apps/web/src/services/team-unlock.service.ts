@@ -314,7 +314,7 @@ async function syncWithBackend(userIdOverride?: string): Promise<void> {
 
     // Update bypass mode from backend
     if (data.bypassMode !== undefined) {
-      bypassMode = data.bypassMode;
+      bypassMode = data.bypassMode as 'all' | TeamMemberId[] | null;
       if (bypassMode) {
         log.info('🔓 Backend bypass mode active:', bypassMode);
       }
@@ -322,7 +322,7 @@ async function syncWithBackend(userIdOverride?: string): Promise<void> {
 
     // Update subscription tier from backend
     if (data.tier) {
-      subscriptionTier = data.tier;
+      subscriptionTier = data.tier as 'free' | 'friend' | 'partner';
     }
 
     _hasSyncedWithBackend = true;
@@ -331,9 +331,8 @@ async function syncWithBackend(userIdOverride?: string): Promise<void> {
     void updateUnlockState();
 
     log.debug('Synced team unlocks from backend', {
-      stage: data.stage,
       tier: data.tier,
-      unlockedCount: data.unlockedMembers?.length,
+      unlockedCount: data.unlockedTeamMembers?.length,
       bypassMode: data.bypassMode,
     });
   } catch (err) {

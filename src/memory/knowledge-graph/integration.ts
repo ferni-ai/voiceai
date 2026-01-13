@@ -126,7 +126,7 @@ export async function integrateCommitment(
   });
 
   // Update properties
-  const db = (await import('../../services/superhuman/firestore-utils.js')).getFirestoreDb();
+  const db = (await import('../../utils/firestore-utils.js')).getFirestoreDb();
   if (db) {
     await db
       .collection('knowledge_graph')

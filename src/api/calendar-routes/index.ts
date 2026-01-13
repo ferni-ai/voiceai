@@ -318,7 +318,73 @@ export async function handleCalendarRoutes(
     return true;
   }
 
+  // ========================================================================
+  // NOTIFICATION PREFERENCES
+  // ========================================================================
+
+  if (normalizedPath === '/calendar/notification-preferences') {
+    if (req.method === 'GET') {
+      await handleGetNotificationPreferences(req, res, userId);
+      return true;
+    }
+    if (req.method === 'POST') {
+      await handleSetNotificationPreferences(req, res, userId);
+      return true;
+    }
+  }
+
   return false;
+}
+
+// ============================================================================
+// NOTIFICATION PREFERENCES HANDLERS
+// ============================================================================
+
+async function handleGetNotificationPreferences(
+  _req: IncomingMessage,
+  res: ServerResponse,
+  userId: string
+): Promise<void> {
+  try {
+    const { getNotificationPreferences } = await import(
+      '../../services/calendar/notification-preferences.js'
+    );
+    const preferences = await getNotificationPreferences(userId);
+    
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ preferences }));
+  } catch (error) {
+    res.writeHead(500, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'Failed to get preferences', detail: String(error) }));
+  }
+}
+
+async function handleSetNotificationPreferences(
+  req: IncomingMessage,
+  res: ServerResponse,
+  userId: string
+): Promise<void> {
+  try {
+    const body = await parseBody<{ setting: string; enabled: boolean }>(req);
+    const { setting, enabled } = body;
+    
+    if (!setting || typeof enabled !== 'boolean') {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'setting and enabled are required' }));
+      return;
+    }
+    
+    const { setNotificationPreference } = await import(
+      '../../services/calendar/notification-preferences.js'
+    );
+    await setNotificationPreference(userId, setting, enabled);
+    
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ success: true }));
+  } catch (error) {
+    res.writeHead(500, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'Failed to save preference', detail: String(error) }));
+  }
 }
 
 // Re-export for backward compatibility

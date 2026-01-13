@@ -76,6 +76,8 @@ interface PracticeEventData {
     insight: string;
   };
   source: string;
+  isAllDay?: boolean;
+  status?: 'confirmed' | 'tentative' | 'cancelled';
 }
 
 interface PracticeIntentionData {
@@ -389,6 +391,10 @@ class CalendarViewUI {
     try {
       // Check if Google Calendar is connected (for showing sync status in UI)
       const userId = getUserId();
+      if (!userId) {
+        this.isConnected = false;
+        return;
+      }
       const statusRes = await apiGet<{ linked?: boolean }>(`/auth/google/status?user_id=${encodeURIComponent(userId)}`);
       this.isConnected = statusRes?.data?.linked === true;
 
@@ -733,14 +739,15 @@ class CalendarViewUI {
       : this.getWeekWithInsights(today);
     
     // Today's events - prefer API, fall back to stored data
-    const todayEvents = apiData?.todayEvents
+    const todayEvents: CalendarEvent[] = apiData?.todayEvents
       ? apiData.todayEvents.map(event => ({
           id: event.id,
           title: event.title,
-          time: this.formatEventTime(event.startTime, event.endTime),
+          startTime: event.startTime,
+          endTime: event.endTime,
           location: event.location,
-          source: event.source as 'google' | 'ferni' | 'outlook' | 'apple' | undefined,
-          emotionalContext: event.emotionalContext,
+          isAllDay: event.isAllDay ?? false,
+          status: (event.status as 'confirmed' | 'tentative' | 'cancelled') ?? 'confirmed',
         }))
       : this.todayData?.events || [];
     
@@ -907,22 +914,23 @@ class CalendarViewUI {
     for (let i = 0; i < 7; i++) {
       const date = new Date(startOfWeek);
       date.setDate(startOfWeek.getDate() + i);
-      const dateStr = date.toISOString().split('T')[0];
+      const dateStr = date.toISOString().split('T')[0] ?? '';
       
       // Check if this day has events from our data
       const dayData = this.weekData?.days?.find(d => d.date === dateStr);
       const hasEvents = (dayData?.events?.length || 0) > 0;
+      const dayOfWeek = date.getDay();
 
       days.push({
         date: dateStr,
-        shortName: dayNames[date.getDay()],
+        shortName: dayNames[dayOfWeek] ?? 'Day',
         dayNum: date.getDate(),
         isToday: date.toDateString() === today.toDateString(),
         hasEvent: hasEvents,
         hasTask: Math.random() > 0.6, // TODO: Get from real task data
         hasReminder: Math.random() > 0.7, // TODO: Get from real reminder data
         hasHabit: Math.random() > 0.5, // TODO: Get from real habit data
-        insight: this.getDayInsight(date, today, dayInsights[date.getDay()]),
+        insight: this.getDayInsight(date, today, dayInsights[dayOfWeek] ?? ''),
       });
     }
 
@@ -961,7 +969,7 @@ class CalendarViewUI {
    * Render a single event with rich emotional context
    */
   private renderPracticeEvent(event: CalendarEvent): string {
-    const time = this.formatEventTime(event.startTime);
+    const time = this.formatEventTime(event.startTime, event.endTime);
     const emotionalContext = this.getEventEmotionalContext(event);
     
     return `
@@ -1067,7 +1075,7 @@ class CalendarViewUI {
       'When you block focus time, you accomplish 40% more.',
       'You seem most creative after your walks.',
     ];
-    return wisdoms[Math.floor(Math.random() * wisdoms.length)];
+    return wisdoms[Math.floor(Math.random() * wisdoms.length)] ?? null;
   }
 
   /**
@@ -1092,7 +1100,7 @@ class CalendarViewUI {
   private getMomentumTrend(): string {
     // TODO: Get real data
     const trends = ['↗ rising', '→ steady', '↗ building'];
-    return trends[Math.floor(Math.random() * trends.length)];
+    return trends[Math.floor(Math.random() * trends.length)] ?? '→ steady';
   }
 
   /**

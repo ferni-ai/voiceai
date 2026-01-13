@@ -77,6 +77,11 @@ import {
 import { prewarmSessionAsync, generateReply } from './shared/generate-reply-gateway.js';
 // Inject generateReply into semantic router (avoids architecture violation)
 import { setGenerateReplyFunction } from '../tools/semantic-router/integration/transcript-integration.js';
+// Location preference service - set active session for native tool location fallback
+import {
+  setCurrentActiveSession,
+  clearCurrentActiveSession,
+} from '../tools/domains/information/location-preference.js';
 
 // Development telemetry for E2E observability
 import { logPipelineStage, type StageType } from './shared/dev-telemetry.js';
@@ -97,16 +102,11 @@ import { logPipelineStage, type StageType } from './shared/dev-telemetry.js';
  */
 const MULTI_AGENT_MODE = process.env.MULTI_AGENT_MODE !== 'false';
 
-/**
- * OpenAI Realtime mode: Use OpenAI's Realtime API instead of Gemini Live.
- *
- * OpenAI Realtime has NATIVE function calling - no JSON workarounds needed!
- * This is an experimental toggle to compare reliability between the two.
- *
- * Set USE_OPENAI_REALTIME=true in environment to enable.
- * Requires OPENAI_API_KEY to be set.
- */
-const USE_OPENAI_REALTIME = process.env.USE_OPENAI_REALTIME === 'true';
+// Model provider abstraction - centralizes all model-specific behavior
+import { getModelProvider, isUsingOpenAI } from './model-provider/index.js';
+
+// Get provider early for module-level logging
+const modelProvider = getModelProvider();
 
 // Log multi-agent status at module load
 if (MULTI_AGENT_MODE) {
@@ -134,13 +134,9 @@ function devStage(stage: string, type: StageType = 'processing'): void {
 }
 
 // Log LLM provider
-if (USE_OPENAI_REALTIME) {
-  process.stderr.write(
-    `[voice-agent-entry] 🔮 USE_OPENAI_REALTIME enabled - Using OpenAI Realtime API\n`
-  );
-} else {
-  process.stderr.write(`[voice-agent-entry] 🤖 Using Gemini Live API (default)\n`);
-}
+process.stderr.write(
+  `[voice-agent-entry] ${modelProvider.getLogPrefix()} Using ${modelProvider.displayName}\n`
+);
 
 // ============================================================================
 // LIGHTWEIGHT VOICE AGENT REF (For Handoff Support)
@@ -376,7 +372,9 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       process.stderr.write(
         `[voice-agent-entry] 📞 Caller context: ${JSON.stringify({
           callSid: metadata.callSid,
-          callerPhone: metadata.callerPhone ? `${String(metadata.callerPhone).slice(0, 4)}****` : 'unknown',
+          callerPhone: metadata.callerPhone
+            ? `${String(metadata.callerPhone).slice(0, 4)}****`
+            : 'unknown',
           callerName: metadata.callerName,
           isKnownCaller: metadata.isKnownCaller,
           isSponsored: !!metadata.sponsoredIdentityId,
@@ -385,9 +383,8 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
 
       // Set up inbound call context for the context builder to pick up
       try {
-        const { setInboundCallContext } = await import(
-          '../intelligence/context-builders/external/inbound-call-context.js'
-        );
+        const { setInboundCallContext } =
+          await import('../intelligence/context-builders/external/inbound-call-context.js');
 
         const inboundContext = {
           callSid: (metadata.callSid as string) || '',
@@ -521,19 +518,30 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
 
       // Set up proactive session context for the context builder to pick up
       try {
-        const { setProactiveSessionContext } = await import(
-          '../intelligence/context-builders/external/proactive-session-context.js'
-        );
+        const { setProactiveSessionContext } =
+          await import('../intelligence/context-builders/external/proactive-session-context.js');
 
         const proactiveContext = {
-          triggerType: (metadata.triggerType as string) || 'silence',
+          // Cast to the expected type from proactive-session-context
+          triggerType: ((metadata.triggerType as string) ||
+            'silence') as import('../intelligence/context-builders/external/proactive-session-context.js').ProactiveTriggerType,
           triggerReason: (metadata.triggerReason as string) || 'Proactive check-in',
           daysSinceLastSession: metadata.daysSinceLastSession as number | undefined,
           lastMood: metadata.lastMood as string | undefined,
           lastSessionSummary: metadata.lastSessionSummary as string | undefined,
-          relatedDate: metadata.relatedDate as { type: string; date: Date; description: string } | undefined,
-          relatedCommitment: metadata.relatedCommitment as { summary: string; madeOn: Date; dueDate?: Date } | undefined,
-          openerStyle: (metadata.openerStyle as 'warm' | 'celebratory' | 'gentle' | 'supportive' | 'curious') || 'warm',
+          relatedDate: metadata.relatedDate as
+            | { type: string; date: Date; description: string }
+            | undefined,
+          relatedCommitment: metadata.relatedCommitment as
+            | { summary: string; madeOn: Date; dueDate?: Date }
+            | undefined,
+          openerStyle:
+            (metadata.openerStyle as
+              | 'warm'
+              | 'celebratory'
+              | 'gentle'
+              | 'supportive'
+              | 'curious') || 'warm',
           suggestedOpener: metadata.suggestedOpener as string | undefined,
           avoidances: metadata.avoidances as string[] | undefined,
           initiatingPersona: (metadata.persona_id as string) || 'ferni',
@@ -559,7 +567,12 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     }
 
     const personaId = (metadata.persona_id as string) || process.env.PERSONA_ID || 'ferni';
+    // 🔗 Developer Platform: Extract publisher ID for marketplace/custom personas
+    const publisherId = (metadata.publisher_id as string) || undefined;
     process.stderr.write(`[voice-agent-entry] Resolved personaId: ${personaId}\n`);
+    if (publisherId) {
+      process.stderr.write(`[voice-agent-entry] 🔗 Publisher ID: ${publisherId}\n`);
+    }
 
     e2e.resourceLoading(`persona:${personaId}`);
     const personaStart = Date.now();
@@ -801,6 +814,8 @@ If someone asks what day it is, what time it is, or what the date is, you know t
       userAccent,
       sessionPersona,
       room: ctx.room,
+      // 🔗 Developer Platform: Pass publisher ID for MCP loading and webhook dispatch
+      publisherId,
     });
 
     if (stopPeriodicSync) {
@@ -1426,6 +1441,16 @@ Reference past context when relevant, but don't force it. Let the conversation f
     // This enables weather tool to use IP-detected location as fallback
     userData.userLocation = userLocation;
 
+    // Set current active session for native tool location fallback
+    // Native llm.tool() functions don't receive userId/userLocation context,
+    // so they can use getCurrentSessionLocation() to access the current session's location.
+    const formattedLocation = userLocation?.city
+      ? userLocation.regionCode
+        ? `${userLocation.city}, ${userLocation.regionCode}`
+        : userLocation.city
+      : undefined;
+    setCurrentActiveSession(userId || 'anonymous', formattedLocation, sessionId);
+
     // Get tools from orchestrator
     // ⚡ FAST PATH: Skip semantic router on session start - we have no user input yet!
     // This reduces tool loading from ~5-7s to <500ms. Full semantic routing happens
@@ -1506,105 +1531,32 @@ Reference past context when relevant, but don't force it. Let the conversation f
     const geminiConfig = modelConfig.getDefault();
 
     // =========================================================================
-    // LLM SELECTION: OpenAI Realtime vs Gemini Live
+    // LLM SELECTION: Use ModelProvider abstraction
     // =========================================================================
+    // The ModelProvider handles all model-specific configuration, eliminating
+    // scattered environment variable checks. See src/agents/model-provider/
+    process.stderr.write(
+      `[voice-agent-entry] ${modelProvider.getLogPrefix()} Creating LLM model via ${modelProvider.displayName}...\n`
+    );
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let llm: any;
+    const llm: any = await modelProvider.createLLMModel({
+      model: geminiConfig.model,
+      instructions: modelBaseInstructions,
+      temperature: geminiConfig.temperature,
+    });
 
-    if (USE_OPENAI_REALTIME) {
-      // =====================================================================
-      // OpenAI Realtime API - Native function calling, no JSON workarounds!
-      // Using text-only mode so Cartesia TTS handles the persona voice.
-      // =====================================================================
-      const openai = await import('@livekit/agents-plugin-openai');
-
-      process.stderr.write(
-        `[voice-agent-entry] 🔮 Creating OpenAI Realtime model (text-only → Cartesia TTS)...\n`
-      );
-
-      // Import VAD config for tunable noise sensitivity
-      const { VAD_CONFIG } = await import('./shared/constants.js');
-
-      llm = new openai.realtime.RealtimeModel({
-        modalities: ['text'], // Text-only mode - Cartesia TTS handles persona voice
-        temperature: Math.max(0.6, geminiConfig.temperature), // OpenAI min is 0.6
-        turnDetection: {
-          type: 'server_vad', // Using server_vad per docs (more stable)
-          // VAD sensitivity is configurable via environment variables:
-          // - VAD_THRESHOLD (default: 0.65) - Higher = less sensitive to background noise
-          // - VAD_PREFIX_PADDING_MS (default: 300) - Audio buffer before speech
-          // - VAD_SILENCE_DURATION_MS (default: 600) - Silence before turn ends
-          threshold: VAD_CONFIG.threshold,
-          prefix_padding_ms: VAD_CONFIG.prefixPaddingMs,
-          silence_duration_ms: VAD_CONFIG.silenceDurationMs,
-          create_response: VAD_CONFIG.createResponse,
-          interrupt_response: VAD_CONFIG.interruptResponse,
-        },
-        // NOTE: OpenAI Realtime handles function calling natively at the protocol level
-        // No JSON workarounds needed - tools are passed directly to the model
-      });
-
-      process.stderr.write(
-        `[voice-agent-entry] 🎤 VAD config: threshold=${VAD_CONFIG.threshold}, silence=${VAD_CONFIG.silenceDurationMs}ms\n`
-      );
-
-      process.stderr.write(
-        `[voice-agent-entry] 🔮 OpenAI Realtime model created (text → Cartesia TTS)\n`
-      );
-    } else {
-      // Gemini Live API (default)
-      process.stderr.write(`[voice-agent-entry] 🤖 Using model: ${geminiConfig.model}\n`);
-
-      // TWO-LEVEL INSTRUCTION ARCHITECTURE:
-      // Model-level: Foundational rules (tool format, honesty, platform context)
-      //   - These are active from the VERY FIRST MOMENT of connection
-      //   - Concise, critical rules that must never be forgotten
-      // Agent-level: Full persona prompt (identity, detailed tools, personality)
-      //   - Sent via LiveKit's updateInstructions() after session starts
-      //   - Contains full persona identity and detailed tool catalog
-      // Determine STT language: use preferred language if set, otherwise default to en-US
-      // NOTE: languageCode is NOT supported in inputAudioTranscription (Gemini rejects it!)
-      // Just pass {} to enable transcription - language is set via speechConfig.languageCode
-      const sttLanguage = userData.preferredLanguage || 'en-US';
-      // FIX: Gemini Live API doesn't accept languageCode in inputAudioTranscription
-      // See error: "Unknown name 'languageCode' at 'setup.input_audio_transcription'"
-      const inputAudioTranscriptionOptions = {}; // Empty object enables transcription
-
-      if (sttLanguage) {
-        process.stderr.write(`[voice-agent-entry] 🌍 STT language hint: ${sttLanguage}\n`);
-      }
-
-      llm = new google.beta.realtime.RealtimeModel({
-        model: geminiConfig.model,
-        modalities: [genai.Modality.TEXT],
-        temperature: geminiConfig.temperature,
-        instructions: modelBaseInstructions, // Model-level: foundational rules (active immediately)
-        language: geminiConfig.language,
-        // ENABLE USER TRANSCRIPTION - Gemini STT exposes what user says
-        // If preferredLanguage is set, use it for better accuracy; otherwise auto-detect
-        inputAudioTranscription: inputAudioTranscriptionOptions,
-        // PATCHED: toolChoice triggers function calling mode via our SDK patch
-        // 'auto' = Gemini decides, 'required' = force function call
-        // @see docs/LIVEKIT-SDK-PATCH.md
-        // NOTE: 'required' didn't help - Gemini still narrates tool calls
-        // This is a known Gemini Live API bug. Workaround is in tool-call-sanitizer.ts
-        toolChoice: 'auto',
-        // Enable Google Search as a built-in Gemini tool for real-time information
-        // NOTE: geminiTools gets merged into the tools config sent to Gemini Live API
-        // @see https://ai.google.dev/gemini-api/docs/live-tools#google-search
-        geminiTools: { googleSearch: {} },
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } as any);
-
-      process.stderr.write(
-        `[voice-agent-entry] 🎭 Two-level instructions: Model=${modelBaseInstructions.length} chars, Agent=${systemPrompt.length} chars\n`
-      );
-    }
+    process.stderr.write(
+      `[voice-agent-entry] ${modelProvider.getLogPrefix()} LLM model created (text → Cartesia TTS)\n`
+    );
+    process.stderr.write(
+      `[voice-agent-entry] 🎭 Instructions: Model=${modelBaseInstructions.length} chars, Agent=${systemPrompt.length} chars\n`
+    );
 
     session = new voice.AgentSession({
-      // ⚡ OPTIMIZATION: Use built-in turn detection instead of Silero VAD
-      // Both OpenAI and Gemini have their own turn detection
-      turnDetection: USE_OPENAI_REALTIME ? undefined : 'realtime_llm',
+      // ⚡ OPTIMIZATION: Use provider's turn detection setting
+      // Different providers have different built-in turn detection mechanisms
+      turnDetection: modelProvider.getSessionTurnDetection(),
       // vad is now undefined - not needed with realtime turn detection
       vad,
       llm,
@@ -1883,7 +1835,40 @@ Reference past context when relevant, but don't force it. Let the conversation f
 
         // FIX: Handoff locking to prevent concurrent handoff requests
         // Without this, multiple handoff requests can race and cause undefined behavior
+        // Uses promise-based mutex pattern to handle async race conditions
         let handoffInProgress = false;
+        let handoffPromise: Promise<void> = Promise.resolve();
+        let releaseHandoffLock: (() => void) | null = null;
+
+        /**
+         * Acquires the handoff lock. Returns true if acquired, false if already locked.
+         * Uses promise chaining to ensure proper async synchronization.
+         */
+        const acquireHandoffLock = async (): Promise<boolean> => {
+          // Wait for any previous handoff to complete
+          await handoffPromise;
+          // Double-check after await (prevents race where two waiters both proceed)
+          if (handoffInProgress) {
+            return false;
+          }
+          handoffInProgress = true;
+          // Create new promise for waiters
+          handoffPromise = new Promise<void>((resolve) => {
+            releaseHandoffLock = resolve;
+          });
+          return true;
+        };
+
+        /**
+         * Releases the handoff lock, allowing next waiter to proceed.
+         */
+        const releaseHandoff = (): void => {
+          handoffInProgress = false;
+          if (releaseHandoffLock) {
+            releaseHandoffLock();
+            releaseHandoffLock = null;
+          }
+        };
 
         // Set up data channel handler for multi-agent handoffs
         const dataHandler = (data: Uint8Array, _participant?: { identity: string }): void => {
@@ -1903,14 +1888,14 @@ Reference past context when relevant, but don't force it. Let the conversation f
               }
 
               if (message.type === 'handoff_request') {
-                // FIX: Check handoff lock to prevent concurrent handoffs
-                if (handoffInProgress) {
+                // FIX: Acquire handoff lock to prevent concurrent handoffs (async-safe)
+                const acquired = await acquireHandoffLock();
+                if (!acquired) {
                   process.stderr.write(
                     `[voice-agent-entry] 🔒 Handoff already in progress, ignoring request for ${message.target}\n`
                   );
                   return;
                 }
-                handoffInProgress = true;
 
                 try {
                   process.stderr.write(
@@ -1973,7 +1958,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
                     );
                   }
                 } finally {
-                  handoffInProgress = false;
+                  releaseHandoff();
                 }
               }
             } catch {
@@ -2007,14 +1992,14 @@ Reference past context when relevant, but don't force it. Let the conversation f
               return;
             }
 
-            // FIX: Check handoff lock to prevent concurrent handoffs (uses shared lock with dataHandler)
-            if (handoffInProgress) {
+            // FIX: Acquire handoff lock to prevent concurrent handoffs (async-safe, shared with dataHandler)
+            const acquired = await acquireHandoffLock();
+            if (!acquired) {
               process.stderr.write(
                 `[voice-agent-entry] 🔒 Handoff already in progress, ignoring LLM request for ${targetPersonaId}\n`
               );
               return;
             }
-            handoffInProgress = true;
 
             try {
               const currentPersonaId =
@@ -2074,7 +2059,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
                 error: result.error,
               });
             } finally {
-              handoffInProgress = false;
+              releaseHandoff();
             }
           })();
         };
@@ -2100,6 +2085,24 @@ Reference past context when relevant, but don't force it. Let the conversation f
         }
         await multiAgentResult.cleanup();
         process.stderr.write(`[voice-agent-entry] 🎭 Multi-agent session ended\n`);
+
+        // CRITICAL: Stop auto-save interval to prevent memory leak
+        // The auto-save was continuing to run every 30 seconds after session end
+        if (userId) {
+          try {
+            const { stopAutoSave } = await import('../services/intelligence-persistence.js');
+            stopAutoSave(userId);
+            process.stderr.write(`[voice-agent-entry] 🛑 Stopped auto-save for user ${userId}\n`);
+          } catch (autoSaveErr) {
+            process.stderr.write(
+              `[voice-agent-entry] ⚠️ Failed to stop auto-save: ${autoSaveErr}\n`
+            );
+          }
+        }
+
+        // CRITICAL: Unregister session from crash analytics to prevent memory leak
+        // This was missing, causing activeSessions to remain at 2 after job completion
+        unregisterSession(sessionId, 'multi_agent_clean_exit');
         return;
       } catch (err) {
         process.stderr.write(
@@ -2130,17 +2133,14 @@ Reference past context when relevant, but don't force it. Let the conversation f
     // MUSIC HANDLER - Initialize music player
     const musicResult = await setupMusicHandler({
       room: ctx.room,
-      session,
       services,
       sessionPersona: sessionPersona,
       conversationManager,
       sessionId,
-      userData,
+      userId: userData.userId,
     });
-    cleanupHandlers.push(musicResult.clearTimers);
-    process.stderr.write(
-      `[voice-agent-entry] 🎵 Music handler initialized: ${musicResult.initialized}\n`
-    );
+    cleanupHandlers.push(musicResult.cleanup);
+    process.stderr.write(`[voice-agent-entry] 🎵 Music handler initialized\n`);
 
     // =========================================================================
     // CONNECTION TYPE DETECTION & KRISP NOISE CANCELLATION
@@ -2187,15 +2187,15 @@ Reference past context when relevant, but don't force it. Let the conversation f
     );
 
     // =========================================================================
-    // GEMINI PREWARM: Use gateway for proper session readiness tracking
+    // PREWARM: Use gateway for proper session readiness tracking (provider-dependent)
     // =========================================================================
     // The gateway tracks session readiness state. Other generateReply calls
     // will wait or skip based on whether the session is warmed up.
     // This is fire-and-forget - the session can accept calls immediately, but
     // they'll be queued/skipped until prewarm completes.
     // =========================================================================
-    if (!USE_OPENAI_REALTIME) {
-      process.stderr.write(`[voice-agent-entry] 🔥 Starting Gemini prewarm via gateway...\n`);
+    if (modelProvider.needsPrewarm()) {
+      process.stderr.write(`[voice-agent-entry] 🔥 Starting prewarm via gateway (${modelProvider.id})...\n`);
       prewarmSessionAsync(session, sessionId);
     }
 
@@ -2328,13 +2328,36 @@ Reference past context when relevant, but don't force it. Let the conversation f
 
     // Initialize dynamic loader with essential domains (telephony, communication, etc.)
     // This MUST happen before first user message to prevent race conditions
+    // NOTE: Pass undefined for services to use EnvironmentServiceRegistry (checks env vars)
+    // SessionServices is NOT a ServiceRegistry and doesn't have .has() method
     await dynamicToolLoader.initialize({
       userId: userId || 'anonymous',
       agentId: sessionPersona.id,
       agentDisplayName: sessionPersona.displayName || sessionPersona.id,
       sessionId,
-      services: services as unknown as import('../tools/registry/types.js').ServiceRegistry,
+      services: undefined, // Uses EnvironmentServiceRegistry which checks env vars
     });
+
+    // 🔧 CRITICAL: Update agent with essential tools loaded by dynamic loader
+    // The dynamic loader loads entertainment (music), information (weather), etc.
+    // These need to be registered with the agent/OpenAI immediately!
+    try {
+      const { updateAgentTools, supportsToolUpdates } = await import('./shared/tool-updater.js');
+      if (supportsToolUpdates()) {
+        const essentialTools = dynamicToolLoader.getCurrentTools();
+        const essentialDomains = dynamicToolLoader.getLoadedDomains();
+        if (Object.keys(essentialTools).length > 0) {
+          const updated = await updateAgentTools(agent, essentialTools, {
+            domains: essentialDomains,
+          });
+          if (updated) {
+            process.stderr.write(`\n🔧 Essential tools registered with agent (${Object.keys(essentialTools).length} tools)\n`);
+          }
+        }
+      }
+    } catch (toolUpdateError) {
+      process.stderr.write(`\n⚠️ Failed to update agent with essential tools: ${toolUpdateError}\n`);
+    }
 
     const transcriptHandler = createTranscriptHandler({
       room: ctx.room,
@@ -2349,6 +2372,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
       silenceContext,
       dynamicToolLoader,
       autoOptimizer,
+      agent,
     });
     // Store handler reference for cleanup (prevents memory leak)
     const userInputTranscribedHandler = (event: unknown) => {
@@ -2819,6 +2843,9 @@ Reference past context when relevant, but don't force it. Let the conversation f
       `[voice-agent-entry] 🧹 Registry cleanup: ${registryResult.cleaned} cleaned, ${registryResult.errors} errors, ${registryResult.totalDurationMs}ms\n`
     );
 
+    // Clear current active session (used by native tools for location fallback)
+    clearCurrentActiveSession();
+
     // Run cleanup
     process.stderr.write(`[voice-agent-entry] 🧹 Running cleanup handlers...\n`);
     await handleSessionCleanup({
@@ -2834,7 +2861,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
       dataChannelCleanup: dataChannelResult.cleanup,
       handoffHandler: eventHandlerResult.handler,
       cameoCleanup: undefined,
-      musicCleanup: musicResult.clearTimers,
+      musicCleanup: musicResult.cleanup,
       userData,
       stopPeriodicSync,
     });

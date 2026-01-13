@@ -10,9 +10,16 @@
   ],
   "enhanced": {
     "playMusic": {
-      "description": "Play music by song, artist, genre, or mood. Searches music catalog and starts playback. Returns track information and playback status. Works with free 30-second previews or full Spotify playback if linked.",
+      "description": "PLAYS AUDIO DIRECTLY in the current voice session. Use when user says: 'play music', 'play some music', 'play a song', 'put on music', 'I want to hear music', 'can you play [song/artist/genre]'. This tool starts audio playback immediately - it does NOT contact anyone, does NOT reach out to anyone, does NOT message anyone. Just plays music directly through the speaker. Searches music catalog and starts playback. Returns track information.",
       "parameters": {
-        "query": "Music search query. Can be: song title ('Bohemian Rhapsody'), artist name ('The Beatles'), genre ('jazz'), mood ('relaxing'), or combination ('upbeat workout music')."
+        "query": "Music search query. Can be: song title ('Bohemian Rhapsody'), artist name ('The Beatles'), genre ('jazz'), mood ('relaxing', 'chill', 'upbeat'), or combination ('calm late night music'). DO NOT put contact names here - this is for music search terms only."
+      }
+    },
+    "reachOut": {
+      "description": "Contact a PERSON via call, text, or email. Use ONLY when user wants to communicate with a human contact like 'text Mom', 'call John', 'message my friend'. This is for HUMAN communication only. Do NOT use for music - use playMusic instead. Do NOT use for playing audio.",
+      "parameters": {
+        "contact": "Name of a PERSON to contact. Must be a real human contact like 'Mom', 'John Smith', 'my boss'. NOT for music or audio playback.",
+        "purpose": "Why contacting this person: 'wish happy birthday', 'check in', 'ask a question'. NOT for playing music or audio."
       }
     },
     "rememberAboutUser": {
@@ -1239,6 +1246,117 @@
         "source": "How discovered. Options: 'observation', 'analysis', 'experiment', 'reflection', 'conversation'",
         "importance": "How important. Options: 'low', 'medium', 'high', 'critical'",
         "viewInsights": "True to view archived insights"
+      }
+    },
+
+    "listRoutines": {
+      "description": "Show what Ferni does automatically for the user. Call when user asks: 'what do you do for me?', 'show my routines', 'what are you taking care of?', 'list my automations', 'what's set up?'. Returns all active and paused routines with their triggers.",
+      "parameters": {}
+    },
+
+    "createRoutine": {
+      "description": "Set up a new automated routine for the user. Call when user says: 'remind me every morning to...', 'when I get home do...', 'set up a routine', 'every day at 7am...', 'can you check in with me each night?'. Creates scheduled messages, phrase triggers, or location-based routines.",
+      "parameters": {
+        "name": "Friendly name for the routine. Examples: 'Morning check-in', 'Evening gratitude', 'Water reminder'",
+        "triggerType": "What starts this routine. Options: 'time' (scheduled), 'phrase' (voice command), 'location' (arriving/leaving)",
+        "triggerValue": "The trigger details. For time: '7:00 AM' or '19:30'. For phrase: 'good morning' or 'time for bed'. For location: 'home' or 'office'",
+        "action": "What Ferni should say or do. Examples: 'Check in about how you slept', 'Remind you to drink water', 'Ask about your day'"
+      }
+    },
+
+    "runRoutine": {
+      "description": "Manually trigger a routine right now. Call when user says: 'run my morning routine', 'do my check-in now', 'trigger the water reminder'. Executes all actions in the routine immediately.",
+      "parameters": {
+        "routineName": "Name of the routine to run. Example: 'Morning check-in', 'Evening gratitude'"
+      }
+    },
+
+    "toggleRoutine": {
+      "description": "Pause or resume an automated routine. Call when user says: 'pause my morning routine', 'stop doing the water reminders', 'resume my check-ins', 'turn off the evening routine'. Keeps the routine but stops/starts it running.",
+      "parameters": {
+        "routineName": "Name of the routine. Example: 'Morning check-in'",
+        "action": "Whether to pause or resume. Options: 'pause', 'resume'"
+      }
+    },
+
+    "removeRoutine": {
+      "description": "Permanently delete an automated routine. Call when user says: 'delete my morning routine', 'remove that routine', 'I don't want the water reminders anymore'. This is permanent - the routine is gone.",
+      "parameters": {
+        "routineName": "Name of the routine to delete. Example: 'Morning check-in'"
+      }
+    },
+
+    "suggestRoutines": {
+      "description": "Suggest routine ideas the user might like. Call when user asks: 'what could you do for me?', 'give me routine ideas', 'what routines do you recommend?', 'help me automate something'. Returns popular template suggestions.",
+      "parameters": {}
+    },
+
+    "_comment_memory_tools": "=== MEMORY & INTELLIGENCE TOOLS ===",
+
+    "surfaceRelevantMemory": {
+      "description": "Proactively surface relevant memories based on the current conversation context. BETTER THAN HUMAN: automatically recalls related information from past conversations without being asked. Returns memories that enrich the current discussion.",
+      "parameters": {
+        "context": "Current conversation context or topic to find relevant memories for. Examples: 'discussing career change', 'talking about family', 'planning vacation'"
+      }
+    },
+    "predictUserNeed": {
+      "description": "Predict what the user might need based on patterns, time of day, and conversation context. BETTER THAN HUMAN: anticipates needs before they're expressed. Returns predicted needs with confidence levels.",
+      "parameters": {
+        "context": "Current conversation context. Examples: 'morning check-in', 'discussing stress', 'end of workday'"
+      }
+    },
+
+    "_comment_music_control_tools": "=== MUSIC CONTROL & MULTI-ROOM TOOLS ===",
+
+    "musicControl": {
+      "description": "Control music playback - pause, resume, skip, adjust volume. Use when user says 'pause the music', 'skip this song', 'turn it up', 'next track', 'stop playing'. Direct control over currently playing music.",
+      "parameters": {
+        "action": "Control action. Options: 'pause', 'resume', 'skip', 'previous', 'stop'",
+        "volume": "Optional: Volume level 0-100. Use when user says 'turn it up/down' or specifies a level"
+      }
+    },
+    "musicInfo": {
+      "description": "Get information about currently playing music - track name, artist, album, progress. Use when user asks 'what's playing?', 'who sings this?', 'what song is this?'. Returns current track details.",
+      "parameters": {}
+    },
+    "playMusicInRoom": {
+      "description": "Play music in a specific room or speaker. Use when user says 'play music in the kitchen', 'play in bedroom', 'start music on living room speaker'. For multi-room audio systems like Sonos.",
+      "parameters": {
+        "room": "Name of the room or speaker. Examples: 'kitchen', 'living room', 'bedroom', 'office'",
+        "query": "Optional: What to play. If not specified, resumes current music. Examples: 'jazz', 'my playlist', 'The Beatles'"
+      }
+    },
+    "transferToRoom": {
+      "description": "Transfer currently playing music to a different room or speaker. Use when user says 'move the music to the bedroom', 'transfer to kitchen', 'switch to the living room speaker'.",
+      "parameters": {
+        "targetRoom": "Room to transfer music to. Examples: 'kitchen', 'bedroom', 'patio'"
+      }
+    },
+    "setRoomVolume": {
+      "description": "Set volume for a specific room or speaker. Use when user says 'turn down the kitchen', 'make the bedroom quieter', 'set living room to 50%'.",
+      "parameters": {
+        "room": "Room or speaker name. Examples: 'kitchen', 'bedroom', 'living room'",
+        "volume": "Volume level 0-100. Examples: 30, 50, 75"
+      }
+    },
+    "listMusicRooms": {
+      "description": "List all available rooms/speakers in the multi-room audio system. Use when user asks 'what speakers do I have?', 'show my rooms', 'where can I play music?'. Returns available Sonos/smart speaker zones.",
+      "parameters": {}
+    },
+    "syncMusicRooms": {
+      "description": "Sync multiple rooms to play the same music together. Use when user says 'play everywhere', 'sync all rooms', 'party mode', 'group the speakers'. Creates a synchronized audio group.",
+      "parameters": {
+        "rooms": "Optional: Array of room names to sync. If not provided, syncs all available rooms. Examples: ['kitchen', 'living room']"
+      }
+    },
+    "discoverSpotifyDevices": {
+      "description": "Discover available Spotify Connect devices for playback. Use when user wants to know what devices they can play on, or troubleshooting playback issues. Returns list of active Spotify devices.",
+      "parameters": {}
+    },
+    "searchAppleMusic": {
+      "description": "Search Apple Music catalog for songs, artists, albums, or playlists. Use when user wants to find music on Apple Music specifically. Returns search results with playable content.",
+      "parameters": {
+        "query": "What to search for. Examples: 'Taylor Swift', 'chill vibes playlist', 'Abbey Road album', 'workout songs'"
       }
     }
   }

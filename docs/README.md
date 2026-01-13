@@ -10,7 +10,7 @@
 | **Understand the mission** | [CORE-PRINCIPLES.md](../CORE-PRINCIPLES.md) |
 | **Write code**             | [CLAUDE.md](../CLAUDE.md)                   |
 | **Contribute**             | [CONTRIBUTING.md](../CONTRIBUTING.md)       |
-| **Deploy**                 | [DEPLOYMENT.md](../DEPLOYMENT.md)           |
+| **Deploy**                 | [deployment/](./deployment/) (use `ferni deploy`) |
 | **Run commands**           | [SCRIPTS.md](../SCRIPTS.md)                 |
 | **Check implementation status** | [status/CURRENT-STATE-SUMMARY.md](./status/CURRENT-STATE-SUMMARY.md) |
 
@@ -25,7 +25,7 @@ voiceai/
 ├── CORE-PRINCIPLES.md     # Mission & philosophy
 ├── ONBOARDING.md          # Developer setup
 ├── CONTRIBUTING.md        # How to contribute
-├── DEPLOYMENT.md          # Deployment guide
+├── (See docs/deployment/) # Deployment guide
 ├── SCRIPTS.md             # npm scripts
 ├── BACKLOG.md             # Product backlog
 └── CHANGELOG.md           # Version history

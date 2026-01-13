@@ -30,17 +30,44 @@ import type { SessionServices } from '../../services/types.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import type { UserData } from '../shared/types.js';
 
-/**
- * OpenAI Realtime mode: Use OpenAI's Realtime API instead of Gemini Live.
- * OpenAI Realtime has NATIVE function calling - no JSON workarounds needed!
- */
-const USE_OPENAI_REALTIME = process.env.USE_OPENAI_REALTIME === 'true';
+// Model provider abstraction - centralizes all model-specific behavior
+import { getModelProvider, isUsingOpenAI } from '../model-provider/index.js';
+
+// Get the model provider (singleton)
+const modelProvider = getModelProvider();
 // FIX: Import speech cleanup to prevent memory leaks on agent cleanup
 import { cleanupSpeechSession } from '../../speech/session-cleanup.js';
 // FIX: Import retry counter cleanup for WeakMap session GC
 import { clearRetryCounter } from '../shared/tool-call-sanitizer.js';
 // Speech coordination for centralized speech management
 import { coordinatedSay, cleanupSpeechCoordination } from '../../speech/coordination/index.js';
+
+// ============================================================================
+// CRITICAL PATH IMPORTS - Hoisted to module level for faster startup
+// These were previously dynamic imports causing 500ms+ delays
+// ============================================================================
+import { loadSystemPrompt, loadModelBaseInstructions } from '../personas/prompt-loader.js';
+import { FerniAgent } from '../personas/ferni-agent.js';
+import { VAD_CONFIG } from '../shared/constants.js';
+import * as voiceManagerModule from '../../speech/voice-manager.js';
+import { resolveVoiceId } from '../../tools/handoff/voice-id-resolver.js';
+// Tool loading - hoisted for faster initial agent startup
+import {
+  getToolsForAgent,
+  initializeToolOrchestrator,
+  isOrchestratorInitialized,
+} from '../../tools/orchestrator/voice-agent-integration.js';
+import { buildHandoffTools } from '../../tools/handoff/handoff-factory.js';
+import { loadEssentialDomains } from '../../tools/dynamic-loader/index.js';
+import { warmupHandoffToolsForSession } from '../../tools/handoff/session-cache.js';
+// Handler imports - hoisted for faster handler wiring
+import { createTranscriptHandler } from '../voice-agent/transcript-handler.js';
+import { setupSessionStateHandlers } from '../voice-agent/session-state-handler.js';
+import { setupToolTrackingHandler } from '../voice-agent/tool-tracking-handler.js';
+import { setupMusicHandler } from '../voice-agent/music-handler.js';
+import { dynamicToolLoader } from '../../tools/dynamic-loader.js';
+import { autoOptimizer } from '../../tools/optimization/auto-optimizer.js';
+import { initializeFrontendPublisher } from '../realtime/index.js';
 
 const log = getLogger();
 
@@ -168,6 +195,11 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
     '🎭 Setting up persona agent'
   );
 
+  // CRITICAL FIX: Set personaId on userData so TTS wrapper knows which persona is active
+  // This enables persona-specific SSML/speech traits (e.g., Peter's excited discovery mode)
+  // Without this, all personas use Ferni's TTS configuration
+  userData.personaId = persona.id;
+
   const cleanupFunctions: Array<() => void | Promise<void>> = [];
 
   // =========================================================================
@@ -185,12 +217,8 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
   let systemPrompt: string;
   let modelBaseInstructions: string;
   try {
-    mark('import_prompt_loader');
-    const { loadSystemPrompt, loadModelBaseInstructions } =
-      await import('../personas/prompt-loader.js');
-
     mark('load_prompts_start');
-    // Load both levels of instructions in parallel
+    // Load both levels of instructions in parallel (imports now hoisted to module level)
     const [baseInstructions, loadedSystemPrompt] = await Promise.all([
       loadModelBaseInstructions(),
       loadSystemPrompt(persona.id),
@@ -502,7 +530,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
 
   // Add handoff context if this is a handoff
   if (isHandoff && previousPersonaId) {
-    const handoffContext = buildHandoffContext(config);
+    const handoffContext = await buildHandoffContext(config);
     if (handoffContext) {
       systemPrompt = `${systemPrompt}\n\n${handoffContext}`;
     }
@@ -541,7 +569,13 @@ Reference past context when relevant, but don't force it. Let the conversation f
   // 1. HANDOFFS: Use session-cached handoff tools + essential tools (instant!)
   // 2. INITIAL: Full orchestrator (but cache handoff tools for future handoffs)
   // =========================================================================
-  const HANDOFF_TOOL_TIMEOUT_MS = 5000; // 5s timeout for handoffs (increased from 3s)
+  // FIX: Increased handoff timeout from 5s to 8s
+  // During handoffs, tool loading can be delayed by:
+  // 1. Concurrent voice/TTS activity
+  // 2. Cache warmup if not pre-loaded
+  // 3. Network latency
+  // Since the old agent is already responding, we have more slack time.
+  const HANDOFF_TOOL_TIMEOUT_MS = 8000; // 8s timeout for handoffs (increased from 5s)
   const NORMAL_TOOL_TIMEOUT_MS = 15000; // 15s for initial agent startup
   const toolTimeoutMs = isHandoff ? HANDOFF_TOOL_TIMEOUT_MS : NORMAL_TOOL_TIMEOUT_MS;
 
@@ -552,7 +586,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
   const loadHandoffToolsFast = async (): Promise<Record<string, unknown>> => {
     const fastStart = Date.now();
     try {
-      const { getToolsForAgent } = await import('../../tools/orchestrator/voice-agent-integration.js');
+      // getToolsForAgent now hoisted to module level
       const subscriptionTier =
         (services.userProfile?.subscription?.tier as 'free' | 'friend' | 'partner') || 'free';
 
@@ -591,8 +625,8 @@ Reference past context when relevant, but don't force it. Let the conversation f
   const loadEssentialToolsFallback = async (): Promise<Record<string, unknown>> => {
     // This is the fallback when full tool loading times out
     // Load ESSENTIAL tools (handoff + entertainment + information) so agent can still function
+    // buildHandoffTools now hoisted to module level
     try {
-      const { buildHandoffTools } = await import('../../tools/handoff/handoff-factory.js');
       const subscriptionTier =
         (services.userProfile?.subscription?.tier as 'free' | 'friend' | 'partner') || 'free';
 
@@ -606,9 +640,9 @@ Reference past context when relevant, but don't force it. Let the conversation f
 
       // 2. Load essential domain tools (music, weather, etc.)
       // These are pre-loaded at worker startup, so this is fast
+      // loadEssentialDomains now hoisted to module level
       let essentialTools: Record<string, unknown> = {};
       try {
-        const { loadEssentialDomains } = await import('../../tools/dynamic-loader/index.js');
         essentialTools = await loadEssentialDomains(userId || 'anonymous', services);
         log.info(
           { personaId: persona.id, essentialToolCount: Object.keys(essentialTools).length },
@@ -685,9 +719,8 @@ Reference past context when relevant, but don't force it. Let the conversation f
   };
 
   const loadToolsInner = async (): Promise<Record<string, unknown>> => {
-    const { getToolsForAgent, initializeToolOrchestrator, isOrchestratorInitialized } =
-      await import('../../tools/orchestrator/voice-agent-integration.js');
-    mark('tools_orchestrator_imported');
+    // Tool orchestrator imports now hoisted to module level
+    mark('tools_orchestrator_check');
 
     // Initialize orchestrator if needed
     if (!isOrchestratorInitialized()) {
@@ -727,9 +760,14 @@ Reference past context when relevant, but don't force it. Let the conversation f
           loadHandoffToolsFast(),
           new Promise<null>((resolve) =>
             setTimeout(() => {
-              log.warn(
+              // NOTE: This CAN happen if:
+              // 1. Session cache wasn't fully warmed before handoff
+              // 2. Network delays during tool loading
+              // 3. High CPU load during persona switch
+              // It's NOT critical - we have a fallback. Downgrade from warn to debug.
+              log.debug(
                 { personaId: persona.id, timeoutMs: toolTimeoutMs },
-                '⏰ Fast path timeout - this should not happen!'
+                '⏰ Fast path timeout - using fallback (cache may not be warm)'
               );
               resolve(null);
             }, toolTimeoutMs)
@@ -737,7 +775,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
         ]);
         
         if (fastResult === null || Object.keys(fastResult).length === 0) {
-          log.error({ personaId: persona.id }, '❌ Fast path returned no tools - falling back');
+          log.info({ personaId: persona.id }, '🔄 Fast path incomplete - loading essential tools fallback');
           return await loadEssentialToolsFallback();
         }
         
@@ -753,30 +791,41 @@ Reference past context when relevant, but don't force it. Let the conversation f
           setTimeout(() => {
             log.warn(
               { personaId: persona.id, timeoutMs: toolTimeoutMs, isHandoff },
-              '⏰ Tool loading timeout - loading ONLY handoff tools as fallback'
+              '⏰ Tool loading timeout - will check result and load essential tools if needed'
             );
             resolve(null);
           }, toolTimeoutMs)
         ),
       ]);
 
-      // If timeout won, STILL load essential tools so agent can function!
-      // BUG FIX: Previously only loaded handoff tools, missing music/weather/etc
-      if (result === null) {
+      // If timeout won OR result is empty/incomplete, load essential tools fallback!
+      // BUG FIX #1: Previously only loaded handoff tools, missing music/weather/etc
+      // BUG FIX #2: Race condition - loadToolsInner() might return empty {} just before timeout
+      //             In that case result !== null but tools are still missing!
+      const toolCount = result ? Object.keys(result).length : 0;
+      const hasEssentials = result && (
+        Object.keys(result).some(t => t.toLowerCase().includes('music') || t.toLowerCase().includes('play')) ||
+        Object.keys(result).some(t => t.toLowerCase().includes('handoff'))
+      );
+      
+      if (result === null || toolCount === 0 || !hasEssentials) {
         log.warn(
-          { personaId: persona.id },
-          '🔄 Full tool loading timed out - loading essential tools fallback'
+          { 
+            personaId: persona.id, 
+            wasNull: result === null,
+            toolCount,
+            hasEssentials,
+          },
+          '🔄 Full tool loading timed out or incomplete - loading essential tools fallback'
         );
         return await loadEssentialToolsFallback();
       }
 
       // ✅ SUCCESS: Full tools loaded. SYNCHRONOUSLY warmup session cache!
       // This ensures handoff tools are ready BEFORE any handoff request
+      // warmupHandoffToolsForSession now hoisted to module level
       try {
         const cacheStart = Date.now();
-        const { warmupHandoffToolsForSession } = await import(
-          '../../tools/handoff/session-cache.js'
-        );
         const tier =
           (services.userProfile?.subscription?.tier as 'free' | 'friend' | 'partner') || 'free';
         await warmupHandoffToolsForSession(
@@ -854,178 +903,34 @@ Reference past context when relevant, but don't force it. Let the conversation f
   }
 
   // =========================================================================
-  // LLM SELECTION: OpenAI Realtime vs Gemini Live
+  // LLM SELECTION: Use ModelProvider abstraction
   // =========================================================================
+  // The ModelProvider handles all model-specific configuration, eliminating
+  // scattered environment variable checks. See src/agents/model-provider/
   mark('llm_selection_start');
   const geminiConfig = modelConfig.getDefault();
+
+  log.info(
+    { personaId: persona.id, providerId: modelProvider.id },
+    `${modelProvider.getLogPrefix()} Creating LLM model via ${modelProvider.displayName}`
+  );
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let llmModel: any;
+  const llmModel: any = await modelProvider.createLLMModel({
+    model: geminiConfig.model,
+    instructions: modelBaseInstructions,
+    temperature: geminiConfig.temperature,
+  });
 
-  if (USE_OPENAI_REALTIME) {
-    mark('openai_model_start');
-    // =====================================================================
-    // OpenAI Realtime API - Native function calling, no JSON workarounds!
-    // Using text-only mode so Cartesia TTS handles the persona voice.
-    // =====================================================================
-    log.info(
-      { personaId: persona.id },
-      '🔮 Creating OpenAI Realtime model for multi-agent (text-only → Cartesia TTS)'
-    );
-
-    // OpenAI Realtime with text-only mode → Cartesia TTS for persona voice
-    // Docs: https://docs.livekit.io/agents/models/realtime/plugins/openai/#separate-tts
-    // Upgraded SDK to 1.0.30 which has modalities fix
-
-    // Import VAD config for tunable noise sensitivity
-    const { VAD_CONFIG } = await import('../shared/constants.js');
-
-    llmModel = new openai.realtime.RealtimeModel({
-      modalities: ['text'], // Text-only mode - Cartesia TTS handles persona voice
-      temperature: Math.max(0.6, geminiConfig.temperature), // OpenAI min is 0.6
-      turnDetection: {
-        type: 'server_vad', // Using server_vad per docs (more stable)
-        // VAD sensitivity is configurable via environment variables:
-        // - VAD_THRESHOLD (default: 0.65) - Higher = less sensitive to background noise
-        // - VAD_PREFIX_PADDING_MS (default: 300) - Audio buffer before speech
-        // - VAD_SILENCE_DURATION_MS (default: 600) - Silence before turn ends
-        threshold: VAD_CONFIG.threshold,
-        prefix_padding_ms: VAD_CONFIG.prefixPaddingMs,
-        silence_duration_ms: VAD_CONFIG.silenceDurationMs,
-        create_response: VAD_CONFIG.createResponse,
-        interrupt_response: VAD_CONFIG.interruptResponse,
-      },
-    });
-
-    log.info(
-      {
-        personaId: persona.id,
-        vadThreshold: VAD_CONFIG.threshold,
-        silenceDuration: VAD_CONFIG.silenceDurationMs,
-      },
-      '🎤 VAD config applied'
-    );
-
-    log.info(
-      { personaId: persona.id, modalities: ['text'], tts: 'cartesia' },
-      '🔮 OpenAI Realtime model created (text → Cartesia TTS)'
-    );
-  } else {
-    // =====================================================================
-    // Gemini Live API (default)
-    // =====================================================================
-    mark('gemini_model_start');
-    // CRITICAL: modalities: TEXT ensures Gemini outputs text (not audio directly)
-    // This text then goes through our Cartesia TTS with the persona's voice.
-    // Without this, Gemini outputs audio with its default male voice!
-
-    // Debug: Log what we're passing to RealtimeModel
-    log.info(
-      {
-        personaId: persona.id,
-        modalitiesValue: genai.Modality.TEXT,
-        modalitiesArray: [genai.Modality.TEXT],
-      },
-      '🎭 Creating RealtimeModel with modalities'
-    );
-
-    // TWO-LEVEL INSTRUCTION ARCHITECTURE:
-    // Model-level: Foundational rules (tool format, honesty, platform context)
-    //   - These are active from the VERY FIRST MOMENT of connection
-    //   - Concise, critical rules that must never be forgotten
-    // Agent-level: Full persona prompt (via FerniAgent constructor below)
-    //   - Sent via LiveKit's updateInstructions() after session starts
-    //   - Contains full persona identity and detailed tool catalog
-
-    // =========================================================================
-    // VERTEX AI MODE (Dec 2024)
-    // =========================================================================
-    // Use Vertex AI instead of Gemini API for higher quota limits.
-    // The Gemini API has strict rate limits that cause 429 errors.
-    // Vertex AI uses GCP project quotas which are much higher.
-    //
-    // Required env vars:
-    // - GOOGLE_CLOUD_PROJECT (or set project below)
-    // - GOOGLE_APPLICATION_CREDENTIALS (service account key)
-    // - GOOGLE_CLOUD_LOCATION (optional, defaults to us-central1)
-    const USE_VERTEX_AI = process.env.USE_VERTEX_AI !== 'false'; // Default to true
-    const vertexProject = process.env.GOOGLE_CLOUD_PROJECT || 'johnb-2025';
-    const vertexLocation = process.env.GOOGLE_CLOUD_LOCATION || 'us-central1';
-
-    // Determine STT language: use preferred language if set, otherwise default to en-US
-    // NOTE: languageCode is NOT supported in inputAudioTranscription (Gemini rejects it!)
-    // Just pass {} to enable transcription - language is set via speechConfig.languageCode
-    const sttLanguage = config.preferredLanguage || userData.preferredLanguage || 'en-US';
-    // FIX: Gemini Live API doesn't accept languageCode in inputAudioTranscription
-    // See error: "Unknown name 'languageCode' at 'setup.input_audio_transcription'"
-    const inputAudioTranscriptionOptions = {}; // Empty object enables transcription
-
-    const realtimeModelOptions = {
-      model: geminiConfig.model,
-      modalities: [genai.Modality.TEXT], // Output text → Cartesia TTS (persona voice)
-      temperature: geminiConfig.temperature,
-      instructions: modelBaseInstructions, // Model-level: foundational rules (active immediately)
-      language: geminiConfig.language,
-      // ENABLE USER TRANSCRIPTION - Gemini STT exposes what user says
-      // If preferredLanguage is set, use it for better accuracy; otherwise auto-detect
-      inputAudioTranscription: inputAudioTranscriptionOptions,
-      toolChoice: 'auto',
-      geminiTools: { googleSearch: {} },
-      // VERTEX AI: Higher quotas, no 429 rate limit errors!
-      ...(USE_VERTEX_AI && {
-        vertexai: true,
-        project: vertexProject,
-        location: vertexLocation,
-      }),
-    };
-
-    // Log language configuration
-    if (sttLanguage) {
-      log.info({ personaId: persona.id, sttLanguage }, '🌍 STT language hint set');
-    }
-
-    // Debug: Log the full RealtimeModel options
-    // Use process.stderr.write to ensure it appears in terminal
-    process.stderr.write(
-      `\n${'='.repeat(60)}\n` +
-        `[agent-setup] ${USE_VERTEX_AI ? '🔷 VERTEX AI MODE' : '🔶 Gemini API mode'}\n` +
-        `[agent-setup] Project: ${vertexProject}\n` +
-        `[agent-setup] Location: ${vertexLocation}\n` +
-        `[agent-setup] Options has vertexai: ${(realtimeModelOptions as Record<string, unknown>).vertexai}\n` +
-        `${'='.repeat(60)}\n\n`
-    );
-    log.info(
-      {
-        personaId: persona.id,
-        useVertexAI: USE_VERTEX_AI,
-        vertexProject: USE_VERTEX_AI ? vertexProject : 'N/A (Gemini API)',
-        options: {
-          model: realtimeModelOptions.model,
-          modalities: realtimeModelOptions.modalities,
-          modelBaseLength: modelBaseInstructions.length,
-          agentPromptLength: systemPrompt.length,
-        },
-      },
-      USE_VERTEX_AI ? '🔷 VERTEX AI MODE - Higher quotas!' : '🔶 Gemini API mode'
-    );
-
-    llmModel = new google.beta.realtime.RealtimeModel(realtimeModelOptions as any);
-    mark('gemini_model_created');
-
-    // Try to access internal _options to verify
-    const internalOptions = (llmModel as unknown as { _options?: Record<string, unknown> })
-      ._options;
-    if (internalOptions) {
-      log.info(
-        {
-          personaId: persona.id,
-          responseModalities: internalOptions.responseModalities,
-          audioOutput: (llmModel as unknown as { capabilities?: { audioOutput?: boolean } })
-            .capabilities?.audioOutput,
-        },
-        '🎭 RealtimeModel internal options AFTER creation'
-      );
-    }
-  }
+  log.info(
+    {
+      personaId: persona.id,
+      providerId: modelProvider.id,
+      modelBaseLength: modelBaseInstructions.length,
+      agentPromptLength: systemPrompt.length,
+    },
+    `${modelProvider.getLogPrefix()} LLM model created (text → Cartesia TTS)`
+  );
   mark('llm_model_done');
 
   // =========================================================================
@@ -1053,12 +958,12 @@ Reference past context when relevant, but don't force it. Let the conversation f
   }
 
   // Create voice session
-  // Turn detection: OpenAI uses its model config, Gemini uses 'realtime_llm'
-  // TTS: OpenAI text-only mode uses Cartesia TTS for persona voice
+  // Turn detection: Provider-specific (OpenAI uses its model config, Gemini uses 'realtime_llm')
+  // TTS: Both use Cartesia TTS for persona voice
   // VAD: Optional Silero fallback when USE_LOCAL_VAD=true
   mark('session_create_start');
   const session = new voice.AgentSession<UserData>({
-    turnDetection: USE_OPENAI_REALTIME ? undefined : 'realtime_llm',
+    turnDetection: modelProvider.getSessionTurnDetection(),
     vad, // Silero VAD fallback (undefined by default, loaded when USE_LOCAL_VAD=true)
     llm: llmModel,
     tts, // Cartesia TTS for both (OpenAI text-only mode outputs text)
@@ -1136,8 +1041,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
   // Create agent wrapper WITH TOOLS using FerniAgent (has ttsNode override for JSON sanitizer)
   // FIX: Previously used voice.Agent which BYPASSED the JSON function call sanitizer!
   // FerniAgent's ttsNode override filters {"fn":"startGame","args":{}} before TTS speaks it.
-  const { FerniAgent } = await import('../personas/ferni-agent.js');
-
+  // FerniAgent now hoisted to module level for faster startup
   const agent = new FerniAgent(systemPrompt, {
     tools: orchestratorTools as any, // Type mismatch: ToolSet vs Record<string, unknown>
     // CRITICAL: Skip FerniAgent's built-in greeting which uses generateReply() without
@@ -1166,19 +1070,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
     }
     const handlerWireStart = Date.now();
     try {
-      // Import handlers dynamically to avoid circular deps
-      const [
-        { createTranscriptHandler },
-        { setupSessionStateHandlers },
-        { setupToolTrackingHandler },
-        { setupMusicHandler },
-      ] = await Promise.all([
-        import('../voice-agent/transcript-handler.js'),
-        import('../voice-agent/session-state-handler.js'),
-        import('../voice-agent/tool-tracking-handler.js'),
-        import('../voice-agent/music-handler.js'),
-      ]);
-
+      // Handler imports now hoisted to module level for faster startup
       // Create sendDataMessage helper for frontend signaling
       const sendDataMessage = async (
         type: string,
@@ -1204,19 +1096,39 @@ Reference past context when relevant, but don't force it. Let the conversation f
           lastUserMessage: undefined as string | undefined,
         };
 
-        // Import dynamic tool loader
-        const { dynamicToolLoader } = await import('../../tools/dynamic-loader.js');
-        const { autoOptimizer } = await import('../../tools/optimization/auto-optimizer.js');
-
+        // dynamicToolLoader and autoOptimizer now hoisted to module level
         // Initialize dynamic loader with essential domains (telephony, communication, etc.)
         // This MUST happen before first user message to prevent race conditions
+        // NOTE: Pass undefined for services to use EnvironmentServiceRegistry (checks env vars)
+        // SessionServices is NOT a ServiceRegistry and doesn't have .has() method
         await dynamicToolLoader.initialize({
           userId: userId || 'anonymous',
           agentId: persona.id,
           agentDisplayName: persona.displayName || persona.id,
           sessionId,
-          services: services as unknown as import('../../tools/registry/types.js').ServiceRegistry,
+          services: undefined, // Uses EnvironmentServiceRegistry which checks env vars
         });
+
+        // 🔧 CRITICAL: Update agent with essential tools loaded by dynamic loader
+        // The dynamic loader loads entertainment (music), information (weather), etc.
+        // These need to be registered with the agent/OpenAI immediately!
+        try {
+          const { updateAgentTools, supportsToolUpdates } = await import('../shared/tool-updater.js');
+          if (supportsToolUpdates()) {
+            const essentialTools = dynamicToolLoader.getCurrentTools();
+            const essentialDomains = dynamicToolLoader.getLoadedDomains();
+            if (Object.keys(essentialTools).length > 0) {
+              const updated = await updateAgentTools(agent, essentialTools, {
+                domains: essentialDomains,
+              });
+              if (updated) {
+                diag.entry(`🔧 [${persona.id}] Essential tools registered with agent (${Object.keys(essentialTools).length} tools from ${essentialDomains.join(', ')})`);
+              }
+            }
+          }
+        } catch (toolUpdateError) {
+          log.warn({ error: String(toolUpdateError) }, 'Failed to update agent with essential tools');
+        }
 
         const transcriptHandler = createTranscriptHandler({
           room,
@@ -1231,6 +1143,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
           silenceContext,
           dynamicToolLoader,
           autoOptimizer,
+          agent,
         });
 
         // Wire transcript events
@@ -1278,9 +1191,8 @@ Reference past context when relevant, but don't force it. Let the conversation f
       diag.entry(`🎭 [${persona.id}] Tool tracking handler wired`);
 
       // FRONTEND PUBLISHER - Required for music state messages to frontend
-      // Without this, the frontend won't know when music is playing
+      // Without this, the frontend won't know when music is playing (hoisted to module level)
       try {
-        const { initializeFrontendPublisher } = await import('../realtime/index.js');
         initializeFrontendPublisher(room);
         diag.entry(`🎭 [${persona.id}] Frontend publisher initialized`);
       } catch (pubErr) {
@@ -1291,18 +1203,17 @@ Reference past context when relevant, but don't force it. Let the conversation f
       if (conversationManager) {
         const musicResult = await setupMusicHandler({
           room,
-          session,
           services,
           sessionPersona: persona,
           conversationManager,
           sessionId,
-          userData,
+          userId: userData.userId,
         });
-        if (musicResult.clearTimers) {
-          cleanupFunctions.push(musicResult.clearTimers);
+        if (musicResult.cleanup) {
+          cleanupFunctions.push(musicResult.cleanup);
         }
-        handlersStatus.music = musicResult.initialized;
-        diag.entry(`🎭 [${persona.id}] Music handler wired: ${musicResult.initialized}`);
+        handlersStatus.music = true;
+        diag.entry(`🎭 [${persona.id}] Music handler wired: true`);
       } else {
         // 🐛 FIX: Log when music handler is skipped - this helps debug music failures
         log.warn(
@@ -1500,7 +1411,7 @@ function buildAgentSystemPrompt(config: AgentSetupConfig): string {
  * Build handoff-specific context to append to system prompt.
  * Includes both conversation context AND trust context (boundaries, sensitive topics, etc.)
  */
-function buildHandoffContext(config: AgentSetupConfig): string | null {
+async function buildHandoffContext(config: AgentSetupConfig): Promise<string | null> {
   const { isHandoff, previousPersonaId, conversationSummary, recentMessages, userData } = config;
 
   if (!isHandoff || !previousPersonaId) {
@@ -1528,8 +1439,8 @@ function buildHandoffContext(config: AgentSetupConfig): string | null {
 
   if (userId && targetPersonaId) {
     try {
-      // Lazy import to avoid circular dependencies
-      const trustSystems = require('../../services/trust-systems/handoff-context.js');
+      // Dynamic import to avoid circular dependencies (ESM compatible)
+      const trustSystems = await import('../../services/trust-systems/handoff-context.js');
       const trustContext = trustSystems.buildHandoffContext(
         userId,
         previousPersonaId,
@@ -1555,9 +1466,7 @@ function buildHandoffContext(config: AgentSetupConfig): string | null {
  * VOICE ID FIX: Use resolveVoiceId for single source of truth
  */
 async function createPersonaTTS(personaId: string) {
-  const voiceManagerModule = await import('../../speech/voice-manager.js');
-  const { resolveVoiceId } = await import('../../tools/handoff/voice-id-resolver.js');
-
+  // voiceManagerModule and resolveVoiceId now hoisted to module level
   // VOICE ID FIX: Use resolver as single source of truth
   const voiceIdResult = resolveVoiceId({ personaId }, { logLevel: 'info' });
   let voiceId: string;

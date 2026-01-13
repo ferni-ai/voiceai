@@ -15,7 +15,7 @@ import { getDJDropPhrase } from '../../../audio/ambient-music.js';
 import {
   getMusicPlayer,
   isMusicAvailable,
-  getDJBooth,
+  getDJController,
   type MusicTrack,
 } from '../../../audio/index.js';
 import { isMusicEnabled } from '../../../config/environment.js';
@@ -331,6 +331,7 @@ async function playAmbientMusic(query: string): Promise<string> {
     artist: firstTrack.artistName,
     previewUrl: firstTrack.previewUrl!,
     duration: ITUNES_PREVIEW_DURATION_MS,
+    albumArt: firstTrack.artworkUrl100, // 🎨 Album artwork for Now Playing UI
   };
 
   const success = await musicPlayer.playFromUrl(firstTrack.previewUrl!, musicTrack);
@@ -581,6 +582,7 @@ export async function playViaItunes(query: string, personaId?: string): Promise<
       previewUrl: track.previewUrl,
       duration: ITUNES_PREVIEW_DURATION_MS, // Use preview duration, NOT full track duration
       genre: track.genre, // 🎵 Include genre for preference learning
+      albumArt: track.artwork, // 🎨 Album artwork for Now Playing UI
     };
 
     // Step 4: Play the track - use crossfade if something is already playing!
@@ -816,6 +818,7 @@ export async function suggestAndPlayMusic(mood: string): Promise<string> {
     artist: result.track.artist,
     previewUrl: result.track.previewUrl,
     duration: ITUNES_PREVIEW_DURATION_MS, // Use preview duration for proper fade-out
+    albumArt: result.track.artwork, // 🎨 Album artwork for Now Playing UI
   };
 
   const success = await musicPlayer.playFromUrl(result.track.previewUrl, musicTrack);
@@ -1135,13 +1138,23 @@ export function createMusicTools() {
         'or "what music do I like".',
       parameters: z.object({}),
       execute: async () => {
-        const djBooth = getDJBooth();
-        if (!djBooth) {
-          return "I'm still learning your music preferences! Play some music and tell me what you like.";
+        // Music preferences are now stored via music-user-learning.ts
+        // and music-memory-integration.ts using Thompson Sampling
+        // The DJ Controller tracks music state but preferences are per-user
+        const djController = getDJController();
+        const state = djController.getState();
+        
+        const parts: string[] = [];
+        
+        if (state.currentTrack) {
+          parts.push(`I know you're currently listening to ${state.currentTrack.name}.`);
         }
-
-        const summary = djBooth.getMusicPreferencesSummary();
-        return summary;
+        
+        parts.push("I'm learning your music preferences as we listen together!");
+        
+        return parts.length > 0 
+          ? parts.join(' ')
+          : "I'm still learning your music preferences! Play some music and tell me what you like.";
       },
     }),
   };

@@ -7,7 +7,7 @@
  * @module memory/__tests__/search-cache
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import {
   VectorSearchCache,
   getVectorSearchCache,
@@ -155,6 +155,10 @@ describe('VectorSearchCache', () => {
 
   describe('Cache Eviction', () => {
     it('should evict LRU entry when max size reached', () => {
+      // Use fake timers to control time between operations
+      vi.useFakeTimers();
+      const baseTime = Date.now();
+
       // Disable fuzzy matching for this test to avoid cross-query matching
       const smallCache = new VectorSearchCache({
         maxSize: 3,
@@ -162,21 +166,30 @@ describe('VectorSearchCache', () => {
         enableFuzzyMatch: false,
       });
 
-      // Fill cache (use seeds 1-3 to avoid seed=0 which produces NaN)
-      for (let i = 1; i <= 3; i++) {
-        smallCache.set(`query-${i}`, createMockEmbedding(i), createMockResults(1));
-      }
+      // Fill cache with distinct timestamps (use seeds 1-3 to avoid seed=0 which produces NaN)
+      vi.setSystemTime(baseTime);
+      smallCache.set('query-1', createMockEmbedding(1), createMockResults(1));
+      vi.setSystemTime(baseTime + 100);
+      smallCache.set('query-2', createMockEmbedding(2), createMockResults(1));
+      vi.setSystemTime(baseTime + 200);
+      smallCache.set('query-3', createMockEmbedding(3), createMockResults(1));
 
       // Access first entry to make it more recently used
+      vi.setSystemTime(baseTime + 300);
       smallCache.get('query-1', createMockEmbedding(1));
 
-      // Add one more - should evict query-2 (LRU - oldest accessed)
+      // Add one more - should evict query-2 (LRU - oldest accessed at T+100)
+      vi.setSystemTime(baseTime + 400);
       smallCache.set('query-4', createMockEmbedding(4), createMockResults(1));
 
+      // Final checks
+      vi.setSystemTime(baseTime + 500);
       expect(smallCache.get('query-1', createMockEmbedding(1))).not.toBeNull();
       expect(smallCache.get('query-2', createMockEmbedding(2))).toBeNull(); // evicted (oldest)
       expect(smallCache.get('query-3', createMockEmbedding(3))).not.toBeNull();
       expect(smallCache.get('query-4', createMockEmbedding(4))).not.toBeNull();
+
+      vi.useRealTimers();
     });
   });
 

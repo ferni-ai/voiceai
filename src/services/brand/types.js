@@ -7,3 +7,4 @@
  * @module @ferni/brand/types
  */
 export {};
+//# sourceMappingURL=types.js.map

@@ -651,9 +651,9 @@ export interface PreSttProcessor {
 export function createPreSttProcessor(config?: PreSttConfig): PreSttProcessor {
   const mod = tryLoadNativeModule();
 
-  if (mod?.NativePreSTTProcessor) {
+  if (mod?.NativePreSttProcessor) {
     try {
-      const native = config ? new mod.NativePreSTTProcessor({
+      const native = config ? new mod.NativePreSttProcessor({
         sampleRate: config.sampleRate,
         enableAgc: config.enableAgc,
         enableNoiseSuppression: config.enableNoiseSuppression,
@@ -661,7 +661,7 @@ export function createPreSttProcessor(config?: PreSttConfig): PreSttProcessor {
         highpassCutoffHz: config.highpassCutoffHz,
         enableBandwidthExtension: config.enableBandwidthExtension,
         inputIs8khz: config.inputIs8khz,
-      }) : mod.NativePreSTTProcessor.withDefaults();
+      }) : mod.NativePreSttProcessor.withDefaults();
 
       return {
         processFrame: (samples, isSpeech) => native.processFrame(samples, isSpeech),

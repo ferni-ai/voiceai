@@ -1472,15 +1472,13 @@ function transformApiResponse(
 async function fetchDashboardData(): Promise<DashboardData | null> {
   try {
     const userId = localStorage.getItem('ferni_user_id');
+    // Use getApiHeadersAsync for proper Firebase auth (includes X-User-Id automatically)
     const authHeaders = await getApiHeadersAsync();
-    const headers: HeadersInit = userId
-      ? { ...authHeaders, 'X-User-ID': userId }
-      : authHeaders;
 
     // Fetch dashboard and trends in parallel
     const [dashboardResponse, trendsResponse] = await Promise.all([
-      fetch(`/api/wellbeing/dashboard${userId ? `?userId=${userId}` : ''}`, { headers }),
-      fetch(`/api/wellbeing/trends?period=month${userId ? `&userId=${userId}` : ''}`, { headers }),
+      fetch(`/api/wellbeing/dashboard${userId ? `?userId=${userId}` : ''}`, { headers: authHeaders }),
+      fetch(`/api/wellbeing/trends?period=month${userId ? `&userId=${userId}` : ''}`, { headers: authHeaders }),
     ]);
 
     if (!dashboardResponse.ok) {

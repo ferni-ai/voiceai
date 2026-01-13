@@ -201,26 +201,28 @@ async function getVariant(
 
     const data = response.data;
 
+    const variantId = data.variantId ?? '';
+    
     // Cache the assignment
     cacheAssignment({
       experimentId,
-      variantId: data.variantId,
+      variantId,
       assignedAt: Date.now(),
     });
 
-    log.debug(`Assigned to ${experimentId}: ${data.variantId}`);
+    log.debug(`Assigned to ${experimentId}: ${variantId}`);
 
     // Track exposure (unless skipped)
     if (!options?.skipExposure) {
       queueEvent({
         experimentId,
-        variantId: data.variantId,
+        variantId,
         userId,
         eventType: 'exposure',
       });
     }
 
-    return data.variantId;
+    return variantId || null;
   } catch (error) {
     log.error(`Error getting variant for ${experimentId}:`, error);
     return null;

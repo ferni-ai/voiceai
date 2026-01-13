@@ -296,7 +296,7 @@ describe('Indexing Policy', () => {
 
   describe('DEFAULT_INDEXING_POLICY', () => {
     it('should have reasonable defaults', () => {
-      expect(DEFAULT_INDEXING_POLICY.maxDocsPerUser).toBe(500);
+      expect(DEFAULT_INDEXING_POLICY.maxDocsPerUser).toBe(600);
       expect(DEFAULT_INDEXING_POLICY.debounceMs).toBe(2000);
       expect(DEFAULT_INDEXING_POLICY.entities.length).toBeGreaterThan(10);
     });

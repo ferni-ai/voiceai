@@ -345,7 +345,10 @@ export class SummarizationWorker extends LocalWorker {
       const memories = getConversationPrimingMemories(job.userId, 'ferni');
 
       if (memories.length < 5) {
-        log.debug({ userId: job.userId, memoryCount: memories.length }, 'Too few memories to consolidate');
+        log.debug(
+          { userId: job.userId, memoryCount: memories.length },
+          'Too few memories to consolidate'
+        );
         return {
           jobId: job.jobId,
           summary: 'Insufficient memories for consolidation',
@@ -387,16 +390,19 @@ export class SummarizationWorker extends LocalWorker {
               .collection('consolidated_memories')
               .doc(consolidated.id);
 
-            batch.set(docRef, removeUndefined({
-              topic: consolidated.topic,
-              consolidatedContent: consolidated.consolidatedContent,
-              sourceMemoryIds: consolidated.sourceMemoryIds,
-              consolidatedAt: consolidated.consolidatedAt,
-              frequency: consolidated.frequency,
-              emotionalSignature: consolidated.emotionalSignature,
-              themes: consolidated.themes,
-              evolution: consolidated.evolution,
-            }));
+            batch.set(
+              docRef,
+              removeUndefined({
+                topic: consolidated.topic,
+                consolidatedContent: consolidated.consolidatedContent,
+                sourceMemoryIds: consolidated.sourceMemoryIds,
+                consolidatedAt: consolidated.consolidatedAt,
+                frequency: consolidated.frequency,
+                emotionalSignature: consolidated.emotionalSignature,
+                themes: consolidated.themes,
+                evolution: consolidated.evolution,
+              })
+            );
           }
 
           await batch.commit();

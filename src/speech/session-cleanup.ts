@@ -145,9 +145,23 @@ const log = getLogger().child({ module: 'SpeechSessionCleanup' });
 const activeSessions = new Set<string>();
 
 /**
+ * Track sessions currently being cleaned up to prevent duplicate cleanup calls
+ * This prevents the duplicate reset logs we see in the terminal
+ */
+const cleaningUpSessions = new Set<string>();
+
+/**
+ * Track sessions that have already been cleaned up (with TTL for memory efficiency)
+ */
+const cleanedSessions = new Map<string, number>();
+const CLEANED_SESSION_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+/**
  * Register a new speech session
  */
 export function registerSpeechSession(sessionId: string): void {
+  // Remove from cleaned set if re-registering
+  cleanedSessions.delete(sessionId);
   activeSessions.add(sessionId);
   log.debug({ sessionId, activeSessions: activeSessions.size }, 'Speech session registered');
 }
@@ -191,6 +205,45 @@ export function cleanupSpeechSession(
   } = {}
 ): void {
   const { verbose = true, reason = 'normal' } = options;
+
+  // ============================================================================
+  // DEDUPLICATION GUARD - Prevent duplicate cleanup calls
+  // ============================================================================
+
+  // Check if already cleaned recently
+  const cleanedAt = cleanedSessions.get(sessionId);
+  if (cleanedAt) {
+    const ageMs = Date.now() - cleanedAt;
+    if (ageMs < CLEANED_SESSION_TTL_MS) {
+      log.debug(
+        { sessionId, cleanedAgoMs: ageMs },
+        '⏭️ Speech session already cleaned recently, skipping'
+      );
+      return;
+    }
+    // TTL expired, allow re-cleanup (shouldn't happen but handles edge cases)
+    cleanedSessions.delete(sessionId);
+  }
+
+  // Check if cleanup is already in progress
+  if (cleaningUpSessions.has(sessionId)) {
+    log.debug({ sessionId }, '⏭️ Speech session cleanup already in progress, skipping');
+    return;
+  }
+
+  // Mark as cleaning up
+  cleaningUpSessions.add(sessionId);
+
+  // Periodically prune old entries from cleanedSessions map
+  if (cleanedSessions.size > 100) {
+    const now = Date.now();
+    for (const [id, timestamp] of cleanedSessions) {
+      if (now - timestamp > CLEANED_SESSION_TTL_MS) {
+        cleanedSessions.delete(id);
+      }
+    }
+  }
+
   const startTime = Date.now();
 
   if (verbose) {
@@ -359,6 +412,12 @@ export function cleanupSpeechSession(
 
   // Remove from active sessions
   activeSessions.delete(sessionId);
+
+  // Mark as cleaned (for deduplication)
+  cleanedSessions.set(sessionId, Date.now());
+
+  // Remove from cleaning-up set
+  cleaningUpSessions.delete(sessionId);
 
   const durationMs = Date.now() - startTime;
   const successCount = Object.values(cleanupResults).filter(Boolean).length;

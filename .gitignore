@@ -57,7 +57,13 @@ Thumbs.db
 # TypeScript
 *.tsbuildinfo
 .spotify-tokens.json
+.spotify-token.json
 .spotify-device.json
+
+# Rust build artifacts
+**/target/
+apps/rust-audio/target/
+apps/rust-perf/target/
 
 # Generated design system files (rebuild with: npm run tokens:sync)
 frontend-typescript/src/config/sounds.generated.ts
@@ -92,6 +98,11 @@ Receipt-*.pdf
 # Promo website build output (Eleventy)
 promo/ferni-website/_site/
 promo/ferni-website/.cache/
+apps/website/ferni-website/_site/
+apps/website/ferni-website/.cache/
+
+# Firebase hosting cache
+**/.firebase/
 
 # Mobile app build outputs
 apps/android/android/app/build/

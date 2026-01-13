@@ -7,7 +7,7 @@
  * @module memory/firestore-factory
  */
 
-import { getFirestoreDb } from '../services/superhuman/firestore-utils.js';
+import { getFirestoreDb } from '../utils/firestore-utils.js';
 
 /**
  * Get the Firestore database instance.

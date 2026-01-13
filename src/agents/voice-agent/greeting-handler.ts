@@ -33,7 +33,7 @@ import {
 } from '../../services/humanizing-state.js';
 import type { SessionServices } from '../../services/index.js';
 import type { SpeechContext } from '../../speech/types/index.js';
-import { getDJIntegration } from '../dj-integration.js';
+import { getDJController } from '../../audio/dj-controller.js';
 import type { UserData } from '../shared/types.js';
 import { weaveProactiveIntoGreeting } from '../shared/utilities-integration.js';
 // NOTE: conversation-priming is imported dynamically in generateAndSpeakGreeting
@@ -849,43 +849,23 @@ async function appendMusicCallback(
  */
 async function applyDJIntro(
   greeting: string,
-  sessionPersona: PersonaConfig,
-  userId: string | undefined,
-  userData: UserData,
-  services: SessionServices,
-  isReturningUser: boolean
+  _sessionPersona: PersonaConfig,
+  _userId: string | undefined,
+  _userData: UserData,
+  _services: SessionServices,
+  _isReturningUser: boolean
 ): Promise<string> {
+  // DJ intro functionality has been simplified
+  // The new DJ Controller architecture focuses on music playback,
+  // not greeting generation. Session sounds are handled by session-sounds.ts
   try {
-    const dj = getDJIntegration();
-    dj.setPersona(sessionPersona.id);
-
-    const djIntroResult = await dj.openShow({
-      personaId: sessionPersona.id,
-      userId: userId || undefined,
-      userName: userData.name || services.userProfile?.name,
-      isFirstSession: !isReturningUser,
-      sessionCount: services.userProfile?.totalConversations || 0,
-      musicHistory: services.userProfile?.musicMemory,
-      lastSessionTopics: services.userProfile?.lastConversationSummary
-        ? [services.userProfile.lastConversationSummary.slice(0, 100)]
-        : undefined,
-    });
-
-    // For first-time users or music callbacks, DJ intro may REPLACE the greeting
-    if (djIntroResult.shouldReplaceGreeting && djIntroResult.phrase) {
-      diag.session('🎧 Using DJ intro as greeting', {
-        type: djIntroResult.intro.introType,
-        playedSound: djIntroResult.playedSound,
-      });
-      return djIntroResult.phrase;
-    } else if (djIntroResult.playedSound && djIntroResult.intro.delayMs) {
-      // Sound played - add a small delay before greeting for timing
-      await new Promise<void>((resolve) => {
-        setTimeout(resolve, djIntroResult.intro.delayMs);
-      });
+    // Initialize DJ Controller for this session (if needed for later music)
+    const djController = getDJController();
+    if (!djController.getState().isInitialized) {
+      diag.debug('DJ Controller will be initialized when music handler runs');
     }
   } catch (djError) {
-    diag.warn('🎧 DJ intro failed (non-fatal)', { error: String(djError) });
+    diag.warn('🎧 DJ Controller check failed (non-fatal)', { error: String(djError) });
   }
 
   return greeting;

@@ -256,10 +256,12 @@ export {
 export { runFullVoiceAgentEntry } from './voice-agent-entry.js';
 
 // ============================================================================
-// DJ INTEGRATION (radio show experience)
+// DJ INTEGRATION (NEW ARCHITECTURE)
 // ============================================================================
 
-export { djIntegration, getDJIntegration, resetDJIntegration } from './dj-integration.js';
+// DJ integration is now handled by the DJController in src/audio/dj-controller.ts
+// Use getDJController() from '@audio' instead of getDJIntegration()
+export { getDJController, resetDJController, type DJController } from '../audio/dj-controller.js';
 
 // ============================================================================
 // VOICE IDS (for handoff and voice switching)

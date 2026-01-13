@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>[Visualization Name] | Ferni Insights</title>
+
+  <!-- Open Graph / Social Sharing -->
+  <meta property="og:title" content="[Visualization Name] | Ferni">
+  <meta property="og:description" content="[Brief description of what this visualization reveals]">
+  <meta property="og:image" content="./assets/[viz-name]-preview.png">
+  <meta property="og:type" content="website">
+
+  <!-- Design System Tokens (REQUIRED) -->
+  <link rel="stylesheet" href="../master-tokens.css">
+
+  <!-- Visualization System Styles -->
+  <link rel="stylesheet" href="../components.css">
+  <link rel="stylesheet" href="../animations.css">
+
+  <!-- Custom Styles (optional - use tokens!) -->
+  <style>
+    /* ==========================================================================
+       VISUALIZATION-SPECIFIC STYLES
+       Always use CSS custom properties from master-tokens.css
+       ========================================================================== */
+
+    .viz-page {
+      min-height: 100vh;
+      background: var(--color-surface, #faf8f5);
+      color: var(--color-text, #2c2520);
+      font-family: var(--font-body, 'Inter', system-ui, sans-serif);
+    }
+
+    .viz-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: var(--space-lg, 2rem);
+    }
+
+    .viz-header {
+      text-align: center;
+      margin-bottom: var(--space-xl, 3rem);
+    }
+
+    .viz-title {
+      font-family: var(--font-display, 'Fraunces', serif);
+      font-size: var(--text-4xl, 2.5rem);
+      font-weight: 600;
+      color: var(--color-text, #2c2520);
+      margin-bottom: var(--space-sm, 0.5rem);
+    }
+
+    .viz-subtitle {
+      font-size: var(--text-lg, 1.125rem);
+      color: var(--color-text-muted, #6b6560);
+    }
+
+    /* Main Visualization Area */
+    .viz-main {
+      display: grid;
+      gap: var(--space-lg, 2rem);
+    }
+
+    /* Chart Container */
+    .viz-chart-container {
+      background: var(--color-surface-elevated, #ffffff);
+      border-radius: var(--radius-lg, 1rem);
+      padding: var(--space-xl, 3rem);
+      box-shadow: var(--shadow-md, 0 4px 12px rgba(0,0,0,0.08));
+    }
+
+    /* Placeholder for chart - replace with actual visualization */
+    .viz-chart-placeholder {
+      aspect-ratio: 16/9;
+      background: linear-gradient(
+        135deg,
+        var(--color-surface, #faf8f5) 0%,
+        var(--color-surface-elevated, #ffffff) 100%
+      );
+      border: 2px dashed var(--color-border, #e0dcd8);
+      border-radius: var(--radius-md, 0.5rem);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--color-text-muted, #6b6560);
+      font-size: var(--text-lg, 1.125rem);
+    }
+
+    /* Insight Card */
+    .viz-insight-card {
+      background: linear-gradient(
+        135deg,
+        var(--color-ferni-tint, rgba(74, 103, 65, 0.08)) 0%,
+        var(--color-surface-elevated, #ffffff) 100%
+      );
+      border-left: 4px solid var(--color-ferni, #4a6741);
+      border-radius: var(--radius-md, 0.5rem);
+      padding: var(--space-lg, 2rem);
+    }
+
+    .viz-insight-card h3 {
+      font-family: var(--font-display, 'Fraunces', serif);
+      font-size: var(--text-xl, 1.25rem);
+      color: var(--color-ferni, #4a6741);
+      margin-bottom: var(--space-sm, 0.5rem);
+      display: flex;
+      align-items: center;
+      gap: var(--space-xs, 0.25rem);
+    }
+
+    .viz-insight-card p {
+      font-size: var(--text-base, 1rem);
+      line-height: 1.6;
+      color: var(--color-text, #2c2520);
+    }
+
+    /* Prompt Card */
+    .viz-prompt-card {
+      background: var(--color-surface-elevated, #ffffff);
+      border: 1px solid var(--color-border, #e0dcd8);
+      border-radius: var(--radius-md, 0.5rem);
+      padding: var(--space-lg, 2rem);
+      text-align: center;
+    }
+
+    .viz-prompt-card p {
+      font-family: var(--font-display, 'Fraunces', serif);
+      font-size: var(--text-xl, 1.25rem);
+      font-style: italic;
+      color: var(--color-text, #2c2520);
+    }
+
+    /* Action Panel */
+    .viz-actions {
+      display: flex;
+      gap: var(--space-md, 1rem);
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .viz-action-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-xs, 0.25rem);
+      padding: var(--space-sm, 0.5rem) var(--space-lg, 2rem);
+      border-radius: var(--radius-full, 9999px);
+      font-size: var(--text-base, 1rem);
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      border: none;
+    }
+
+    .viz-action-btn.primary {
+      background: var(--color-ferni, #4a6741);
+      color: white;
+    }
+
+    .viz-action-btn.primary:hover {
+      background: var(--color-ferni-dark, #3d5a36);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md, 0 4px 12px rgba(0,0,0,0.15));
+    }
+
+    .viz-action-btn.secondary {
+      background: var(--color-surface, #faf8f5);
+      color: var(--color-text, #2c2520);
+      border: 1px solid var(--color-border, #e0dcd8);
+    }
+
+    .viz-action-btn.secondary:hover {
+      background: var(--color-surface-elevated, #ffffff);
+      border-color: var(--color-ferni, #4a6741);
+    }
+
+    /* Kintsugi Highlight (for breakthrough moments) */
+    .kintsugi-highlight {
+      border-color: var(--kintsugi-gold, #c9a227);
+      box-shadow: 0 0 20px var(--kintsugi-glow, rgba(201, 162, 39, 0.3));
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .viz-container {
+        padding: var(--space-md, 1rem);
+      }
+
+      .viz-title {
+        font-size: var(--text-2xl, 1.75rem);
+      }
+
+      .viz-chart-container {
+        padding: var(--space-md, 1rem);
+      }
+    }
+
+    /* Dark Mode */
+    @media (prefers-color-scheme: dark) {
+      .viz-page {
+        background: var(--color-surface-dark, #1a1815);
+        color: var(--color-text-dark, #f5f3f0);
+      }
+
+      .viz-chart-container,
+      .viz-prompt-card {
+        background: var(--color-surface-elevated-dark, #252220);
+      }
+    }
+
+    /* Reduced Motion */
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+
+    /* Print Styles */
+    @media print {
+      .viz-actions,
+      .bth-action-panel {
+        display: none;
+      }
+
+      .viz-page {
+        background: white;
+      }
+    }
+  </style>
+</head>
+<body class="viz-page">
+  <div class="viz-container">
+
+    <!-- Header -->
+    <header class="viz-header viz-reveal">
+      <h1 class="viz-title">[Visualization Title]</h1>
+      <p class="viz-subtitle">[Subtitle or date range]</p>
+    </header>
+
+    <!-- Main Content -->
+    <main class="viz-main">
+
+      <!-- ==========================================
+           PATTERN: The Data Visualization
+           What raw data are we showing? What patterns exist?
+           ========================================== -->
+      <section class="viz-card viz-reveal" data-disclosure-level="summary">
+        <div class="viz-chart-container" role="figure" aria-labelledby="chart-title" aria-describedby="chart-desc">
+          <h2 id="chart-title" class="visually-hidden">[Chart Title for Screen Readers]</h2>
+          <p id="chart-desc" class="visually-hidden">
+            [Detailed description of the chart data for screen readers.
+             Example: "Bar chart showing daily mood scores from 1-10 over 30 days.
+             Average score: 7.2. Highest day: March 15 (9.2). Lowest: March 3 (4.8)."]
+          </p>
+
+          <!-- Replace this placeholder with your actual chart -->
+          <div class="viz-chart-placeholder">
+            <span>📊 Your visualization goes here</span>
+          </div>
+
+          <!-- Hidden data table for accessibility -->
+          <table class="visually-hidden">
+            <caption>[Table caption describing the data]</caption>
+            <thead>
+              <tr>
+                <th scope="col">Date</th>
+                <th scope="col">Value</th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- Data rows for screen readers -->
+              <tr><td>March 1</td><td>7.5</td></tr>
+              <tr><td>March 2</td><td>6.8</td></tr>
+              <!-- ... more rows ... -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ==========================================
+           INSIGHT: What the Pattern Means
+           What would a brilliant friend notice about this data?
+           ========================================== -->
+      <section class="viz-insight-card viz-reveal">
+        <h3>
+          <span aria-hidden="true">✨</span>
+          Insight
+        </h3>
+        <p>
+          [Write a warm, personal insight here. Be specific and actionable.
+           Example: "Your energy peaks about 2 hours after morning walks.
+           You've had 12 high-energy days this month that started with movement."]
+        </p>
+      </section>
+
+      <!-- ==========================================
+           PROMPT: A Thought-Provoking Question
+           What should the user consider? How might they apply this?
+           ========================================== -->
+      <section class="viz-prompt-card viz-reveal">
+        <p>
+          "[Write a gentle, open-ended question that invites reflection.
+            Example: What if you scheduled your most important work
+            in that 2-hour energy window?]"
+        </p>
+      </section>
+
+      <!-- ==========================================
+           ACTION: What They Can Do Now
+           Concrete next steps they can take immediately
+           ========================================== -->
+      <section class="viz-actions viz-reveal">
+        <button class="viz-action-btn primary bth-action-btn" data-action="primary">
+          <span aria-hidden="true">📅</span>
+          [Primary Action]
+        </button>
+        <button class="viz-action-btn secondary bth-action-btn" data-action="share">
+          <span aria-hidden="true">📤</span>
+          Share Insight
+        </button>
+        <button class="viz-action-btn secondary bth-action-btn" data-action="explore">
+          <span aria-hidden="true">🔍</span>
+          Explore More
+        </button>
+      </section>
+
+    </main>
+
+    <!-- Footer (optional) -->
+    <footer class="viz-footer" style="text-align: center; margin-top: var(--space-xl, 3rem); color: var(--color-text-muted, #6b6560); font-size: var(--text-sm, 0.875rem);">
+      <p>Generated by Ferni • <time datetime="2026-01-10">January 10, 2026</time></p>
+    </footer>
+
+  </div>
+
+  <!-- Ferni Visualization System -->
+  <script type="module">
+    import FerniViz from '../viz-system.js';
+
+    // Initialize all visualization systems
+    FerniViz.init({
+      enableTooltips: true,
+      enableAnimations: true,
+      enableDisclosure: true,
+      enableComparison: true,
+      enableIcons: true,
+      enableSharing: true,
+      debug: false
+    });
+
+    // Make all viz-cards shareable
+    document.querySelectorAll('.viz-card').forEach(card => {
+      FerniViz.makeShareable(card);
+    });
+
+    // Add scroll reveal animations
+    document.querySelectorAll('.viz-reveal').forEach(el => {
+      el.classList.add('viz-reveal');
+    });
+
+    // Action handlers
+    document.querySelectorAll('[data-action]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const action = e.currentTarget.dataset.action;
+
+        switch (action) {
+          case 'primary':
+            // TODO: Implement your primary action
+            console.log('Primary action clicked');
+            // Example: window.open('https://calendar.google.com/...');
+            break;
+
+          case 'share':
+            // Share functionality is handled by FerniViz
+            const card = document.querySelector('.viz-card');
+            if (card && FerniViz.share) {
+              FerniViz.share(card);
+            }
+            break;
+
+          case 'explore':
+            // TODO: Navigate to detailed view
+            console.log('Explore more clicked');
+            break;
+        }
+      });
+    });
+
+    // ==========================================
+    // YOUR CUSTOM VISUALIZATION CODE GOES HERE
+    // ==========================================
+
+    // Example: Render a chart
+    // import { Chart } from 'chart.js';
+    // const ctx = document.querySelector('.viz-chart-placeholder');
+    // new Chart(ctx, { ... });
+
+    // Example: Load data from API
+    // const data = await fetch('/api/insights/mood-trends').then(r => r.json());
+    // renderChart(data);
+
+  </script>
+
+  <!-- Utility class for accessibility -->
+  <style>
+    .visually-hidden {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+  </style>
+
+</body>
+</html>

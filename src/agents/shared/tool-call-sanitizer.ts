@@ -31,7 +31,7 @@
  */
 
 import { TransformStream, type TransformStreamDefaultController } from 'node:stream/web';
-import { createLogger } from '../../utils/safe-logger.js';
+import { createLogger, truncateForLog } from '../../utils/safe-logger.js';
 import {
   detectsToolCallLeakage as primingDetectsLeakage,
   generateRetryPrompt,
@@ -411,6 +411,10 @@ const TOOL_NAME_PATTERNS = [
   'searchNews',
   'search news',
   'getNews',
+  'get news',
+  'check the news',
+  'checking news',
+  'headlines',
   'getCurrentTime',
   'get current time',
   'getMarketSummary',
@@ -1905,6 +1909,14 @@ export function detectsFunctionCallLeakage(text: string): LeakageDetection {
     /\[PHYSICAL:/i,
     /\[GROUNDING:/i,
     /\[GENUINE CURIOSITY:/i,
+    // === Silence response instruction templates (Peter, Maya, etc.) ===
+    /\[TYPE:/i, // [TYPE: analytical_presence]
+    /\[DURATION:/i, // [DURATION: 10s]
+    /\[MAX:/i, // [MAX: 8 words]
+    /\[TONE:/i, // [TONE: curious]
+    /\[REF:/i, // [REF: pattern from their story]
+    /\[ABOUT:/i, // [ABOUT: patterns or data]
+    /\[STYLE:/i, // [STYLE: curious open]
     // === Emoji-prefixed guidance (Better Than Human features) ===
     /\[🤝/i, // Relationship context
     /\[🌟/i, // Better than human
@@ -2252,6 +2264,14 @@ const PARTIAL_TOOL_PREFIXES = [
   '[PHYSICAL',
   '[GROUNDING',
   '[GENUINE',
+  // Silence response instruction template prefixes (Peter, Maya, etc.)
+  '[TYPE:',
+  '[DURATION:',
+  '[MAX:',
+  '[TONE:',
+  '[REF:',
+  '[ABOUT:',
+  '[STYLE:',
   // Emoji prefixes
   '[🤝',
   '[🌟',
@@ -2778,18 +2798,19 @@ export function createSanitizerWithMusicFallback(
       buffer += chunk;
 
       // 🔍 E2E TRACE [0/4]: Log user transcript on first chunk
+      // Use truncateForLog() to respect LOG_FULL_RESPONSES env var
       if (!hasLoggedUserTranscript) {
         hasLoggedUserTranscript = true;
         const userTranscript = getLastUserTranscript();
         log.info(
           {
             trace: 'E2E_USER_INPUT',
-            userTranscript: userTranscript?.slice(0, 200) || '(not available)',
+            userTranscript: truncateForLog(userTranscript || '(not available)', 200),
             sessionId,
             userId: toolContext?.userId,
             userLocation: toolContext?.userLocation?.city,
           },
-          `🔍 E2E TRACE [0/4] USER INPUT: "${userTranscript?.slice(0, 100) || '(not available)'}"`
+          `🔍 E2E TRACE [0/4] USER INPUT: "${truncateForLog(userTranscript || '(not available)', 100)}"`
         );
       }
 
@@ -2896,27 +2917,42 @@ export function createSanitizerWithMusicFallback(
             stateIntegration.notifyToolStarted(sessionId, jsonCall.fn);
           }
 
-          // For slow tools (news, weather, etc.), inject a natural acknowledgment to keep stream open
-          const slowTools = [
-            'searchnews',
-            'getnews',
-            'getweather',
-            'getfinancialsnews',
-            'getstocknews',
-            'gettechnews',
-            'getmarketsummary',
-          ];
-          const isSlowTool = slowTools.includes(jsonCall.fn.toLowerCase());
-          if (isSlowTool) {
-            // Use persona-aware acknowledgments (passes through to generateAcknowledgment)
+          // ============================================================================
+          // HUMANIZATION: Fill the dead air with natural acknowledgments
+          // 
+          // Any tool that takes >200ms should have verbal acknowledgment to feel human.
+          // Think of it like a friend saying "hold on" while checking their phone.
+          // 
+          // Tools that DON'T need acknowledgment:
+          // - Music (we want it to play immediately)
+          // - Speak/say pseudo-tools (already speaking)
+          // - Super-fast tools (<200ms)
+          // ============================================================================
+          const silentTools = new Set([
+            'playmusic',
+            'pausemusic', 
+            'resumemusic',
+            'skiptrack',
+            'speak',
+            'say',
+            'dynamicresponse',
+            'setvolume',
+            'getvolume',
+          ]);
+          
+          const fnLower = jsonCall.fn.toLowerCase();
+          const shouldAcknowledge = !silentTools.has(fnLower);
+          
+          if (shouldAcknowledge) {
+            // Use persona-aware acknowledgments with SSML for human-like delivery
             const ack = getSlowToolAcknowledgment(
               jsonCall.fn,
               toolContext?.personaId,
               toolContext?.userId
             );
             log.info(
-              { fn: jsonCall.fn, ack, personaId: toolContext?.personaId },
-              '⏳ Injecting persona-aware acknowledgment for slow tool'
+              { fn: jsonCall.fn, ack: ack.replace(/<[^>]+>/g, '').slice(0, 30), personaId: toolContext?.personaId },
+              '🗣️ Injecting human acknowledgment while tool executes'
             );
             controller.enqueue(`${ack} `);
           }
@@ -2989,15 +3025,16 @@ export function createSanitizerWithMusicFallback(
                     : JSON.stringify(execResult.result);
 
                 // 🔍 E2E TRACE [3/4]: Tool execution SUCCESS
+                // Use truncateForLog() to respect LOG_FULL_RESPONSES env var
                 log.info(
                   {
                     trace: 'E2E_TOOL_SUCCESS',
                     fn: jsonCall.fn,
                     resultLength: resultText.length,
-                    resultPreview: resultText.slice(0, 200),
+                    resultPreview: truncateForLog(resultText, 200),
                     speakDirectly: !!execResult.speakDirectly,
                   },
-                  `🔍 E2E TRACE [3/4] TOOL SUCCESS: ${jsonCall.fn} → "${resultText.slice(0, 100)}..."`
+                  `🔍 E2E TRACE [3/4] TOOL SUCCESS: ${jsonCall.fn} → "${truncateForLog(resultText, 100)}"`
                 );
 
                 // ========================================
@@ -3278,27 +3315,42 @@ export function createSanitizerWithMusicFallback(
           stateIntegration.notifyToolStarted(sessionId, jsonCall.fn);
         }
 
-        // For slow tools (news, weather, etc.), inject a natural acknowledgment to keep stream open
-        const slowTools = [
-          'searchnews',
-          'getnews',
-          'getweather',
-          'getfinancialsnews',
-          'getstocknews',
-          'gettechnews',
-          'getmarketsummary',
-        ];
-        const isSlowTool = slowTools.includes(jsonCall.fn.toLowerCase());
-        if (isSlowTool) {
-          // Use persona-aware acknowledgments (passes through to generateAcknowledgment)
+        // ============================================================================
+        // HUMANIZATION: Fill the dead air with natural acknowledgments
+        // 
+        // Any tool that takes >200ms should have verbal acknowledgment to feel human.
+        // Think of it like a friend saying "hold on" while checking their phone.
+        // 
+        // Tools that DON'T need acknowledgment:
+        // - Music (we want it to play immediately)
+        // - Speak/say pseudo-tools (already speaking)
+        // - Super-fast tools (<200ms)
+        // ============================================================================
+        const silentTools = new Set([
+          'playmusic',
+          'pausemusic', 
+          'resumemusic',
+          'skiptrack',
+          'speak',
+          'say',
+          'dynamicresponse',
+          'setvolume',
+          'getvolume',
+        ]);
+        
+        const fnLower = jsonCall.fn.toLowerCase();
+        const shouldAcknowledge = !silentTools.has(fnLower);
+        
+        if (shouldAcknowledge) {
+          // Use persona-aware acknowledgments with SSML for human-like delivery
           const ack = getSlowToolAcknowledgment(
             jsonCall.fn,
             toolContext?.personaId,
             toolContext?.userId
           );
           log.info(
-            { fn: jsonCall.fn, ack, personaId: toolContext?.personaId },
-            '⏳ Injecting persona-aware acknowledgment for slow tool'
+            { fn: jsonCall.fn, ack: ack.replace(/<[^>]+>/g, '').slice(0, 30), personaId: toolContext?.personaId },
+            '🗣️ Injecting human acknowledgment while tool executes'
           );
           controller.enqueue(`${ack} `);
         }
@@ -3450,7 +3502,13 @@ export function createSanitizerWithMusicFallback(
           trimmed
         );
 
-      if (looksLikeJsonContinuation && buffer.length < 80 && !hasContraction) {
+      // 🐛 FIX: Don't suppress quoted phrases that look like legitimate speech
+      // e.g., "Morning Music" by Cafe Music BGM Channel - this is a song announcement, not JSON
+      const looksLikeQuotedPhrase =
+        /^["'][^"']+["']\s+(by|from|is|was|sounds|feels)\b/i.test(trimmed) || // "Title" by Artist
+        /^["'][^"']+["'][.!?,]?\s*$/.test(trimmed); // "Phrase." or "Phrase"
+
+      if (looksLikeJsonContinuation && buffer.length < 80 && !hasContraction && !looksLikeQuotedPhrase) {
         log.debug(
           { preview: buffer.slice(0, 40) },
           '🗑️ Suppressing JSON/markdown continuation chunk'

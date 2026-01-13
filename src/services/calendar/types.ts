@@ -298,7 +298,15 @@ export interface CalendarProviderAdapter {
   deleteEvent(userId: string, eventId: string, calendarId?: string): Promise<boolean>;
 
   /** Get list of user's calendars */
-  getCalendars?(userId: string): Promise<Array<{ id: string; name: string; primary: boolean }>>;
+  getCalendars?(userId: string): Promise<Array<{
+    id: string;
+    name: string;
+    primary: boolean;
+    color?: string;
+    owner?: string;
+    canEdit?: boolean;
+    description?: string;
+  }>>;
 }
 
 // ============================================================================
@@ -370,6 +378,16 @@ export interface SelectedCalendar {
   primary: boolean;
   /** Calendar color (if available) */
   color?: string;
+  /** Provider this calendar belongs to (for multi-provider display) */
+  provider?: CalendarProvider;
+  /** Owner email for shared calendars */
+  owner?: string;
+  /** User-defined nickname for the calendar */
+  nickname?: string;
+  /** Whether this calendar can be edited (vs read-only) */
+  canEdit?: boolean;
+  /** Calendar description */
+  description?: string;
 }
 
 /**

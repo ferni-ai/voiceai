@@ -201,6 +201,8 @@ export interface MusicEvent {
   readonly artistName?: string;
   /** Duration in ms */
   readonly duration?: number;
+  /** Album artwork URL */
+  readonly albumArt?: string;
   /** Is this ambient/thinking music? */
   readonly isAmbient?: boolean;
   /** 💚 Is this a shared musical memory ("our song")? */
@@ -219,6 +221,8 @@ interface RawMusicStateMessage {
   readonly track?: {
     readonly name: string;
     readonly artist?: string;
+    readonly duration?: number;
+    readonly albumArt?: string;
   };
   readonly isAmbient?: boolean;
   readonly isOurSong?: boolean;
@@ -262,6 +266,8 @@ export function normalizeMusicMessage(data: unknown): MusicEvent | null {
     state: raw.state,
     trackName: raw.track?.name,
     artistName: raw.track?.artist,
+    duration: raw.track?.duration,
+    albumArt: raw.track?.albumArt,
     isAmbient: raw.isAmbient,
     isOurSong: raw.isOurSong,
     ourSongContext: raw.ourSongContext,

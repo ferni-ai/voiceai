@@ -144,10 +144,10 @@ function cleanupOrphanedElements(): void {
 
 async function fetchWorkerStats(): Promise<WorkerStatsResponse> {
   const response = await apiGet<WorkerStatsResponse>('/api/workers/stats');
-  if (!response) {
+  if (!response.ok || !response.data) {
     throw new Error('Failed to fetch worker stats');
   }
-  return response;
+  return response.data;
 }
 
 async function flushAsyncEvents(): Promise<{ success: boolean; flushed: number }> {
@@ -155,10 +155,10 @@ async function flushAsyncEvents(): Promise<{ success: boolean; flushed: number }
     '/api/workers/flush',
     {}
   );
-  if (!response) {
+  if (!response.ok || !response.data) {
     throw new Error('Failed to flush events');
   }
-  return response;
+  return { success: response.data.success, flushed: response.data.flushed };
 }
 
 // ============================================================================

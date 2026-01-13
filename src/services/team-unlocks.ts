@@ -54,9 +54,17 @@ export function parseBypassConfig(): Set<TeamMemberId> | 'all' | null {
 
   const bypassValue = process.env['BYPASS_TEAM_UNLOCKS'];
 
-  // Debug log to verify bypass value is being read
+  // Log ONCE during parsing (cached result prevents duplicate logs)
   if (bypassValue) {
-    log.debug({ bypassValue }, '🔓 BYPASS_TEAM_UNLOCKS env var detected');
+    const normalized = bypassValue.toLowerCase().trim();
+    if (normalized === 'all' || normalized === 'true') {
+      log.info(
+        { bypassValue, memberCount: TEAM_MEMBERS.length },
+        '🔓 BYPASS_TEAM_UNLOCKS=all - unlocking ALL team members (logged once)'
+      );
+    } else {
+      log.debug({ bypassValue }, '🔓 BYPASS_TEAM_UNLOCKS env var detected');
+    }
   }
 
   let result: Set<TeamMemberId> | 'all' | null = null;
@@ -582,11 +590,7 @@ export function getTeamUnlockState(
   const bypass = parseBypassConfig();
 
   if (bypass === 'all') {
-    // Full bypass - all members unlocked
-    log.info(
-      { bypass: 'all', memberCount: TEAM_MEMBERS.length },
-      '🔓 BYPASS_TEAM_UNLOCKS=all - unlocking ALL team members'
-    );
+    // Full bypass - all members unlocked (logged once in parseBypassConfig)
     return {
       stage: 'deep-partnership',
       tier,
@@ -597,18 +601,13 @@ export function getTeamUnlockState(
   }
 
   if (bypass instanceof Set) {
-    // Partial bypass - specific members unlocked
+    // Partial bypass - specific members unlocked (logged once in parseBypassConfig)
     const bypassedMembers = TEAM_MEMBERS.filter((m) => bypass.has(m.memberId)).map(
       (m) => m.memberId
     );
 
     // Find next unlock (first non-bypassed member)
     const nextMember = TEAM_MEMBERS.find((m) => !bypass.has(m.memberId) && m.memberId !== 'ferni');
-
-    log.info(
-      { bypassedMembers, bypassValue: process.env['BYPASS_TEAM_UNLOCKS'] },
-      '🔓 Team unlock bypass active (partial)'
-    );
 
     return {
       stage: 'established', // Assume mid-level stage for partial bypass

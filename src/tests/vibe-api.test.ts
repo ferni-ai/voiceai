@@ -9,15 +9,20 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-// Mock dependencies before imports
-vi.mock('../utils/safe-logger.js', () => ({
-  createLogger: () => ({
+// Mock dependencies before imports - must include both createLogger and getLogger with child()
+vi.mock('../utils/safe-logger.js', () => {
+  const mockLogger = {
     debug: vi.fn(),
     info: vi.fn(),
     warn: vi.fn(),
     error: vi.fn(),
-  }),
-}));
+    child: () => mockLogger,
+  };
+  return {
+    createLogger: () => mockLogger,
+    getLogger: () => mockLogger,
+  };
+});
 
 vi.mock('../tools/domains/smart-home/smart-home.js', () => ({
   getAllDevices: vi.fn().mockResolvedValue([]),

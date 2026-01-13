@@ -497,6 +497,12 @@ export async function suggestRecurringEvents(userId: string): Promise<RecurringS
 
 /**
  * Find the best time for a new event based on preferences and patterns
+ *
+ * ENHANCED WITH "BETTER THAN HUMAN" ENERGY-AWARE SCHEDULING:
+ * - Uses learned meeting patterns for optimal time detection
+ * - Considers user's energy peaks and focus time preferences
+ * - Avoids times the user typically avoids
+ * - Respects clustering preferences (batched vs spread meetings)
  */
 export async function findBestTimeFor(
   userId: string,
@@ -506,6 +512,7 @@ export async function findBestTimeFor(
     preferAfternoon?: boolean;
     avoidBackToBack?: boolean;
     minGapMinutes?: number;
+    meetingType?: 'oneOnOne' | 'teamMeeting' | 'clientCall' | 'standup' | 'general';
   }
 ): Promise<{ time: Date; score: number; reasoning: string }[]> {
   const {
@@ -513,25 +520,78 @@ export async function findBestTimeFor(
     preferAfternoon = false,
     avoidBackToBack = true,
     minGapMinutes = 15,
+    meetingType = 'general',
   } = preferences || {};
 
   try {
     const today = new Date();
     const freeSlots = await findFreeTimeSlots(userId, today, { minDurationMinutes: duration });
 
+    // Load user's learned meeting patterns for energy-aware scheduling
+    let patterns: import('./meeting-pattern-learning.js').MeetingPattern | null = null;
+    try {
+      const { getMeetingPatterns } = await import('./meeting-pattern-learning.js');
+      patterns = await getMeetingPatterns(userId);
+      log.debug({ userId, learnedFromEvents: patterns.learnedFromEventCount }, 'Loaded meeting patterns for scheduling');
+    } catch {
+      log.debug({ userId }, 'Could not load meeting patterns, using defaults');
+    }
+
     const scoredSlots = freeSlots.map((slot) => {
       let score = 0.5; // Base score
       const reasons: string[] = [];
 
       const hour = slot.start.getHours();
+      const dayOfWeek = slot.start.getDay();
 
-      // Time preference scoring
+      // ================================================================
+      // ENERGY-AWARE SCHEDULING (Better Than Human)
+      // ================================================================
+      if (patterns && patterns.learnedFromEventCount > 10) {
+        // Bonus for energy peak hours
+        if (patterns.energyPeaks.includes(hour)) {
+          score += 0.15;
+          reasons.push('Your peak energy time');
+        }
+
+        // Bonus for preferred start times for this day
+        const preferredHours = patterns.preferredStartTimes[dayOfWeek] || [];
+        if (preferredHours.includes(hour)) {
+          score += 0.2;
+          reasons.push('Matches your usual pattern');
+        }
+
+        // Penalty for avoid hours
+        if (patterns.avoidHours.includes(hour)) {
+          score -= 0.25;
+          reasons.push('You typically avoid this time');
+        }
+
+        // Penalty for avoid days
+        if (patterns.avoidDays.includes(dayOfWeek)) {
+          score -= 0.3;
+          reasons.push('You typically avoid this day');
+        }
+
+        // Protect focus time based on learned preference
+        if (patterns.focusTimePreference === 'morning' && hour >= 9 && hour <= 11) {
+          score -= 0.15;
+          reasons.push('Protects your morning focus time');
+        } else if (patterns.focusTimePreference === 'afternoon' && hour >= 14 && hour <= 16) {
+          score -= 0.15;
+          reasons.push('Protects your afternoon focus time');
+        }
+      }
+
+      // ================================================================
+      // EXPLICIT PREFERENCE SCORING
+      // ================================================================
       if (preferMorning && hour >= 9 && hour <= 12) {
         score += 0.2;
-        reasons.push('Morning slot');
+        reasons.push('Morning slot as requested');
       } else if (preferAfternoon && hour >= 13 && hour <= 17) {
         score += 0.2;
-        reasons.push('Afternoon slot');
+        reasons.push('Afternoon slot as requested');
       }
 
       // Avoid very early or late
@@ -540,24 +600,40 @@ export async function findBestTimeFor(
         reasons.push('Outside normal hours');
       }
 
-      // Premium time (10am, 2pm, 3pm)
-      if ([10, 14, 15].includes(hour)) {
+      // Premium time (10am, 2pm, 3pm) - fallback if no learned patterns
+      if (!patterns && [10, 14, 15].includes(hour)) {
         score += 0.1;
         reasons.push('Popular meeting time');
       }
 
-      // Back-to-back penalty (would need to check surrounding events)
-      // Simplified: prefer middle of available slot
+      // Back-to-back prevention: prefer middle of available slot
       const slotDuration = (slot.end.getTime() - slot.start.getTime()) / 60000;
       if (slotDuration > duration * 2) {
         score += 0.1;
         reasons.push('Room for buffer');
       }
 
+      // ================================================================
+      // MEETING TYPE OPTIMIZATION
+      // ================================================================
+      if (meetingType === 'clientCall' || meetingType === 'oneOnOne') {
+        // Important meetings should be during energy peaks
+        if (patterns?.energyPeaks.includes(hour)) {
+          score += 0.1;
+          reasons.push('Peak time for important calls');
+        }
+      } else if (meetingType === 'standup') {
+        // Standups work well in morning
+        if (hour >= 9 && hour <= 10) {
+          score += 0.1;
+          reasons.push('Good time for standup');
+        }
+      }
+
       return {
         time: slot.start,
         score: Math.max(0, Math.min(1, score)),
-        reasoning: reasons.join(', ') || 'Available slot',
+        reasoning: reasons.length > 0 ? reasons.join(', ') : 'Available slot',
       };
     });
 

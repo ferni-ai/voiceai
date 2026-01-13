@@ -128,6 +128,7 @@ export const BUILDER_IMPORTS: Record<string, BuilderImporter> = {
   'semantic-intelligence-integration': async () =>
     import('../superhuman/semantic-intelligence-integration.js'),
   'superhuman-integration': async () => import('../superhuman/superhuman-integration.js'),
+  'memory-lane': async () => import('../superhuman/memory-lane-context.js'),
 
   // ============================================================================
   // ENGAGEMENT (in engagement/)
@@ -140,10 +141,12 @@ export const BUILDER_IMPORTS: Record<string, BuilderImporter> = {
   'music-emotion-offers': async () => import('../engagement/music-emotion-offers.js'),
   'daily-rituals': async () => import('../engagement/daily-rituals.js'),
   'referral-prompt': async () => import('../engagement/referral-prompt.js'),
+  'ceo-coaching-context': async () => import('../engagement/ceo-coaching-context.js'),
 
   // ============================================================================
   // TEAM (in team/)
   // ============================================================================
+  'capability-awareness': async () => import('../team/capability-awareness.js'),
   'team-availability': async () => import('../team/team-availability.js'),
   'team-dynamics': async () => import('../team/team-dynamics.js'),
   handoff: async () => import('../team/handoff.js'),
@@ -189,6 +192,8 @@ export const BUILDER_IMPORTS: Record<string, BuilderImporter> = {
   'emotional-trajectory-awareness': async () => import('../awareness/emotional-trajectory-awareness.js'),
   'session-gap-awareness': async () => import('../awareness/session-gap-awareness.js'),
   'tool-failure-awareness': async () => import('../awareness/tool-failure-awareness.js'),
+  // Routine awareness: "What I Do For You" automated routines
+  'routine-awareness': async () => import('../awareness/routine-awareness.js'),
 
   // ============================================================================
   // EXTERNAL (in external/)

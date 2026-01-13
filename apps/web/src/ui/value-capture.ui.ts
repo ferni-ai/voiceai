@@ -717,6 +717,7 @@ async function processContribution(amountCents: number): Promise<void> {
       throw new Error('Stripe not available');
     }
 
+    if (!result) throw new Error('No result from contribute');
     // @ts-expect-error - Stripe types
     const { error } = await stripe.confirmPayment({
       clientSecret: result.clientSecret,

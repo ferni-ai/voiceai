@@ -1,0 +1,45 @@
+{
+  "postFile": "performance-optimization.md",
+  "title": "Performance Optimization: Achieving Sub-200ms Response Times",
+  "date": "2026-01-14T00:00:00.000Z",
+  "snippets": {
+    "twitter": {
+      "platform": "twitter",
+      "text": "📚 Performance Optimization: Achieving Sub-200ms Response Times\n\nhttps://developers.ferni.ai/developers/blog/performance-optimization/\n\n#TechDeepDive #Engineering",
+      "length": null
+    },
+    "twitterThread": {
+      "platform": "twitter_thread",
+      "tweets": [
+        {
+          "text": "🧵 Performance Optimization: Achieving Sub-200ms Response Times\n\nA thread on what you'll learn:\n\n👇",
+          "type": "hook"
+        },
+        {
+          "text": "How Ferni delivers real-time voice AI - and how you can optimize your integration for the best user experience.\n\nLet's dive in...",
+          "type": "summary"
+        },
+        {
+          "text": "📖 Read the full post:\nhttps://developers.ferni.ai/developers/blog/performance-optimization/\n\n#TechDeepDive #Engineering #VoiceAI",
+          "type": "cta"
+        }
+      ],
+      "totalTweets": 3
+    },
+    "linkedin": {
+      "platform": "linkedin",
+      "text": "Performance Optimization: Achieving Sub-200ms Response Times\n\nHow Ferni delivers real-time voice AI - and how you can optimize your integration for the best user experience.\n\nThis is part of our ongoing series helping developers build with voice AI.\n\nKey takeaways:\n• Practical code examples you can use today\n• Real-world patterns from production systems\n• Best practices from the Ferni team\n\nRead the full post: https://developers.ferni.ai/developers/blog/performance-optimization/\n\n#TechDeepDive #Engineering #VoiceAI",
+      "length": 520
+    },
+    "discord": {
+      "platform": "discord",
+      "text": "🔬 **Performance Optimization: Achieving Sub-200ms Response Times**\n\nHow Ferni delivers real-time voice AI - and how you can optimize your integration for the best user experience.\n\n🔗 **Read more:** https://developers.ferni.ai/developers/blog/performance-optimization/\n\n---\n*10 min read • Deep Dives*",
+      "length": 301
+    },
+    "threads": {
+      "platform": "threads",
+      "text": "Performance Optimization: Achieving Sub-200ms Response Times\n\nHow Ferni delivers real-time voice AI - and how you can optimize your integration for the best user experience.\n\nRead more 👉 https://developers.ferni.ai/developers/blog/performance-optimization/",
+      "length": 257
+    }
+  }
+}

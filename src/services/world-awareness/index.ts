@@ -576,26 +576,27 @@ async function fetchSportsData(favoriteTeams: string[]): Promise<SportsContext |
     const scores = new Map<string, string>();
     let excitingGame: string | undefined;
 
-    // Fetch scores for favorite teams in parallel
-    const results = await Promise.allSettled(
-      favoriteTeams.map(async (team) => {
+    // Fetch scores sequentially to avoid rate limit bursts
+    // Note: getTeamScore iterates through 8 sports leagues, so parallel
+    // fetching of multiple teams can quickly exhaust rate limits
+    for (const team of favoriteTeams.slice(0, 5)) {
+      // Limit to 5 teams max
+      try {
         const score = await getTeamScore(team);
-        return { team, score };
-      })
-    );
+        if (score && !score.includes("couldn't find")) {
+          scores.set(team, score);
 
-    for (const result of results) {
-      if (result.status === 'fulfilled' && result.value.score) {
-        scores.set(result.value.team, result.value.score);
-
-        // Check if it's an exciting game (close score, currently playing)
-        const scoreText = result.value.score.toLowerCase();
-        if (
-          (scoreText.includes('in progress') || scoreText.includes('live')) &&
-          !scoreText.includes("don't have")
-        ) {
-          excitingGame = `Your ${result.value.team} game is on right now! ${result.value.score}`;
+          // Check if it's an exciting game (close score, currently playing)
+          const scoreText = score.toLowerCase();
+          if (
+            (scoreText.includes('in progress') || scoreText.includes('live')) &&
+            !scoreText.includes("don't have")
+          ) {
+            excitingGame = `Your ${team} game is on right now! ${score}`;
+          }
         }
+      } catch (teamError) {
+        log.debug({ team, error: String(teamError) }, 'Failed to fetch score for team');
       }
     }
 

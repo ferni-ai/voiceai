@@ -191,7 +191,9 @@ export async function connectProvider(
   }
 
   // Redirect to OAuth flow
-  const authUrl = `${config.authUrl}?userId=${userId}`;
+  // Use user_id param for backend consistency, include return_url for proper redirect
+  const returnUrl = encodeURIComponent('/settings?calendar=' + provider);
+  const authUrl = `${config.authUrl}?user_id=${userId}&return_url=${returnUrl}`;
   log.info('Initiating calendar OAuth flow', { provider, authUrl });
 
   window.location.href = authUrl;

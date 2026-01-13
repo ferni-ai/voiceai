@@ -29,7 +29,7 @@
  */
 
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
-import { createLogger } from '../../utils/safe-logger.js';
+import { createLogger, truncateForLog } from '../../utils/safe-logger.js';
 import { recordAction } from './action-history.js';
 import { logJsonDetected, logJsonExecuted } from './function-call-telemetry.js';
 import {
@@ -43,6 +43,12 @@ import {
   invalidateToolCache,
 } from '../../services/performance/tool-response-cache.js';
 import { executeWithReliability } from '../../services/performance/tool-execution-reliability.js';
+// Developer Platform: Webhook integration for tool events
+import {
+  onToolCalled as dispatchToolCalledWebhook,
+  onToolCompleted as dispatchToolCompletedWebhook,
+  onToolFailed as dispatchToolFailedWebhook,
+} from '../integrations/developer-webhook-integration.js';
 
 const log = createLogger({ module: 'json-function-executor' });
 
@@ -99,6 +105,34 @@ function extractTargetFromArgs(args: Record<string, unknown>): string | undefine
     }
   }
   return undefined;
+}
+
+/**
+ * Extract domain from tool name.
+ * Tool names often follow pattern: domain-action or domainAction
+ * Falls back to 'general' if no domain can be determined.
+ */
+function extractDomainFromTool(toolName: string): string {
+  // Common tool patterns and their domains
+  const domainPatterns: Record<string, string[]> = {
+    music: ['playmusic', 'pausemusic', 'skiptrack', 'getplaylist', 'setvolume'],
+    weather: ['getweather', 'weatherforecast'],
+    calendar: ['getcalendar', 'getschedule', 'createevent', 'updateevent'],
+    communication: ['sendtext', 'sendemail', 'makecall', 'leavemessage'],
+    family: ['sharefeeling', 'familymessage', 'leavemessage'],
+    habits: ['createhabit', 'loghabit', 'gethabits'],
+    memories: ['savememory', 'recallmemory', 'getmemories'],
+    news: ['getnews', 'searchnews'],
+    finance: ['getmarketsummary', 'getquote', 'getportfolio'],
+  };
+
+  const toolLower = toolName.toLowerCase();
+  for (const [domain, patterns] of Object.entries(domainPatterns)) {
+    if (patterns.some(p => toolLower.includes(p) || toolLower === p)) {
+      return domain;
+    }
+  }
+  return 'general';
 }
 
 /**
@@ -200,6 +234,8 @@ export interface ToolExecutionContext {
   userId?: string;
   sessionId?: string;
   personaId?: string;
+  /** Publisher ID for marketplace/custom personas (enables webhook dispatch) */
+  publisherId?: string;
   /** Callback when a tool starts executing */
   onToolStart?: (fn: string, args: Record<string, unknown>) => void;
   /** Callback when a tool finishes */
@@ -359,6 +395,17 @@ export async function executeJsonFunction(
   log.info({ fn, args }, '🔧 Executing JSON function call');
   ctx.onToolStart?.(fn, args);
 
+  // Developer Platform: Dispatch tool.called webhook (fire-and-forget)
+  dispatchToolCalledWebhook({
+    sessionId,
+    userId: ctx.userId,
+    personaId: ctx.personaId,
+    publisherId: ctx.publisherId,
+    toolName: fn,
+    toolDomain: extractDomainFromTool(fn),
+    args,
+  });
+
   // Telemetry: Log that a JSON function call was detected
   logJsonDetected(sessionId, fn, args);
 
@@ -431,6 +478,18 @@ export async function executeJsonFunction(
 
     log.info({ fn, durationMs: executionResult.durationMs }, '✅ JSON function executed');
 
+    // Developer Platform: Dispatch tool.completed webhook (fire-and-forget)
+    dispatchToolCompletedWebhook({
+      sessionId,
+      userId: ctx.userId,
+      personaId: ctx.personaId,
+      publisherId: ctx.publisherId,
+      toolName: fn,
+      toolDomain: extractDomainFromTool(fn),
+      result: truncateForLog(JSON.stringify(result), 500),
+      executionTimeMs: executionResult.durationMs,
+    });
+
     // Telemetry: Log successful execution
     logJsonExecuted(sessionId, fn, true, executionResult.durationMs);
 
@@ -438,12 +497,13 @@ export async function executeJsonFunction(
     // (e.g., when user asks "did you call my mom?")
     if (sessionId) {
       const resultStr = typeof result === 'string' ? result : JSON.stringify(result);
-      recordAction(sessionId, fn, args, true, resultStr?.slice(0, 200));
+      recordAction(sessionId, fn, args, true, truncateForLog(resultStr || '', 200));
     }
 
     // Action Tracker: Persist high-impact actions (calls, texts, emails, calendar)
     // for unified visibility in the Activity dashboard
     if (ctx.userId) {
+      const resultSummaryStr = typeof result === 'string' ? result : JSON.stringify(result);
       trackHighImpactAction({
         userId: ctx.userId,
         sessionId: sessionId !== 'unknown' ? sessionId : undefined,
@@ -451,8 +511,7 @@ export async function executeJsonFunction(
         args,
         inputText: ctx.inputText,
         success: true,
-        resultSummary:
-          typeof result === 'string' ? result.slice(0, 200) : JSON.stringify(result).slice(0, 200),
+        resultSummary: truncateForLog(resultSummaryStr, 200),
         durationMs: executionResult.durationMs,
       });
     }
@@ -486,6 +545,17 @@ export async function executeJsonFunction(
     };
 
     log.error({ fn, args, error: String(err) }, '❌ JSON function execution failed');
+
+    // Developer Platform: Dispatch tool.failed webhook (fire-and-forget)
+    dispatchToolFailedWebhook({
+      sessionId,
+      userId: ctx.userId,
+      personaId: ctx.personaId,
+      publisherId: ctx.publisherId,
+      toolName: fn,
+      toolDomain: extractDomainFromTool(fn),
+      error: String(err).slice(0, 500),
+    });
 
     // Telemetry: Log failed execution
     logJsonExecuted(sessionId, fn, false, durationMs, String(err));
@@ -2734,16 +2804,26 @@ async function routeToTool(
   // LANGUAGE/SETTINGS TOOLS
   // ========================================
   if (fnLower === 'setspokenlanguage') {
-    const { languageCode } = args as { languageCode?: string };
-    log.info({ languageCode, userId: ctx.userId }, '🗣️ Set spoken language');
-    if (!languageCode) {
+    // Support both "language" (from function-calling-base.md) and "languageCode" (legacy)
+    const { language, languageCode } = args as { language?: string; languageCode?: string };
+    const targetLanguage = language || languageCode;
+    log.info(
+      { language: targetLanguage, userId: ctx.userId, sessionId: ctx.sessionId },
+      '🗣️ Set spoken language'
+    );
+    if (!targetLanguage) {
       return `Which language would you like me to speak? I support English, Spanish, Japanese, German, French, and more.`;
     }
     // Import and use the language service
     const { languageService } = await import('../../services/language/index.js');
-    const result = await languageService().setLanguage(ctx.userId || 'anonymous', languageCode);
+    // Pass sessionId for real-time state consistency
+    const result = await languageService().setLanguage(
+      ctx.userId || 'anonymous',
+      targetLanguage,
+      ctx.sessionId
+    );
     if (result.success) {
-      return result.confirmationMessage || `I'll speak ${languageCode} now.`;
+      return result.confirmationMessage || `I'll speak ${targetLanguage} now.`;
     }
     return result.error || `I couldn't switch to that language.`;
   }

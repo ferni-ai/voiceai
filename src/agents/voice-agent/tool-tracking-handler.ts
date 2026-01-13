@@ -74,6 +74,18 @@ interface ToolInfo {
     error?: unknown;
     startTime?: number;
   }>;
+  // OpenAI Realtime API structure
+  functionCalls?: Array<{
+    name?: string;
+    arguments?: Record<string, unknown>;
+    callId?: string;
+  }>;
+  functionCallOutputs?: Array<{
+    name?: string;
+    output?: unknown;
+    callId?: string;
+    isError?: boolean;
+  }>;
 }
 
 // ============================================================================
@@ -129,21 +141,71 @@ export function setupToolTrackingHandler(ctx: ToolTrackingContext): ToolTracking
         const convState = userData.conversationState;
 
         // Get tool information from event
-        // The event structure varies, but typically contains tool name/id
+        // The event structure varies by LLM backend:
+        // - OpenAI Realtime: { functionCallOutputs: [...] }
+        // - Gemini/Other: { tools: [...] } or direct tool object
         const toolInfo = event as ToolInfo;
 
-        // Handle single tool or multiple tools
-        const toolCalls = toolInfo.tools || [toolInfo];
+        // Handle different event structures:
+        // 1. OpenAI Realtime API: functionCallOutputs array
+        // 2. Legacy/Gemini: tools array or single tool object
+        let toolCalls: Array<{
+          name?: string;
+          result?: unknown;
+          output?: unknown;
+          error?: unknown;
+          isError?: boolean;
+          startTime?: number;
+        }>;
+
+        if (toolInfo.functionCallOutputs && toolInfo.functionCallOutputs.length > 0) {
+          // OpenAI Realtime API structure - map output to result for consistency
+          toolCalls = toolInfo.functionCallOutputs.map((fco) => ({
+            name: fco.name,
+            result: fco.output,
+            error: fco.isError ? fco.output : undefined,
+            isError: fco.isError,
+          }));
+          logger.debug(
+            { toolCount: toolCalls.length, names: toolCalls.map((t) => t.name) },
+            '🔧 [TOOLS] Parsed OpenAI functionCallOutputs'
+          );
+        } else if (toolInfo.tools && toolInfo.tools.length > 0) {
+          // Legacy/Gemini structure
+          toolCalls = toolInfo.tools;
+          logger.debug(
+            { toolCount: toolCalls.length, names: toolCalls.map((t) => t.name) },
+            '🔧 [TOOLS] Parsed legacy tools array'
+          );
+        } else {
+          // Single tool object fallback - log warning to diagnose unexpected structure
+          toolCalls = [toolInfo];
+          logger.warn(
+            {
+              hasName: !!toolInfo.name,
+              hasToolName: !!toolInfo.toolName,
+              hasFunctionCallOutputs: !!toolInfo.functionCallOutputs,
+              functionCallOutputsLength: toolInfo.functionCallOutputs?.length,
+              hasTools: !!toolInfo.tools,
+              toolsLength: toolInfo.tools?.length,
+              eventKeys: Object.keys(toolInfo),
+            },
+            '🔧 [TOOLS] WARNING: Falling back to single tool object - unexpected event structure'
+          );
+        }
 
         for (const tool of toolCalls) {
-          const toolName = tool.name || toolInfo.name || toolInfo.toolName || 'unknown';
-          const hasError = !!tool.error || !!toolInfo.error;
+          const toolName = tool.name || toolInfo.name || toolInfo.toolName || 'unnamed_tool';
+          // Handle both legacy (error) and OpenAI Realtime (isError) error indicators
+          const hasError = !!tool.error || !!tool.isError || !!toolInfo.error;
+          // Use result or output (OpenAI uses output, legacy uses result)
+          const toolResult = tool.result ?? tool.output;
           const resultSummary =
-            tool.result === undefined
+            toolResult === undefined
               ? '(no result)'
-              : typeof tool.result === 'string'
-                ? tool.result.slice(0, 200)
-                : JSON.stringify(tool.result).slice(0, 200);
+              : typeof toolResult === 'string'
+                ? toolResult.slice(0, 200)
+                : JSON.stringify(toolResult).slice(0, 200);
 
           // 🔍 DIAGNOSTIC: Track tool execution sequence for cross-tool debugging
           const diagTimestamp = new Date().toISOString();
@@ -180,12 +242,12 @@ export function setupToolTrackingHandler(ctx: ToolTrackingContext): ToolTracking
 
           // ================================================================
           // 📰 FIX: Speak news/weather results directly for native function calling
-          // When Gemini uses native function calling, the SDK JSON.stringify()s the result
+          // When using native function calling, the SDK JSON.stringify()s the result
           // which double-escapes SSML, confusing the LLM. We speak the result directly.
           // ================================================================
-          if (isNewsOrWeather && !hasError && tool.result) {
+          if (isNewsOrWeather && !hasError && toolResult) {
             const resultToSpeak =
-              typeof tool.result === 'string' ? tool.result : JSON.stringify(tool.result);
+              typeof toolResult === 'string' ? toolResult : JSON.stringify(toolResult);
 
             // Only speak if there's meaningful content (not empty or too short)
             if (resultToSpeak && resultToSpeak.length > 20) {

@@ -52,6 +52,7 @@ export type ScreenName =
   | 'trust-dashboard'
   | 'cognitive-insights'
   | 'life-context'
+  | 'care' // "What I Do For You" - Ferni's automated routines
   | 'digital-twin'
   | 'other';
 

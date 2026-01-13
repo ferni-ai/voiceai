@@ -656,7 +656,7 @@ function generateEffectsVars(effects) {
 /**
  * Generate dark theme (Cedar Night) tokens for developer portals
  */
-function generateDarkThemeFile(colors, spacing, typography, animation) {
+function generateDarkThemeFile(colors, spacing, typography, animation, effects) {
   const midnight = colors.themes.midnight;
 
   const lines = [
@@ -725,11 +725,12 @@ function generateDarkThemeFile(colors, spacing, typography, animation) {
     lines.push(`  --persona-${shortId}-glow: ${persona.glow};`);
   }
 
-  // Add spacing, typography, animation
+  // Add spacing, typography, animation, effects
   lines.push('');
   lines.push(...generateSpacingVars(spacing));
   lines.push(...generateTypographyVars(typography));
   lines.push(...generateAnimationVars(animation));
+  lines.push(...generateEffectsVars(effects));
 
   // Add layout
   lines.push('  /* ========================================');
@@ -776,7 +777,7 @@ function build() {
   ];
 
   // Generate dark theme CSS (Cedar Night) for developer sites
-  const darkThemeContent = generateDarkThemeFile(colors, spacing, typography, animation);
+  const darkThemeContent = generateDarkThemeFile(colors, spacing, typography, animation, effects);
 
   // Helper to write file
   function writeOutput(outputFile, content) {

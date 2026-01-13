@@ -3,6 +3,12 @@
  *
  * GET /api/cognitive/memories - Get what I've learned about the user
  * DELETE /api/cognitive/memories/:id - Forget a specific memory
+ *
+ * Memory Lane Routes:
+ * GET /api/memories/highlights - Get top memory highlights (scored)
+ * GET /api/memories/on-this-day - "On This Day" anniversary memories
+ * GET /api/memories/timeline - Chronological timeline of memories
+ * PATCH /api/memories/:id/reaction - Record user reaction to memory
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
@@ -340,6 +346,7 @@ export async function handleGetSuperhumanInsights(
  * GET /api/memories/on-this-day - Memory Lane "On This Day" memories
  *
  * Returns memories and events from the same day in previous years.
+ * Uses the new Memory Lane service for consistent format with highlights.
  */
 export async function handleGetOnThisDay(
   req: IncomingMessage,
@@ -350,103 +357,296 @@ export async function handleGetOnThisDay(
   if (!userId) return;
 
   try {
-    const { getDefaultStore } = await import('../../memory/index.js');
-    const { getAllUserMemories } = await import('../../services/memory/persona-memories.js');
+    const { getOnThisDayHighlights, collectAllMemories } = await import(
+      '../../services/memory-lane/index.js'
+    );
 
-    const store = getDefaultStore();
-    const profile = (await store.getProfile(userId)) as unknown as AnyRecord | null;
-    const rawMemories = (await getAllUserMemories(userId)) as unknown as AnyRecord[];
+    // Collect any new memories first (lightweight operation)
+    await collectAllMemories(userId);
+
+    // Get "On This Day" memories from the new service
+    const result = await getOnThisDayHighlights(userId, { limit: 20 });
 
     const today = new Date();
-    const todayMonth = today.getMonth();
-    const todayDate = today.getDate();
 
-    // Filter memories from the same day in previous years
-    const onThisDayMemories: Array<{
-      id: string;
-      date: string;
-      yearsAgo: number;
-      content: string;
-      type: string;
-      personaId?: string;
-    }> = [];
-
-    for (const memory of rawMemories) {
-      const memoryDate = memory.createdAt instanceof Date
-        ? memory.createdAt
-        : new Date(memory.createdAt as string);
-
-      if (
-        memoryDate.getMonth() === todayMonth &&
-        memoryDate.getDate() === todayDate &&
-        memoryDate.getFullYear() < today.getFullYear()
-      ) {
-        const yearsAgo = today.getFullYear() - memoryDate.getFullYear();
-        onThisDayMemories.push({
-          id: memory.id as string,
-          date: memoryDate.toISOString(),
-          yearsAgo,
-          content: formatMemoryContent(memory),
-          type: mapMemoryTypeToUIType(memory.type as string),
-          personaId: memory.personaId as string | undefined,
-        });
-      }
-    }
-
-    // Also check profile for important dates (birthdays, anniversaries, etc.)
-    const significantDates: Array<{
-      id: string;
-      type: 'birthday' | 'anniversary' | 'milestone';
-      label: string;
-      yearsAgo: number;
-    }> = [];
-
-    if (profile?.importantDates) {
-      const dates = profile.importantDates as Array<{
-        date: string;
-        type: string;
-        label: string;
-      }>;
-
-      for (const date of dates) {
-        const dateObj = new Date(date.date);
-        if (
-          dateObj.getMonth() === todayMonth &&
-          dateObj.getDate() === todayDate
-        ) {
-          const yearsAgo = today.getFullYear() - dateObj.getFullYear();
-          significantDates.push({
-            id: `date-${date.date}`,
-            type: date.type as 'birthday' | 'anniversary' | 'milestone',
-            label: date.label,
-            yearsAgo: yearsAgo > 0 ? yearsAgo : 0,
-          });
-        }
-      }
-    }
-
-    // Sort by years ago (most recent first)
-    onThisDayMemories.sort((a, b) => a.yearsAgo - b.yearsAgo);
+    // Transform to DTO format matching frontend expectations
+    const memoriesDTO = result.memories.map((m) => ({
+      id: m.id,
+      content: m.content,
+      title: m.title,
+      type: m.type,
+      emotionalTone: m.emotionalTone,
+      occurredAt: m.occurredAt instanceof Date ? m.occurredAt.toISOString() : m.occurredAt,
+      personaId: m.personaId,
+      personaName: m.personaId ? getPersonaName(m.personaId) : undefined,
+      topicTags: m.topicTags,
+      yearAgo: calculateYearsAgo(m.occurredAt),
+      score: m.score,
+      userReaction: m.reactions.length > 0 ? m.reactions[m.reactions.length - 1].reaction : undefined,
+    }));
 
     sendJSONCached(
       res,
       {
-        memories: onThisDayMemories,
-        significantDates,
+        memories: memoriesDTO,
         today: {
-          month: todayMonth + 1, // 1-indexed for display
-          date: todayDate,
+          month: today.getMonth() + 1, // 1-indexed for display
+          date: today.getDate(),
           formatted: today.toLocaleDateString(undefined, { month: 'long', day: 'numeric' }),
         },
-        hasContent: onThisDayMemories.length > 0 || significantDates.length > 0,
+        hasContent: memoriesDTO.length > 0,
       },
       300 // Cache for 5 minutes
     );
   } catch (err) {
     log.error({ error: err, userId }, 'Failed to get on-this-day memories');
-    sendJSON(res, { memories: [], significantDates: [], hasContent: false }, 500);
+    sendJSON(res, { memories: [], today: { month: 0, date: 0, formatted: '' }, hasContent: false }, 500);
   }
 }
+
+/**
+ * GET /api/memories/highlights - Memory Lane highlights (scored)
+ *
+ * Returns top-scored memory highlights for the user.
+ * Query params:
+ *   - limit: max results (default 20)
+ *   - type: filter by memory type
+ *   - persona: filter by persona ID
+ *   - cursor: pagination cursor
+ */
+export async function handleGetHighlights(
+  req: IncomingMessage,
+  res: ServerResponse,
+  parsedUrl: URL
+): Promise<void> {
+  const userId = requireUserId(req, res, parsedUrl);
+  if (!userId) return;
+
+  try {
+    const { getHighlights, collectAllMemories } = await import(
+      '../../services/memory-lane/index.js'
+    );
+
+    // Parse query params
+    const limit = parseInt(parsedUrl.searchParams.get('limit') || '20', 10);
+    const type = parsedUrl.searchParams.get('type') || undefined;
+    const personaId = parsedUrl.searchParams.get('persona') || undefined;
+    const cursor = parsedUrl.searchParams.get('cursor') || undefined;
+
+    // Collect any new memories first (lightweight operation)
+    await collectAllMemories(userId);
+
+    // Get scored highlights
+    const result = await getHighlights(userId, {
+      types: type ? [type as never] : undefined,
+      personaId,
+      cursor,
+      limit,
+      sortBy: 'score',
+      sortOrder: 'desc',
+    });
+
+    // Transform to DTO
+    const memoriesDTO = result.memories.map((m) => ({
+      id: m.id,
+      content: m.content,
+      title: m.title,
+      type: m.type,
+      emotionalTone: m.emotionalTone,
+      occurredAt: m.occurredAt instanceof Date ? m.occurredAt.toISOString() : m.occurredAt,
+      personaId: m.personaId,
+      personaName: m.personaId ? getPersonaName(m.personaId) : undefined,
+      topicTags: m.topicTags,
+      yearAgo: calculateYearsAgo(m.occurredAt),
+      score: m.score,
+      userReaction: m.reactions.length > 0 ? m.reactions[m.reactions.length - 1].reaction : undefined,
+    }));
+
+    sendJSONCached(
+      res,
+      {
+        memories: memoriesDTO,
+        hasMore: result.hasMore,
+        nextCursor: result.nextCursor,
+      },
+      60 // Cache for 1 minute
+    );
+  } catch (err) {
+    log.error({ error: err, userId }, 'Failed to get memory highlights');
+    sendJSON(res, { memories: [], hasMore: false }, 500);
+  }
+}
+
+/**
+ * GET /api/memories/timeline - Chronological memory timeline
+ *
+ * Returns memories grouped by time period.
+ * Query params:
+ *   - limit: max results per group (default 20)
+ *   - cursor: pagination cursor
+ *   - groupBy: 'month' or 'year' (default 'month')
+ */
+export async function handleGetTimeline(
+  req: IncomingMessage,
+  res: ServerResponse,
+  parsedUrl: URL
+): Promise<void> {
+  const userId = requireUserId(req, res, parsedUrl);
+  if (!userId) return;
+
+  try {
+    const { loadMemories } = await import('../../services/memory-lane/index.js');
+
+    // Parse query params
+    const limit = parseInt(parsedUrl.searchParams.get('limit') || '50', 10);
+    const groupBy = (parsedUrl.searchParams.get('groupBy') || 'month') as 'month' | 'year';
+
+    // Load all memories
+    const memories = await loadMemories(userId, { limit });
+
+    // Group by time period
+    const groups = groupMemoriesByPeriod(memories, groupBy);
+
+    // Transform to response format
+    const response = {
+      groups: groups.map((g) => ({
+        label: g.label,
+        memories: g.memories.map((m) => ({
+          id: m.id,
+          content: m.content,
+          title: m.title,
+          type: m.type,
+          emotionalTone: m.emotionalTone,
+          occurredAt: m.occurredAt instanceof Date ? m.occurredAt.toISOString() : m.occurredAt,
+          personaId: m.personaId,
+          personaName: m.personaId ? getPersonaName(m.personaId) : undefined,
+          topicTags: m.topicTags,
+          yearAgo: calculateYearsAgo(m.occurredAt),
+        })),
+        count: g.memories.length,
+      })),
+      totalMemories: memories.length,
+      hasMore: false, // TODO: implement pagination
+    };
+
+    sendJSONCached(res, response, 60);
+  } catch (err) {
+    log.error({ error: err, userId }, 'Failed to get memory timeline');
+    sendJSON(res, { groups: [], totalMemories: 0, hasMore: false }, 500);
+  }
+}
+
+/**
+ * PATCH /api/memories/:id/reaction - Record user reaction to memory
+ *
+ * Body: { reaction: 'loved' | 'dismissed' | 'shared' | 'revisited' }
+ */
+export async function handleMemoryReaction(
+  req: IncomingMessage,
+  res: ServerResponse,
+  parsedUrl: URL,
+  memoryId: string
+): Promise<void> {
+  const userId = requireUserId(req, res, parsedUrl);
+  if (!userId) return;
+
+  try {
+    // Parse request body
+    let body = '';
+    for await (const chunk of req) {
+      body += chunk;
+    }
+
+    const { reaction } = JSON.parse(body || '{}') as {
+      reaction?: 'loved' | 'dismissed' | 'shared' | 'revisited';
+    };
+
+    if (!reaction || !['loved', 'dismissed', 'shared', 'revisited'].includes(reaction)) {
+      sendError(res, 'Invalid reaction type', 400);
+      return;
+    }
+
+    const { recordReaction } = await import('../../services/memory-lane/index.js');
+    const success = await recordReaction(userId, memoryId, reaction, 'browse');
+
+    if (success) {
+      log.info({ userId, memoryId, reaction }, 'Recorded memory reaction');
+      sendJSON(res, { success: true, memoryId, reaction });
+    } else {
+      sendError(res, API_ERRORS.OPERATION_FAILED, 500);
+    }
+  } catch (err) {
+    log.error({ error: err, userId, memoryId }, 'Failed to record memory reaction');
+    sendError(res, API_ERRORS.OPERATION_FAILED, 500);
+  }
+}
+
+// ============================================================================
+// HELPER FUNCTIONS
+// ============================================================================
+
+interface MemoryForGrouping {
+  id: string;
+  content: string;
+  title?: string;
+  type: string;
+  emotionalTone: string;
+  occurredAt: Date | string;
+  personaId?: string;
+  topicTags: string[];
+}
+
+interface MemoryGroup {
+  label: string;
+  startDate: Date;
+  memories: MemoryForGrouping[];
+}
+
+function groupMemoriesByPeriod(
+  memories: MemoryForGrouping[],
+  groupBy: 'month' | 'year'
+): MemoryGroup[] {
+  const groups = new Map<string, MemoryGroup>();
+
+  for (const memory of memories) {
+    const date = memory.occurredAt instanceof Date ? memory.occurredAt : new Date(memory.occurredAt);
+    let key: string;
+    let label: string;
+
+    if (groupBy === 'month') {
+      key = `${date.getFullYear()}-${date.getMonth()}`;
+      label = date.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+    } else {
+      key = `${date.getFullYear()}`;
+      label = date.getFullYear().toString();
+    }
+
+    if (!groups.has(key)) {
+      groups.set(key, {
+        label,
+        startDate: new Date(date.getFullYear(), groupBy === 'month' ? date.getMonth() : 0, 1),
+        memories: [],
+      });
+    }
+
+    groups.get(key)!.memories.push(memory);
+  }
+
+  // Sort groups by date (most recent first)
+  return Array.from(groups.values()).sort(
+    (a, b) => b.startDate.getTime() - a.startDate.getTime()
+  );
+}
+
+function calculateYearsAgo(occurredAt: Date | string): number {
+  const date = occurredAt instanceof Date ? occurredAt : new Date(occurredAt);
+  const now = new Date();
+  return now.getFullYear() - date.getFullYear();
+}
+
+// ============================================================================
+// ROUTE HANDLER
+// ============================================================================
 
 /**
  * Route handler for memories endpoints
@@ -470,6 +670,25 @@ export async function handleMemoriesRoutes(
   // Memory Lane - On This Day
   if (pathname === '/api/memories/on-this-day' && req.method === 'GET') {
     await handleGetOnThisDay(req, res, parsedUrl);
+    return true;
+  }
+
+  // Memory Lane - Highlights (NEW)
+  if (pathname === '/api/memories/highlights' && req.method === 'GET') {
+    await handleGetHighlights(req, res, parsedUrl);
+    return true;
+  }
+
+  // Memory Lane - Timeline (NEW)
+  if (pathname === '/api/memories/timeline' && req.method === 'GET') {
+    await handleGetTimeline(req, res, parsedUrl);
+    return true;
+  }
+
+  // Memory Lane - Reaction (NEW)
+  const reactionMatch = pathname.match(/^\/api\/memories\/([^/]+)\/reaction$/);
+  if (reactionMatch && req.method === 'PATCH') {
+    await handleMemoryReaction(req, res, parsedUrl, decodeURIComponent(reactionMatch[1]));
     return true;
   }
 

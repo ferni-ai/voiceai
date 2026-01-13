@@ -26,6 +26,11 @@ import { removeUndefined, cleanForFirestore } from '../utils/firestore-utils.js'
 import { getLogger } from '../utils/safe-logger.js';
 import { registerInterval, clearNamedInterval } from '../utils/interval-manager.js';
 
+const log = getLogger();
+
+/** Interval name for optimization persistence flush */
+const OPTIMIZATION_PERSISTENCE_INTERVAL = 'optimization-persistence-flush';
+
 // ============================================================================
 // TYPES
 // ============================================================================

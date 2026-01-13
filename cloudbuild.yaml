@@ -8,7 +8,7 @@
 # CACHING STRATEGY (OPTIMIZED):
 # - Kaniko builder with 168h (1 week) cache TTL
 # - BuildKit 1.4 syntax enables parallel stage builds
-# - Semantic versioning for cache invalidation
+# - Layer caching reduces build time from ~15min to ~5min
 #
 # To add a new agent:
 # 1. Create bundle in src/personas/bundles/<agent-id>/
@@ -17,22 +17,37 @@
 #
 # See docs/AGENT-MANAGEMENT.md for details
 
-# Substitutions disabled for fresh build
-# substitutions:
-#   _CACHE_TTL: '24h'
-
 steps:
-  # Build with Kaniko (much better caching than docker build)
-  # - Cache layers persist for 24 hours
+  # ============================================================================
+  # Step 1: Pre-build Type Check (FAIL FAST)
+  # ============================================================================
+  # Catches type errors BEFORE expensive Docker build (~5 min saved on failure)
+  - name: 'node:20-slim'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        corepack enable && corepack prepare pnpm@latest --activate
+        pnpm install --prefer-offline --frozen-lockfile
+        echo "=== Running type check ==="
+        pnpm typecheck || (echo "❌ Type check failed! Fix errors before deploying." && exit 1)
+        echo "✅ Type check passed"
+    id: 'typecheck'
+
+  # ============================================================================
+  # Step 2: Build with Kaniko (much better caching than docker build)
+  # ============================================================================
+  # - Cache layers persist for 1 week
   # - Parallel stage builds in Dockerfile
   # - Pushes BOTH :latest AND :$COMMIT_SHA tags for GitHub Actions compatibility
   - name: 'gcr.io/kaniko-project/executor:latest'
+    waitFor: ['typecheck']
     args:
       - '--dockerfile=docker/Dockerfile.agent'
       - '--destination=gcr.io/$PROJECT_ID/ferni-voice-agent:latest'
       - '--destination=gcr.io/$PROJECT_ID/ferni-voice-agent:$COMMIT_SHA'
-      - '--cache=false'
-      # - '--cache-ttl=${_CACHE_TTL}'  # Disabled for fresh build
+      - '--cache=true'
+      - '--cache-ttl=168h'
       - '--snapshot-mode=redo'
       - '--use-new-run'
       - '--push-retry=3'

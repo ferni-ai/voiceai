@@ -15,8 +15,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 // Mock Firestore before importing modules
-vi.mock('../../../firestore-utils.js', () => ({
+// Path matches what semantic-intelligence modules import: '../firestore-utils.js'
+vi.mock('../firestore-utils.js', () => ({
   getFirestoreDb: vi.fn(() => null),
+  cleanForFirestore: vi.fn((obj: unknown) => obj),
 }));
 
 // Mock embeddings

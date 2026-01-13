@@ -301,7 +301,7 @@ describe('Tool Integration', () => {
 
     it('should handle missing methodology gracefully', async () => {
       const context = await getEnrichedToolContext({
-        personaId: 'peter-lynch', // Peter doesn't have boundaries methodology
+        personaId: 'peter-john', // Peter doesn't have boundaries methodology
         domain: 'boundaries',
       });
 

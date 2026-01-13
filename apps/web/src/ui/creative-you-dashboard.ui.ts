@@ -661,15 +661,30 @@ export class CreativeYouDashboard {
   private async openPodcast(episodeId: string): Promise<void> {
     log.debug('Open podcast:', episodeId);
 
+    // Episode type for API response
+    interface EpisodeDetail {
+      id: string;
+      title: string;
+      podcastTitle: string;
+      summary?: string;
+      description?: string;
+      duration: number;
+    }
+
+    interface EpisodeResponse {
+      episode?: EpisodeDetail;
+      discussionPrompts?: string[];
+    }
+
     // Fetch episode details from API
     try {
-      const response = await apiGet<{ episode?: unknown }>(`/api/creative/podcasts/${episodeId}`);
+      const response = await apiGet<EpisodeResponse>(`/api/creative/podcasts/${episodeId}`);
       if (!response.ok || !response.data) {
         log.error('Failed to fetch episode:', response.status);
         return;
       }
 
-      const episode = response.data.episode;
+      const { episode, discussionPrompts } = response.data;
 
       if (!episode) {
         log.error('Episode not found:', episodeId);
@@ -696,12 +711,12 @@ export class CreativeYouDashboard {
             <p class="episode-duration">${Math.round(episode.duration / 60)} minutes</p>
             <p class="episode-summary">${episode.summary || episode.description}</p>
             ${
-              data.discussionPrompts && data.discussionPrompts.length > 0
+              discussionPrompts && discussionPrompts.length > 0
                 ? `
               <div class="discussion-prompts">
                 <h4>After you listen...</h4>
                 <ul>
-                  ${data.discussionPrompts.map((p: string) => `<li>${p}</li>`).join('')}
+                  ${discussionPrompts.map((p: string) => `<li>${p}</li>`).join('')}
                 </ul>
               </div>
             `

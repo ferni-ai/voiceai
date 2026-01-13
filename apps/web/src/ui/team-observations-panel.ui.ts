@@ -70,13 +70,19 @@ interface TeamObservationsData {
 // ============================================================================
 
 // BRAND COMPLIANT: Using Lucide SVG icons, NOT emoji
-const DEFAULT_PERSONA = {
+interface PersonaDisplay {
+  name: string;
+  color: string;
+  icon: string;
+}
+
+const DEFAULT_PERSONA: PersonaDisplay = {
   name: 'Ferni',
   color: 'var(--persona-ferni-primary, #4a6741)',
   icon: PERSONA_ICONS.ferni,
 };
 
-const PERSONA_CONFIG: Record<string, typeof DEFAULT_PERSONA> = {
+const PERSONA_CONFIG: Record<string, PersonaDisplay> = {
   ferni: DEFAULT_PERSONA,
   peter: {
     name: 'Peter',

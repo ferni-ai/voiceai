@@ -224,13 +224,30 @@ export interface OrchestratorConfig {
 import { modelConfig } from '../../services/model-config.js';
 
 // Base always-available domains (before filtering by enabledDomains)
-// Games included so all personas can play Name That Tune, Tic-Tac-Toe, etc.
+// These domains are ALWAYS sent to the LLM - they don't rely on semantic matching
+// CRITICAL: Include all user-facing essentials, not just system domains!
+// Must stay in sync with ESSENTIAL_DOMAINS in registry/loader.ts
 const BASE_ALWAYS_DOMAINS: ToolDomain[] = [
+  // Core system domains
   'memory',
   'handoff',
-  'entertainment',
-  'information',
-  'games',
+
+  // User-facing essential domains (users expect these to ALWAYS work)
+  'calendar',       // Schedule meetings, events, reminders
+  'scheduling',     // Scheduling coordination
+  'communication',  // Send messages, emails
+  'telephony',      // Make phone calls ("call my mom")
+  'productivity',   // Todos, notes, tasks
+  'family',         // Family-related actions, messages
+
+  // Daily wellness & habits (people check these every day!)
+  'habits',         // "How are my habits?", "Log my workout"
+  'wellness',       // "I'm stressed", emotional support
+
+  // Entertainment & info
+  'entertainment',  // Music, media
+  'information',    // Weather, news, search
+  'games',          // Name That Tune, Tic-Tac-Toe, etc.
 ];
 
 const getDefaultConfig = (): OrchestratorConfig => {

@@ -815,10 +815,7 @@ async function seedFoundersData(): Promise<{
  * Admin endpoint to seed founders data
  * POST /api/garden/admin/seed
  */
-async function handleSeedFoundersData(
-  req: IncomingMessage,
-  res: ServerResponse
-): Promise<void> {
+async function handleSeedFoundersData(req: IncomingMessage, res: ServerResponse): Promise<void> {
   // Verify admin access
   const adminKey = req.headers['x-admin-key'] as string | undefined;
   const configuredAdminKey = process.env.ADMIN_KEY;

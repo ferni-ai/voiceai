@@ -14,6 +14,8 @@
   <!-- Design System -->
   <link rel="stylesheet" href="../master-tokens.css">
   <link rel="stylesheet" href="../brand-components.css">
+  <link rel="stylesheet" href="animations.css">
+  <link rel="stylesheet" href="components.css">
 
   <style>
     /* ============================================
@@ -354,18 +356,19 @@
       z-index: 1;
       max-width: 1400px;
       margin: 0 auto;
-      padding: var(--space-8) var(--space-4);
+      /* Tighter vertical padding - Apple-style compact layout */
+      padding: var(--space-5) var(--space-4);
     }
 
     @media (min-width: 640px) {
       main {
-        padding: var(--space-10) var(--space-6);
+        padding: var(--space-6) var(--space-6);
       }
     }
 
     @media (min-width: 1024px) {
       main {
-        padding: var(--space-12) var(--space-8);
+        padding: var(--space-8) var(--space-8);
       }
     }
 
@@ -666,84 +669,130 @@
     }
 
     /* ============================================
-       ACTIVITY RINGS - APPLE WATCH INSPIRED
-       Floating rings with cinematic animations
-       No containers - pure visual storytelling
+       ACTIVITY RINGS - APPLE/GOOGLE INSPIRED
+       Professional layout with proper containment
+       8px grid system, clear visual hierarchy
        ============================================ */
-    
-    /* Full-bleed rings stage */
+
+    /* Contained visualization stage - NO viewport-based heights */
     .rings-stage {
       position: relative;
-      min-height: 80vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: var(--space-8) var(--space-4);
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: var(--space-6);
+      padding: var(--space-5);
+      /* Card elevation - distinct from page background */
+      background: var(--color-bg-elevated);
+      border: 1px solid var(--color-border-default);
+      border-radius: var(--radius-xl);
+      /* Depth shadow - Apple-style subtle elevation */
+      box-shadow:
+        0 1px 3px rgba(0, 0, 0, 0.12),
+        0 4px 12px rgba(0, 0, 0, 0.08);
       overflow: hidden;
     }
 
     @media (min-width: 640px) {
       .rings-stage {
-        min-height: 90vh;
-        padding: var(--space-12) var(--space-6);
+        padding: var(--space-6);
+        gap: var(--space-6);
+      }
+    }
+
+    @media (min-width: 768px) {
+      .rings-stage {
+        padding: var(--space-8);
+        gap: var(--space-8);
       }
     }
 
     @media (min-width: 1024px) {
       .rings-stage {
-        min-height: 100vh;
-        padding: var(--space-16) var(--space-8);
+        grid-template-columns: auto 1fr;
+        gap: var(--space-10);
+        padding: var(--space-8);
+        align-items: center;
       }
     }
 
-    /* Ambient glow behind rings */
+    @media (min-width: 1280px) {
+      .rings-stage {
+        gap: var(--space-12);
+        padding: var(--space-10);
+      }
+    }
+
+    /* Ambient glow behind rings - subtle, non-distracting */
     .rings-stage::before {
       content: '';
       position: absolute;
-      width: 400px;
-      height: 400px;
+      top: 50%;
+      left: 25%;
+      transform: translate(-50%, -50%);
+      width: 280px;
+      height: 280px;
       background: radial-gradient(circle, var(--color-ferni-subtle) 0%, transparent 70%);
       border-radius: var(--radius-full);
-      filter: blur(60px);
-      animation: ambient-pulse 8s ease-in-out infinite;
+      filter: blur(40px);
+      opacity: 0.4;
       pointer-events: none;
     }
 
     @media (min-width: 768px) {
       .rings-stage::before {
-        width: 600px;
-        height: 600px;
+        width: 320px;
+        height: 320px;
       }
     }
 
-    @keyframes ambient-pulse {
-      0%, 100% { transform: scale(1); opacity: 0.5; }
-      50% { transform: scale(1.2); opacity: 0.7; }
+    @media (min-width: 1024px) {
+      .rings-stage::before {
+        left: 170px;
+        width: 360px;
+        height: 360px;
+      }
     }
 
+    /* Rings container - centered within its grid cell */
     .rings-container {
       position: relative;
       z-index: 1;
+      display: flex;
+      justify-content: center;
     }
 
+    @media (min-width: 1024px) {
+      .rings-container {
+        justify-content: flex-start;
+      }
+    }
+
+    /* Rings visualization - proper sizing */
     .rings-main {
       position: relative;
-      width: 260px;
-      height: 260px;
+      width: 240px;
+      height: 240px;
+      flex-shrink: 0;
     }
 
     @media (min-width: 640px) {
       .rings-main {
-        width: 300px;
-        height: 300px;
+        width: 280px;
+        height: 280px;
       }
     }
 
     @media (min-width: 1024px) {
       .rings-main {
-        width: 340px;
-        height: 340px;
+        width: 320px;
+        height: 320px;
+      }
+    }
+
+    @media (min-width: 1280px) {
+      .rings-main {
+        width: 360px;
+        height: 360px;
       }
     }
 
@@ -850,10 +899,14 @@
     .rings-stories {
       display: flex;
       flex-direction: column;
-      gap: var(--space-6);
-      margin-top: var(--space-12);
-      max-width: 480px;
+      gap: var(--space-4);
       width: 100%;
+    }
+
+    @media (min-width: 640px) {
+      .rings-stories {
+        gap: var(--space-5);
+      }
     }
 
     .ring-story {
@@ -943,16 +996,11 @@
       color: inherit;
     }
 
-    /* Responsive adjustments */
+    /* Responsive adjustments - stories max-width on desktop */
     @media (min-width: 1024px) {
-      .rings-stage {
-        flex-direction: row;
-        gap: var(--space-20);
-      }
-
       .rings-stories {
         margin-top: 0;
-        max-width: 400px;
+        max-width: 420px;
       }
     }
 
@@ -2048,7 +2096,10 @@
 
     .team-constellation {
       position: relative;
-      height: 360px;
+      min-height: 360px;
+      aspect-ratio: 1 / 1;
+      max-width: 400px;
+      margin: 0 auto;
       background: radial-gradient(circle at center, rgba(74, 103, 65, 0.05) 0%, transparent 70%);
       border-radius: var(--radius-xl);
     }
@@ -2526,6 +2577,9 @@
       position: absolute;
       top: 50%;
       left: 50%;
+      /* Offset by half the node size (SVG 36px + some padding) for true centering */
+      margin-left: -24px;
+      margin-top: -24px;
     }
 
     .persona-glow {
@@ -2569,6 +2623,7 @@
       position: absolute;
       top: 50%;
       left: 50%;
+      transform: translate(-50%, -50%);
       width: 100%;
       height: 100%;
       pointer-events: none;
@@ -2590,6 +2645,7 @@
       width: 100%;
       height: 100%;
       pointer-events: none;
+      display: block;
     }
 
     .conversation-flow {
@@ -2597,8 +2653,7 @@
       border: 1px solid var(--glass-border);
       border-radius: var(--radius-xl);
       padding: var(--space-5);
-      max-height: 360px;
-      overflow-y: auto;
+      /* Removed fixed max-height - let content flow naturally */
     }
 
     .flow-title {
@@ -2677,8 +2732,8 @@
         var(--color-nayan-subtle) 0%,
         transparent 100%);
       border-radius: var(--radius-2xl);
-      padding: var(--space-16) var(--space-8);
-      margin-bottom: var(--space-16);
+      padding: var(--space-12) var(--space-8) var(--space-8);
+      margin-bottom: var(--space-8);
     }
 
     .kintsugi-header {
@@ -2891,7 +2946,7 @@
        THE MIRROR - What You Say vs What Ferni Notices
        ============================================ */
     .mirror-section {
-      padding: var(--space-16) 0;
+      padding: var(--space-10) 0;
     }
 
     .mirror-container {
@@ -2986,11 +3041,11 @@
        CONVERSATION RIVER - Stream Graph
        ============================================ */
     .river-section {
-      padding: var(--space-16) 0;
+      padding: var(--space-10) 0;
     }
 
     .river-container {
-      height: 280px;
+      min-height: 280px;
       position: relative;
       margin: var(--space-8) 0;
       background: var(--color-bg-elevated);
@@ -3041,7 +3096,7 @@
        VALUES RADAR - Stated vs Lived
        ============================================ */
     .radar-section {
-      padding: var(--space-16) 0;
+      padding: var(--space-10) 0;
     }
 
     .radar-container {
@@ -3112,7 +3167,7 @@
        THE UNSAID - Gentle Reminders
        ============================================ */
     .unsaid-section {
-      padding: var(--space-16) 0;
+      padding: var(--space-10) 0;
     }
 
     .unsaid-grid {
@@ -3162,7 +3217,7 @@
        UNFINISHED STORIES - Open Arcs
        ============================================ */
     .stories-section {
-      padding: var(--space-16) 0;
+      padding: var(--space-10) 0;
     }
 
     .stories-grid {
@@ -3251,7 +3306,7 @@
        Your story arc across years
        ============================================ */
     .chapters-section {
-      padding: var(--space-16) 0;
+      padding: var(--space-10) 0;
       background: linear-gradient(180deg,
         var(--color-nayan-subtle) 0%,
         transparent 50%,
@@ -3430,6 +3485,18 @@
     .insight-icon--alex { color: var(--color-alex); }
     .insight-icon--jordan { color: var(--color-jordan); }
     .insight-icon--peter { color: var(--color-peter); }
+
+    /* Insight card centered variant */
+    .insight-card--centered {
+      max-width: 600px;
+      margin: 0 auto var(--space-8);
+    }
+
+    /* Action panels - call-to-action blocks */
+    .action-panel {
+      max-width: 600px;
+      margin: var(--space-8) auto 0;
+    }
 
     /* Pulse value icons */
     .pulse-value-icon {
@@ -3828,20 +3895,20 @@
           <div class="rings-main">
             <svg class="rings-svg" viewBox="0 0 100 100">
               <defs>
-                <!-- Ferni green (Growth) -->
+                <!-- Ferni green (Growth) - uses design tokens -->
                 <linearGradient id="moveGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stop-color="#4A6741"/>
-                  <stop offset="100%" stop-color="#5a7a51"/>
+                  <stop offset="0%" style="stop-color: var(--color-ferni)"/>
+                  <stop offset="100%" style="stop-color: var(--color-ferni-light)"/>
                 </linearGradient>
-                <!-- Nayan gold (Wisdom) -->
+                <!-- Nayan gold (Wisdom) - uses design tokens -->
                 <linearGradient id="exerciseGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stop-color="#B8956A"/>
-                  <stop offset="100%" stop-color="#c9a67a"/>
+                  <stop offset="0%" style="stop-color: var(--color-nayan)"/>
+                  <stop offset="100%" style="stop-color: var(--color-nayan-light)"/>
                 </linearGradient>
-                <!-- Peter teal (Balance) -->
+                <!-- Peter teal (Balance) - uses design tokens -->
                 <linearGradient id="standGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stop-color="#3A6B73"/>
-                  <stop offset="100%" stop-color="#4a7b83"/>
+                  <stop offset="0%" style="stop-color: var(--color-peter)"/>
+                  <stop offset="100%" style="stop-color: var(--color-peter-light)"/>
                 </linearGradient>
               </defs>
 
@@ -3921,6 +3988,28 @@
           <strong>Maya noticed:</strong> Your stretching consistency is 3× higher before checking email. Tomorrow morning?
         </p>
       </div>
+
+      <!-- Action Panel: Notice → Nurture -->
+      <div class="action-panel">
+        <div class="action-panel-header">
+          <span class="action-panel-icon">✦</span>
+          <span class="action-panel-label">Notice → Nurture</span>
+        </div>
+        <div class="action-panel-insight">
+          47 days is remarkable - and Maya's observation reveals why. Pre-email stretching works because it's protected time. The pattern is the insight: your habits stick when they're sequenced, not just scheduled.
+        </div>
+        <div class="action-panel-prompt">
+          What else could live in that protected morning window?
+        </div>
+        <div class="action-panel-actions">
+          <button class="action-btn action-btn-primary">
+            <span>Explore habit stacking with Maya</span>
+          </button>
+          <button class="action-btn action-btn-secondary">
+            <span>Celebrate the streak</span>
+          </button>
+        </div>
+      </div>
     </section>
 
     <!-- SECTION: Your Future - Dreams Projected Forward -->
@@ -3964,8 +4053,8 @@
             <defs>
               <!-- Nayan gold to Maya terracotta gradient -->
               <linearGradient id="lineGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stop-color="#B8956A"/>
-                <stop offset="100%" stop-color="#A67A6A"/>
+                <stop offset="0%" style="stop-color: var(--color-nayan)"/>
+                <stop offset="100%" style="stop-color: var(--color-maya)"/>
               </linearGradient>
             </defs>
 
@@ -4073,6 +4162,28 @@
             <div class="insight-text">If you shifted $300/month from that streaming service bundle to your coast fund, the "most likely" path moves up 8 months. That's 8 more months of sunsets. Worth considering?</div>
           </div>
         </div>
+
+        <!-- Action Panel: Notice → Nurture -->
+        <div class="action-panel">
+          <div class="action-panel-header">
+            <span class="action-panel-icon">✦</span>
+            <span class="action-panel-label">Notice → Nurture</span>
+          </div>
+          <div class="action-panel-insight">
+            Your coastal dream isn't fantasy—it's 4 years away on the most likely path. The $300/month shift isn't about deprivation, it's about trading 8 streaming services you barely use for 8 extra months of ocean sunrises.
+          </div>
+          <div class="action-panel-prompt">
+            What would make this dream feel more real today?
+          </div>
+          <div class="action-panel-actions">
+            <button class="action-btn action-btn-primary">
+              <span>Run my own "what if" scenarios</span>
+            </button>
+            <button class="action-btn action-btn-secondary">
+              <span>Talk to Nayan about the tradeoffs</span>
+            </button>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -4151,6 +4262,28 @@
         <div class="insight-content">
           <div class="insight-title">Ferni connected some dots</div>
           <div class="insight-text">Your energy score jumped 2 points the week you started morning stretches. Your quality time with Sarah increased after you hit that savings milestone. These things aren't separate—they're feeding each other.</div>
+        </div>
+      </div>
+
+      <!-- Action Panel: Notice → Nurture -->
+      <div class="action-panel">
+        <div class="action-panel-header">
+          <span class="action-panel-icon">✦</span>
+          <span class="action-panel-label">Notice → Nurture</span>
+        </div>
+        <div class="action-panel-insight">
+          The connection between your energy score and morning stretches isn't coincidence—it's causation. And that ripples into everything: better conversations with Sarah, clearer thinking at work, even your savings decisions improve when you're rested.
+        </div>
+        <div class="action-panel-prompt">
+          Which of these metrics would you like to move next?
+        </div>
+        <div class="action-panel-actions">
+          <button class="action-btn action-btn-primary">
+            <span>Explore my connections deeper</span>
+          </button>
+          <button class="action-btn action-btn-secondary">
+            <span>Add a new metric to track</span>
+          </button>
         </div>
       </div>
     </section>
@@ -4255,6 +4388,28 @@
           <div class="insight-content">
             <div class="insight-title">Alex noticed something</div>
             <div class="insight-text">You usually reply to Mom within 30 minutes. It's been 2 hours—just wanted to flag it. No pressure, but she might be wondering if you're okay.</div>
+          </div>
+        </div>
+
+        <!-- Action Panel: Notice → Nurture -->
+        <div class="action-panel">
+          <div class="action-panel-header">
+            <span class="action-panel-icon">✦</span>
+            <span class="action-panel-label">Notice → Nurture</span>
+          </div>
+          <div class="action-panel-insight">
+            Your deep focus session is valuable—47 minutes of uninterrupted work is rare. But Mom's message is also time-sensitive. Alex can handle this tension without you having to context-switch.
+          </div>
+          <div class="action-panel-prompt">
+            How would you like to handle this balance?
+          </div>
+          <div class="action-panel-actions">
+            <button class="action-btn action-btn-primary">
+              <span>Send Mom a quick "deep in work, will call soon"</span>
+            </button>
+            <button class="action-btn action-btn-secondary">
+              <span>Set a reminder for after this focus block</span>
+            </button>
           </div>
         </div>
       </div>
@@ -4436,13 +4591,35 @@
         </div>
 
         <!-- Jordan's Insight (now integrated with context) -->
-        <div class="insight-card" style="margin-top: var(--space-6);">
+        <div class="insight-card">
           <div class="insight-icon insight-icon--jordan">
             <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
           </div>
           <div class="insight-content">
             <div class="insight-title">Jordan sees the full picture</div>
             <div class="insight-text">Friends see isolated moments. I see the arc: the slow build from January's uncertainty, the setbacks that preceded breakthroughs, the seasonal rhythms you didn't know you had. That recovery week you thought was "falling off"? It's when your best ideas incubate. This isn't tracking. It's remembering who you've been becoming.</div>
+          </div>
+        </div>
+
+        <!-- Action Panel: Notice → Nurture -->
+        <div class="action-panel">
+          <div class="action-panel-header">
+            <span class="action-panel-icon">✦</span>
+            <span class="action-panel-label">Notice → Nurture</span>
+          </div>
+          <div class="action-panel-insight">
+            Your 3-week natural rhythm isn't a bug—it's a feature. The recovery weeks where you felt "off" were actually incubation periods. Your best breakthroughs came right after them. Working with this cycle instead of against it could transform your year.
+          </div>
+          <div class="action-panel-prompt">
+            How would you like to honor your natural rhythm?
+          </div>
+          <div class="action-panel-actions">
+            <button class="action-btn action-btn-primary">
+              <span>Schedule lighter weeks around my recovery cycle</span>
+            </button>
+            <button class="action-btn action-btn-secondary">
+              <span>Explore more patterns in my year</span>
+            </button>
           </div>
         </div>
       </div>
@@ -4636,7 +4813,7 @@
         </div>
 
         <!-- Maya's Insight -->
-        <div class="insight-card" style="margin-top: var(--space-6);">
+        <div class="insight-card">
           <div class="insight-icon insight-icon--maya">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
               <path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/>
@@ -4645,6 +4822,28 @@
           <div class="insight-content">
             <div class="insight-title">Maya understands the cascade</div>
             <div class="insight-text">Friends see habits as checkboxes. I see them as dominoes. That 5-minute stretch wasn't about flexibility, it was about proving to yourself that you could show up. Once you believed that, everything else became possible. The savings rate? That's the same muscle. The vacation? Same belief. You didn't just build a habit. You rebuilt your self-concept.</div>
+          </div>
+        </div>
+
+        <!-- Action Panel: Notice → Nurture -->
+        <div class="action-panel">
+          <div class="action-panel-header">
+            <span class="action-panel-icon">✦</span>
+            <span class="action-panel-label">Notice → Nurture</span>
+          </div>
+          <div class="action-panel-insight">
+            Your morning stretch rippled into 9 other positive changes over 7 weeks. This is the power of keystone habits—they don't just create one change, they rebuild your self-concept. What would another keystone unlock?
+          </div>
+          <div class="action-panel-prompt">
+            Where would you like to create the next ripple?
+          </div>
+          <div class="action-panel-actions">
+            <button class="action-btn action-btn-primary">
+              <span>Explore potential keystone habits with Maya</span>
+            </button>
+            <button class="action-btn action-btn-secondary">
+              <span>See what other ripples I've created</span>
+            </button>
           </div>
         </div>
       </div>
@@ -4835,7 +5034,7 @@
       </div>
 
       <!-- Nayan's Insight -->
-      <div class="insight-card" style="margin-top: var(--space-6);">
+      <div class="insight-card">
         <div class="insight-icon insight-icon--nayan">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
             <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
@@ -4844,6 +5043,28 @@
         <div class="insight-content">
           <div class="insight-title">Nayan sees what time reveals</div>
           <div class="insight-text">You've been fighting your rhythms instead of flowing with them. That October crisis you're dreading? It comes every year because that's when your soul does its accounting. Stop scheduling product launches in October. Stop expecting Tuesday energy on Wednesday. Your body has a clock. Your year has a shape. Work with the grain, not against it.</div>
+        </div>
+      </div>
+
+      <!-- Action Panel: Notice → Nurture -->
+      <div class="action-panel">
+        <div class="action-panel-header">
+          <span class="action-panel-icon">✦</span>
+          <span class="action-panel-label">Notice → Nurture</span>
+        </div>
+        <div class="action-panel-insight">
+          October questioning isn't weakness—it's your soul's annual inventory. Your spring surge is real. Your Wednesday slump is data, not laziness. Aligning your life with these patterns could transform how you plan your year.
+        </div>
+        <div class="action-panel-prompt">
+          How would you like to align with your natural rhythms?
+        </div>
+        <div class="action-panel-actions">
+          <button class="action-btn action-btn-primary">
+            <span>Plan next year around my seasonal patterns</span>
+          </button>
+          <button class="action-btn action-btn-secondary">
+            <span>Explore my circadian patterns deeper</span>
+          </button>
         </div>
       </div>
     </section>
@@ -4945,7 +5166,7 @@
           </div>
 
           <!-- Connection lines (drawn by JS) -->
-          <svg class="connection-lines" id="connectionLines" viewBox="0 0 400 400">
+          <svg class="connection-lines" id="connectionLines" viewBox="0 0 400 400" width="100%" height="100%" preserveAspectRatio="xMidYMid meet">
           </svg>
         </div>
 
@@ -5035,7 +5256,7 @@
       </div>
 
       <!-- Ferni's Insight -->
-      <div class="insight-card" style="margin-top: var(--space-6);">
+      <div class="insight-card">
         <div class="insight-icon insight-icon--ferni">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
             <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
@@ -5044,6 +5265,28 @@
         <div class="insight-content">
           <div class="insight-title">Ferni sees the whole picture</div>
           <div class="insight-text">What looked like a simple work question touched your body, your data, your relationships, and your confidence. A single advisor would have given you presentation tips. We gave you calm, clarity, preparation, and the exact words to handle your skeptic. That's not six conversations. That's one conversation with six perspectives. That's what a real support system feels like.</div>
+        </div>
+      </div>
+
+      <!-- Action Panel: Notice → Nurture -->
+      <div class="action-panel">
+        <div class="action-panel-header">
+          <span class="action-panel-icon">✦</span>
+          <span class="action-panel-label">Notice → Nurture</span>
+        </div>
+        <div class="action-panel-insight">
+          Six perspectives, one support system. Your presentation prep wasn't six separate conversations—it was one holistic approach that touched your body, data, relationships, and confidence. That's what integrated support feels like.
+        </div>
+        <div class="action-panel-prompt">
+          Which team member would help most with what's on your mind right now?
+        </div>
+        <div class="action-panel-actions">
+          <button class="action-btn action-btn-primary">
+            <span>Start a conversation with Ferni</span>
+          </button>
+          <button class="action-btn action-btn-secondary">
+            <span>See who else is available</span>
+          </button>
         </div>
       </div>
     </section>
@@ -5061,7 +5304,7 @@
       </div>
 
       <!-- BTH Callout -->
-      <div class="insight-card" style="max-width: 600px; margin: 0 auto var(--space-8);">
+      <div class="insight-card insight-card--centered">
         <div class="insight-icon insight-icon--ferni">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
             <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
@@ -5078,9 +5321,9 @@
         <svg class="pottery-bowl" viewBox="0 0 400 300" preserveAspectRatio="xMidYMid meet">
           <defs>
             <linearGradient id="goldGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stop-color="#9A7B1C"/>
-              <stop offset="50%" stop-color="#E5C84B"/>
-              <stop offset="100%" stop-color="#9A7B1C"/>
+              <stop offset="0%" style="stop-color: var(--kintsugi-gold-deep, #9A7B1C)"/>
+              <stop offset="50%" style="stop-color: var(--kintsugi-gold-bright, #E5C84B)"/>
+              <stop offset="100%" style="stop-color: var(--kintsugi-gold-deep, #9A7B1C)"/>
             </linearGradient>
             <filter id="softShadow">
               <feDropShadow dx="2" dy="4" stdDeviation="4" flood-opacity="0.15"/>
@@ -5169,6 +5412,28 @@
           </div>
         </article>
       </div>
+
+      <!-- Action Panel: Notice → Nurture -->
+      <div class="action-panel">
+        <div class="action-panel-header">
+          <span class="action-panel-icon">✦</span>
+          <span class="action-panel-label">Notice → Nurture</span>
+        </div>
+        <div class="action-panel-insight">
+          Four cracks, four golden repairs, four pieces of wisdom you earned the hard way. This isn't a record of failures - it's a map of your resilience. The gold that holds you together is stronger than the original.
+        </div>
+        <div class="action-panel-prompt">
+          Is there a recent crack that's ready for its golden repair?
+        </div>
+        <div class="action-panel-actions">
+          <button class="action-btn action-btn-primary">
+            <span>Add a new golden repair</span>
+          </button>
+          <button class="action-btn action-btn-secondary">
+            <span>Reflect on the wisdom earned</span>
+          </button>
+        </div>
+      </div>
     </section>
 
     <!-- ============================================
@@ -5181,7 +5446,7 @@
         <p class="viz-section-description">What you say and what Ferni notices are different. The gap reveals growth opportunities.</p>
       </header>
 
-      <div class="insight-card" style="max-width: 600px; margin: 0 auto var(--space-8);">
+      <div class="insight-card insight-card--centered">
         <div class="insight-icon insight-icon--ferni">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
             <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
@@ -5222,6 +5487,28 @@
           </div>
         </div>
       </div>
+
+      <!-- Action Panel: Notice → Nurture -->
+      <div class="action-panel">
+        <div class="action-panel-header">
+          <span class="action-panel-icon">✦</span>
+          <span class="action-panel-label">Notice → Nurture</span>
+        </div>
+        <div class="action-panel-insight">
+          The exercise gap is widening - 12 commitments, 2 kept. But the pattern reveals the fix: something about your current approach isn't working for this season.
+        </div>
+        <div class="action-panel-prompt">
+          What's the smallest commitment you'd actually keep this week?
+        </div>
+        <div class="action-panel-actions">
+          <button class="action-btn action-btn-primary">
+            <span>Try a 2-minute habit with Maya</span>
+          </button>
+          <button class="action-btn action-btn-secondary">
+            <span>Explore what's blocking movement</span>
+          </button>
+        </div>
+      </div>
     </section>
 
     <!-- ============================================
@@ -5234,7 +5521,7 @@
         <p class="viz-section-description">Your conversations flow like a river. Some topics are deep channels, others are seasonal tributaries.</p>
       </header>
 
-      <div class="insight-card" style="max-width: 600px; margin: 0 auto var(--space-8);">
+      <div class="insight-card insight-card--centered">
         <div class="insight-icon insight-icon--nayan">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
             <path d="M2 12c2-2 5-4 10-4s8 2 10 4-5 4-10 4-8-2-10-4z"/><circle cx="12" cy="12" r="3"/>
@@ -5275,6 +5562,28 @@
           <div class="river-legend-item"><div class="river-legend-dot" style="background: var(--color-nayan);"></div><span>Growth</span></div>
         </div>
       </div>
+
+      <!-- Action Panel: Notice → Nurture -->
+      <div class="action-panel">
+        <div class="action-panel-header">
+          <span class="action-panel-icon">✦</span>
+          <span class="action-panel-label">Notice → Nurture</span>
+        </div>
+        <div class="action-panel-insight">
+          Your work stream swelled in September while health dipped. Family conversations peaked in November. These aren't just topics—they're the shifting priorities of your life, made visible.
+        </div>
+        <div class="action-panel-prompt">
+          Which stream would you like to give more attention?
+        </div>
+        <div class="action-panel-actions">
+          <button class="action-btn action-btn-primary">
+            <span>Explore the work-health connection</span>
+          </button>
+          <button class="action-btn action-btn-secondary">
+            <span>See what's driving the shifts</span>
+          </button>
+        </div>
+      </div>
     </section>
 
     <!-- ============================================
@@ -5287,7 +5596,7 @@
         <p class="viz-section-description">The gap between stated values and lived values is where growth hides.</p>
       </header>
 
-      <div class="insight-card" style="max-width: 600px; margin: 0 auto var(--space-8);">
+      <div class="insight-card insight-card--centered">
         <div class="insight-icon insight-icon--maya">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
             <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
@@ -5335,6 +5644,28 @@
           </div>
         </div>
       </div>
+
+      <!-- Action Panel: Notice → Nurture -->
+      <div class="action-panel">
+        <div class="action-panel-header">
+          <span class="action-panel-icon">✦</span>
+          <span class="action-panel-label">Notice → Nurture</span>
+        </div>
+        <div class="action-panel-insight">
+          Health shows the biggest gap between intention and action—2 of 12 weeks. This isn't judgment, it's clarity. Something about your current approach to health isn't matching your life right now.
+        </div>
+        <div class="action-panel-prompt">
+          What would closing that gap look like for you?
+        </div>
+        <div class="action-panel-actions">
+          <button class="action-btn action-btn-primary">
+            <span>Find a health approach that fits my reality</span>
+          </button>
+          <button class="action-btn action-btn-secondary">
+            <span>Explore why this gap exists</span>
+          </button>
+        </div>
+      </div>
     </section>
 
     <!-- ============================================
@@ -5347,7 +5678,7 @@
         <p class="viz-section-description">Topics mentioned once and never again. These quiet things deserve gentle attention.</p>
       </header>
 
-      <div class="insight-card" style="max-width: 600px; margin: 0 auto var(--space-8);">
+      <div class="insight-card insight-card--centered">
         <div class="insight-icon insight-icon--nayan">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
             <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
@@ -5378,6 +5709,28 @@
           </div>
         </div>
       </div>
+
+      <!-- Action Panel: Notice → Nurture -->
+      <div class="action-panel">
+        <div class="action-panel-header">
+          <span class="action-panel-icon">✦</span>
+          <span class="action-panel-label">Notice → Nurture</span>
+        </div>
+        <div class="action-panel-insight">
+          These aren't forgotten thoughts—they're seeds waiting for the right moment. The ceramics class (creative expression), the anxiety conversation (self-care), the distance you miss (connection). One small step could bring any of these back to life.
+        </div>
+        <div class="action-panel-prompt">
+          Which of these whispers wants attention first?
+        </div>
+        <div class="action-panel-actions">
+          <button class="action-btn action-btn-primary">
+            <span>Explore the ceramics class</span>
+          </button>
+          <button class="action-btn action-btn-secondary">
+            <span>Revisit another unsaid thought</span>
+          </button>
+        </div>
+      </div>
     </section>
 
     <!-- ============================================
@@ -5391,7 +5744,7 @@
         <p class="viz-section-description">Not just months or years. Ferni sees the chapters of your story, the themes emerging across time.</p>
       </header>
 
-      <div class="insight-card" style="max-width: 600px; margin: 0 auto var(--space-8);">
+      <div class="insight-card insight-card--centered">
         <div class="insight-icon insight-icon--nayan">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
             <path d="M12 3v18M4 9l8-6 8 6M4 15l8 6 8-6"/>
@@ -5431,6 +5784,28 @@
           </div>
         </div>
       </div>
+
+      <!-- Action Panel: Notice → Nurture -->
+      <div class="action-panel">
+        <div class="action-panel-header">
+          <span class="action-panel-icon">✦</span>
+          <span class="action-panel-label">Notice → Nurture</span>
+        </div>
+        <div class="action-panel-insight">
+          From "Finding My Footing" to "Intentional Living"—you can see the arc now. The turbulence led to grounding. The grounding led to connection. The connection is leading to design. What will this chapter be remembered for?
+        </div>
+        <div class="action-panel-prompt">
+          What intention do you want to set for this new chapter?
+        </div>
+        <div class="action-panel-actions">
+          <button class="action-btn action-btn-primary">
+            <span>Define my chapter intention with Nayan</span>
+          </button>
+          <button class="action-btn action-btn-secondary">
+            <span>Reflect on the journey so far</span>
+          </button>
+        </div>
+      </div>
     </section>
 
     <!-- ============================================
@@ -5443,7 +5818,7 @@
         <p class="viz-section-description">Story arcs still being written. Every unfinished story is a door still open.</p>
       </header>
 
-      <div class="insight-card" style="max-width: 600px; margin: 0 auto var(--space-8);">
+      <div class="insight-card insight-card--centered">
         <div class="insight-icon insight-icon--jordan">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
             <circle cx="12" cy="12" r="10"/><path d="M8 12l2 2 4-4"/>
@@ -5512,6 +5887,28 @@
           </div>
         </div>
       </div>
+
+      <!-- Action Panel: Notice → Nurture -->
+      <div class="action-panel">
+        <div class="action-panel-header">
+          <span class="action-panel-icon">✦</span>
+          <span class="action-panel-label">Notice → Nurture</span>
+        </div>
+        <div class="action-panel-insight">
+          Three stories at different stages: Career Pivot at 80% (nearly there!), Health Transformation at 65% (real momentum), Creative Project at 30% (waiting patiently). These aren't abandoned—they're unfinished. Each deserves attention in its own time.
+        </div>
+        <div class="action-panel-prompt">
+          Which story arc wants your attention today?
+        </div>
+        <div class="action-panel-actions">
+          <button class="action-btn action-btn-primary">
+            <span>Finish the Career Pivot chapter</span>
+          </button>
+          <button class="action-btn action-btn-secondary">
+            <span>Revisit the Creative Project</span>
+          </button>
+        </div>
+      </div>
     </section>
 
     <!-- Final Insight Banner -->
@@ -5527,6 +5924,32 @@
 
   <!-- Shared Navigation Component -->
   <script src="../shared/nav.js" defer></script>
+
+  <!-- Ferni Visualization System -->
+  <script type="module">
+    import FerniViz from './viz-system.js';
+
+    // Initialize all visualization systems
+    FerniViz.init({
+      enableTooltips: true,
+      enableAnimations: true,
+      enableDisclosure: true,
+      enableComparison: true,
+      enableIcons: true,
+      enableSharing: true,
+      debug: false
+    });
+
+    // Make all viz-cards shareable
+    document.querySelectorAll('.viz-card').forEach(card => {
+      FerniViz.makeShareable(card);
+    });
+
+    // Add scroll reveal to major sections
+    document.querySelectorAll('.viz-section').forEach(section => {
+      section.classList.add('viz-reveal');
+    });
+  </script>
 
   <script>
     // ============================================

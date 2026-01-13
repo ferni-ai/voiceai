@@ -73,10 +73,7 @@ const TIME_OF_DAY_HOURS: Record<string, number> = {
  * parseNaturalDateTime("in 2 hours") // 2 hours from now
  * parseNaturalDateTime("Sunday morning") // Next Sunday at 9:00 AM
  */
-export function parseNaturalDateTime(
-  input: string,
-  referenceDate: Date = new Date()
-): Date | null {
+export function parseNaturalDateTime(input: string, referenceDate: Date = new Date()): Date | null {
   const normalizedInput = input.toLowerCase().trim();
 
   try {
@@ -206,10 +203,7 @@ function parseDay(input: string, reference: Date): Date | null {
 /**
  * Parse the time component from input.
  */
-function parseTime(
-  input: string,
-  _reference: Date
-): { hours: number; minutes: number } | null {
+function parseTime(input: string, _reference: Date): { hours: number; minutes: number } | null {
   // Check for time of day keywords
   const timeOfDayMatch = input.match(TIME_PATTERNS.timeOfDay);
   if (timeOfDayMatch) {

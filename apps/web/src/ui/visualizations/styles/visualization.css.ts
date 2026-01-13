@@ -73,34 +73,36 @@ export function getVisualizationStyles(): string {
       --viz-energy-mental: var(--persona-peter, #3a6b73);
       --viz-energy-physical: var(--persona-ferni, #4a6741);
 
-      --viz-status-thriving: var(--color-semantic-success, #3d7a52);
-      --viz-status-balanced: var(--color-accent, #3D5A45);
-      --viz-status-stretched: var(--color-semantic-warning, #a67c35);
-      --viz-status-depleted: #c67840;
-      --viz-status-critical: var(--color-semantic-error, #b5453a);
+      /* Status tokens - sourced from design system */
+      --viz-status-thriving: var(--viz-status-thriving, #3d7a52);
+      --viz-status-balanced: var(--viz-status-balanced, #3D5A45);
+      --viz-status-stretched: var(--viz-status-stretched, #a67c35);
+      --viz-status-depleted: var(--viz-status-depleted, #c67840);
+      --viz-status-critical: var(--viz-status-critical, #b5453a);
 
-      --viz-priority-high: var(--color-semantic-error, #b5453a);
-      --viz-priority-medium: var(--color-semantic-warning, #a67c35);
-      --viz-priority-low: var(--color-text-muted, #756a5e);
+      /* Priority tokens - sourced from design system */
+      --viz-priority-high: var(--viz-priority-high, #b5453a);
+      --viz-priority-medium: var(--viz-priority-medium, #a67c35);
+      --viz-priority-low: var(--viz-priority-low, #756a5e);
 
-      /* Mood colors - earthy, warm palette */
-      --viz-mood-calm: var(--color-accent, #3D5A45);
-      --viz-mood-joyful: #c4956a;
-      --viz-mood-anxious: #b5453a;
-      --viz-mood-tired: var(--color-text-muted, #756a5e);
-      --viz-mood-focused: var(--persona-peter, #3a6b73);
-      --viz-mood-reflective: #7a6a8a;
-      --viz-mood-stressed: #a54545;
-      --viz-mood-energized: #4a7a52;
-      --viz-mood-peaceful: #5a8a73;
-      --viz-mood-uncertain: #6a6a6a;
+      /* Mood tokens - sourced from design system (--viz-moods-*) */
+      --viz-mood-calm: var(--viz-moods-calm, #3D5A45);
+      --viz-mood-joyful: var(--viz-moods-joyful, #c4956a);
+      --viz-mood-anxious: var(--viz-moods-anxious, #b5453a);
+      --viz-mood-tired: var(--viz-moods-tired, #756a5e);
+      --viz-mood-focused: var(--viz-moods-focused, #3a6b73);
+      --viz-mood-reflective: var(--viz-moods-reflective, #7a6a8a);
+      --viz-mood-stressed: var(--viz-moods-stressed, #a54545);
+      --viz-mood-energized: var(--viz-moods-energized, #4a7a52);
+      --viz-mood-peaceful: var(--viz-moods-peaceful, #5a8a73);
+      --viz-mood-uncertain: var(--viz-moods-uncertain, #6a6a6a);
 
-      /* Chapter type colors */
-      --viz-chapter-growth: var(--color-accent, #3D5A45);
-      --viz-chapter-challenge: #b5453a;
-      --viz-chapter-transition: #c4956a;
-      --viz-chapter-celebration: #4a7a52;
-      --viz-chapter-reflection: #7a6a8a;
+      /* Chapter tokens - sourced from design system (--viz-chapters-*) */
+      --viz-chapter-growth: var(--viz-chapters-growth, #3D5A45);
+      --viz-chapter-challenge: var(--viz-chapters-challenge, #b5453a);
+      --viz-chapter-transition: var(--viz-chapters-transition, #c4956a);
+      --viz-chapter-celebration: var(--viz-chapters-celebration, #4a7a52);
+      --viz-chapter-reflection: var(--viz-chapters-reflection, #7a6a8a);
 
       /* Semantic colors for DOM elements */
       --viz-accent: var(--color-accent, #3D5A45);

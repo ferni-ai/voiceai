@@ -8,7 +8,7 @@
  */
 
 import { log } from '@livekit/agents';
-import { resetDJBooth } from '../../audio/index.js';
+import { resetDJController, resetDJTimingEngine } from '../../audio/index.js';
 import {
   flushLearningSignals,
   onDeepUnderstandingSessionEnd as saveDeepUnderstandingProfiles,
@@ -37,7 +37,7 @@ import {
   resetHandoffState,
   resetMetPersonas,
 } from '../../tools/handoff/index.js';
-import { getDJIntegration } from '../dj-integration.js';
+import { getDJController } from '../../audio/dj-controller.js';
 // 🎭 Unified conversation session cleanup - loaded dynamically to avoid startup timeout
 // import { cleanupConversationSession } from '../integrations/conversation-session-integration.js';
 // FIX AUDIT: Import from service layer instead of API routes (clean architecture)
@@ -73,6 +73,9 @@ import { awardSeedsForConversation } from '../../services/seed-economy.js';
 
 // Session closing tracker - prevents operations during shutdown
 import { clearSessionClosing, markSessionClosing } from '../shared/session-closing-tracker.js';
+
+// Developer Platform: Webhook integration for marketplace personas
+import { onSessionEnded as dispatchSessionEndedWebhook } from '../integrations/developer-webhook-integration.js';
 
 // Event cleanup registry for tracking and cleaning up event handlers
 import { runSessionCleanup as runRegistryCleanup } from '../session/event-cleanup-registry.js';
@@ -197,6 +200,10 @@ export interface CleanupContext {
   userData?: UserDataWithTrial;
   // Periodic sync cleanup
   stopPeriodicSync?: (() => void) | null;
+  // Publisher ID for marketplace/custom personas (Developer Platform)
+  publisherId?: string;
+  // Session start time for calculating duration
+  sessionStartTime?: number;
 }
 
 /**
@@ -292,7 +299,22 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
     musicCleanup,
     userData,
     stopPeriodicSync,
+    publisherId,
+    sessionStartTime,
   } = ctx;
+
+  // ================================================================
+  // DEVELOPER PLATFORM: DISPATCH SESSION ENDED WEBHOOK (fire-and-forget)
+  // Only fires if publisherId is available (marketplace/custom personas)
+  // ================================================================
+  const sessionDuration = sessionStartTime ? Date.now() - sessionStartTime : undefined;
+  dispatchSessionEndedWebhook({
+    sessionId,
+    userId,
+    personaId: sessionPersona.id,
+    publisherId,
+    duration: sessionDuration,
+  });
 
   // ================================================================
   // GROUP 1: SYNCHRONOUS EVENT LISTENER CLEANUP (immediate, prevents memory leaks)
@@ -744,7 +766,7 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
     userId
       ? (async () => {
           try {
-            const { getLastConversationContext } = await import('../../memory/realtime-memory.js');
+            const { getLastConversationContext } = await import('../../services/memory/realtime-memory.js');
             const { saveMemoryDirect } = await import('../../services/unified-memory-service.js');
 
             // Get conversation context for signal extraction
@@ -893,10 +915,22 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
       diag.session('🧹 GlobalThis session data cleaned up');
     })(),
 
-    // Session-scoped state cleanup
+    // Session-scoped state cleanup (legacy)
     (async () => {
       const { clearHandoffSessionState } = await import('../shared/handoff/session-state.js');
       clearHandoffSessionState(sessionId);
+    })(),
+
+    // Unified handoff state cleanup (new architecture - clears timers, EventEmitters)
+    (async () => {
+      const { clearSession } = await import('../../handoff/unified-state.js');
+      clearSession(sessionId);
+    })(),
+
+    // Tool deduplication cache cleanup (prevents unbounded memory growth)
+    (async () => {
+      const { clearToolDeduplicationForSession } = await import('../shared/tool-call-sanitizer.js');
+      clearToolDeduplicationForSession(sessionId);
     })(),
 
     // Coordinator adapter cleanup (prevents memory leaks)
@@ -1003,6 +1037,12 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
         await import('../../tools/semantic-router/integration/routing-observability.js');
       logSessionRoutingSummary(sessionId);
       cleanupSessionStats(sessionId);
+    })(),
+
+    // Generate reply gateway cleanup (prevents orphaned operations after disconnect)
+    (async () => {
+      const { cleanupSessionState } = await import('../shared/generate-reply-gateway.js');
+      cleanupSessionState(sessionId);
     })(),
 
     // Semantic tool presence cleanup ("Better than Human" tool feedback)
@@ -1204,27 +1244,23 @@ async function cleanupCognitiveSession(
   }
 }
 
-async function cleanupDJIntegration(services: SessionServices): Promise<void> {
+async function cleanupDJIntegration(_services: SessionServices): Promise<void> {
   try {
-    const dj = getDJIntegration();
+    const djController = getDJController();
 
-    // 🎧 Play exit sound as backup (may have already played during goodbye)
-    // This ensures the sound plays even if the session ends abruptly
-    try {
-      const wrapResult = await dj.wrapShow();
-      if (wrapResult.playedSound) {
-        diag.session('🎧 Session wrap sound played (cleanup)', { playedSound: true });
-      }
-    } catch (wrapErr) {
-      diag.debug('Session wrap sound skipped (may have already played)', {
-        error: String(wrapErr),
-      });
-    }
+    // Get session state for logging
+    const state = djController.getState();
 
-    const djSummary = dj.getSessionSummary();
+    // Log DJ session summary
+    diag.session('🎧 DJ session summary', {
+      finalState: state.state,
+      hadMusic: state.currentTrack !== null || state.trackStartTime !== null,
+      wasExplicitlyStopped: state.wasExplicitlyStopped,
+    });
 
-    // 🎵 Get full music preferences from DJ Booth (includes learned genres, dislikes, mood correlations)
-    let djBoothPrefs: {
+    // Music preferences are now handled by music-user-learning.ts
+    // No need to extract from DJ Booth since it's been deleted
+    const djBoothPrefs: {
       likedArtists?: string[];
       dislikedArtists?: string[];
       favoriteGenres?: string[];
@@ -1232,89 +1268,12 @@ async function cleanupDJIntegration(services: SessionServices): Promise<void> {
       preferredMusicTimes?: Array<'morning' | 'afternoon' | 'evening' | 'night'>;
     } | null = null;
 
-    try {
-      const { getDJBooth } = await import('../../audio/dj-booth.js');
-      const djBooth = getDJBooth();
-      if (djBooth) {
-        djBoothPrefs = djBooth.getMusicPreferences();
-      }
-    } catch (boothErr) {
-      diag.debug('Could not get DJ Booth preferences (non-fatal)', { error: String(boothErr) });
-    }
-
-    if ((djSummary.musicArtists.length > 0 || djBoothPrefs) && services.userProfile) {
-      // 🎵 ENHANCED: Merge full DJ booth preferences into user profile
-      const existingMemory = services.userProfile.musicMemory;
-
-      // Merge favorite artists (from both DJ summary and learned preferences)
-      const mergedFavoriteArtists = [
-        ...new Set([
-          ...(existingMemory?.favoriteArtists || []),
-          ...djSummary.musicArtists,
-          ...(djBoothPrefs?.likedArtists || []),
-        ]),
-      ].slice(-15); // Keep last 15 artists
-
-      // 🎵 Merge disliked artists (NEW - was not being saved before!)
-      const mergedDislikedArtists = [
-        ...new Set([
-          ...(existingMemory?.dislikedArtists || []),
-          ...(djBoothPrefs?.dislikedArtists || []),
-        ]),
-      ].slice(-10); // Keep last 10 dislikes
-
-      // 🎵 Merge favorite genres (NEW - auto-learned from track metadata!)
-      const mergedFavoriteGenres = [
-        ...new Set([
-          ...(existingMemory?.favoriteGenres || []),
-          ...(djBoothPrefs?.favoriteGenres || []),
-        ]),
-      ].slice(-10); // Keep last 10 genres
-
-      // 🎵 Merge mood-music correlations (NEW - learned from emotional context!)
-      const mergedMoodPrefs: Record<string, string[]> = {
-        ...(existingMemory?.moodMusicPreferences || {}),
-      };
-      if (djBoothPrefs?.moodPreferences) {
-        for (const [mood, values] of Object.entries(djBoothPrefs.moodPreferences)) {
-          if (!mergedMoodPrefs[mood]) {
-            mergedMoodPrefs[mood] = [];
-          }
-          mergedMoodPrefs[mood] = [...new Set([...mergedMoodPrefs[mood], ...values])].slice(-5); // Keep top 5 per mood
-        }
-      }
-
-      // 🎵 Merge preferred music times
-      const mergedMusicTimes = [
-        ...new Set([
-          ...(existingMemory?.preferredMusicTimes || []),
-          ...(djBoothPrefs?.preferredMusicTimes || []),
-        ]),
-      ] as Array<'morning' | 'afternoon' | 'evening' | 'night'>;
-
-      services.userProfile.musicMemory = {
-        favoriteArtists: mergedFavoriteArtists,
-        dislikedArtists: mergedDislikedArtists,
-        favoriteGenres: mergedFavoriteGenres,
-        moodMusicPreferences: mergedMoodPrefs,
-        preferredMusicTimes: mergedMusicTimes,
-        musicMoods: existingMemory?.musicMoods,
-        lastPlayedTrack: existingMemory?.lastPlayedTrack,
-        updatedAt: new Date(),
-        lastPlayedArtist:
-          djSummary.musicArtists[djSummary.musicArtists.length - 1] ||
-          existingMemory?.lastPlayedArtist,
-        totalTracksPlayed: (existingMemory?.totalTracksPlayed || 0) + djSummary.musicArtists.length,
-      };
-
-      diag.session('🎧 DJ session preferences saved (enhanced)', {
-        topics: djSummary.topics.length,
-        artists: mergedFavoriteArtists.length,
-        dislikedArtists: mergedDislikedArtists.length,
-        genres: mergedFavoriteGenres.length,
-        moodCorrelations: Object.keys(mergedMoodPrefs).length,
-      });
-    }
+    // Music preferences are now persisted via music-learning-persistence.ts
+    // The music-user-learning.ts module handles Thompson Sampling for preferences
+    // and music-memory-integration.ts handles music helped memories
+    // No manual preference merging needed here - it's all automatic now!
+    
+    diag.session('🎧 DJ Controller cleanup complete');
   } catch (djErr) {
     diag.warn('🎧 DJ summary save failed (non-fatal)', { error: String(djErr) });
   }
@@ -1322,10 +1281,11 @@ async function cleanupDJIntegration(services: SessionServices): Promise<void> {
 
 function cleanupDJBooth(): void {
   try {
-    resetDJBooth();
-    diag.session('🎧 DJ Booth cleaned up');
+    resetDJController();
+    resetDJTimingEngine();
+    diag.session('🎧 DJ Controller cleaned up');
   } catch (boothErr) {
-    diag.warn('🎧 DJ Booth cleanup failed (non-fatal)', { error: String(boothErr) });
+    diag.warn('🎧 DJ Controller cleanup failed (non-fatal)', { error: String(boothErr) });
   }
 }
 

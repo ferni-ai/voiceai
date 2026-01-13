@@ -39,6 +39,9 @@ const GENERATED_FILES = [
   'apps/web/public/design-system/tokens.css',
   'apps/website/ferni-website/css/design-tokens.css',
   'apps/website/ferni-website/src/css/_tokens.css',
+  'apps/website/developers-portal/src/css/tokens.css',
+  'apps/website/design-system-portal/src/css/tokens.css',
+  'brand/ferni-design-tokens.css',
 ];
 
 const DEPRECATED_FILES = [

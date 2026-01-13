@@ -9,20 +9,20 @@
   <link rel="stylesheet" href="../master-tokens.css">
   <link rel="stylesheet" href="../brand-components.css">
   <style>
-    /* Page-specific overrides and additions */
+    /* Page-specific overrides - mapped to design token palette */
     :root {
-      /* Motion-specific colors not in master tokens */
-      --bg-dark: #1e1e1e;
-      --glow-neutral: #f5f5f5;
-      --glow-joy: #ffd700;
-      --glow-concern: #daa520;
-      --glow-excitement: #ff6b6b;
-      --glow-calm: #87ceeb;
-      --glow-empathy: #ffb6c1;
-      --glow-focus: #4fc3f7;
-      --glow-celebration: #ffc107;
-      --glow-wisdom: #b8956a;
-      --glow-love: #ff69b4;
+      /* Emotional glow colors mapped to persona/semantic palette */
+      --bg-dark: var(--color-natural-ink-dark);
+      --glow-neutral: var(--color-warm-white);
+      --glow-joy: var(--color-nayan-light);
+      --glow-concern: var(--color-nayan-dark);
+      --glow-excitement: var(--color-jordan);
+      --glow-calm: var(--color-peter-light);
+      --glow-empathy: var(--color-maya);
+      --glow-focus: var(--color-alex);
+      --glow-celebration: var(--color-nayan);
+      --glow-wisdom: var(--color-nayan);
+      --glow-love: var(--color-maya-light);
     }
 
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -43,9 +43,9 @@
       left: 0;
       right: 0;
       z-index: 1000;
-      background: rgba(250, 248, 245, 0.95);
+      background: var(--glass-bg-light);
       backdrop-filter: blur(8px);
-      border-bottom: 1px solid rgba(44, 37, 32, 0.08);
+      border-bottom: 1px solid var(--border-subtle);
       padding: 12px 24px;
       display: flex;
       justify-content: space-between;
@@ -80,7 +80,7 @@
     .header {
       text-align: center;
       padding: 48px 40px 32px;
-      background: linear-gradient(180deg, rgba(74, 103, 65, 0.03) 0%, transparent 100%);
+      background: linear-gradient(180deg, var(--color-ferni-tint) 0%, transparent 100%);
     }
 
     .header h1 {
@@ -102,7 +102,7 @@
       align-items: center;
       gap: 8px;
       padding: 8px 16px;
-      background: rgba(74, 103, 65, 0.1);
+      background: var(--color-ferni-subtle);
       border-radius: 20px;
       font-size: 13px;
       font-weight: 600;
@@ -122,8 +122,8 @@
       border-radius: 24px;
       padding: 40px;
       margin-bottom: 32px;
-      border: 1px solid rgba(44, 37, 32, 0.06);
-      box-shadow: 0 4px 24px rgba(44, 37, 32, 0.04);
+      border: 1px solid var(--border-subtle);
+      box-shadow: var(--shadow-sm);
     }
 
     .section-header {
@@ -159,7 +159,7 @@
     }
 
     .why-box {
-      background: linear-gradient(135deg, rgba(74, 103, 65, 0.08) 0%, rgba(74, 103, 65, 0.02) 100%);
+      background: linear-gradient(135deg, var(--color-ferni-subtle) 0%, var(--color-ferni-tint) 100%);
       border-radius: 12px;
       padding: 16px 20px;
       margin-top: 20px;
@@ -198,7 +198,7 @@
       flex-direction: column;
       align-items: center;
       padding: 48px;
-      background: linear-gradient(135deg, rgba(74, 103, 65, 0.05) 0%, transparent 100%);
+      background: linear-gradient(135deg, var(--color-ferni-tint) 0%, transparent 100%);
       border-radius: 20px;
       min-width: 280px;
     }
@@ -527,12 +527,12 @@
     }
 
     .layer-toggle:hover {
-      border-color: rgba(74, 103, 65, 0.2);
+      border-color: var(--color-ferni-light);
     }
 
     .layer-toggle.active {
       border-color: var(--ferni);
-      background: rgba(74, 103, 65, 0.05);
+      background: var(--color-ferni-tint);
     }
 
     .layer-icon {
@@ -574,13 +574,13 @@
     }
 
     .eq-card:hover {
-      border-color: rgba(74, 103, 65, 0.2);
+      border-color: var(--color-ferni-light);
       transform: translateY(-2px);
     }
 
     .eq-card.active {
       border-color: var(--ferni);
-      box-shadow: 0 8px 24px rgba(74, 103, 65, 0.15);
+      box-shadow: 0 8px 24px var(--color-ferni-glow);
     }
 
     .eq-card-header {
@@ -611,7 +611,7 @@
       font-family: var(--font-mono);
       font-size: 12px;
       color: var(--ferni);
-      background: rgba(74, 103, 65, 0.1);
+      background: var(--color-ferni-subtle);
       padding: 2px 8px;
       border-radius: 4px;
       margin-left: auto;
@@ -630,7 +630,7 @@
       border: none;
       border-radius: 8px;
       background: var(--ferni);
-      color: white;
+      color: var(--color-text-inverse);
       font-weight: 600;
       font-size: 13px;
       cursor: pointer;
@@ -640,13 +640,13 @@
 
     .eq-demo-btn:hover {
       transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(74, 103, 65, 0.3);
+      box-shadow: 0 4px 12px var(--color-ferni-glow);
     }
 
     /* Active Listening Visualization */
     .listening-viz {
       height: 60px;
-      background: rgba(74, 103, 65, 0.05);
+      background: var(--color-ferni-tint);
       border-radius: 8px;
       display: flex;
       align-items: center;
@@ -683,7 +683,7 @@
     /* Breath Sync Visualization */
     .breath-viz {
       height: 80px;
-      background: rgba(74, 103, 65, 0.05);
+      background: var(--color-ferni-tint);
       border-radius: 8px;
       display: flex;
       align-items: center;
@@ -801,7 +801,7 @@
 
     .timeline-bar {
       height: 48px;
-      background: rgba(74, 103, 65, 0.1);
+      background: var(--color-ferni-subtle);
       border-radius: 8px;
       position: relative;
       overflow: hidden;
@@ -837,7 +837,7 @@
       flex: 1;
       height: 6px;
       -webkit-appearance: none;
-      background: rgba(44, 37, 32, 0.1);
+      background: var(--border-subtle);
       border-radius: 3px;
       outline: none;
     }
@@ -850,7 +850,7 @@
       border-radius: 50%;
       cursor: pointer;
       transition: transform 0.2s;
-      box-shadow: 0 2px 8px rgba(74, 103, 65, 0.3);
+      box-shadow: 0 2px 8px var(--color-ferni-glow);
     }
 
     input[type="range"]::-webkit-slider-thumb:hover {
@@ -887,26 +887,26 @@
 
     .btn-primary {
       background: var(--ferni);
-      color: white;
+      color: var(--color-text-inverse);
     }
 
     .btn-primary:hover {
       transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(74, 103, 65, 0.3);
+      box-shadow: 0 4px 12px var(--color-ferni-glow);
     }
 
     .btn-secondary {
-      background: rgba(44, 37, 32, 0.08);
+      background: var(--bg-subtle);
       color: var(--text-primary);
     }
 
     .btn-secondary:hover {
-      background: rgba(44, 37, 32, 0.15);
+      background: var(--bg-muted);
     }
 
     .btn-secondary.active {
       background: var(--ferni);
-      color: white;
+      color: var(--color-text-inverse);
     }
 
     /* ============================================
@@ -995,12 +995,12 @@
     }
 
     .waveform-preset:hover {
-      border-color: rgba(74, 103, 65, 0.2);
+      border-color: var(--color-ferni-light);
     }
 
     .waveform-preset.active {
       border-color: var(--ferni);
-      background: rgba(74, 103, 65, 0.1);
+      background: var(--color-ferni-subtle);
       color: var(--ferni);
     }
 
@@ -1047,8 +1047,8 @@
 
     .timing-card:hover {
       transform: translateY(-4px);
-      box-shadow: 0 8px 24px rgba(44, 37, 32, 0.1);
-      border-color: rgba(74, 103, 65, 0.2);
+      box-shadow: var(--shadow-md);
+      border-color: var(--color-ferni-light);
     }
 
     .timing-card:active {
@@ -1074,7 +1074,7 @@
 
     .timing-card.flash .timing-duration,
     .timing-card.flash .timing-label {
-      color: white;
+      color: var(--color-text-inverse);
     }
 
     /* Responsive */
@@ -1537,7 +1537,7 @@
     </section>
 
     <!-- PIXAR PRINCIPLES FOOTER -->
-    <section class="section" style="background: linear-gradient(135deg, rgba(74, 103, 65, 0.05) 0%, rgba(74, 103, 65, 0.02) 100%);">
+    <section class="section" style="background: linear-gradient(135deg, var(--color-ferni-tint) 0%, var(--color-ferni-tint) 100%);">
       <div class="section-header">
         <div class="section-icon">
           <span style="filter: brightness(0) invert(1);">&#x1F3AC;</span>
@@ -1553,7 +1553,7 @@
       <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px;">
         <div style="background: var(--bg-elevated); padding: 20px; border-radius: 12px;">
           <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
-            <div style="width: 28px; height: 28px; background: var(--ferni); color: white; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px;">1</div>
+            <div style="width: 28px; height: 28px; background: var(--ferni); color: var(--color-text-inverse); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px;">1</div>
             <strong>Squash & Stretch</strong>
           </div>
           <p style="font-size: 13px; color: var(--text-secondary);">
@@ -1563,7 +1563,7 @@
 
         <div style="background: var(--bg-elevated); padding: 20px; border-radius: 12px;">
           <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
-            <div style="width: 28px; height: 28px; background: var(--ferni); color: white; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px;">2</div>
+            <div style="width: 28px; height: 28px; background: var(--ferni); color: var(--color-text-inverse); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px;">2</div>
             <strong>Anticipation</strong>
           </div>
           <p style="font-size: 13px; color: var(--text-secondary);">
@@ -1573,7 +1573,7 @@
 
         <div style="background: var(--bg-elevated); padding: 20px; border-radius: 12px;">
           <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
-            <div style="width: 28px; height: 28px; background: var(--ferni); color: white; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px;">3</div>
+            <div style="width: 28px; height: 28px; background: var(--ferni); color: var(--color-text-inverse); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px;">3</div>
             <strong>Secondary Action</strong>
           </div>
           <p style="font-size: 13px; color: var(--text-secondary);">
@@ -1583,7 +1583,7 @@
 
         <div style="background: var(--bg-elevated); padding: 20px; border-radius: 12px;">
           <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
-            <div style="width: 28px; height: 28px; background: var(--ferni); color: white; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px;">4</div>
+            <div style="width: 28px; height: 28px; background: var(--ferni); color: var(--color-text-inverse); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px;">4</div>
             <strong>Timing</strong>
           </div>
           <p style="font-size: 13px; color: var(--text-secondary);">
@@ -1593,7 +1593,7 @@
 
         <div style="background: var(--bg-elevated); padding: 20px; border-radius: 12px;">
           <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
-            <div style="width: 28px; height: 28px; background: var(--ferni); color: white; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px;">5</div>
+            <div style="width: 28px; height: 28px; background: var(--ferni); color: var(--color-text-inverse); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px;">5</div>
             <strong>Exaggeration</strong>
           </div>
           <p style="font-size: 13px; color: var(--text-secondary);">
@@ -1601,9 +1601,9 @@
           </p>
         </div>
 
-        <div style="background: linear-gradient(135deg, rgba(74, 103, 65, 0.1) 0%, rgba(74, 103, 65, 0.02) 100%); padding: 20px; border-radius: 12px; border: 1px solid rgba(74, 103, 65, 0.2);">
+        <div style="background: linear-gradient(135deg, var(--color-ferni-subtle) 0%, var(--color-ferni-tint) 100%); padding: 20px; border-radius: 12px; border: 1px solid var(--color-ferni-light);">
           <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
-            <div style="width: 28px; height: 28px; background: var(--ferni); color: white; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px;">+</div>
+            <div style="width: 28px; height: 28px; background: var(--ferni); color: var(--color-text-inverse); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px;">+</div>
             <strong style="color: var(--ferni);">Beyond Pixar</strong>
           </div>
           <p style="font-size: 13px; color: var(--text-secondary);">

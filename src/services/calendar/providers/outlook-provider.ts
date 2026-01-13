@@ -560,7 +560,15 @@ export class OutlookCalendarProvider implements CalendarProviderAdapter {
    */
   async getCalendars(
     userId: string
-  ): Promise<Array<{ id: string; name: string; primary: boolean }>> {
+  ): Promise<Array<{
+    id: string;
+    name: string;
+    primary: boolean;
+    color?: string;
+    owner?: string;
+    canEdit?: boolean;
+    description?: string;
+  }>> {
     const tokens = await this.getTokens(userId);
     if (!tokens) {
       return [];
@@ -577,6 +585,11 @@ export class OutlookCalendarProvider implements CalendarProviderAdapter {
         id: c.id,
         name: c.name,
         primary: c.isDefaultCalendar || false,
+        color: c.color,
+        canEdit: c.canEdit,
+        // Outlook doesn't expose owner in the basic calendar list
+        owner: undefined,
+        description: undefined,
       }));
     } catch (error) {
       log.error({ error: String(error), userId }, 'Error listing Outlook calendars');

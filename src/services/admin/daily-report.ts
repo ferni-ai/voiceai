@@ -61,8 +61,15 @@ export interface PersonaUsage {
  * Generate daily report data for a specific date
  */
 export async function generateDailyReport(targetDate?: Date): Promise<DailyReportData> {
-  const admin = await import('firebase-admin');
-  const db = admin.firestore();
+  const { getFirestore } = await import('firebase-admin/firestore');
+  const { initializeApp, getApps } = await import('firebase-admin/app');
+
+  // Initialize Firebase if not already done
+  if (getApps().length === 0) {
+    initializeApp();
+  }
+
+  const db = getFirestore();
 
   // Default to yesterday
   const reportDate = targetDate || new Date();

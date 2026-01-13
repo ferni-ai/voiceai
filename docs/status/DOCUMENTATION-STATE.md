@@ -6,7 +6,16 @@
 
 The Ferni AI codebase has **~380 markdown files** in `/docs` directory. This document tracks the documentation structure, cleanup progress, and maintenance guidelines.
 
-### January 2026 Consolidation Complete ✅
+### January 2026 Comprehensive Audit Complete ✅
+
+**Phase 4 (Jan 10):** Full codebase documentation audit
+- Created 39 new CLAUDE.md files across all major directories
+- Added navigation indexes: `src/CLAUDE.md`, `apps/CLAUDE.md`
+- Documented all apps: iOS, Android, Electron, macOS, Rust modules
+- Documented all infrastructure: docker, infra, monitoring, e2e tests
+- Deleted stale `DEPLOYMENT.md` (contained forbidden gcloud commands)
+- Fixed all broken DEPLOYMENT.md references across docs
+- Total CLAUDE.md files: **80** (up from 41)
 
 **Phase 3 (Jan 3):** Major documentation cleanup
 - Created 8 new CLAUDE.md files for previously undocumented directories
@@ -14,7 +23,6 @@ The Ferni AI codebase has **~380 markdown files** in `/docs` directory. This doc
 - Archived 4 completed plans to `docs/archive/completed-plans/`
 - Consolidated 9 duplicate docs (memory, intelligence) to `docs/archive/consolidated-docs/`
 - Updated root CLAUDE.md with fresh metrics and new file references
-- Total CLAUDE.md files: 38 (up from 11)
 
 ### December 2024 Consolidation Complete ✅
 
@@ -41,7 +49,7 @@ The Ferni AI codebase has **~380 markdown files** in `/docs` directory. This doc
 | Category | Files | Notes |
 |----------|-------|-------|
 | **Root docs** | 9 | CLAUDE.md, README.md, ONBOARDING.md, etc. |
-| **CLAUDE.md files** | 38 | Root + 37 subdirectory contexts |
+| **CLAUDE.md files** | 80 | Root + 79 subdirectory contexts |
 | **docs/architecture/** | 80 | System design and ADRs |
 | **docs/audits/** | 73 | Active quality audits |
 | **docs/plans/** | 44 | Implementation plans |
@@ -67,7 +75,7 @@ voiceai/
 │   ├── CORE-PRINCIPLES.md     # Mission & philosophy
 │   ├── ONBOARDING.md          # Developer setup
 │   ├── CONTRIBUTING.md        # Contribution process
-│   ├── DEPLOYMENT.md          # Deploy instructions
+│   ├── (see docs/deployment/) # Deploy via `ferni deploy`
 │   ├── SCRIPTS.md             # npm scripts reference
 │   ├── BACKLOG.md             # Product backlog
 │   └── CHANGELOG.md           # Version history
@@ -96,7 +104,7 @@ voiceai/
 │   ├── social/                # Social media graphics
 │   └── ferni-design-tokens.css
 │
-├── CLAUDE.md Files            # AI Context Hierarchy (11 files)
+├── CLAUDE.md Files            # AI Context Hierarchy (80 files)
 │   ├── ./CLAUDE.md            # Root (main context)
 │   ├── apps/web/CLAUDE.md     # Frontend design standards
 │   ├── src/tools/CLAUDE.md    # Tool development

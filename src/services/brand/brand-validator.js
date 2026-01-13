@@ -331,3 +331,4 @@ export function getQuickScore(content) {
 function escapeRegex(string) {
     return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
+//# sourceMappingURL=brand-validator.js.map

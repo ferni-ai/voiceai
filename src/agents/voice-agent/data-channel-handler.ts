@@ -181,6 +181,11 @@ export function setupDataChannelHandler(ctx: DataChannelContext): DataChannelRes
       if (message.type === 'user_reaction') {
         await handleUserReaction(message, ctx);
       }
+
+      // 📊 USER FEEDBACK: Handle contextual feedback from avatar-attached UI
+      if (message.type === 'user_feedback') {
+        await handleUserFeedback(message, ctx);
+      }
     } catch {
       // Not JSON or not a valid request - this is expected for non-data-channel uses
       // Silently ignore as data channel is used for multiple message types
@@ -1005,6 +1010,107 @@ async function handleUserReaction(
   const ackMessage = JSON.stringify({
     type: 'user_reaction_ack',
     reactionId,
+    success: true,
+    timestamp: Date.now(),
+  });
+  await room.localParticipant?.publishData(new TextEncoder().encode(ackMessage), {
+    reliable: true,
+  });
+}
+
+// ============================================================================
+// USER FEEDBACK HANDLER (Contextual Feedback System)
+// ============================================================================
+
+/**
+ * Handle user_feedback messages - contextual feedback from avatar-attached UI.
+ *
+ * This is the new contextual feedback system that collects micro-feedback
+ * during natural conversation pauses. The feedback is stored and can influence
+ * the ongoing conversation.
+ *
+ * Message format:
+ * {
+ *   type: 'user_feedback',
+ *   feedbackId: string,      // ID from the feedback_prompt event
+ *   reaction: 'resonated' | 'helpful' | 'too_much' | 'off_track' | 'skipped',
+ *   responseTimeMs: number,  // Time from prompt to response
+ *   timestamp: number
+ * }
+ */
+async function handleUserFeedback(
+  message: {
+    feedbackId: string;
+    reaction: string;
+    responseTimeMs?: number;
+    timestamp?: number;
+  },
+  ctx: DataChannelContext
+): Promise<void> {
+  const { room, sessionId, sessionPersona, userId } = ctx;
+  const { feedbackId, reaction, responseTimeMs, timestamp } = message;
+
+  getLogger().info(
+    {
+      sessionId,
+      feedbackId,
+      reaction,
+      responseTimeMs,
+      userId,
+      personaId: sessionPersona?.id,
+    },
+    '📊 User sent contextual feedback'
+  );
+
+  // Record the feedback reaction (fire and forget)
+  fireAndForget(async () => {
+    try {
+      const { recordFeedbackReaction } = await import('../../services/feedback/index.js');
+
+      if (userId && feedbackId) {
+        const result = await recordFeedbackReaction({
+          feedbackId,
+          userId,
+          reaction: reaction as 'resonated' | 'helpful' | 'too_much' | 'off_track' | 'skipped',
+        });
+
+        if (result.ok) {
+          getLogger().info(
+            { feedbackId, reaction, userId },
+            '📊 Feedback reaction recorded successfully'
+          );
+        } else {
+          getLogger().warn(
+            { feedbackId, reason: result.reason },
+            '📊 Failed to record feedback reaction'
+          );
+        }
+      }
+    } catch (err) {
+      getLogger().warn({ error: String(err), feedbackId }, '📊 Failed to record feedback');
+    }
+  }, 'user_feedback_recording');
+
+  // Update the feedback trigger engine with emotional tone based on reaction
+  fireAndForget(async () => {
+    try {
+      const { feedbackTriggerEngine } = await import('../feedback/index.js');
+
+      // Map reaction to emotional tone for future context
+      if (reaction === 'too_much') {
+        feedbackTriggerEngine.onEmotionalToneChange(sessionId, 'heavy');
+      } else if (reaction === 'resonated' || reaction === 'helpful') {
+        feedbackTriggerEngine.onEmotionalToneChange(sessionId, 'positive');
+      }
+    } catch (err) {
+      getLogger().debug({ error: String(err) }, '📊 Failed to update feedback trigger state');
+    }
+  }, 'user_feedback_trigger_update');
+
+  // Send acknowledgment back to frontend
+  const ackMessage = JSON.stringify({
+    type: 'user_feedback_ack',
+    feedbackId,
     success: true,
     timestamp: Date.now(),
   });

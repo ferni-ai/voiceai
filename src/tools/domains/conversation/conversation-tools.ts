@@ -364,15 +364,8 @@ export function createConversationTools() {
       execute: async ({ reason }) => {
         getLogger().info(`Ending conversation: ${reason}`);
 
-        // 🎧 Play the exit sound - "Wrap the show"
-        try {
-          const { getDJIntegration } = await import('../../../agents/dj-integration.js');
-          const dj = getDJIntegration();
-          const wrapResult = await dj.wrapShow();
-          getLogger().info('🎧 Session wrap sound', { playedSound: wrapResult.playedSound });
-        } catch (wrapErr) {
-          getLogger().debug(`Failed to play session-end sound: ${wrapErr}`);
-        }
+        // 🎧 Play the exit sound - session end sounds are handled by cleanup handler
+        getLogger().info('🎧 Session ending - cleanup handler will handle exit sound');
 
         // 🌅 Signal the frontend to auto-disconnect
         try {

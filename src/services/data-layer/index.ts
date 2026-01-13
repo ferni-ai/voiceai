@@ -203,6 +203,9 @@ export {
 } from './profile-pruning.js';
 export type { PruningConfig, PruningResult } from './profile-pruning.js';
 
+// Re-export name sync utility (fixes name in memories → profile)
+export { syncNameFromMemories, fixUserName } from './name-sync.js';
+
 // Re-export memory cache manager
 export {
   ManagedCache,

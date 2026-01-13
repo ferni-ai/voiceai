@@ -18,7 +18,7 @@
 
 import { getLogger } from '../../utils/safe-logger.js';
 import type { Firestore as FirestoreType } from '@google-cloud/firestore';
-import { cleanForFirestore } from '../../utils/firestore-utils.js';
+import { cleanForFirestore, toSafeDate } from '../../utils/firestore-utils.js';
 import { onContactChange, onContactInteractionChange } from '../data-layer/hooks/contacts-hooks.js';
 
 const log = getLogger();
@@ -1081,22 +1081,22 @@ async function ensureUserLoaded(userId: string): Promise<void> {
       const data = doc.data();
       contacts.push({
         ...data,
-        firstInteraction: data.firstInteraction?.toDate() || new Date(),
-        lastInteraction: data.lastInteraction?.toDate() || new Date(),
-        createdAt: data.createdAt?.toDate() || new Date(),
-        updatedAt: data.updatedAt?.toDate() || new Date(),
+        firstInteraction: toSafeDate(data.firstInteraction),
+        lastInteraction: toSafeDate(data.lastInteraction),
+        createdAt: toSafeDate(data.createdAt),
+        updatedAt: toSafeDate(data.updatedAt),
         topics: (data.topics || []).map((t: Record<string, unknown>) => ({
           ...t,
-          firstMentioned: (t.firstMentioned as { toDate: () => Date })?.toDate?.() || new Date(),
-          lastMentioned: (t.lastMentioned as { toDate: () => Date })?.toDate?.() || new Date(),
+          firstMentioned: toSafeDate(t.firstMentioned),
+          lastMentioned: toSafeDate(t.lastMentioned),
         })),
         pendingFollowUp: data.pendingFollowUp
           ? {
               ...data.pendingFollowUp,
-              dueDate: data.pendingFollowUp.dueDate?.toDate() || new Date(),
+              dueDate: toSafeDate(data.pendingFollowUp.dueDate),
             }
           : undefined,
-        lastFollowUpDate: data.lastFollowUpDate?.toDate(),
+        lastFollowUpDate: data.lastFollowUpDate ? toSafeDate(data.lastFollowUpDate) : undefined,
       } as ContactRelationship);
     }
 

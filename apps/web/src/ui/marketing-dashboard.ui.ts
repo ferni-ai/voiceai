@@ -122,7 +122,7 @@ export class MarketingDashboard {
       }
 
       // Load analytics
-      const analyticsRes = await apiGet<MarketingAnalytics>('/api/marketing/analytics?period=week');
+      const analyticsRes = await apiGet<Analytics>('/api/marketing/analytics?period=week');
       if (analyticsRes.ok && analyticsRes.data) {
         this.analytics = analyticsRes.data;
       }

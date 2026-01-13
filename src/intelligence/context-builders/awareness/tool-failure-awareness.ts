@@ -174,7 +174,7 @@ async function buildToolFailureAwareness(input: ContextBuilderInput): Promise<Co
 
     return [
       createHighInjection('tool_failure_awareness', formatted, {
-        priority: 85, // High priority - should be addressed
+        category: 'tool_reliability',
       }),
     ];
   } catch (error) {

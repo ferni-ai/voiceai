@@ -51,7 +51,7 @@ describe('A. Digital Twin Profile', () => {
     it('should build context for AI from twin profile', async () => {
       // Import the context builder
       const { buildTwinProfileContext } =
-        await import('../../intelligence/context-builders/twin-profile-context.js');
+        await import('../../intelligence/context-builders/personas/twin-profile-context.js');
 
       // This will return null for a non-existent user (expected)
       const context = await buildTwinProfileContext('test-user-nonexistent');

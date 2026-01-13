@@ -173,8 +173,9 @@ export const conversationalImperfectionsBuilder: ContextBuilder = {
     const state = sessionState.get(sessionId)!;
     state.turnCount = turnCount;
 
-    // Don't use imperfections too often (max 2-3 per conversation)
-    if (state.totalUsed >= 3) {
+    // Allow more imperfections for authentic human speech (5 per conversation)
+    // Humans naturally have more speech variations - 3 was too robotic
+    if (state.totalUsed >= 5) {
       return injections;
     }
 

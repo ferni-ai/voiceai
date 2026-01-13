@@ -22,6 +22,7 @@
 
 import { createLogger } from '../utils/logger.js';
 import { latencyLogger } from './latency-logger.service.js';
+import { getMusicStateManager } from './music-state-manager.js';
 
 const log = createLogger('SpeechEventDispatcher');
 
@@ -75,6 +76,9 @@ export function dispatchUserSpeechStart(): void {
     state.pauseStartTime = 0;
   }
   
+  // 🎧 Notify MusicStateManager for ducking coordination
+  getMusicStateManager().notifyUserSpeakingStart();
+  
   document.dispatchEvent(new CustomEvent('ferni:user-speech-start'));
   log.debug('🎤 User speech started');
 }
@@ -93,6 +97,9 @@ export function dispatchUserSpeechEnd(): void {
   
   // ⏱️ Latency tracking: Mark user speech end for response timing
   latencyLogger.markUserSpeechEnd();
+  
+  // 🎧 Notify MusicStateManager for unducking coordination
+  getMusicStateManager().notifyUserSpeakingEnd();
   
   document.dispatchEvent(new CustomEvent('ferni:user-speech-end'));
   log.debug('🎤 User speech ended');
@@ -134,6 +141,9 @@ export function dispatchAgentSpeechStart(): void {
   // ⏱️ Latency tracking: Mark agent speech start for response timing
   latencyLogger.markAgentSpeechStart();
   
+  // 🎧 Notify MusicStateManager for ducking coordination
+  getMusicStateManager().notifyAgentSpeakingStart();
+  
   document.dispatchEvent(new CustomEvent('ferni:agent-speech-start'));
   log.debug('🔊 Agent speech started');
 }
@@ -146,6 +156,9 @@ export function dispatchAgentSpeechEnd(): void {
   
   state.agentSpeaking = false;
   state.lastAgentSpeechTime = Date.now();
+  
+  // 🎧 Notify MusicStateManager for unducking coordination
+  getMusicStateManager().notifyAgentSpeakingEnd();
   
   document.dispatchEvent(new CustomEvent('ferni:agent-speech-end'));
   log.debug('🔊 Agent speech ended');

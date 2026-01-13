@@ -86,13 +86,19 @@ export interface InsightData {
 // ============================================================================
 
 // BRAND COMPLIANT: Using Lucide SVG icons, NOT emoji
-const DEFAULT_CHAPTER_COPY = {
+interface ChapterCopy {
+  icon: string;
+  verb: string;
+  encouragement: string;
+}
+
+const DEFAULT_CHAPTER_COPY: ChapterCopy = {
   icon: CHAPTER_ICONS.growth,
   verb: 'growing through',
   encouragement: 'Something beautiful is taking shape.',
 };
 
-const CHAPTER_COPY: Record<string, typeof DEFAULT_CHAPTER_COPY> = {
+const CHAPTER_COPY: Record<string, ChapterCopy> = {
   struggle: {
     icon: CHAPTER_ICONS.struggle,
     verb: 'navigating',

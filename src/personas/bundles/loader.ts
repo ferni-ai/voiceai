@@ -943,10 +943,13 @@ export async function loadBundle(
       return getHooks(bundlePath);
     },
 
-    async getMCPConfig() {
+    async getMCPConfig(options?: { publisherId?: string; personaId?: string }) {
       // Lazy import to avoid circular dependencies
       const { getMCPConfig } = await import('./mcp-loader.js');
-      return getMCPConfig(bundlePath);
+      return getMCPConfig(bundlePath, {
+        publisherId: options?.publisherId,
+        personaId: options?.personaId ?? manifest.identity.id,
+      });
     },
   };
 

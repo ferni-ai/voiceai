@@ -4674,7 +4674,7 @@ async function triggerWinterSolstice(): Promise<void> {
     daysSinceFirstChat: 180,
     relationshipStage: 'friend',
     topTopics: ['habits', 'mindfulness', 'goals', 'growth'],
-    unlockedTeamMembers: ['ferni', 'maya-santos', 'peter-lynch'],
+    unlockedTeamMembers: ['ferni', 'maya-santos', 'peter-john'],
   };
 
   await winterSolsticeMoment.play(mockContext);

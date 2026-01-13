@@ -47,7 +47,7 @@ apps/web/src/
 |---------|--------------|-------------|-------------|
 | Ferni (Coach) | `ferni` | `jack-b` | `coach`, `ferni` |
 | Jack Bogle | `jack-bogle` | `jack-bogle` | `jack`, `bogle` |
-| Peter Lynch | `peter-lynch` | `peter-lynch` | `peter`, `lynch` |
+| Peter John | `peter-john` | `peter-john` | `peter`, `lynch` |
 | Alex Chen | `alex-chen` | `comm-specialist` | `alex`, `comm` |
 | Maya Santos | `maya-santos` | `spend-save` | `maya`, `spend` |
 | Jordan Taylor | `jordan-taylor` | `event-planner` | `jordan`, `event` |

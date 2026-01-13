@@ -557,7 +557,7 @@ function formatMinutes(minutes: number): string {
 async function loadIdentities(): Promise<void> {
   try {
     const response = await apiGet<{ identities: SponsoredIdentity[] }>('/api/sponsored-identities');
-    identities = response.identities || [];
+    identities = response.data?.identities || [];
   } catch (error) {
     log.error('Failed to load identities', { error });
     toast.error("Couldn't load your family");
@@ -570,7 +570,7 @@ async function loadPendingIdentities(): Promise<void> {
     const response = await apiGet<{ pending: SponsoredIdentity[] }>(
       '/api/sponsored-identities/pending'
     );
-    pendingIdentities = response.pending || [];
+    pendingIdentities = response.data?.pending || [];
   } catch (error) {
     log.error('Failed to load pending identities', { error });
     pendingIdentities = [];
@@ -590,7 +590,7 @@ async function createIdentity(data: {
       '/api/sponsored-identities',
       data
     );
-    return response.identity;
+    return response.data?.identity ?? null;
   } catch (error) {
     log.error('Failed to create identity', { error });
     toast.error("Couldn't add family member");
@@ -607,7 +607,7 @@ async function updateIdentity(
       `/api/sponsored-identities/${id}`,
       data
     );
-    return response.identity;
+    return response.data?.identity ?? null;
   } catch (error) {
     log.error('Failed to update identity', { error });
     toast.error("Couldn't update");
@@ -632,7 +632,7 @@ async function approveIdentity(id: string): Promise<SponsoredIdentity | null> {
       `/api/sponsored-identities/${id}/approve`,
       {}
     );
-    return response.identity;
+    return response.data?.identity ?? null;
   } catch (error) {
     log.error('Failed to approve identity', { error });
     toast.error("Couldn't approve");
@@ -845,17 +845,18 @@ function renderAddForm(): string {
 
 function renderEditForm(): string {
   if (!editingIdentity) return '';
+  const identity = editingIdentity; // Capture for closure
 
   return `
     <div class="family-form">
       <div class="family-form__group">
         <label class="family-form__label">Name</label>
-        <input type="text" class="family-form__input" id="family-name" value="${editingIdentity.displayName}">
+        <input type="text" class="family-form__input" id="family-name" value="${identity.displayName}">
       </div>
       
       <div class="family-form__group">
         <label class="family-form__label">Phone Number</label>
-        <input type="tel" class="family-form__input" id="family-phone" value="${editingIdentity.phoneNumber}" disabled>
+        <input type="tel" class="family-form__input" id="family-phone" value="${identity.phoneNumber}" disabled>
         <small style="color: var(--color-text-muted); font-size: 12px; margin-top: 4px;">
           Phone number cannot be changed
         </small>
@@ -864,18 +865,18 @@ function renderEditForm(): string {
       <div class="family-form__group">
         <label class="family-form__label">Relationship</label>
         <select class="family-form__select" id="family-relationship">
-          ${RELATIONSHIP_OPTIONS.map((opt) => `<option value="${opt.value}" ${opt.value === editingIdentity.relationship ? 'selected' : ''}>${opt.label}</option>`).join('')}
+          ${RELATIONSHIP_OPTIONS.map((opt) => `<option value="${opt.value}" ${opt.value === identity.relationship ? 'selected' : ''}>${opt.label}</option>`).join('')}
         </select>
       </div>
       
       <div class="family-form__group">
         <label class="family-form__label">What should Ferni call them?</label>
-        <input type="text" class="family-form__input" id="family-preferred" value="${editingIdentity.preferredName || ''}" placeholder="(optional)">
+        <input type="text" class="family-form__input" id="family-preferred" value="${identity.preferredName || ''}" placeholder="(optional)">
       </div>
       
       <div class="family-form__group">
         <label class="family-form__label">Notes for Ferni</label>
-        <textarea class="family-form__textarea" id="family-notes" placeholder="(optional)">${editingIdentity.notes || ''}</textarea>
+        <textarea class="family-form__textarea" id="family-notes" placeholder="(optional)">${identity.notes || ''}</textarea>
       </div>
     </div>
     

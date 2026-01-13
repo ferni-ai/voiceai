@@ -285,6 +285,46 @@ export function isHandoffInProgress(sessionId: string): boolean {
 }
 
 /**
+ * Duration (ms) to consider session "draining" after handoff completes.
+ * During this window, the LiveKit SDK may still think we're inside the handoff tool call,
+ * causing "circular wait" errors if we try to call generateReply.
+ */
+const SESSION_DRAINING_WINDOW_MS = 3000;
+
+/**
+ * Check if session is in a draining state after handoff.
+ * This is separate from isHandoffInProgress because:
+ * - isInProgress: handoff tool is actively executing
+ * - isDraining: handoff just completed, old session is winding down
+ *
+ * The draining window prevents "Cannot call waitForPlayout from inside function tool" errors.
+ */
+export function isSessionDraining(sessionId: string): boolean {
+  const state = getHandoffState(sessionId);
+
+  // If handoff is actively in progress, we're not "draining" yet
+  if (state.isInProgress) {
+    return false;
+  }
+
+  // Check if handoff recently completed (within draining window)
+  if (state.lastHandoffTime > 0) {
+    const timeSinceHandoff = Date.now() - state.lastHandoffTime;
+    return timeSinceHandoff < SESSION_DRAINING_WINDOW_MS;
+  }
+
+  return false;
+}
+
+/**
+ * Check if session should skip generateReply calls.
+ * Returns true if handoff is in progress OR session is draining.
+ */
+export function shouldSkipGenerateReply(sessionId: string): boolean {
+  return isHandoffInProgress(sessionId) || isSessionDraining(sessionId);
+}
+
+/**
  * Get the next message sequence number (atomically increments).
  */
 export function getNextMessageSeq(sessionId: string): number {

@@ -7,7 +7,102 @@
  * - Volume control
  * - Spotify preview streaming
  * - Ambient/thinking music for silences
+ *
+ * NEW ARCHITECTURE (2024):
+ * - DJController: Single source of truth for all music/DJ state
+ * - DJDecisionEngine: Pure functions for decision making
+ * - DJSpeechEngine: Phrase generation
+ * - DJTimingEngine: Centralized timer management
  */
+
+// =============================================================================
+// DJ CONTROLLER - Single Source of Truth
+// =============================================================================
+
+export {
+  DJController,
+  getDJController,
+  resetDJController,
+  isDJControllerInitialized,
+  type DJState,
+  type DJCommand,
+  type DJEvent,
+  type DJControllerState,
+  type DJControllerConfig,
+  type DuckReason,
+} from './dj-controller.js';
+
+// =============================================================================
+// DJ DECISION ENGINE - Pure Functions for Decision Making
+// =============================================================================
+
+export {
+  // Decision functions
+  shouldDuck,
+  shouldSpeakIntro,
+  shouldSpeakOutro,
+  shouldInterject,
+  shouldInterruptMusic,
+  shouldSkipThinkingMusic,
+  isDeadAirDetectionActive,
+  calculateScheduledMoments,
+  getDuckTiming,
+  getPersonaStyle,
+  // Constants
+  DJ_PROBABILITIES,
+  DJ_TIMING,
+  PERSONA_DJ_STYLES,
+  // Types
+  type DuckDecision,
+  type IntroDecision,
+  type OutroDecision,
+  type InterjectionDecision,
+  type ScheduledMoment,
+  type DecisionContext,
+  type PersonaDJStyle,
+} from './dj-decision-engine.js';
+
+// =============================================================================
+// DJ SPEECH ENGINE - Phrase Generation
+// =============================================================================
+
+export {
+  // Phrase generators
+  getOutroPhrase,
+  getTransitionPhrase,
+  getDropPhrase,
+  getMomentPhrase,
+  getCheckInPhrase,
+  getMusicStoppedPhrase,
+  // LLM-powered interjections
+  generateLLMInterjection,
+  prewarmInterjectionCache,
+  clearInterjectionCache,
+  getInterjection,
+  // Types
+  type TrackSpeechContext,
+  type InterjectionMoment,
+} from './dj-speech-engine.js';
+
+// Re-export for backward compatibility with code using shouldInterruptMusic
+export { shouldInterruptMusic as shouldInterruptMusicLegacy } from './music-humanization.js';
+
+// =============================================================================
+// DJ TIMING ENGINE - Centralized Timer Management
+// =============================================================================
+
+export {
+  DJTimingEngine,
+  getDJTimingEngine,
+  resetDJTimingEngine,
+  type ScheduledTimer,
+  type TimingEvent,
+  type TimingEngineConfig,
+} from './dj-timing-engine.js';
+
+// =============================================================================
+// MUSIC PLAYER - Low-level Playback
+// =============================================================================
 
 export {
   CallMusicPlayer,
@@ -26,7 +121,10 @@ export {
   type TypedMusicPlayerEmitter,
 } from './music-player.js';
 
-// Ambient music for silences
+// =============================================================================
+// AMBIENT MUSIC - Thinking/Background Music
+// =============================================================================
+
 export {
   getAmbientMusicEndedPhrase,
   getAmbientTracks,
@@ -35,7 +133,7 @@ export {
   getDJTrackChangePhrase,
   getMidSongMomentPhrase,
   getMoodAwareMusicOffer,
-  getMusicStoppedPhrase,
+  getMusicStoppedPhrase as getLegacyMusicStoppedPhrase, // Legacy, use dj-speech-engine instead
   getRandomAmbientTrack,
   getSessionCallbackPhrase,
   isAmbientMusicEnabled,
@@ -43,7 +141,10 @@ export {
   stopAmbientMusic,
 } from './ambient-music.js';
 
-// Session sounds (stingers, game sounds, etc.)
+// =============================================================================
+// SESSION SOUNDS - Stingers, Game Sounds
+// =============================================================================
+
 export {
   VERBAL_SOUNDS,
   getSessionSounds,
@@ -53,104 +154,48 @@ export {
   type SessionSoundType,
 } from './session-sounds.js';
 
-// Sound Effects Player - Dedicated player for short sounds (separate from music)
-// This ensures sound effects NEVER trigger "music ended" callbacks
 export {
   getSoundEffectsPlayer,
   initializeSoundEffectsPlayer,
   resetSoundEffectsPlayer,
 } from './sound-effects-player.js';
 
-// DJ Booth - Full audio orchestration (ducking, timing, talk-over)
-export {
-  DJBooth,
-  getDJBooth,
-  initializeDJBooth,
-  resetDJBooth,
-  type DJBoothConfig,
-  type DJBoothState,
-} from './dj-booth.js';
+// =============================================================================
+// MUSIC HUMANIZATION - Natural Music Interactions
+// =============================================================================
 
-// DJ Enhancements - Pixar-level magic (thinking music, emotion-reactive, session flow)
 export {
-  // Controllers
-  DJEnhancementController,
-  MusicMemoryManager,
-  PERSONA_DJ_STYLES,
-  SessionFlowManager,
-  ThinkingMusicController,
-  getCountdownPhrase,
-  getDJEnhancements,
-  getEmotionMusicOffer,
-  // Phase 5: Emotion-reactive
-  getEmotionMusicSuggestion,
-  // Phase 6: Game music
-  getGameMusicConfig,
-  getGameMusicPhrase,
-  // Phase 3: Persona DJ styles
-  getPersonaDJStyle,
-  getPersonaMusicIntro,
-  // Singleton management
-  initializeDJEnhancements,
-  resetDJEnhancements,
-  // Phase 2: Predictive timing
-  scheduleTrackTimingCallbacks,
-  type EmotionMusicMapping,
-  type GameMusicConfig,
-  type MusicPreferences,
-  // Types
-  type PersonaDJStyle,
-  type SessionFlowState,
-  type TrackTimingCallbacks,
-} from './dj-enhancements.js';
-
-// Music Humanization - Natural, fun, engaging music interactions
-export {
-  // Main controller
   MusicHumanizationController,
-  // Engagement detection
   analyzeVibingBehavior,
-  // Track context builder for contextual interjections
   buildTrackContext,
-  // Spontaneous moments
   checkSpontaneousMusicMoment,
-  // LLM interjection cache management
   clearLLMInterjectionCache,
-  // Conversation bridges
   getConversationBridge,
-  // Emotional mirror
   getEmotionalMirrorOffer,
-  // Fun personality (sync + async versions)
   getFunInterjection,
   getFunInterjectionAsync,
   getMusicConversationStarter,
-  // Music discovery
   getMusicDiscoveryQuestion,
   getMusicHumanization,
   getPersonaFunMoment,
-  // Post-music check-ins
   getPostMusicCheckIn,
   getTimeAwareMusicSuggestion,
-  // Time awareness
   getTimeOfDay,
-  // LLM pre-warming
   prewarmMusicInterjection,
   resetMusicHumanization,
-  shouldInterruptMusic,
   type MusicHumanizationConfig,
-  // Types
   type MusicHumanizationState,
   type MusicMoment,
   type SpontaneousTrigger,
   type TimeOfDay,
-  // Track context for contextual interjections
   type TrackContext,
 } from './music-humanization.js';
 
-// 🧠 Intelligent Music Transitions - Context-aware responses when music ends
-// > "We believe in making AI human, and the decisions we make will reflect that."
+// =============================================================================
+// INTELLIGENT MUSIC TRANSITIONS
+// =============================================================================
+
 export {
-  // Context tracking (capture when music starts, use when music ends)
   clearMusicContext,
   detectMidThought,
   endMusicContext,
@@ -163,7 +208,6 @@ export {
 } from './music-session-context.js';
 
 export {
-  // Intelligent transition generation
   getIntelligentMusicTransition,
   getMusicTransition,
   logTransitionDecision,
@@ -175,7 +219,10 @@ export {
   type TransitionType,
 } from './intelligent-music-transitions.js';
 
-// 📊 Music Transition Analytics - Track what works
+// =============================================================================
+// MUSIC ANALYTICS & LEARNING
+// =============================================================================
+
 export {
   getTransitionAnalytics,
   resetTransitionAnalytics,
@@ -191,7 +238,6 @@ export {
   type TransitionOverrides,
 } from './music-transition-analytics.js';
 
-// 🎯 Music User Learning - Per-user preferences with Thompson Sampling
 export {
   getUserProfile,
   selectTransitionWithLearning,
@@ -209,7 +255,6 @@ export {
   type EngagementFeedback,
 } from './music-user-learning.js';
 
-// 🎵 Music Memory Integration - Remember what music helped
 export {
   storeMusicHelpedMemory,
   findRelevantMemories,
@@ -227,7 +272,6 @@ export {
   type MusicCallbackPhrase,
 } from './music-memory-integration.js';
 
-// 📊 Music Feedback Manager - Global feedback recording for learning
 export {
   registerMusicFeedbackRecorder,
   markMusicEnded,
@@ -239,7 +283,6 @@ export {
   type MusicFeedbackRecorder,
 } from './music-feedback-manager.js';
 
-// 💾 Music Learning Persistence - Firestore backup for user profiles/memories
 export {
   ensureProfileLoaded,
   ensureMemoriesLoaded,
@@ -257,7 +300,6 @@ export {
   onMusicMemoryStored,
 } from './music-learning-persistence.js';
 
-// 🎵 Music Preference Extractor - Learn preferences from natural conversation
 export {
   extractMusicPreferences,
   hasMusicContext,

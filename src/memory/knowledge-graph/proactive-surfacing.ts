@@ -33,7 +33,7 @@ import type {
   SurfacingReason,
   Correlation,
 } from './types.js';
-import { getFirestoreDb, cleanForFirestore } from '../../services/superhuman/firestore-utils.js';
+import { getFirestoreDb, cleanForFirestore } from '../../utils/firestore-utils.js';
 import { generateId } from '../../utils/id-generator.js';
 
 const log = createLogger({ module: 'ProactiveSurfacing' });

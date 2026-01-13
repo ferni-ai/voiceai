@@ -21,7 +21,7 @@ import {
   type ReadableStream as NodeReadableStream,
 } from 'node:stream/web';
 
-import { createLogger } from '../../utils/safe-logger.js';
+import { createLogger, truncateForLog } from '../../utils/safe-logger.js';
 import { createSanitizerWithMusicFallback } from './tool-call-sanitizer.js';
 import { finops } from '../../services/observability/finops.js';
 import { GEMINI_MODEL } from '../../config/gemini-config.js';
@@ -37,6 +37,8 @@ import {
   PostTTSPresets,
   type PostTTSConfig,
 } from './performance/post-tts-transform.js';
+import { getVoiceIdForPersona } from '../../config/voice-ids.js';
+import { getModelProvider } from '../model-provider/index.js';
 
 const log = createLogger({ module: 'TtsWrapper' });
 
@@ -132,6 +134,105 @@ async function triggerGarbageRecovery(
       '🔄 GARBAGE RECOVERY: session.say() failed, conversation may be stuck'
     );
   }
+}
+
+// =============================================================================
+// JSON LEAK ANALYSIS (OpenAI Realtime SDK Bug Workaround)
+// =============================================================================
+
+/**
+ * Known tool argument keys that commonly appear in leaked JSON.
+ * Used to identify which tool's function call leaked.
+ */
+const TOOL_ARG_SIGNATURES: Record<string, string[]> = {
+  rememberAboutUser: ['fact', 'category', 'importance'],
+  addTask: ['title', 'description', 'dueDate', 'priority'],
+  playMusic: ['query', 'genre', 'artist', 'mood'],
+  getWeather: ['location', 'units'],
+  setReminder: ['message', 'time', 'recurring'],
+  handoff: ['targetPersona', 'reason', 'context'],
+};
+
+/**
+ * Analyze leaked JSON to extract useful debugging info.
+ * 
+ * Attempts to identify:
+ * - Which tool's function call leaked
+ * - What arguments were included
+ * - Any patterns that might help debug the SDK issue
+ */
+function analyzeLeakedJson(leakedJson: string): {
+  probableTool?: string;
+  detectedArgs: string[];
+  isPartialJson: boolean;
+  hasClosingBrace: boolean;
+} {
+  const detectedArgs: string[] = [];
+  let probableTool: string | undefined;
+  
+  // Check for known argument keys
+  for (const [toolName, argKeys] of Object.entries(TOOL_ARG_SIGNATURES)) {
+    const matchingArgs = argKeys.filter(key => 
+      leakedJson.includes(`"${key}"`) || leakedJson.includes(`"${key}":`)
+    );
+    
+    if (matchingArgs.length > 0) {
+      detectedArgs.push(...matchingArgs);
+      // Tool with most matching args is probably the source
+      if (!probableTool || matchingArgs.length > (TOOL_ARG_SIGNATURES[probableTool]?.length || 0)) {
+        probableTool = toolName;
+      }
+    }
+  }
+  
+  // Check for common argument values (helps identify even if keys don't match)
+  const commonValues = ['personal', 'work', 'health', 'high', 'medium', 'low'];
+  for (const value of commonValues) {
+    if (leakedJson.includes(`"${value}"`)) {
+      detectedArgs.push(`value:${value}`);
+    }
+  }
+  
+  return {
+    probableTool,
+    detectedArgs: [...new Set(detectedArgs)], // Dedupe
+    isPartialJson: !leakedJson.includes('{') || !leakedJson.includes('}'),
+    hasClosingBrace: leakedJson.includes('}'),
+  };
+}
+
+/**
+ * Record telemetry about JSON leaks for observability.
+ * 
+ * Uses structured logging that can be picked up by log aggregation systems.
+ * This helps us:
+ * - Track how often the OpenAI Realtime SDK leaks function calls
+ * - Identify which tools are most affected
+ * - Potentially report patterns to LiveKit
+ */
+async function recordJsonLeakTelemetry(
+  sessionId: string | undefined,
+  personaId: string | undefined,
+  leakedJson: string,
+  analysis: ReturnType<typeof analyzeLeakedJson>
+): Promise<void> {
+  // Use structured logging for telemetry (picked up by log aggregation)
+  // This is the standard approach in this codebase - logs go to GCP Cloud Logging
+  log.info(
+    {
+      metric: 'openai_realtime_json_leak',
+      sessionId: sessionId || 'unknown',
+      personaId: personaId || 'unknown',
+      probableTool: analysis.probableTool || 'unknown',
+      detectedArgs: analysis.detectedArgs.slice(0, 5),
+      isPartialJson: analysis.isPartialJson,
+      hasClosingBrace: analysis.hasClosingBrace,
+      leakLength: leakedJson.length,
+      // Include sanitized sample for debugging (no PII - just JSON structure)
+      leakSample: leakedJson.slice(0, 100).replace(/[a-zA-Z]{4,}/g, 'xxx'),
+    },
+    '📊 [TELEMETRY] OpenAI Realtime JSON leak detected'
+  );
 }
 
 // =============================================================================
@@ -247,17 +348,108 @@ export async function wrappedTtsNode(
   const userLocation = sessionContext?.userLocation;
 
   // 1. Filter JSON function calls (Gemini workaround)
-  // SKIP when semantic routing is the primary tool calling method.
-  // The semantic router handles tool execution BEFORE the LLM, so we don't need
-  // to intercept JSON from the text stream anymore.
+  // SKIP when:
+  // - DISABLE_JSON_WORKAROUND=true: Explicitly disabled
+  // - SEMANTIC_ROUTING_PRIMARY=true: Semantic router handles all tool calls
+  // - Provider has native function calling (doesn't need JSON workaround)
+  //
+  // When a provider has native function calling (e.g., OpenAI Realtime), the LLM calls
+  // functions directly via the API protocol, not by outputting JSON in text.
+  // The sanitizer would just add latency with no benefit.
+  const provider = getModelProvider();
   const skipJsonWorkaround =
     process.env.DISABLE_JSON_WORKAROUND === 'true' ||
-    process.env.SEMANTIC_ROUTING_PRIMARY === 'true';
+    process.env.SEMANTIC_ROUTING_PRIMARY === 'true' ||
+    !provider.needsJsonWorkaround();
 
   let filteredText: NodeReadableStream<string>;
   if (skipJsonWorkaround) {
-    log.info('🎯 JSON workaround DISABLED - semantic routing is primary tool calling method');
-    filteredText = text;
+    const reason = !provider.needsJsonWorkaround()
+      ? `${provider.displayName} has native function calling`
+      : process.env.SEMANTIC_ROUTING_PRIMARY === 'true'
+        ? 'semantic routing is primary'
+        : 'explicitly disabled';
+    log.info(`${provider.getLogPrefix()} JSON workaround DISABLED - ${reason}`);
+    
+    // BUG FIX: Even with native function calling, OpenAI Realtime can sometimes
+    // leak function call JSON into the text stream (race condition in SDK or model).
+    // Add a lightweight filter to strip JSON-like content that shouldn't be spoken.
+    // 
+    // Observed pattern: When model outputs BOTH text AND function call in same response,
+    // part of the function call args leak into text:
+    //   'tomorrow",  \n  "category": "personal",  \n  "importance": "medium" \n}'
+    //
+    // This filter catches and strips such leaks without the full JSON workaround overhead.
+    // We also capture telemetry to track this SDK/model behavior.
+    let jsonLeakBuffer = ''; // Accumulate leaked chunks for analysis
+    
+    const jsonLeakFilter = new NodeTransformStream<string, string>({
+      transform(chunk, controller) {
+        // Patterns that indicate leaked function call JSON (not natural speech)
+        // These are structural JSON patterns that would never appear in speech
+        const jsonLeakPatterns = [
+          // Partial JSON object end: '"key": "value" }' or '"key": "value"\n}'
+          /"\s*[:,]\s*\n?\s*"[^"]+"\s*\n?\s*\}?\s*$/,
+          // JSON key-value pairs on multiple lines
+          /"\s*:\s*"[^"]+"\s*,?\s*\n\s*"/,
+          // Starts with a quote and colon (mid-JSON)
+          /^"\s*[:,]/,
+          // JSON closing brace with quotes before it
+          /"\s*\n?\s*\}\s*\n?\s*$/,
+          // Line that's just "key": "value" format
+          /^\s*"[a-z_]+"\s*:\s*"[^"]+"\s*,?\s*$/i,
+          // Function call argument patterns (category, importance, fact, etc.)
+          /"\s*(category|importance|fact|medium|high|low|personal)"\s*[:,]/i,
+        ];
+        
+        // Check if chunk looks like leaked JSON
+        const looksLikeJson = jsonLeakPatterns.some(pattern => pattern.test(chunk));
+        
+        // Also check for specific known function call argument values
+        const knownArgValues = ['personal', 'medium', 'high', 'low', 'category', 'importance'];
+        const hasKnownArgPattern = knownArgValues.some(val => 
+          chunk.includes(`"${val}"`) && (chunk.includes(':') || chunk.includes(','))
+        );
+        
+        if (looksLikeJson || hasKnownArgPattern) {
+          // Accumulate leaked JSON for analysis
+          jsonLeakBuffer += chunk;
+          
+          // Don't enqueue - strip from TTS stream
+          return;
+        }
+        
+        // Clean chunk: pass through to TTS
+        controller.enqueue(chunk);
+      },
+      flush() {
+        // Analyze accumulated leaked JSON at end of stream
+        if (jsonLeakBuffer.length > 0) {
+          // Try to extract useful info from the leaked JSON
+          const extractedInfo = analyzeLeakedJson(jsonLeakBuffer);
+          
+          // Log with structured data for observability
+          log.warn(
+            { 
+              leakedJson: jsonLeakBuffer.slice(0, 200),
+              leakLength: jsonLeakBuffer.length,
+              sessionId,
+              personaId,
+              ...extractedInfo,
+            },
+            '🚨 [JSON-LEAK-FILTER] Stripped leaked function call JSON from TTS stream'
+          );
+          
+          // Record telemetry for tracking this SDK behavior
+          // Fire-and-forget to avoid blocking TTS
+          recordJsonLeakTelemetry(sessionId, personaId, jsonLeakBuffer, extractedInfo).catch(() => {
+            // Non-critical - ignore errors
+          });
+        }
+      }
+    });
+    
+    filteredText = text.pipeThrough(jsonLeakFilter);
   } else {
     // Legacy path: intercept JSON function calls from LLM text output
     log.info('🔄 JSON workaround ACTIVE - intercepting JSON function calls from LLM output');
@@ -300,10 +492,11 @@ export async function wrappedTtsNode(
           const isGarbageResponse = detectGarbageResponse(trimmedOutput);
 
           // E2E TRACE LOG - Always visible in production logs
+          // Use truncateForLog() to respect LOG_FULL_RESPONSES env var
           log.info(
             {
               trace: 'E2E_LLM_OUTPUT',
-              rawOutput: rawLLMBuffer.slice(0, 500),
+              rawOutput: truncateForLog(rawLLMBuffer, 500),
               fullLength: rawLLMBuffer.length,
               containsJson,
               containsWeather,
@@ -441,15 +634,16 @@ export async function wrappedTtsNode(
         });
 
         // 🔍 E2E TRACE [4/4]: What actually goes to TTS (spoken to user)
+        // Use truncateForLog() to respect LOG_FULL_RESPONSES env var
         log.info(
           {
             trace: 'E2E_TTS_OUTPUT',
-            ttsText: ttsOutputBuffer.slice(0, 300),
+            ttsText: truncateForLog(ttsOutputBuffer, 300),
             fullLength: totalCharacters,
             estimatedTokens: estimatedOutputTokens,
             isEmpty: ttsOutputBuffer.trim().length === 0,
           },
-          `🔍 E2E TRACE [4/4] → TTS: "${ttsOutputBuffer.slice(0, 100)}${ttsOutputBuffer.length > 100 ? '...' : ''}"`
+          `🔍 E2E TRACE [4/4] → TTS: "${truncateForLog(ttsOutputBuffer, 100)}"`
         );
       }
     },
@@ -488,15 +682,18 @@ export async function wrappedTtsNode(
 
   if (enableCacheAwareTTS) {
     // Use cache-aware TTS that checks speculative cache before Cartesia
+    // BUG FIX: Convert personaId to actual Cartesia voice UUID
+    // Previously passed personaId directly, causing cache misses and wrong voice lookups
+    const actualVoiceId = getVoiceIdForPersona(personaId);
     const cacheAwareTTS = createCacheAwareTTSNode({
-      voiceId: personaId,
+      voiceId: actualVoiceId,
       emotion,
       sessionId,
       enableCache: true,
     });
 
     log.debug(
-      { personaId, emotion, sessionId },
+      { personaId, voiceId: actualVoiceId, emotion, sessionId },
       '🎯 Cache-aware TTS enabled - will check speculative cache'
     );
 

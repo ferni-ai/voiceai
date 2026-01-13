@@ -18,12 +18,15 @@ import {
   type ContextBuilderInput,
   type ContextInjection,
 } from '../index.js';
-import {
-  getEmotionMusicSuggestion,
-  getEmotionMusicOffer,
-  type EmotionMusicMapping,
-} from '../../../audio/dj-enhancements.js';
-import { getMusicPlayer } from '../../../audio/music-player.js';
+import { getMusicPlayer, getDJController } from '../../../audio/index.js';
+import { getEmotionalMirrorOffer } from '../../../audio/music-humanization.js';
+
+// Type for emotion-music mappings (formerly from dj-enhancements)
+type EmotionMusicMapping = {
+  emotions: string[];
+  suggestions: string[];
+  phrases: string[];
+};
 
 const log = getLogger();
 
@@ -220,12 +223,19 @@ async function buildMusicEmotionOffers(input: ContextBuilderInput): Promise<Cont
       return [];
     }
 
-    // Get persona ID from the persona config
-    const personaId = persona?.id || 'ferni';
+    // Simple emotion-to-genre mapping
+    const emotionGenreMap: Record<string, string[]> = {
+      sad: ['soft rock', 'acoustic', 'chill'],
+      anxious: ['calm', 'ambient', 'lo-fi'],
+      stressed: ['relaxing', 'nature sounds', 'meditation'],
+      happy: ['upbeat', 'pop', 'feel-good'],
+      excited: ['energetic', 'dance', 'motivational'],
+      grateful: ['acoustic', 'folk', 'warm'],
+    };
+    const genres = emotionGenreMap[detectedEmotion] || ['calm', 'relaxing'];
 
-    // Get music suggestion for this emotion
-    const suggestion = getEmotionMusicSuggestion(detectedEmotion);
-    const offer = getEmotionMusicOffer(detectedEmotion, personaId);
+    // Get emotional mirror offer from music humanization
+    const emotionalMirrorPhrase = getEmotionalMirrorOffer(detectedEmotion);
 
     // Update state
     offerState.lastOfferTime = Date.now();
@@ -233,19 +243,20 @@ async function buildMusicEmotionOffers(input: ContextBuilderInput): Promise<Cont
     offerState.offerCount++;
 
     // Build the injection
+    const offerPhrase = emotionalMirrorPhrase || `Would some ${genres[0]} music help right now?`;
+    const searchQuery = `${genres[0]} ${detectedEmotion} mood`;
+
     const injection = createStandardInjection(
       'music_emotion_offer',
       `[MUSIC OFFER OPPORTUNITY]
 The user seems to be feeling ${detectedEmotion}.
-Music that might help: ${suggestion.genres.join(', ')}
-Suggested search: "${suggestion.searchQueries[0]}"
+Music that might help: ${genres.join(', ')}
+Suggested search: "${searchQuery}"
 
 You can naturally offer music by saying something like:
-"${offer.offer}"
+"${offerPhrase}"
 
 But only offer if it feels natural and appropriate. Don't force it.
-If they accept, search for: "${offer.searchQuery}"
-
 Note: Only offer once, don't push if they don't respond.`
     );
 

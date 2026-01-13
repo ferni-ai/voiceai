@@ -642,8 +642,10 @@ export function determineActiveCategories(input: ContextBuilderInput): BuilderCa
     categories.add(BUILDER_CATEGORIES.VOICE);
   }
 
-  // MEMORY - First 3 turns (session priming) + every 5th turn + returning users
-  if (turnCount <= 3 || turnCount % 5 === 0 || userData?.isReturningUser) {
+  // MEMORY - First 3 turns (session priming) + every 3rd turn + returning users
+  // FIX: Changed from every 5th turn to every 3rd turn for better memory continuity
+  // Users were reporting Ferni "forgetting" them in longer conversations
+  if (turnCount <= 3 || turnCount % 3 === 0 || userData?.isReturningUser) {
     categories.add(BUILDER_CATEGORIES.MEMORY);
   }
 
@@ -1089,6 +1091,14 @@ export async function cleanupContextBuilderSession(sessionId: string): Promise<v
     /* module not loaded */
   }
 
+  // Clear memory lane session state
+  try {
+    const { clearMemoryLaneSession } = await import('./superhuman/memory-lane-context.js');
+    clearMemoryLaneSession(sessionId);
+  } catch {
+    /* module not loaded */
+  }
+
   log.debug({ sessionId }, '🧹 Context builder session state cleared');
 }
 
@@ -1120,6 +1130,14 @@ export async function cleanupAllContextBuilderSessions(): Promise<void> {
     const { clearAllSuperhumanInsightsSessions } =
       await import('./superhuman/superhuman-insights.js');
     clearAllSuperhumanInsightsSessions();
+  } catch {
+    /* module not loaded */
+  }
+
+  // Clear all memory lane sessions
+  try {
+    const { clearAllMemoryLaneSessions } = await import('./superhuman/memory-lane-context.js');
+    clearAllMemoryLaneSessions();
   } catch {
     /* module not loaded */
   }

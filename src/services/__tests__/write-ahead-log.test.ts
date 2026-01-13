@@ -16,6 +16,43 @@ vi.mock('../../utils/safe-logger.js', () => ({
 
 vi.mock('../firestore-utils.js', () => ({
   getFirestoreDb: vi.fn(() => null),
+
+  cleanForFirestore: vi.fn((obj) => {
+    if (obj === null || obj === undefined) return obj;
+    if (obj instanceof Date) return obj.toISOString();
+    if (Array.isArray(obj)) return obj.map((item) => item);
+    if (typeof obj === 'object') {
+      const result: Record<string, unknown> = {};
+      for (const [key, value] of Object.entries(obj)) {
+        if (value !== undefined) {
+          result[key] = value;
+        }
+      }
+      return result;
+    }
+    return obj;
+  }),
+  removeUndefined: vi.fn((obj) => {
+    if (!obj) return obj;
+    const result: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(obj)) {
+      if (value !== undefined) {
+        result[key] = value;
+      }
+    }
+    return result;
+  }),
+  deepRemoveUndefined: vi.fn((obj) => obj),
+  recordDegradation: vi.fn(),
+  getFirestoreHealth: vi.fn(() => ({
+    dbAvailable: true,
+    initialized: true,
+    initializationError: null,
+    degradationCount: 0,
+    recentDegradations: [],
+    lastDegradationAt: null,
+  })),
+  resetFirestoreInstance: vi.fn(),
 }));
 
 import { WriteAheadLog, type WALEntry } from '../write-ahead-log.js';

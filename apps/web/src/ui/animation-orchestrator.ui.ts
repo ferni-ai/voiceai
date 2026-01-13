@@ -215,21 +215,23 @@ export function animatePersonaTransition(
       }, 50);
     };
 
-    // Also animate text
+    // Also animate text - with proper cleanup to prevent stuck states
     if (name && subtitle) {
       [name, subtitle].forEach(el => {
-        el.animate([
+        const fadeOut = el.animate([
           { opacity: 1 },
           { opacity: 0 },
         ], {
           duration: DURATION.NORMAL,
           fill: 'forwards',
         });
+        // Track for cleanup
+        trackAnimation('persona-text-exit', fadeOut);
       });
 
       trackedTimeout(() => {
         [name, subtitle].forEach(el => {
-          el.animate([
+          const fadeIn = el.animate([
             { opacity: 0, transform: 'translateY(5px)' },
             { opacity: 1, transform: 'translateY(0)' },
           ], {
@@ -237,6 +239,19 @@ export function animatePersonaTransition(
             easing: getEasing('easeOutExpo'),
             fill: 'forwards',
           });
+
+          trackAnimation('persona-text-entry', fadeIn);
+
+          // Critical: After animation completes, cancel ALL animations and force final styles
+          // CSS animations with fill:forwards override even !important CSS rules,
+          // so we must cancel them and apply inline !important styles
+          fadeIn.onfinish = () => {
+            // Cancel ALL animations (including CSS entranceSlideUp)
+            el.getAnimations().forEach(a => a.cancel());
+            // Force visible state with !important to override any stuck states
+            el.style.setProperty('opacity', '1', 'important');
+            el.style.setProperty('transform', 'none', 'important');
+          };
         });
       }, 350);
     }

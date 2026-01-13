@@ -29,7 +29,8 @@ export type SpeechStateType =
   | 'speech_end'
   | 'breath_detected'
   | 'active_listening_start'
-  | 'active_listening_nod';
+  | 'active_listening_nod'
+  | 'feedback_prompt';
 
 export interface SpeechStateEvent {
   type: SpeechStateType;

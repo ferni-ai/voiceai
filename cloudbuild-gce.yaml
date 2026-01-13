@@ -10,8 +10,27 @@ substitutions:
   _IMAGE_TAG: 'latest'
 
 steps:
-  # Build with Kaniko for efficient caching
+  # ============================================================================
+  # Step 1: Pre-build Type Check (FAIL FAST)
+  # ============================================================================
+  # Catches type errors BEFORE expensive Docker build (~5 min saved on failure)
+  - name: 'node:20-slim'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        corepack enable && corepack prepare pnpm@latest --activate
+        pnpm install --prefer-offline --frozen-lockfile
+        echo "=== Running type check ==="
+        pnpm typecheck || (echo "❌ Type check failed! Fix errors before deploying." && exit 1)
+        echo "✅ Type check passed"
+    id: 'typecheck'
+
+  # ============================================================================
+  # Step 2: Build with Kaniko for efficient caching
+  # ============================================================================
   - name: 'gcr.io/kaniko-project/executor:latest'
+    waitFor: ['typecheck']
     args:
       - '--dockerfile=docker/Dockerfile.agent'
       - '--destination=gcr.io/$PROJECT_ID/voiceai-agent:${_IMAGE_TAG}'
@@ -27,6 +46,5 @@ options:
   machineType: 'E2_HIGHCPU_8'
   logging: CLOUD_LOGGING_ONLY
 
-timeout: '1200s'  # 20 minutes
-
+timeout: '1200s' # 20 minutes
 

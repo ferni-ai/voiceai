@@ -7,6 +7,7 @@ export { handleSpotifyRoutes } from './spotify.js';
 export { handleHealthRoutes } from './health.js';
 export { handleTokenRoutes } from './token.js';
 export { handleGoogleCalendarRoutes } from './google-calendar.js';
+export { handleAppleCalendarRoutes } from './apple-calendar.js';
 export { handleMicrosoftCalendarRoutes } from './microsoft-calendar.js';
 export { handleMusicRoutes } from './music.js';
 export { handleAgentRoutes } from './agents.js';

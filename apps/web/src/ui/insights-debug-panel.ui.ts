@@ -451,7 +451,7 @@ async function renderPerformanceStats(): Promise<void> {
       </div>
       <div class="insights-debug-panel__stat">
         <div class="insights-debug-panel__stat-label">Slowest</div>
-        <div class="insights-debug-panel__stat-value ${stats.slowestCall?.durationMs > 300 ? 'insights-debug-panel__stat-value--error' : ''}">
+        <div class="insights-debug-panel__stat-value ${(stats.slowestCall?.durationMs ?? 0) > 300 ? 'insights-debug-panel__stat-value--error' : ''}">
           ${stats.slowestCall?.durationMs || 0}ms
         </div>
       </div>

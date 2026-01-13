@@ -71,10 +71,10 @@ After calling this tool, you should respond in the new language to confirm the s
             return `I'm not sure which language "${language}" refers to. I support languages like English, Spanish, French, German, Italian, Portuguese, Japanese, Korean, Chinese, Hindi, and many more. Could you try again?`;
           }
 
-          // Get session ID from context (use userId as fallback)
-          const sessionId = ctx.userId || 'default';
+          // Get session ID from context (use actual sessionId, with userId as fallback)
+          const sessionId = ctx.sessionId || ctx.userId || 'default';
 
-          // Set the session language
+          // Set the session language (also updates userId cache internally)
           const config = setSessionLanguage(sessionId, languageCode, ctx.userId);
 
           // Persist user preference

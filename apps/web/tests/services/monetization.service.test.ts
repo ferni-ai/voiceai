@@ -11,6 +11,19 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
+// Mock navigator.onLine to ensure isOffline() returns false
+Object.defineProperty(navigator, 'onLine', {
+  value: true,
+  writable: true,
+  configurable: true,
+});
+
+// Mock AbortController signal
+vi.stubGlobal('AbortController', class {
+  signal = { aborted: false };
+  abort = vi.fn();
+});
+
 // Mock fetch
 const mockFetch = vi.fn();
 global.fetch = mockFetch;
@@ -50,7 +63,15 @@ beforeEach(() => {
   vi.clearAllMocks();
 
   mockFetch.mockImplementation((url: string, options?: RequestInit) => {
-    const path = url.replace('/api/monetization', '');
+    // Parse the full URL to get just the pathname (handles http://localhost:3000/api/monetization/...)
+    let path: string;
+    try {
+      const parsedUrl = new URL(url);
+      path = parsedUrl.pathname.replace('/api/monetization', '');
+    } catch {
+      // If URL parsing fails, use simple string replace
+      path = url.replace('/api/monetization', '');
+    }
 
     // Tip config
     if (path.startsWith('/tip/config')) {
@@ -438,10 +459,12 @@ describe('MonetizationService', () => {
       it('should record partner feedback', async () => {
         await recordPartnerFeedback('partner_123', 'helpful');
 
+        // Note: apiPost adds userId to body automatically
         expect(mockFetch).toHaveBeenCalledWith(
-          '/api/monetization/partners/feedback',
+          expect.stringContaining('/api/monetization/partners/feedback'),
           expect.objectContaining({
             body: JSON.stringify({
+              userId: null,
               partnerId: 'partner_123',
               feedback: 'helpful',
             }),
@@ -538,20 +561,34 @@ describe('MonetizationService', () => {
   });
 
   describe('Error Handling', () => {
-    it('should throw on API error', async () => {
-      mockFetch.mockResolvedValueOnce({
+    it('should return null on API error', async () => {
+      // Mock error response for initial call + 2 retries (fetchWithRetry retries twice)
+      const errorResponse = {
         ok: false,
         status: 500,
         json: () => Promise.resolve({ error: 'Internal server error' }),
-      });
+      };
+      mockFetch
+        .mockResolvedValueOnce(errorResponse)
+        .mockResolvedValueOnce(errorResponse)
+        .mockResolvedValueOnce(errorResponse);
 
-      await expect(getTipConfig()).rejects.toThrow('Internal server error');
+      // Service functions return null on error, they don't throw
+      const result = await getTipConfig();
+      expect(result).toBeNull();
     });
 
-    it('should handle network errors', async () => {
-      mockFetch.mockRejectedValueOnce(new Error('Network error'));
+    it('should return null on network errors', async () => {
+      // Mock network error for initial call + 2 retries (fetchWithRetry retries twice)
+      const networkError = new Error('Network error');
+      mockFetch
+        .mockRejectedValueOnce(networkError)
+        .mockRejectedValueOnce(networkError)
+        .mockRejectedValueOnce(networkError);
 
-      await expect(getFundStatus()).rejects.toThrow('Network error');
+      // Service functions return null on error, they don't throw
+      const result = await getFundStatus();
+      expect(result).toBeNull();
     });
   });
 });

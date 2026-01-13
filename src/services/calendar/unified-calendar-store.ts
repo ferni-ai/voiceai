@@ -864,6 +864,294 @@ export async function getEventsNeedingSync(userId: string): Promise<CalendarEven
   );
 }
 
+// ============================================================================
+// CALENDAR PREFERENCES
+// ============================================================================
+
+/**
+ * Per-calendar preferences stored by the user
+ */
+export interface CalendarPreference {
+  /** Calendar ID (provider-specific) */
+  calendarId: string;
+  /** Provider this calendar belongs to */
+  provider: CalendarProvider;
+  /** Whether this calendar should be synced */
+  enabled: boolean;
+  /** User-defined nickname for the calendar */
+  nickname?: string;
+  /** Color override (if user wants to change from provider color) */
+  colorOverride?: string;
+  /** Show in "busy" calculation */
+  includeInBusy: boolean;
+  /** Include events from this calendar in briefings */
+  includeInBriefings: boolean;
+  /** Last updated timestamp */
+  updatedAt: string;
+}
+
+const PREFERENCES_COLLECTION = 'calendar_preferences';
+
+function getUserPreferencesCollection(userId: string) {
+  return `users/${userId}/${PREFERENCES_COLLECTION}`;
+}
+
+// In-memory cache for preferences
+const preferencesCache: Map<string, Map<string, CalendarPreference>> = new Map();
+
+/**
+ * Get all calendar preferences for a user
+ */
+export async function getCalendarPreferences(userId: string): Promise<CalendarPreference[]> {
+  // Check cache
+  const cached = preferencesCache.get(userId);
+  if (cached) {
+    return Array.from(cached.values());
+  }
+
+  const firestore = await getFirestore();
+  if (!firestore) {
+    return [];
+  }
+
+  try {
+    const collectionPath = getUserPreferencesCollection(userId);
+    const snapshot = await firestore.collection(collectionPath).get();
+
+    const preferences: Map<string, CalendarPreference> = new Map();
+    snapshot.forEach((doc) => {
+      const data = doc.data() as CalendarPreference;
+      preferences.set(data.calendarId, data);
+    });
+
+    preferencesCache.set(userId, preferences);
+    return Array.from(preferences.values());
+  } catch (error) {
+    log.error({ userId, error: String(error) }, 'Failed to load calendar preferences');
+    return [];
+  }
+}
+
+/**
+ * Get preference for a specific calendar
+ */
+export async function getCalendarPreference(
+  userId: string,
+  calendarId: string
+): Promise<CalendarPreference | null> {
+  const preferences = await getCalendarPreferences(userId);
+  return preferences.find((p) => p.calendarId === calendarId) || null;
+}
+
+/**
+ * Set preference for a calendar
+ */
+export async function setCalendarPreference(
+  userId: string,
+  preference: CalendarPreference
+): Promise<void> {
+  const firestore = await getFirestore();
+  if (!firestore) {
+    log.warn({ userId }, 'Firestore not available, preferences not persisted');
+    return;
+  }
+
+  try {
+    const docId = cleanForFirestore(`${preference.provider}_${preference.calendarId}`);
+    const collectionPath = getUserPreferencesCollection(userId);
+    
+    const prefWithTimestamp: CalendarPreference = {
+      ...preference,
+      updatedAt: new Date().toISOString(),
+    };
+
+    await firestore.collection(collectionPath).doc(docId).set(prefWithTimestamp);
+
+    // Update cache
+    let userCache = preferencesCache.get(userId);
+    if (!userCache) {
+      userCache = new Map();
+      preferencesCache.set(userId, userCache);
+    }
+    userCache.set(preference.calendarId, prefWithTimestamp);
+
+    log.info({ userId, calendarId: preference.calendarId }, 'Calendar preference saved');
+  } catch (error) {
+    log.error({ userId, error: String(error) }, 'Failed to save calendar preference');
+    throw error;
+  }
+}
+
+/**
+ * Check if a calendar is enabled for sync
+ */
+export async function isCalendarEnabled(
+  userId: string,
+  calendarId: string
+): Promise<boolean> {
+  const pref = await getCalendarPreference(userId, calendarId);
+  // Default to enabled if no preference set
+  return pref?.enabled ?? true;
+}
+
+/**
+ * Get all enabled calendar IDs for a user
+ */
+export async function getEnabledCalendarIds(userId: string): Promise<string[]> {
+  const preferences = await getCalendarPreferences(userId);
+  
+  // If no preferences, all calendars are enabled by default
+  if (preferences.length === 0) {
+    return [];
+  }
+
+  return preferences
+    .filter((p) => p.enabled)
+    .map((p) => p.calendarId);
+}
+
+/**
+ * Batch update calendar preferences
+ */
+export async function setCalendarPreferences(
+  userId: string,
+  preferences: CalendarPreference[]
+): Promise<void> {
+  const firestore = await getFirestore();
+  if (!firestore) {
+    return;
+  }
+
+  try {
+    const batch = firestore.batch();
+    const collectionPath = getUserPreferencesCollection(userId);
+
+    for (const pref of preferences) {
+      const docId = cleanForFirestore(`${pref.provider}_${pref.calendarId}`);
+      const docRef = firestore.collection(collectionPath).doc(docId);
+      
+      const prefWithTimestamp: CalendarPreference = {
+        ...pref,
+        updatedAt: new Date().toISOString(),
+      };
+      
+      batch.set(docRef, prefWithTimestamp);
+    }
+
+    await batch.commit();
+
+    // Update cache
+    let userCache = preferencesCache.get(userId);
+    if (!userCache) {
+      userCache = new Map();
+      preferencesCache.set(userId, userCache);
+    }
+    for (const pref of preferences) {
+      userCache.set(pref.calendarId, { ...pref, updatedAt: new Date().toISOString() });
+    }
+
+    log.info({ userId, count: preferences.length }, 'Calendar preferences saved in batch');
+  } catch (error) {
+    log.error({ userId, error: String(error) }, 'Failed to batch save calendar preferences');
+    throw error;
+  }
+}
+
+/**
+ * Clear preferences cache for a user
+ */
+export function clearPreferencesCache(userId: string): void {
+  preferencesCache.delete(userId);
+}
+
+// ============================================================================
+// UNIFIED CALENDAR VIEW (Merges SelectedCalendar + CalendarPreference)
+// ============================================================================
+
+/**
+ * Combined view of a calendar with both sync status and user preferences
+ */
+export interface UnifiedCalendarView {
+  /** Calendar ID */
+  id: string;
+  /** Display name (uses nickname if set) */
+  displayName: string;
+  /** Original name from provider */
+  originalName: string;
+  /** Provider this calendar belongs to */
+  provider: CalendarProvider;
+  /** Whether this calendar is selected for sync */
+  enabled: boolean;
+  /** Whether this is the user's primary calendar */
+  primary: boolean;
+  /** Calendar color (uses override if set) */
+  color?: string;
+  /** Original color from provider */
+  originalColor?: string;
+  /** Owner email for shared calendars */
+  owner?: string;
+  /** Whether this calendar can be edited */
+  canEdit: boolean;
+  /** Include in "busy" calculations */
+  includeInBusy: boolean;
+  /** Include in meeting briefings */
+  includeInBriefings: boolean;
+  /** User-defined nickname */
+  nickname?: string;
+  /** User-defined color override */
+  colorOverride?: string;
+}
+
+/**
+ * Get unified view of all calendars across all providers
+ * Merges SelectedCalendar (sync status) with CalendarPreference (user customization)
+ */
+export async function getUnifiedCalendarView(userId: string): Promise<UnifiedCalendarView[]> {
+  // Get calendars from all providers
+  const { getSelectedCalendars } = await import('./calendar-selection.js');
+  
+  const [googleCalendars, appleCalendars, outlookCalendars, preferences] = await Promise.all([
+    getSelectedCalendars(userId, 'google'),
+    getSelectedCalendars(userId, 'apple'),
+    getSelectedCalendars(userId, 'outlook'),
+    getCalendarPreferences(userId),
+  ]);
+
+  // Create preferences lookup
+  const prefsMap = new Map<string, CalendarPreference>();
+  for (const pref of preferences) {
+    prefsMap.set(`${pref.provider}_${pref.calendarId}`, pref);
+  }
+
+  // Merge all calendars with their preferences
+  const allCalendars = [
+    ...googleCalendars.map(c => ({ ...c, provider: 'google' as CalendarProvider })),
+    ...appleCalendars.map(c => ({ ...c, provider: 'apple' as CalendarProvider })),
+    ...outlookCalendars.map(c => ({ ...c, provider: 'outlook' as CalendarProvider })),
+  ];
+
+  return allCalendars.map((cal): UnifiedCalendarView => {
+    const pref = prefsMap.get(`${cal.provider}_${cal.id}`);
+    
+    return {
+      id: cal.id,
+      displayName: pref?.nickname || cal.name,
+      originalName: cal.name,
+      provider: cal.provider,
+      enabled: pref?.enabled ?? cal.enabled,
+      primary: cal.primary,
+      color: pref?.colorOverride || cal.color,
+      originalColor: cal.color,
+      owner: cal.owner,
+      canEdit: cal.canEdit ?? true,
+      includeInBusy: pref?.includeInBusy ?? true,
+      includeInBriefings: pref?.includeInBriefings ?? true,
+      nickname: pref?.nickname,
+      colorOverride: pref?.colorOverride,
+    };
+  });
+}
+
 export default {
   // Event operations
   getEvents,
@@ -888,6 +1176,18 @@ export default {
   isTimeSlotAvailable,
   getDayOverview,
   getWeekOverview,
+
+  // Calendar Preferences
+  getCalendarPreferences,
+  getCalendarPreference,
+  setCalendarPreference,
+  setCalendarPreferences,
+  isCalendarEnabled,
+  getEnabledCalendarIds,
+  clearPreferencesCache,
+
+  // Unified View (merges sync status + preferences)
+  getUnifiedCalendarView,
 
   // Cache
   clearUserCache,

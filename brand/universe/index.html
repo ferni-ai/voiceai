@@ -35,8 +35,8 @@
 
     body {
       font-family: var(--font-body);
-      background: #050505;
-      color: #fff;
+      background: var(--color-showcase-bg);
+      color: var(--color-text-inverse);
       overflow-x: hidden;
       -webkit-font-smoothing: antialiased;
     }
@@ -123,7 +123,7 @@
       left: 0;
       width: 100%;
       height: 100%;
-      background: #050505;
+      background: var(--color-showcase-bg);
       z-index: 9999;
       display: flex;
       align-items: center;
@@ -172,7 +172,7 @@
       left: 0;
       width: 100%;
       height: 100%;
-      background: radial-gradient(ellipse at center, #0a0a0a 0%, #050505 100%);
+      background: radial-gradient(ellipse at center, var(--color-showcase-surface) 0%, var(--color-showcase-bg) 100%);
     }
 
     /* Floating particles */
@@ -542,7 +542,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      background: #0a0a0a;
+      background: var(--color-showcase-surface);
       position: relative;
       overflow: hidden;
     }
@@ -608,7 +608,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      background: linear-gradient(180deg, #0a0a0a 0%, #0d0a08 100%);
+      background: linear-gradient(180deg, var(--color-showcase-surface) 0%, #0d0a08 100%);
       position: relative;
     }
 
@@ -662,7 +662,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      background: radial-gradient(ellipse at 70% 50%, #1a1508 0%, #0a0a0a 60%);
+      background: radial-gradient(ellipse at 70% 50%, #1a1508 0%, var(--color-showcase-surface) 60%);
       position: relative;
       overflow: hidden;
     }
@@ -730,7 +730,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      background: #050505;
+      background: var(--color-showcase-bg);
       position: relative;
       padding: 120px 0;
     }
@@ -766,7 +766,7 @@
     }
 
     .tsunami-body .highlight {
-      color: #fff;
+      color: var(--color-text-inverse);
       font-weight: 500;
     }
 
@@ -789,7 +789,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      background: linear-gradient(180deg, #050505 0%, #0a0d0a 100%);
+      background: linear-gradient(180deg, var(--color-showcase-bg) 0%, #0a0d0a 100%);
       padding: 120px 0;
     }
 
@@ -855,7 +855,7 @@
     .bth-card-icon svg {
       width: 24px;
       height: 24px;
-      stroke: #fff;
+      stroke: var(--color-text-inverse);
       fill: none;
       stroke-width: 2;
     }
@@ -877,7 +877,7 @@
        ============================================ */
     .team-section {
       min-height: 100vh;
-      background: #050505;
+      background: var(--color-showcase-bg);
       padding: 120px 0;
     }
 
@@ -1005,7 +1005,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      background: linear-gradient(180deg, #050505 0%, #0a120a 50%, var(--color-ferni) 100%);
+      background: linear-gradient(180deg, var(--color-showcase-bg) 0%, #0a120a 50%, var(--color-ferni) 100%);
       padding: 120px 0;
     }
 
@@ -1053,7 +1053,7 @@
       background: rgba(255,255,255,0.1);
       border: 1px solid rgba(255,255,255,0.2);
       border-radius: 40px;
-      color: #fff;
+      color: var(--color-text-inverse);
       text-decoration: none;
       font-size: 15px;
       font-weight: 500;
@@ -1389,8 +1389,8 @@
                 </linearGradient>
               </defs>
               <circle cx="50" cy="50" r="45" fill="url(#ferniG)"/>
-              <ellipse cx="36" cy="48" rx="6" ry="9" fill="#fffdfb"/>
-              <ellipse cx="64" cy="48" rx="6" ry="9" fill="#fffdfb"/>
+              <ellipse cx="36" cy="48" rx="6" ry="9" fill="var(--color-warm-white)"/>
+              <ellipse cx="64" cy="48" rx="6" ry="9" fill="var(--color-warm-white)"/>
             </svg>
           </div>
         </div>
@@ -1420,8 +1420,8 @@
                 </linearGradient>
               </defs>
               <circle cx="50" cy="50" r="45" fill="url(#mayaG)"/>
-              <ellipse cx="36" cy="48" rx="6" ry="9" fill="#fffdfb"/>
-              <ellipse cx="64" cy="48" rx="6" ry="9" fill="#fffdfb"/>
+              <ellipse cx="36" cy="48" rx="6" ry="9" fill="var(--color-warm-white)"/>
+              <ellipse cx="64" cy="48" rx="6" ry="9" fill="var(--color-warm-white)"/>
             </svg>
           </div>
         </div>
@@ -1451,8 +1451,8 @@
                 </linearGradient>
               </defs>
               <circle cx="50" cy="50" r="45" fill="url(#peterG)"/>
-              <ellipse cx="36" cy="48" rx="6" ry="9" fill="#fffdfb"/>
-              <ellipse cx="64" cy="48" rx="6" ry="9" fill="#fffdfb"/>
+              <ellipse cx="36" cy="48" rx="6" ry="9" fill="var(--color-warm-white)"/>
+              <ellipse cx="64" cy="48" rx="6" ry="9" fill="var(--color-warm-white)"/>
             </svg>
           </div>
         </div>
@@ -1482,8 +1482,8 @@
                 </linearGradient>
               </defs>
               <circle cx="50" cy="50" r="45" fill="url(#jordanG)"/>
-              <ellipse cx="36" cy="48" rx="6" ry="9" fill="#fffdfb"/>
-              <ellipse cx="64" cy="48" rx="6" ry="9" fill="#fffdfb"/>
+              <ellipse cx="36" cy="48" rx="6" ry="9" fill="var(--color-warm-white)"/>
+              <ellipse cx="64" cy="48" rx="6" ry="9" fill="var(--color-warm-white)"/>
             </svg>
           </div>
         </div>
@@ -1513,8 +1513,8 @@
                 </linearGradient>
               </defs>
               <circle cx="50" cy="50" r="45" fill="url(#alexG)"/>
-              <ellipse cx="36" cy="48" rx="6" ry="9" fill="#fffdfb"/>
-              <ellipse cx="64" cy="48" rx="6" ry="9" fill="#fffdfb"/>
+              <ellipse cx="36" cy="48" rx="6" ry="9" fill="var(--color-warm-white)"/>
+              <ellipse cx="64" cy="48" rx="6" ry="9" fill="var(--color-warm-white)"/>
             </svg>
           </div>
         </div>
@@ -1544,8 +1544,8 @@
                 </linearGradient>
               </defs>
               <circle cx="50" cy="50" r="45" fill="url(#nayanG)"/>
-              <ellipse cx="36" cy="48" rx="6" ry="9" fill="#fffdfb"/>
-              <ellipse cx="64" cy="48" rx="6" ry="9" fill="#fffdfb"/>
+              <ellipse cx="36" cy="48" rx="6" ry="9" fill="var(--color-warm-white)"/>
+              <ellipse cx="64" cy="48" rx="6" ry="9" fill="var(--color-warm-white)"/>
             </svg>
           </div>
         </div>
@@ -1882,8 +1882,8 @@
       <svg viewBox="0 0 100 100" aria-hidden="true">
         <defs>
           <linearGradient id="footerGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" style="stop-color:#5a7751"/>
-            <stop offset="100%" style="stop-color:#3d5a35"/>
+            <stop offset="0%" style="stop-color: var(--color-ferni-light)"/>
+            <stop offset="100%" style="stop-color: var(--color-ferni-dark)"/>
           </linearGradient>
         </defs>
         <circle cx="50" cy="50" r="46" fill="url(#footerGrad)"/>

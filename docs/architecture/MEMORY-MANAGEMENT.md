@@ -553,4 +553,4 @@ process.on('SIGTERM', async () => {
 
 - [Clean Architecture](./CLEAN-ARCHITECTURE.md) - Overall system architecture
 - [Agent Lifecycle](./AGENT-LIFECYCLE.md) - Session start/end handling
-- [Deployment](../DEPLOYMENT.md) - Production deployment with memory limits
+- [Deployment](docs/deployment/) - Use `ferni deploy` - Production deployment with memory limits

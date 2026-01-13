@@ -10,9 +10,9 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { getFirestoreDb, cleanForFirestore } from './firestore-utils.js';
 import { indexDream } from '../data-layer/integrations/index.js';
-import { onDreamBecameDormant, onDreamProgress } from '../outreach/superhuman-outreach-bridge.js';
+import { onDreamBecameDormant } from '../outreach/superhuman-outreach-bridge.js';
+import { cleanForFirestore, getFirestoreDb } from './firestore-utils.js';
 
 const log = createLogger({ module: 'dream-keeper' });
 
@@ -60,6 +60,7 @@ export interface Dream {
   whyItMatters?: string;
   obstacles: string[];
   progressNotes: string[];
+  personaId?: string; // Which persona captured this dream
 
   // Connection
   relatedValues?: string[];
@@ -250,6 +251,20 @@ export async function saveDream(dream: Dream): Promise<void> {
     dreams.push(dream);
   }
   dreamCache.set(dream.userId, dreams);
+
+  // Memory Lane: Capture dream as potential memory
+  try {
+    const { captureDream } = await import('../memory-lane/real-time-collector.js');
+    void captureDream({
+      userId: dream.userId,
+      dreamId: dream.id,
+      statement: dream.statement,
+      type: dream.type,
+      personaId: dream.personaId,
+    });
+  } catch {
+    // Memory capture is optional
+  }
 }
 
 export async function recordDreamMention(

@@ -11,8 +11,8 @@ set -e
 
 FORK_ORG="ferni-ai"
 FORK_REPO="livekit-agents-js"
-UPSTREAM_VERSION="1.0.31"
-FERNI_VERSION="1.0.31-ferni.1"
+UPSTREAM_VERSION="1.0.32"
+FERNI_VERSION="1.0.32-ferni.1"
 
 echo "🔧 LiveKit Fork Setup"
 echo "===================="

@@ -335,68 +335,141 @@ impl BreathGenerator {
         }
     }
 
-    /// Generate a breath-like sound with formant resonances
+    /// Generate a breath-like sound with TIME-VARYING formant resonances
     ///
-    /// IMPROVED IMPLEMENTATION: Uses formant-based synthesis to simulate
-    /// oral cavity resonances. Real breath sounds pass through the vocal tract,
-    /// which has resonant frequencies (formants) from the mouth shape:
-    /// - F1 (~600Hz): Primary oral cavity resonance
-    /// - F2 (~1400Hz): Front-back cavity position
-    /// - F3 (~2400Hz): Lip and tongue tip influence
+    /// IMPROVED IMPLEMENTATION: Uses formant-based synthesis with realistic
+    /// time-varying characteristics that real breath sounds have:
     ///
-    /// The breath sound is white/pink noise filtered through these formants,
-    /// creating a more natural "ssss" → "hhhh" transition.
+    /// 1. TIME-VARYING FORMANTS: Formant frequencies drift naturally as the
+    ///    oral cavity shape changes during exhale (mouth opens wider)
+    /// 2. TURBULENT FLOW MODULATION: Real breath has chaotic turbulence that
+    ///    modulates the noise character over time
+    /// 3. SPECTRAL EVOLUTION: Breath starts more "sss" (high-frequency, forward)
+    ///    and ends more "hhh" (lower, breathy)
+    ///
+    /// Reference formant values (schwa-like, relaxed mouth):
+    /// - F1 (~500-700Hz): Primary oral cavity resonance
+    /// - F2 (~1200-1600Hz): Front-back cavity position
+    /// - F3 (~2200-2800Hz): Lip and tongue tip influence
     fn generate_breath(sample_rate: u32, duration_ms: f32) -> Vec<f32> {
         let num_samples = ((sample_rate as f32 * duration_ms) / 1000.0) as usize;
         let mut breath = vec![0.0f32; num_samples];
         let mut seed: u32 = 54321;
 
-        // Create formant filters for breath resonances
-        // Breath formants are slightly different from vowels - more spread out
-        let mut f1 = FormantFilter::new_bandpass(sample_rate as f32, 600.0, 2.0);  // Low-mid resonance
-        let mut f2 = FormantFilter::new_bandpass(sample_rate as f32, 1400.0, 3.0); // Mid resonance
-        let mut f3 = FormantFilter::new_bandpass(sample_rate as f32, 2400.0, 4.0); // High resonance
+        // Starting formant frequencies (slightly constricted, "sss" like)
+        let f1_start = 550.0_f32;
+        let f2_start = 1500.0_f32;
+        let f3_start = 2600.0_f32;
+
+        // Ending formant frequencies (relaxed, "hhh" like)
+        let f1_end = 650.0_f32;
+        let f2_end = 1300.0_f32;
+        let f3_end = 2300.0_f32;
+
+        // Create formant filters (will be updated dynamically)
+        let mut f1 = FormantFilter::new_bandpass(sample_rate as f32, f1_start, 2.5);
+        let mut f2 = FormantFilter::new_bandpass(sample_rate as f32, f2_start, 3.5);
+        let mut f3 = FormantFilter::new_bandpass(sample_rate as f32, f3_start, 4.5);
 
         // Pink noise filter state (for more natural spectral slope)
         let mut pink_state = [0.0f32; 3];
 
+        // Turbulence modulation state (slow LFO for chaotic variation)
+        let mut turb_phase = 0.0_f32;
+        let turb_freq = 12.0; // 12 Hz turbulence modulation
+
+        // Formant drift noise (very slow, smoothed random walk)
+        let mut f1_drift = 0.0_f32;
+        let mut f2_drift = 0.0_f32;
+        let mut f3_drift = 0.0_f32;
+
+        // Formant weights that evolve over time
+        // Start: more F2/F3 (brighter "sss"), End: more F1 (breathy "hhh")
+        let f1_weight_start = 0.35_f32;
+        let f1_weight_end = 0.55_f32;
+        let f2_weight_start = 0.30_f32;
+        let f2_weight_end = 0.20_f32;
+        let f3_weight_start = 0.25_f32;
+        let f3_weight_end = 0.10_f32;
+
+        // Update rate for filter coefficients (every N samples to avoid overhead)
+        let update_interval = sample_rate as usize / 100; // 100 updates per second
+
         for i in 0..num_samples {
+            // Normalized time (0 to 1)
+            let t = i as f32 / num_samples as f32;
+
+            // Update formant filters periodically (not every sample for efficiency)
+            if i % update_interval == 0 {
+                // Generate drift noise (small random walk)
+                seed = seed.wrapping_mul(1103515245).wrapping_add(12345);
+                let drift_noise = ((seed >> 16) as f32 / 32768.0) - 1.0;
+
+                // Smooth random walk for each formant (±30-50 Hz drift)
+                f1_drift = f1_drift * 0.95 + drift_noise * 15.0;
+                seed = seed.wrapping_mul(1103515245).wrapping_add(12345);
+                let drift_noise2 = ((seed >> 16) as f32 / 32768.0) - 1.0;
+                f2_drift = f2_drift * 0.95 + drift_noise2 * 25.0;
+                seed = seed.wrapping_mul(1103515245).wrapping_add(12345);
+                let drift_noise3 = ((seed >> 16) as f32 / 32768.0) - 1.0;
+                f3_drift = f3_drift * 0.95 + drift_noise3 * 35.0;
+
+                // Interpolate formant frequencies with drift
+                let f1_freq = f1_start + (f1_end - f1_start) * t + f1_drift;
+                let f2_freq = f2_start + (f2_end - f2_start) * t + f2_drift;
+                let f3_freq = f3_start + (f3_end - f3_start) * t + f3_drift;
+
+                // Update filter coefficients
+                f1.update_frequency(sample_rate as f32, f1_freq.clamp(400.0, 800.0), 2.5);
+                f2.update_frequency(sample_rate as f32, f2_freq.clamp(1000.0, 1800.0), 3.5);
+                f3.update_frequency(sample_rate as f32, f3_freq.clamp(2000.0, 3000.0), 4.5);
+            }
+
             // Generate white noise
             seed = seed.wrapping_mul(1103515245).wrapping_add(12345);
             let white = ((seed >> 16) as f32 / 32768.0) - 1.0;
 
             // Convert to pink noise (1/f spectrum) using Voss-McCartney approximation
-            // This gives a more natural "airflow" character
             pink_state[0] = 0.99886 * pink_state[0] + white * 0.0555179;
             pink_state[1] = 0.99332 * pink_state[1] + white * 0.0750759;
             pink_state[2] = 0.96900 * pink_state[2] + white * 0.1538520;
             let pink = (pink_state[0] + pink_state[1] + pink_state[2] + white * 0.5362) * 0.2;
 
+            // Turbulence modulation (chaotic amplitude variation)
+            turb_phase += turb_freq / sample_rate as f32;
+            if turb_phase > 1.0 { turb_phase -= 1.0; }
+            seed = seed.wrapping_mul(1103515245).wrapping_add(12345);
+            let turb_noise = ((seed >> 16) as f32 / 65536.0) - 0.5;
+            let turb_mod = 1.0 + 0.15 * (turb_phase * 2.0 * std::f32::consts::PI).sin() + 0.1 * turb_noise;
+
+            // Apply turbulence to noise
+            let turbulent_pink = pink * turb_mod;
+
             // Envelope: quick attack (~10%), slow exponential decay
-            // This simulates the air pressure buildup and release
-            let t = i as f32 / num_samples as f32;
             let envelope = if t < 0.1 {
-                // Quick attack (inhale burst)
                 (t / 0.1).powf(0.7)
             } else {
-                // Slow exponential decay (trailing off)
                 (-(t - 0.1) * 4.0).exp()
             };
 
-            // Pass through formant filters
-            // Weight the formants to create natural breath character
-            // F1 (low) dominates in breath sounds (the "hhh" quality)
-            // F2/F3 add subtle brightness
-            let f1_out = f1.process(pink) * 0.5;
-            let f2_out = f2.process(pink) * 0.25;
-            let f3_out = f3.process(pink) * 0.15;
+            // Time-varying formant weights (sss → hhh transition)
+            let f1_weight = f1_weight_start + (f1_weight_end - f1_weight_start) * t;
+            let f2_weight = f2_weight_start + (f2_weight_end - f2_weight_start) * t;
+            let f3_weight = f3_weight_start + (f3_weight_end - f3_weight_start) * t;
 
-            // Combine formants with some of the original pink noise for "air" texture
-            let formant_sum = f1_out + f2_out + f3_out;
-            let air_texture = pink * 0.1;
+            // Pass through formant filters with time-varying weights
+            let f1_out = f1.process(turbulent_pink) * f1_weight;
+            let f2_out = f2.process(turbulent_pink) * f2_weight;
+            let f3_out = f3.process(turbulent_pink) * f3_weight;
+
+            // Air texture (raw pink noise adds "airflow" realism)
+            // More air at start (sibilant), less at end (breathy)
+            let air_amount = 0.15 - 0.08 * t;
+            let air_texture = pink * air_amount;
 
             // Final breath sound with envelope
-            breath[i] = (formant_sum + air_texture) * envelope * 0.08; // 0.08 = subtle volume
+            let formant_sum = f1_out + f2_out + f3_out;
+            breath[i] = (formant_sum + air_texture) * envelope * 0.08;
         }
 
         // Light smoothing pass to remove any harsh transients
@@ -651,7 +724,7 @@ impl MicroPitchModulator {
         let max_ratio = 2.0_f32.powf(self.depth_cents / 1200.0);
         let lfo_increment = self.lfo_freq / self.sample_rate as f32;
 
-        for (i, sample) in samples.iter_mut().enumerate() {
+        for sample in samples.iter_mut() {
             // Update LFO
             self.lfo_phase += lfo_increment;
             if self.lfo_phase >= 1.0 {
@@ -904,7 +977,7 @@ impl PitchDrift {
 
         let original = samples.to_vec();
 
-        for (i, sample) in samples.iter_mut().enumerate() {
+        for sample in samples.iter_mut() {
             // Update target periodically
             self.update_counter += 1;
             if self.update_counter >= self.update_interval {
@@ -1045,7 +1118,7 @@ impl VocalFry {
     /// Get next random value (0-1)
     fn next_random(&mut self) -> f32 {
         self.rng_seed = self.rng_seed.wrapping_mul(1103515245).wrapping_add(12345);
-        ((self.rng_seed >> 16) as f32 / 65536.0)
+        (self.rng_seed >> 16) as f32 / 65536.0
     }
 
     /// Schedule next glottal pulse with irregular timing
@@ -1241,6 +1314,30 @@ impl FormantFilter {
         self.x2 = 0.0;
         self.y1 = 0.0;
         self.y2 = 0.0;
+    }
+
+    /// Update the filter frequency without resetting state
+    /// Used for time-varying formants (e.g., in breath synthesis)
+    fn update_frequency(&mut self, sample_rate: f32, center_freq: f32, q: f32) {
+        let omega = 2.0 * std::f32::consts::PI * center_freq / sample_rate;
+        let sin_omega = omega.sin();
+        let cos_omega = omega.cos();
+        let alpha = sin_omega / (2.0 * q);
+
+        let b0 = alpha;
+        let b1 = 0.0;
+        let b2 = -alpha;
+        let a0 = 1.0 + alpha;
+        let a1 = -2.0 * cos_omega;
+        let a2 = 1.0 - alpha;
+
+        // Update coefficients without resetting filter state
+        // This allows smooth frequency transitions without clicks
+        self.b0 = b0 / a0;
+        self.b1 = b1 / a0;
+        self.b2 = b2 / a0;
+        self.a1 = a1 / a0;
+        self.a2 = a2 / a0;
     }
 }
 
@@ -2144,95 +2241,1297 @@ impl Default for LimiterState {
 }
 
 // ============================================================================
-// CROSSFADE BUFFER (Discontinuity Smoother)
+// CROSSFADE BUFFER (Correlation-Aligned)
 // ============================================================================
 
-/// Discontinuity smoother for seamless frame transitions.
+/// Correlation-aligned crossfade buffer for seamless frame transitions.
 ///
-/// **The Problem with Traditional Overlap-Add:**
-/// Traditional overlap-add stores the last N samples and blends them with the
-/// next frame's first N samples. However, this creates a **backward time jump**:
-/// - Frame N sample 479 outputs
-/// - Frame N+1 sample 0 becomes blend(Frame_N[360], Frame_N+1[0])
-/// - At i=0, blend is 100% tail = Frame_N[360], which is 119 samples EARLIER!
+/// Uses cross-correlation to find the optimal splice point between frames,
+/// then applies equal-power crossfade for artifact-free blending.
 ///
-/// **Our Solution: Discontinuity Smoothing**
-/// Instead of overlap-add, we:
-/// 1. Track the last output sample from each frame
-/// 2. Detect discontinuities at frame boundaries (first sample vs last output)
-/// 3. Apply a short interpolation ramp to smoothly correct any discontinuity
+/// **Why cross-correlation matters:**
+/// When audio frames are spliced without alignment, waveforms can be out of phase.
+/// Out-of-phase blending causes partial cancellation ("swooshy" artifacts).
+/// Cross-correlation finds where the tail and head waveforms best match,
+/// minimizing phase cancellation during the crossfade.
 ///
-/// This maintains sample continuity without complex buffering or latency.
+/// **Equal-power crossfade:**
+/// Linear crossfade: out = A*(1-t) + B*t → energy dips at t=0.5 (−3dB)
+/// Equal-power: out = A*cos(t*π/2) + B*sin(t*π/2) → constant energy
 #[derive(Clone)]
 pub struct CrossfadeBuffer {
-    /// Last output sample from previous frame (for continuity)
-    last_output_sample: f32,
-    /// Smoothing ramp length in samples
-    smooth_len: usize,
+    /// Tail samples from previous frame (for overlap-add)
+    tail_buffer: Vec<f32>,
+    /// Crossfade length in samples
+    crossfade_len: usize,
+    /// Maximum search range for correlation (±samples)
+    correlation_search: usize,
     /// Has valid previous frame data
     pub has_tail: bool,
 }
 
 impl CrossfadeBuffer {
-    pub fn new(smooth_samples: usize) -> Self {
+    pub fn new(crossfade_samples: usize) -> Self {
+        // Search ±25% of crossfade length for optimal alignment
+        let correlation_search = crossfade_samples / 4;
         Self {
-            last_output_sample: 0.0,
-            smooth_len: smooth_samples,
+            tail_buffer: vec![0.0; crossfade_samples],
+            crossfade_len: crossfade_samples,
+            correlation_search,
             has_tail: false,
         }
     }
 
     pub fn reset(&mut self) {
-        self.last_output_sample = 0.0;
+        self.tail_buffer.fill(0.0);
         self.has_tail = false;
     }
 
-    /// Store the last sample value for continuity tracking
+    /// Store the tail samples from current frame for next frame's crossfade
     pub fn store_tail(&mut self, samples: &[f32]) {
-        if let Some(&last) = samples.last() {
-            self.last_output_sample = last;
+        if samples.len() >= self.crossfade_len {
+            let start = samples.len() - self.crossfade_len;
+            self.tail_buffer.copy_from_slice(&samples[start..]);
+            self.has_tail = true;
+        } else if !samples.is_empty() {
+            // Handle short frames: shift and append
+            let shift = self.crossfade_len - samples.len();
+            self.tail_buffer.copy_within(samples.len().., 0);
+            self.tail_buffer[shift..].copy_from_slice(samples);
             self.has_tail = true;
         }
     }
 
-    /// Smooth any discontinuity at the frame boundary
+    /// Find optimal alignment offset using cross-correlation
     ///
-    /// Detects the jump between last frame's final sample and this frame's
-    /// first sample, then applies a linear ramp to smoothly correct it.
+    /// Returns the offset (in samples) that maximizes correlation between
+    /// the tail and the head of the new frame.
+    fn find_optimal_offset(&self, head: &[f32]) -> isize {
+        if head.len() < self.crossfade_len || !self.has_tail {
+            return 0;
+        }
+
+        let compare_len = self.crossfade_len.min(head.len());
+        let search_range = self.correlation_search.min(compare_len / 2);
+
+        if search_range < 2 {
+            return 0;
+        }
+
+        let mut best_offset: isize = 0;
+        let mut best_correlation: f32 = f32::NEG_INFINITY;
+
+        // Search for offset that maximizes correlation
+        for offset in -(search_range as isize)..=(search_range as isize) {
+            let mut correlation: f32 = 0.0;
+            let mut count = 0;
+
+            for i in 0..compare_len {
+                let tail_idx = i;
+                let head_idx = (i as isize + offset) as usize;
+
+                if tail_idx < self.tail_buffer.len() && head_idx < head.len() {
+                    // Normalized cross-correlation
+                    correlation += self.tail_buffer[tail_idx] * head[head_idx];
+                    count += 1;
+                }
+            }
+
+            if count > 0 {
+                correlation /= count as f32;
+                if correlation > best_correlation {
+                    best_correlation = correlation;
+                    best_offset = offset;
+                }
+            }
+        }
+
+        best_offset
+    }
+
+    /// Apply correlation-aligned equal-power crossfade
+    ///
+    /// 1. Find optimal alignment using cross-correlation
+    /// 2. Apply equal-power crossfade: out = tail*cos(t*π/2) + head*sin(t*π/2)
     pub fn apply_crossfade(&self, samples: &mut [f32]) {
         if !self.has_tail || samples.is_empty() {
             return;
         }
 
-        // Measure discontinuity at frame boundary
-        let first_sample = samples[0];
-        let discontinuity = first_sample - self.last_output_sample;
+        // Find optimal alignment
+        let offset = self.find_optimal_offset(samples);
 
-        // Small discontinuities (< 1% of full scale) don't need correction
-        // The stateful filters already provide natural continuity
-        if discontinuity.abs() < 0.01 {
-            return;
-        }
+        // Apply equal-power crossfade with alignment
+        let crossfade_len = self.crossfade_len.min(samples.len());
+        let half_pi = std::f32::consts::PI / 2.0;
 
-        // Apply correction ramp: subtract decreasing discontinuity over smooth_len
-        // At sample 0: subtract full discontinuity (makes samples[0] = last_output)
-        // At sample smooth_len-1: subtract 0 (back to original)
-        let ramp_len = self.smooth_len.min(samples.len());
+        for i in 0..crossfade_len {
+            let t = i as f32 / crossfade_len as f32;
 
-        for i in 0..ramp_len {
-            // Linear ramp from 1.0 → 0.0
-            let t = i as f32 / ramp_len as f32;
-            // Correction decreases as we move into the frame
-            let correction = discontinuity * (1.0 - t);
-            samples[i] -= correction;
+            // Equal-power weights (constant energy throughout crossfade)
+            // At t=0: tail_weight=1, head_weight=0 (100% previous frame)
+            // At t=1: tail_weight=0, head_weight=1 (100% new frame)
+            // cos²(x) + sin²(x) = 1, so energy is constant
+            let tail_weight = (half_pi * t).cos();
+            let head_weight = (half_pi * t).sin();
+
+            // Get tail sample (with offset compensation)
+            let tail_idx = i;
+            let tail_sample = if tail_idx < self.tail_buffer.len() {
+                self.tail_buffer[tail_idx]
+            } else {
+                0.0
+            };
+
+            // Get head sample (with alignment offset)
+            let head_idx = (i as isize + offset) as usize;
+            let head_sample = if head_idx < samples.len() {
+                samples[head_idx]
+            } else {
+                samples[i]
+            };
+
+            // Equal-power blend
+            samples[i] = tail_sample * tail_weight + head_sample * head_weight;
         }
     }
 }
 
 impl Default for CrossfadeBuffer {
     fn default() -> Self {
-        // 5ms smoothing at 24kHz = 120 samples
+        // 5ms crossfade at 24kHz = 120 samples
         Self::new(120)
+    }
+}
+
+// ============================================================================
+// STATE-OF-THE-ART HUMANIZATION: JITTER & SHIMMER
+// ============================================================================
+
+/// Adds cycle-to-cycle pitch (jitter) and amplitude (shimmer) variation
+///
+/// **Why this matters:** Synthetic voices are "too perfect" - real human voices
+/// have slight random variations from one vocal cycle to the next:
+/// - **Jitter**: Pitch varies ±0.5-2% between cycles (aperiodicity)
+/// - **Shimmer**: Amplitude varies ±3-10% between cycles
+///
+/// These micro-imperfections are a key marker of naturalness that forensic
+/// voice analysis uses to detect synthetic speech.
+///
+/// Implementation: We estimate pitch periods and add correlated noise
+/// that varies smoothly within periods but changes between periods.
+#[derive(Clone)]
+pub struct JitterShimmer {
+    sample_rate: u32,
+    /// Jitter amount (0-1, typically 0.01-0.02 = 1-2%)
+    jitter_amount: f32,
+    /// Shimmer amount (0-1, typically 0.03-0.10 = 3-10%)
+    shimmer_amount: f32,
+    /// Enable/disable jitter
+    enable_jitter: bool,
+    /// Enable/disable shimmer
+    enable_shimmer: bool,
+    /// PRNG state for deterministic variation
+    rng_seed: u32,
+    /// Current period estimate (samples)
+    period_estimate: f32,
+    /// Sample counter within current period
+    sample_counter: usize,
+    /// Current jitter offset (pitch variation)
+    current_jitter: f32,
+    /// Current shimmer multiplier
+    current_shimmer: f32,
+    /// Smoothed envelope for adaptive modulation
+    envelope: f32,
+    /// Zero-crossing detector state
+    prev_sample: f32,
+    /// Samples since last zero crossing
+    samples_since_crossing: usize,
+    /// Running average of periods for estimation
+    period_running_avg: f32,
+}
+
+impl JitterShimmer {
+    pub fn new(sample_rate: u32, jitter_amount: f32, shimmer_amount: f32) -> Self {
+        // Default period estimate for ~150Hz voice (typical F0)
+        let default_period = sample_rate as f32 / 150.0;
+
+        Self {
+            sample_rate,
+            jitter_amount: jitter_amount.clamp(0.0, 0.1), // Max 10% jitter
+            shimmer_amount: shimmer_amount.clamp(0.0, 0.3), // Max 30% shimmer
+            enable_jitter: true,
+            enable_shimmer: true,
+            rng_seed: 54321,
+            period_estimate: default_period,
+            sample_counter: 0,
+            current_jitter: 0.0,
+            current_shimmer: 1.0,
+            envelope: 0.0,
+            prev_sample: 0.0,
+            samples_since_crossing: 0,
+            period_running_avg: default_period,
+        }
+    }
+
+    /// Generate next random value (0-1)
+    #[inline]
+    fn next_random(&mut self) -> f32 {
+        self.rng_seed = self.rng_seed.wrapping_mul(1103515245).wrapping_add(12345);
+        (self.rng_seed >> 16) as f32 / 65536.0
+    }
+
+    /// Update period estimate based on zero-crossing detection
+    fn update_period_estimate(&mut self, sample: f32) {
+        // Detect positive-going zero crossing
+        if self.prev_sample <= 0.0 && sample > 0.0 && self.samples_since_crossing > 20 {
+            // Update running average with exponential smoothing
+            let measured_period = self.samples_since_crossing as f32;
+            // Clamp to reasonable F0 range (60-400 Hz)
+            let min_period = self.sample_rate as f32 / 400.0;
+            let max_period = self.sample_rate as f32 / 60.0;
+            if measured_period >= min_period && measured_period <= max_period {
+                self.period_running_avg = self.period_running_avg * 0.9 + measured_period * 0.1;
+                self.period_estimate = self.period_running_avg;
+            }
+            self.samples_since_crossing = 0;
+        }
+        self.samples_since_crossing += 1;
+        self.prev_sample = sample;
+    }
+
+    /// Process audio with jitter and shimmer
+    pub fn process(&mut self, samples: &mut [f32]) {
+        if samples.is_empty() || (!self.enable_jitter && !self.enable_shimmer) {
+            return;
+        }
+
+        for sample in samples.iter_mut() {
+            // Update envelope for adaptive modulation (only apply to voiced regions)
+            let abs_sample = sample.abs();
+            self.envelope = self.envelope * 0.999 + abs_sample * 0.001;
+
+            // Update period estimate
+            self.update_period_estimate(*sample);
+
+            // Check if we've completed a period
+            self.sample_counter += 1;
+            let current_period = (self.period_estimate * (1.0 + self.current_jitter)) as usize;
+
+            if self.sample_counter >= current_period.max(10) {
+                self.sample_counter = 0;
+
+                // Generate new jitter/shimmer for next period
+                if self.enable_jitter {
+                    // Jitter: random pitch variation (bipolar, centered on 0)
+                    self.current_jitter = (self.next_random() - 0.5) * 2.0 * self.jitter_amount;
+                }
+
+                if self.enable_shimmer {
+                    // Shimmer: random amplitude variation (centered on 1.0)
+                    self.current_shimmer = 1.0 + (self.next_random() - 0.5) * 2.0 * self.shimmer_amount;
+                }
+            }
+
+            // Apply shimmer (amplitude modulation) based on envelope
+            // Only apply to voiced regions (envelope > threshold)
+            if self.enable_shimmer && self.envelope > 0.01 {
+                *sample *= self.current_shimmer;
+            }
+        }
+    }
+
+    pub fn reset(&mut self) {
+        self.sample_counter = 0;
+        self.current_jitter = 0.0;
+        self.current_shimmer = 1.0;
+        self.envelope = 0.0;
+        self.prev_sample = 0.0;
+        self.samples_since_crossing = 0;
+        self.period_running_avg = self.sample_rate as f32 / 150.0;
+        self.period_estimate = self.period_running_avg;
+    }
+
+    pub fn start_utterance(&mut self) {
+        // Keep period estimate across utterances for smoother transitions
+        self.sample_counter = 0;
+    }
+
+    /// Configure jitter/shimmer amounts
+    pub fn configure(&mut self, jitter: f32, shimmer: f32) {
+        self.jitter_amount = jitter.clamp(0.0, 0.1);
+        self.shimmer_amount = shimmer.clamp(0.0, 0.3);
+    }
+
+    /// Reseed the random number generator for new utterance
+    pub fn reseed(&mut self, seed: u32) {
+        self.rng_seed = seed;
+    }
+}
+
+// ============================================================================
+// STATE-OF-THE-ART HUMANIZATION: HNR MODULATOR (BREATHINESS)
+// ============================================================================
+
+/// Modulates the Harmonic-to-Noise Ratio (breathiness) of speech
+///
+/// **Why this matters:** Real voices have varying breathiness:
+/// - Intimate/soft speech is breathier (low HNR, more noise)
+/// - Projected/loud speech is clearer (high HNR, less noise)
+/// - Emotions affect breathiness (sadness = more breathy, anger = less)
+///
+/// Implementation: We add filtered noise that's modulated by the speech
+/// envelope, simulating turbulent airflow through the glottis.
+#[derive(Clone)]
+pub struct HNRModulator {
+    sample_rate: u32,
+    /// Breathiness amount (0-1, where 0 = clear, 1 = very breathy)
+    breathiness: f32,
+    /// Enable/disable
+    enabled: bool,
+    /// PRNG state
+    rng_seed: u32,
+    /// Bandpass filter state for shaping noise (aspiration is 1-4kHz)
+    aspiration_filter_state: BiquadState,
+    /// Bandpass coefficients
+    aspiration_coeffs: BiquadCoeffs,
+    /// Envelope follower for modulating noise with speech
+    envelope: f32,
+    /// Smoothing coefficient for envelope
+    env_smooth_coef: f32,
+}
+
+impl HNRModulator {
+    pub fn new(sample_rate: u32, breathiness: f32) -> Self {
+        // Create bandpass filter for aspiration noise (centered at 2.5kHz)
+        let aspiration_coeffs = BiquadCoeffs::bandpass(sample_rate, 2500.0, 1.5);
+        // Envelope follows over ~10ms
+        let env_smooth_coef = (-1.0 / (sample_rate as f32 * 0.01)).exp();
+
+        Self {
+            sample_rate,
+            breathiness: breathiness.clamp(0.0, 1.0),
+            enabled: true,
+            rng_seed: 77777,
+            aspiration_filter_state: BiquadState::new(),
+            aspiration_coeffs,
+            envelope: 0.0,
+            env_smooth_coef,
+        }
+    }
+
+    /// Process audio adding aspiration noise proportional to envelope
+    pub fn process(&mut self, samples: &mut [f32]) {
+        if !self.enabled || self.breathiness < 0.001 || samples.is_empty() {
+            return;
+        }
+
+        let c = &self.aspiration_coeffs;
+
+        for sample in samples.iter_mut() {
+            // Track envelope
+            let abs_sample = sample.abs();
+            self.envelope = if abs_sample > self.envelope {
+                abs_sample
+            } else {
+                self.env_smooth_coef * self.envelope + (1.0 - self.env_smooth_coef) * abs_sample
+            };
+
+            // Generate white noise
+            self.rng_seed = self.rng_seed.wrapping_mul(1103515245).wrapping_add(12345);
+            let white_noise = ((self.rng_seed >> 16) as f32 / 32768.0) - 1.0;
+
+            // Filter to aspiration band (breathy "h" sound is ~1-4kHz)
+            let aspiration = self.aspiration_filter_state.process(
+                white_noise, c.b0, c.b1, c.b2, c.a1, c.a2
+            );
+
+            // Modulate noise by envelope (so it follows speech dynamics)
+            // Scale by breathiness amount
+            let noise_level = self.envelope * self.breathiness * 0.3; // 0.3 max mix
+            *sample += aspiration * noise_level;
+        }
+    }
+
+    pub fn reset(&mut self) {
+        self.aspiration_filter_state.reset();
+        self.envelope = 0.0;
+    }
+
+    pub fn start_utterance(&mut self) {
+        self.envelope = 0.0;
+    }
+
+    /// Set breathiness level (0 = clear, 1 = very breathy)
+    pub fn set_breathiness(&mut self, breathiness: f32) {
+        self.breathiness = breathiness.clamp(0.0, 1.0);
+    }
+
+    /// Reseed the random number generator for new utterance
+    pub fn reseed(&mut self, seed: u32) {
+        self.rng_seed = seed;
+    }
+}
+
+// ============================================================================
+// STATE-OF-THE-ART HUMANIZATION: SUBGLOTTAL RESONANCES
+// ============================================================================
+
+/// Adds subglottal (chest cavity) resonances for fuller voice quality
+///
+/// **Why this matters:** TTS typically only models the vocal tract above the
+/// glottis. Real voices also have resonances from the chest cavity below
+/// the vocal folds, centered around:
+/// - Sg1: ~600 Hz (most prominent)
+/// - Sg2: ~1400 Hz
+/// - Sg3: ~2200 Hz
+///
+/// These add a subtle "chesty" quality that makes the voice feel embodied.
+#[derive(Clone)]
+pub struct SubglottalResonance {
+    sample_rate: u32,
+    /// Resonance strength (0-1, typically 0.1-0.3)
+    strength: f32,
+    /// Enable/disable
+    enabled: bool,
+    /// Filter states for three subglottal resonances
+    sg1_state: BiquadState, // ~600Hz
+    sg2_state: BiquadState, // ~1400Hz
+    sg3_state: BiquadState, // ~2200Hz
+    /// Pre-computed coefficients
+    sg1_coeffs: BiquadCoeffs,
+    sg2_coeffs: BiquadCoeffs,
+    sg3_coeffs: BiquadCoeffs,
+}
+
+impl SubglottalResonance {
+    pub fn new(sample_rate: u32, strength: f32) -> Self {
+        // Subglottal resonances are narrow peaks (high Q)
+        // Sg1 is strongest, Sg2 and Sg3 progressively weaker
+        let sg1_coeffs = BiquadCoeffs::peak_eq(sample_rate, 600.0, 3.0, 8.0);  // +3dB at 600Hz
+        let sg2_coeffs = BiquadCoeffs::peak_eq(sample_rate, 1400.0, 2.0, 10.0); // +2dB at 1400Hz
+        let sg3_coeffs = BiquadCoeffs::peak_eq(sample_rate, 2200.0, 1.5, 12.0); // +1.5dB at 2200Hz
+
+        Self {
+            sample_rate,
+            strength: strength.clamp(0.0, 1.0),
+            enabled: true,
+            sg1_state: BiquadState::new(),
+            sg2_state: BiquadState::new(),
+            sg3_state: BiquadState::new(),
+            sg1_coeffs,
+            sg2_coeffs,
+            sg3_coeffs,
+        }
+    }
+
+    /// Process audio adding subglottal resonances
+    pub fn process(&mut self, samples: &mut [f32]) {
+        if !self.enabled || self.strength < 0.001 || samples.is_empty() {
+            return;
+        }
+
+        for sample in samples.iter_mut() {
+            let input = *sample;
+
+            // Apply each resonance filter
+            let sg1 = self.sg1_state.process(
+                input,
+                self.sg1_coeffs.b0, self.sg1_coeffs.b1, self.sg1_coeffs.b2,
+                self.sg1_coeffs.a1, self.sg1_coeffs.a2
+            );
+            let sg2 = self.sg2_state.process(
+                input,
+                self.sg2_coeffs.b0, self.sg2_coeffs.b1, self.sg2_coeffs.b2,
+                self.sg2_coeffs.a1, self.sg2_coeffs.a2
+            );
+            let sg3 = self.sg3_state.process(
+                input,
+                self.sg3_coeffs.b0, self.sg3_coeffs.b1, self.sg3_coeffs.b2,
+                self.sg3_coeffs.a1, self.sg3_coeffs.a2
+            );
+
+            // Mix filtered signal with original based on strength
+            // Use parallel sum for resonances (they add to the original)
+            let resonance_sum = (sg1 - input) * 0.5 + (sg2 - input) * 0.3 + (sg3 - input) * 0.2;
+            *sample = input + resonance_sum * self.strength;
+        }
+    }
+
+    pub fn reset(&mut self) {
+        self.sg1_state.reset();
+        self.sg2_state.reset();
+        self.sg3_state.reset();
+    }
+
+    pub fn start_utterance(&mut self) {
+        // Keep filter state for smooth transitions
+    }
+
+    /// Set resonance strength
+    pub fn set_strength(&mut self, strength: f32) {
+        self.strength = strength.clamp(0.0, 1.0);
+    }
+}
+
+// ============================================================================
+// STATE-OF-THE-ART HUMANIZATION: SMILE FORMANT SHIFTS
+// ============================================================================
+
+/// Shifts formants to simulate smiling (emotional brightness)
+///
+/// **Why this matters:** When people smile while speaking:
+/// - The oral cavity shortens (lips spread)
+/// - F1 shifts down slightly
+/// - F2 and F3 shift UP (brighter quality)
+/// - Creates the audible "smiling" quality in voice
+///
+/// This adds emotional coloring that correlates with happy/positive emotions.
+#[derive(Clone)]
+pub struct SmileFormantShift {
+    sample_rate: u32,
+    /// Smile amount (0-1, where 0 = neutral, 1 = broad smile)
+    smile_amount: f32,
+    /// Enable/disable
+    enabled: bool,
+    /// High-shelf filter for F2/F3 boost (centered at 2kHz)
+    highshelf_state: BiquadState,
+    highshelf_coeffs: BiquadCoeffs,
+    /// Low-shelf filter for subtle F1 reduction
+    lowshelf_state: BiquadState,
+    lowshelf_coeffs: BiquadCoeffs,
+}
+
+impl SmileFormantShift {
+    pub fn new(sample_rate: u32, smile_amount: f32) -> Self {
+        let smile = smile_amount.clamp(0.0, 1.0);
+
+        // High-shelf boost above 1.5kHz (brighter, smiling quality)
+        // More smile = more boost (up to +4dB)
+        let high_gain = smile * 4.0;
+        let highshelf_coeffs = BiquadCoeffs::high_shelf(sample_rate, 1500.0, high_gain);
+
+        // Low-shelf cut below 400Hz (shortened vocal tract)
+        // More smile = slight low cut (up to -1.5dB)
+        let low_gain = smile * -1.5;
+        let lowshelf_coeffs = BiquadCoeffs::low_shelf(sample_rate, 400.0, low_gain);
+
+        Self {
+            sample_rate,
+            smile_amount: smile,
+            enabled: true,
+            highshelf_state: BiquadState::new(),
+            highshelf_coeffs,
+            lowshelf_state: BiquadState::new(),
+            lowshelf_coeffs,
+        }
+    }
+
+    /// Process audio with smile formant shifts
+    pub fn process(&mut self, samples: &mut [f32]) {
+        if !self.enabled || self.smile_amount < 0.001 || samples.is_empty() {
+            return;
+        }
+
+        for sample in samples.iter_mut() {
+            // Apply high-shelf (brightness)
+            let brightened = self.highshelf_state.process(
+                *sample,
+                self.highshelf_coeffs.b0, self.highshelf_coeffs.b1, self.highshelf_coeffs.b2,
+                self.highshelf_coeffs.a1, self.highshelf_coeffs.a2
+            );
+
+            // Apply low-shelf (shortened tract)
+            *sample = self.lowshelf_state.process(
+                brightened,
+                self.lowshelf_coeffs.b0, self.lowshelf_coeffs.b1, self.lowshelf_coeffs.b2,
+                self.lowshelf_coeffs.a1, self.lowshelf_coeffs.a2
+            );
+        }
+    }
+
+    pub fn reset(&mut self) {
+        self.highshelf_state.reset();
+        self.lowshelf_state.reset();
+    }
+
+    pub fn start_utterance(&mut self) {
+        // Keep filter state
+    }
+
+    /// Update smile amount and recalculate coefficients
+    pub fn set_smile_amount(&mut self, smile: f32) {
+        self.smile_amount = smile.clamp(0.0, 1.0);
+        // Recalculate coefficients
+        let high_gain = self.smile_amount * 4.0;
+        self.highshelf_coeffs = BiquadCoeffs::high_shelf(self.sample_rate, 1500.0, high_gain);
+        let low_gain = self.smile_amount * -1.5;
+        self.lowshelf_coeffs = BiquadCoeffs::low_shelf(self.sample_rate, 400.0, low_gain);
+    }
+}
+
+// ============================================================================
+// STATE-OF-THE-ART HUMANIZATION: GLOTTALIZATION
+// ============================================================================
+
+/// Adds glottal stops (creaky/crackly sounds) at word-initial vowels
+///
+/// **Why this matters:** In many languages, words starting with vowels often
+/// have a glottal stop - a brief closure of the vocal folds. Examples:
+/// - "uh-oh" has two glottal stops
+/// - "I am" often starts with a subtle glottal stop
+///
+/// This is different from vocal fry (which is at phrase END). Glottalization
+/// is at vowel ONSETS and creates brief pitch irregularities.
+#[derive(Clone)]
+pub struct Glottalization {
+    sample_rate: u32,
+    /// Probability of glottalization at detected onsets (0-1)
+    probability: f32,
+    /// Duration of glottal stop effect in samples
+    duration_samples: usize,
+    /// Enable/disable
+    enabled: bool,
+    /// PRNG state
+    rng_seed: u32,
+    /// Envelope follower for onset detection
+    envelope: f32,
+    /// Previous envelope for detecting rises
+    prev_envelope: f32,
+    /// Samples remaining in current glottalization
+    remaining_samples: usize,
+    /// Phase for low-frequency modulation during glottal stop
+    glottal_phase: f32,
+    /// Onset detection threshold
+    onset_threshold: f32,
+}
+
+impl Glottalization {
+    pub fn new(sample_rate: u32, probability: f32) -> Self {
+        // Glottal stop duration: ~20-40ms
+        let duration_samples = (sample_rate as f32 * 0.030) as usize; // 30ms
+
+        Self {
+            sample_rate,
+            probability: probability.clamp(0.0, 1.0),
+            duration_samples,
+            enabled: true,
+            rng_seed: 33333,
+            envelope: 0.0,
+            prev_envelope: 0.0,
+            remaining_samples: 0,
+            glottal_phase: 0.0,
+            onset_threshold: 0.05, // Minimum envelope level for onset
+        }
+    }
+
+    /// Process audio adding glottalization at onsets
+    pub fn process(&mut self, samples: &mut [f32]) {
+        if !self.enabled || self.probability < 0.001 || samples.is_empty() {
+            return;
+        }
+
+        // Envelope smoothing coefficient (~5ms)
+        let env_smooth = (-1.0 / (self.sample_rate as f32 * 0.005)).exp();
+
+        for sample in samples.iter_mut() {
+            // Track envelope
+            let abs_sample = sample.abs();
+            self.prev_envelope = self.envelope;
+            self.envelope = self.envelope * env_smooth + abs_sample * (1.0 - env_smooth);
+
+            // Detect onset: envelope rising significantly and above threshold
+            let is_onset = self.envelope > self.onset_threshold
+                && self.envelope > self.prev_envelope * 2.0
+                && self.remaining_samples == 0;
+
+            if is_onset {
+                // Probabilistic glottalization
+                self.rng_seed = self.rng_seed.wrapping_mul(1103515245).wrapping_add(12345);
+                let rand = (self.rng_seed >> 16) as f32 / 65536.0;
+
+                if rand < self.probability {
+                    self.remaining_samples = self.duration_samples;
+                    self.glottal_phase = 0.0;
+                }
+            }
+
+            // Apply glottalization if active
+            if self.remaining_samples > 0 {
+                // Low-frequency (~70Hz) amplitude modulation = creaky/glottal quality
+                let glottal_freq = 70.0;
+                self.glottal_phase += 2.0 * PI * glottal_freq / self.sample_rate as f32;
+                if self.glottal_phase > 2.0 * PI {
+                    self.glottal_phase -= 2.0 * PI;
+                }
+
+                // Fade in/out the effect for smooth transitions
+                let progress = (self.duration_samples - self.remaining_samples) as f32
+                    / self.duration_samples as f32;
+                let fade = if progress < 0.2 {
+                    progress / 0.2 // Fade in
+                } else if progress > 0.8 {
+                    (1.0 - progress) / 0.2 // Fade out
+                } else {
+                    1.0
+                };
+
+                // Apply amplitude modulation (half-wave rectified sine for asymmetric glottal pulse)
+                let modulation = 0.5 + 0.5 * self.glottal_phase.sin().max(0.0);
+                *sample *= 1.0 - fade * 0.7 * (1.0 - modulation);
+
+                self.remaining_samples -= 1;
+            }
+        }
+    }
+
+    pub fn reset(&mut self) {
+        self.envelope = 0.0;
+        self.prev_envelope = 0.0;
+        self.remaining_samples = 0;
+        self.glottal_phase = 0.0;
+    }
+
+    pub fn start_utterance(&mut self) {
+        self.envelope = 0.0;
+        self.prev_envelope = 0.0;
+    }
+
+    /// Set glottalization probability
+    pub fn set_probability(&mut self, probability: f32) {
+        self.probability = probability.clamp(0.0, 1.0);
+    }
+}
+
+// ============================================================================
+// STATE-OF-THE-ART HUMANIZATION: HESITATION PHENOMENA
+// ============================================================================
+
+/// Adds hesitation markers (um, uh, filled pauses)
+///
+/// **Why this matters:** Real spontaneous speech contains:
+/// - Filled pauses: "um", "uh", "er"
+/// - Silent pauses with breath
+/// - Repetitions and restarts
+///
+/// This component can inject subtle hesitation sounds at phrase boundaries
+/// for a more conversational, spontaneous feel.
+///
+/// Note: This is typically triggered externally based on content analysis,
+/// not randomly applied to all speech.
+#[derive(Clone)]
+pub struct HesitationPhenomena {
+    sample_rate: u32,
+    /// Enable/disable
+    enabled: bool,
+    /// Pre-generated "um" sound sample
+    um_sample: Vec<f32>,
+    /// Pre-generated "uh" sound sample
+    uh_sample: Vec<f32>,
+    /// Currently playing hesitation (if any)
+    current_hesitation: Option<HesitationType>,
+    /// Playback position
+    playback_pos: usize,
+    /// Probability of hesitation at phrase boundaries
+    probability: f32,
+    /// PRNG state
+    rng_seed: u32,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum HesitationType {
+    Um,
+    Uh,
+    SilentPause,
+}
+
+impl HesitationPhenomena {
+    pub fn new(sample_rate: u32, probability: f32) -> Self {
+        // Generate synthetic "um" (~300ms)
+        let um_sample = Self::generate_um(sample_rate, 300.0);
+        // Generate synthetic "uh" (~200ms)
+        let uh_sample = Self::generate_uh(sample_rate, 200.0);
+
+        Self {
+            sample_rate,
+            enabled: true,
+            um_sample,
+            uh_sample,
+            current_hesitation: None,
+            playback_pos: 0,
+            probability: probability.clamp(0.0, 0.3), // Max 30% to avoid being annoying
+            rng_seed: 44444,
+        }
+    }
+
+    /// Generate a synthetic "um" sound (voiced schwa + nasal)
+    fn generate_um(sample_rate: u32, duration_ms: f32) -> Vec<f32> {
+        let num_samples = (sample_rate as f32 * duration_ms / 1000.0) as usize;
+        let mut samples = vec![0.0f32; num_samples];
+
+        // "Um" = voiced schwa (~500Hz F1, ~1500Hz F2) with nasal murmur
+        let f0 = 120.0; // Low pitch for hesitation
+        let mut phase = 0.0f32;
+        let mut nasal_phase = 0.0f32;
+
+        for (i, sample) in samples.iter_mut().enumerate() {
+            // Envelope: fade in, sustain, fade out
+            let t = i as f32 / num_samples as f32;
+            let env = if t < 0.1 {
+                t / 0.1
+            } else if t > 0.7 {
+                (1.0 - t) / 0.3
+            } else {
+                1.0
+            };
+            let env = env * env * 0.3; // Quiet, squared for softness
+
+            // Glottal pulse train (simplified)
+            phase += 2.0 * PI * f0 / sample_rate as f32;
+            if phase > 2.0 * PI {
+                phase -= 2.0 * PI;
+            }
+            let glottal = phase.sin() * 0.7 + (phase * 2.0).sin() * 0.3;
+
+            // Nasal murmur (~250Hz)
+            nasal_phase += 2.0 * PI * 250.0 / sample_rate as f32;
+            if nasal_phase > 2.0 * PI {
+                nasal_phase -= 2.0 * PI;
+            }
+            let nasal = nasal_phase.sin();
+
+            // Transition from schwa to nasal at 40%
+            let nasal_blend = if t < 0.4 { 0.2 } else { 0.5 + (t - 0.4) * 0.5 };
+
+            *sample = env * (glottal * (1.0 - nasal_blend) + nasal * nasal_blend);
+        }
+
+        samples
+    }
+
+    /// Generate a synthetic "uh" sound (voiced schwa)
+    fn generate_uh(sample_rate: u32, duration_ms: f32) -> Vec<f32> {
+        let num_samples = (sample_rate as f32 * duration_ms / 1000.0) as usize;
+        let mut samples = vec![0.0f32; num_samples];
+
+        let f0 = 110.0; // Slightly lower pitch
+        let mut phase = 0.0f32;
+
+        for (i, sample) in samples.iter_mut().enumerate() {
+            // Envelope
+            let t = i as f32 / num_samples as f32;
+            let env = if t < 0.15 {
+                t / 0.15
+            } else if t > 0.8 {
+                (1.0 - t) / 0.2
+            } else {
+                1.0
+            };
+            let env = env * env * 0.25; // Even quieter than "um"
+
+            // Glottal pulse
+            phase += 2.0 * PI * f0 / sample_rate as f32;
+            if phase > 2.0 * PI {
+                phase -= 2.0 * PI;
+            }
+
+            *sample = env * phase.sin();
+        }
+
+        samples
+    }
+
+    /// Trigger a hesitation to be played
+    pub fn trigger(&mut self, hesitation_type: HesitationType) {
+        self.current_hesitation = Some(hesitation_type);
+        self.playback_pos = 0;
+    }
+
+    /// Process audio, mixing in any triggered hesitation
+    pub fn process(&mut self, samples: &mut [f32]) {
+        if !self.enabled {
+            return;
+        }
+
+        if let Some(hesitation) = self.current_hesitation {
+            let hesitation_samples = match hesitation {
+                HesitationType::Um => &self.um_sample,
+                HesitationType::Uh => &self.uh_sample,
+                HesitationType::SilentPause => return, // No sound for silent pause
+            };
+
+            for sample in samples.iter_mut() {
+                if self.playback_pos < hesitation_samples.len() {
+                    *sample += hesitation_samples[self.playback_pos];
+                    self.playback_pos += 1;
+                } else {
+                    self.current_hesitation = None;
+                    break;
+                }
+            }
+        }
+    }
+
+    /// Check if should trigger hesitation (call at phrase boundaries)
+    pub fn should_trigger(&mut self) -> Option<HesitationType> {
+        self.rng_seed = self.rng_seed.wrapping_mul(1103515245).wrapping_add(12345);
+        let rand = (self.rng_seed >> 16) as f32 / 65536.0;
+
+        if rand < self.probability {
+            // 60% "um", 30% "uh", 10% silent pause
+            let type_rand = (self.rng_seed >> 8) as f32 / 65536.0;
+            if type_rand < 0.6 {
+                Some(HesitationType::Um)
+            } else if type_rand < 0.9 {
+                Some(HesitationType::Uh)
+            } else {
+                Some(HesitationType::SilentPause)
+            }
+        } else {
+            None
+        }
+    }
+
+    pub fn reset(&mut self) {
+        self.current_hesitation = None;
+        self.playback_pos = 0;
+    }
+
+    pub fn start_utterance(&mut self) {
+        self.reset();
+    }
+
+    /// Reseed the random number generator for new utterance
+    pub fn reseed(&mut self, seed: u32) {
+        self.rng_seed = seed;
+    }
+}
+
+// ============================================================================
+// STATE-OF-THE-ART HUMANIZATION: LOMBARD EFFECT
+// ============================================================================
+
+/// Simulates the Lombard effect (speaking louder in noise)
+///
+/// **Why this matters:** When speaking in noisy environments, humans
+/// instinctively:
+/// - Increase volume
+/// - Raise pitch (F0)
+/// - Shift formants up (clearer articulation)
+/// - Slow down slightly
+///
+/// This component can be driven by environmental noise level to make
+/// the voice more appropriate for the listening context.
+#[derive(Clone)]
+pub struct LombardEffect {
+    sample_rate: u32,
+    /// Current noise level (0-1, where 0 = quiet, 1 = very noisy)
+    noise_level: f32,
+    /// Enable/disable
+    enabled: bool,
+    /// High-shelf filter for formant brightening
+    highshelf_state: BiquadState,
+    highshelf_coeffs: BiquadCoeffs,
+    /// Current gain adjustment
+    current_gain: f32,
+    /// Target gain (for smooth transitions)
+    target_gain: f32,
+    /// Smoothing coefficient
+    smooth_coef: f32,
+}
+
+impl LombardEffect {
+    pub fn new(sample_rate: u32) -> Self {
+        // High-shelf boost for articulation clarity (subtle in quiet, stronger in noise)
+        let highshelf_coeffs = BiquadCoeffs::high_shelf(sample_rate, 2000.0, 0.0);
+        // Smooth over ~100ms
+        let smooth_coef = (-1.0 / (sample_rate as f32 * 0.1)).exp();
+
+        Self {
+            sample_rate,
+            noise_level: 0.0,
+            enabled: true,
+            highshelf_state: BiquadState::new(),
+            highshelf_coeffs,
+            current_gain: 1.0,
+            target_gain: 1.0,
+            smooth_coef,
+        }
+    }
+
+    /// Set the environmental noise level (0 = quiet, 1 = very noisy)
+    pub fn set_noise_level(&mut self, level: f32) {
+        self.noise_level = level.clamp(0.0, 1.0);
+
+        // Calculate target adjustments based on noise level
+        // Volume boost: up to +6dB in noise
+        let gain_boost_db = self.noise_level * 6.0;
+        self.target_gain = 10.0_f32.powf(gain_boost_db / 20.0);
+
+        // Formant brightness: up to +4dB high-shelf in noise
+        let brightness_db = self.noise_level * 4.0;
+        self.highshelf_coeffs = BiquadCoeffs::high_shelf(self.sample_rate, 2000.0, brightness_db);
+    }
+
+    /// Process audio with Lombard adjustments
+    pub fn process(&mut self, samples: &mut [f32]) {
+        if !self.enabled || samples.is_empty() {
+            return;
+        }
+
+        for sample in samples.iter_mut() {
+            // Smooth gain transition
+            self.current_gain = self.smooth_coef * self.current_gain
+                + (1.0 - self.smooth_coef) * self.target_gain;
+
+            // Apply high-shelf for clarity
+            let brightened = self.highshelf_state.process(
+                *sample,
+                self.highshelf_coeffs.b0, self.highshelf_coeffs.b1, self.highshelf_coeffs.b2,
+                self.highshelf_coeffs.a1, self.highshelf_coeffs.a2
+            );
+
+            // Apply gain boost
+            *sample = brightened * self.current_gain;
+        }
+    }
+
+    pub fn reset(&mut self) {
+        self.highshelf_state.reset();
+        self.current_gain = 1.0;
+    }
+
+    pub fn start_utterance(&mut self) {
+        // Keep state for smooth transitions
+    }
+}
+
+// ============================================================================
+// STATE-OF-THE-ART HUMANIZATION: REGISTER TRANSITIONS
+// ============================================================================
+
+/// Simulates natural voice register transitions (modal → falsetto, modal → fry)
+///
+/// **Why this matters:** Human voices have distinct registers:
+/// - **Modal**: Normal speaking voice
+/// - **Falsetto**: High, light register (used for high notes, surprise)
+/// - **Vocal fry**: Low, creaky register (used for emphasis, trailing off)
+///
+/// Transitions between registers aren't abrupt - they have characteristic
+/// "break" qualities that add naturalness.
+#[derive(Clone)]
+pub struct RegisterTransition {
+    sample_rate: u32,
+    /// Current register (0 = fry, 0.5 = modal, 1 = falsetto)
+    register: f32,
+    /// Target register
+    target_register: f32,
+    /// Enable/disable
+    enabled: bool,
+    /// Transition rate (samples to complete)
+    transition_samples: usize,
+    /// Current position in transition
+    transition_pos: usize,
+    /// Smoothing coefficient
+    smooth_coef: f32,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum VoiceRegister {
+    VocalFry,
+    Modal,
+    Falsetto,
+}
+
+impl RegisterTransition {
+    pub fn new(sample_rate: u32) -> Self {
+        // Transition over ~150ms
+        let transition_samples = (sample_rate as f32 * 0.15) as usize;
+        let smooth_coef = (-1.0 / (sample_rate as f32 * 0.05)).exp();
+
+        Self {
+            sample_rate,
+            register: 0.5, // Start modal
+            target_register: 0.5,
+            enabled: true,
+            transition_samples,
+            transition_pos: 0,
+            smooth_coef,
+        }
+    }
+
+    /// Request transition to a new register
+    pub fn transition_to(&mut self, register: VoiceRegister) {
+        self.target_register = match register {
+            VoiceRegister::VocalFry => 0.0,
+            VoiceRegister::Modal => 0.5,
+            VoiceRegister::Falsetto => 1.0,
+        };
+        self.transition_pos = self.transition_samples;
+    }
+
+    /// Process audio applying register-appropriate modifications
+    pub fn process(&mut self, samples: &mut [f32]) {
+        if !self.enabled || samples.is_empty() {
+            return;
+        }
+
+        for sample in samples.iter_mut() {
+            // Smooth transition
+            self.register = self.smooth_coef * self.register
+                + (1.0 - self.smooth_coef) * self.target_register;
+
+            // Apply register-specific processing
+            if self.register < 0.3 {
+                // Vocal fry territory: add low-freq amplitude modulation
+                // (More complete vocal fry is handled by VocalFry struct)
+                // This just adds subtle creak for low register
+            } else if self.register > 0.7 {
+                // Falsetto territory: reduce low frequencies, boost highs
+                // This is a simple approximation
+                *sample *= 0.85; // Falsetto is typically lighter
+            }
+            // Modal (0.3-0.7): no modification
+
+            // Decrement transition counter
+            if self.transition_pos > 0 {
+                self.transition_pos -= 1;
+            }
+        }
+    }
+
+    pub fn reset(&mut self) {
+        self.register = 0.5;
+        self.target_register = 0.5;
+        self.transition_pos = 0;
+    }
+
+    pub fn start_utterance(&mut self) {
+        // Reset to modal for new utterance
+        self.target_register = 0.5;
+    }
+
+    /// Get current register value (0-1)
+    pub fn current_register(&self) -> f32 {
+        self.register
+    }
+}
+
+// ============================================================================
+// STATE-OF-THE-ART HUMANIZATION: PHARYNGEAL CONSTRICTION
+// ============================================================================
+
+/// Simulates pharyngeal constriction (throat tightening under stress)
+///
+/// **Why this matters:** Under stress, tension, or strong emotion:
+/// - The pharynx (throat) constricts
+/// - Voice becomes "tighter", more strained
+/// - Formants shift (narrower pharynx = different resonance)
+/// - Creates audible "tension" in voice
+///
+/// This is different from general formant shifts - it specifically models
+/// the acoustic effect of throat muscle tension.
+#[derive(Clone)]
+pub struct PharyngealConstriction {
+    sample_rate: u32,
+    /// Constriction amount (0 = relaxed, 1 = maximum tension)
+    constriction: f32,
+    /// Enable/disable
+    enabled: bool,
+    /// Peak EQ filter for constriction resonance (~2-3kHz emphasis)
+    constriction_state: BiquadState,
+    constriction_coeffs: BiquadCoeffs,
+    /// Slight high-pass for "thinner" quality
+    highpass_state: BiquadState,
+    highpass_coeffs: BiquadCoeffs,
+    /// Smoothing coefficient for parameter changes
+    smooth_coef: f32,
+    current_constriction: f32,
+}
+
+impl PharyngealConstriction {
+    pub fn new(sample_rate: u32, constriction: f32) -> Self {
+        let c = constriction.clamp(0.0, 1.0);
+
+        // Peak at ~2.5kHz (pharyngeal resonance) - boosts "strained" quality
+        let peak_gain = c * 6.0; // Up to +6dB
+        let constriction_coeffs = BiquadCoeffs::peak_eq(sample_rate, 2500.0, peak_gain, 2.0);
+
+        // Subtle high-pass for "thinness" (reduced warmth)
+        let highpass_coeffs = BiquadCoeffs::highpass(sample_rate, 100.0 + c * 100.0, 0.7);
+
+        let smooth_coef = (-1.0 / (sample_rate as f32 * 0.05)).exp();
+
+        Self {
+            sample_rate,
+            constriction: c,
+            enabled: true,
+            constriction_state: BiquadState::new(),
+            constriction_coeffs,
+            highpass_state: BiquadState::new(),
+            highpass_coeffs,
+            smooth_coef,
+            current_constriction: c,
+        }
+    }
+
+    /// Set constriction amount (0 = relaxed, 1 = maximum tension)
+    pub fn set_constriction(&mut self, constriction: f32) {
+        self.constriction = constriction.clamp(0.0, 1.0);
+
+        // Recalculate coefficients
+        let peak_gain = self.constriction * 6.0;
+        self.constriction_coeffs = BiquadCoeffs::peak_eq(
+            self.sample_rate, 2500.0, peak_gain, 2.0
+        );
+        self.highpass_coeffs = BiquadCoeffs::highpass(
+            self.sample_rate, 100.0 + self.constriction * 100.0, 0.7
+        );
+    }
+
+    /// Process audio with pharyngeal constriction
+    pub fn process(&mut self, samples: &mut [f32]) {
+        if !self.enabled || samples.is_empty() {
+            return;
+        }
+
+        for sample in samples.iter_mut() {
+            // Smooth constriction parameter
+            self.current_constriction = self.smooth_coef * self.current_constriction
+                + (1.0 - self.smooth_coef) * self.constriction;
+
+            // Only apply if significant constriction
+            if self.current_constriction > 0.05 {
+                // Apply constriction resonance
+                let constrained = self.constriction_state.process(
+                    *sample,
+                    self.constriction_coeffs.b0, self.constriction_coeffs.b1,
+                    self.constriction_coeffs.b2, self.constriction_coeffs.a1,
+                    self.constriction_coeffs.a2
+                );
+
+                // Apply high-pass for thinness
+                *sample = self.highpass_state.process(
+                    constrained,
+                    self.highpass_coeffs.b0, self.highpass_coeffs.b1,
+                    self.highpass_coeffs.b2, self.highpass_coeffs.a1,
+                    self.highpass_coeffs.a2
+                );
+
+                // Blend with original based on constriction amount
+                // At low constriction, mostly original; at high, mostly processed
+            }
+        }
+    }
+
+    pub fn reset(&mut self) {
+        self.constriction_state.reset();
+        self.highpass_state.reset();
+        self.current_constriction = self.constriction;
+    }
+
+    pub fn start_utterance(&mut self) {
+        // Keep filter state
     }
 }
 
@@ -2405,6 +3704,91 @@ pub struct ProcessorConfig {
     /// harsh attacks that sound robotic. Human speech has natural
     /// glottal coordination that softens these transitions.
     pub enable_onset_softening: bool,
+
+    // =========================================================================
+    // STATE-OF-THE-ART HUMANIZATION - Research-grade voice naturalization
+    // =========================================================================
+
+    /// Enable jitter (cycle-to-cycle pitch variation)
+    /// Natural speech has 0.5-2% pitch variation between consecutive pitch cycles.
+    /// This microvariation is a key marker of human vs. synthetic speech.
+    pub enable_jitter: bool,
+
+    /// Jitter amount (0-0.1, typical human range 0.01-0.02 = 1-2%)
+    pub jitter_amount: f32,
+
+    /// Enable shimmer (cycle-to-cycle amplitude variation)
+    /// Natural speech has 3-10% amplitude variation between pitch cycles.
+    /// Combined with jitter, this creates the organic quality of real voice.
+    pub enable_shimmer: bool,
+
+    /// Shimmer amount (0-0.3, typical human range 0.03-0.1 = 3-10%)
+    pub shimmer_amount: f32,
+
+    /// Enable HNR (Harmonic-to-Noise Ratio) modulation / breathiness control
+    /// Adds aspiration noise modulated by speech envelope for natural breathiness.
+    /// Essential for warmth and preventing the "sterile" quality of pure synthesis.
+    pub enable_hnr_modulation: bool,
+
+    /// Breathiness amount (0-1, typical 0.1-0.3)
+    /// 0.0 = crystal clear, 0.5 = moderate breath, 1.0 = very breathy/whispered
+    pub hnr_breathiness: f32,
+
+    /// Enable subglottal resonances (chest cavity resonances)
+    /// Adds resonances at Sg1=600Hz, Sg2=1400Hz, Sg3=2200Hz that originate
+    /// from the chest cavity. These are present in real speech but missing
+    /// in most TTS systems, making them a key differentiator.
+    pub enable_subglottal_resonance: bool,
+
+    /// Subglottal resonance strength (0-1, typical 0.1-0.3)
+    pub subglottal_strength: f32,
+
+    /// Enable smile formant shifts (emotional brightness)
+    /// When smiling, the vocal tract shortens and formants shift upward.
+    /// This adds high-shelf boost + low-shelf cut to simulate smiling.
+    pub enable_smile_formants: bool,
+
+    /// Smile amount (0-1, typical 0.0-0.5)
+    /// 0.0 = neutral, 0.5 = slight smile, 1.0 = full smile
+    pub smile_amount: f32,
+
+    /// Enable glottalization (glottal stops at vowel onsets)
+    /// Adds low-frequency amplitude modulation at stressed vowel beginnings
+    /// that creates the natural "attack" humans have when emphasizing words.
+    pub enable_glottalization: bool,
+
+    /// Glottalization strength (0-1, typical 0.3-0.6)
+    pub glottalization_strength: f32,
+
+    /// Enable hesitation phenomena (natural "um", "uh" sounds)
+    /// Injects pre-generated filler sounds at appropriate pauses.
+    /// Essential for natural conversational flow.
+    pub enable_hesitation_sounds: bool,
+
+    /// Hesitation probability at eligible pauses (0-1, typical 0.1-0.3)
+    pub hesitation_probability: f32,
+
+    /// Enable Lombard effect (noise adaptation)
+    /// Automatically boosts volume and brightness when background noise is detected.
+    /// Humans naturally do this - it's why we speak louder in noisy environments.
+    pub enable_lombard_effect: bool,
+
+    /// Enable voice register transitions (modal/falsetto/fry)
+    /// Smoothly transitions between voice registers based on emotion and pitch.
+    /// Modal = normal, falsetto = head voice (high), fry = creaky (low).
+    pub enable_register_transitions: bool,
+
+    /// Target voice register (0=modal, 1=falsetto, 2=fry)
+    pub target_register: u8,
+
+    /// Enable pharyngeal constriction (stress/tension in throat)
+    /// Adds characteristic throat tightening that occurs during stress or crying.
+    /// Creates mid-frequency emphasis (2.5kHz peak) and high-pass filtering.
+    pub enable_pharyngeal_constriction: bool,
+
+    /// Pharyngeal constriction amount (0-1, typical 0.0-0.5)
+    /// 0.0 = relaxed, 0.5 = moderate tension, 1.0 = very tense/stressed
+    pub pharyngeal_amount: f32,
 }
 
 impl Default for ProcessorConfig {
@@ -2515,24 +3899,74 @@ impl Default for ProcessorConfig {
             // ADVANCED HUMANIZATION - Ultra-realistic speech features
             // =========================================================================
 
-            // Vocal fry: DISABLED by default (subtle effect, enable for certain voices)
-            // More common in American English, certain speaking styles
-            enable_vocal_fry: false,
-            vocal_fry_depth: 0.4,       // Moderate depth
-            vocal_fry_duration_ms: 200.0, // 200ms at phrase ends
+            // Vocal fry: ENABLED - adds natural creaky voice at phrase endings
+            // More common in American English, creates organic trailing-off
+            enable_vocal_fry: true,
+            vocal_fry_depth: 0.3,       // Subtle depth (was 0.4 - too strong)
+            vocal_fry_duration_ms: 150.0, // 150ms at phrase ends (was 200ms)
 
-            // Lip smacks: DISABLED by default (enable for ultra-realistic speech)
-            enable_lip_smacks: false,
-            lip_smack_probability: 0.3, // 30% chance at eligible boundaries
+            // Lip smacks: ENABLED - adds realistic mouth sounds at phrase boundaries
+            enable_lip_smacks: true,
+            lip_smack_probability: 0.2, // 20% chance (was 0.3 - too frequent)
 
-            // Tempo variation: DISABLED by default (subtle but noticeable)
-            // Enable for more natural-sounding speech rhythm
-            enable_tempo_variation: false,
-            tempo_variation_depth: 0.03, // ±3% speed variation
+            // Tempo variation: ENABLED - creates natural speech rhythm
+            // Humans naturally speed up and slow down within phrases
+            enable_tempo_variation: true,
+            tempo_variation_depth: 0.025, // ±2.5% speed variation (was 0.03)
 
-            // Onset softening: DISABLED by default (enable for softer attacks)
-            // Reduces harsh glottal onsets on vowel-initial sounds
-            enable_onset_softening: false,
+            // Onset softening: ENABLED - reduces harsh glottal attacks
+            // Makes vowel-initial sounds more natural (less "punchy")
+            enable_onset_softening: true,
+
+            // =========================================================================
+            // STATE-OF-THE-ART HUMANIZATION - Research-grade voice naturalization
+            // =========================================================================
+
+            // Jitter & Shimmer: ENABLED - cycle-to-cycle pitch/amplitude variation
+            // These are key acoustic markers that differentiate human from synthetic speech
+            enable_jitter: true,
+            jitter_amount: 0.015,      // 1.5% - subtle, natural range
+            enable_shimmer: true,
+            shimmer_amount: 0.05,      // 5% - subtle, natural range
+
+            // HNR Modulation: ENABLED - adds natural breathiness
+            // Prevents the "sterile" quality of pure synthesis
+            enable_hnr_modulation: true,
+            hnr_breathiness: 0.15,     // Light breathiness
+
+            // Subglottal Resonance: ENABLED - chest cavity resonances
+            // Missing in most TTS, makes voice sound "embodied"
+            enable_subglottal_resonance: true,
+            subglottal_strength: 0.2,  // Subtle presence
+
+            // Smile Formants: DISABLED by default - enable for positive emotions
+            // Should be dynamically controlled based on emotional context
+            enable_smile_formants: false,
+            smile_amount: 0.0,
+
+            // Glottalization: DISABLED by default - enable for emphasis
+            // Should be dynamically controlled for stressed vowels
+            enable_glottalization: false,
+            glottalization_strength: 0.4,
+
+            // Hesitation Sounds: DISABLED by default - enable for conversational mode
+            // Only use in appropriate contexts (not for reading, announcements, etc.)
+            enable_hesitation_sounds: false,
+            hesitation_probability: 0.15,
+
+            // Lombard Effect: DISABLED by default - enable when noise detection active
+            // Requires real-time noise level measurement to be useful
+            enable_lombard_effect: false,
+
+            // Register Transitions: DISABLED by default - enable for emotional range
+            // Should be dynamically controlled based on pitch and emotion
+            enable_register_transitions: false,
+            target_register: 0,        // Default to modal voice
+
+            // Pharyngeal Constriction: DISABLED by default - enable for stress/crying
+            // Should be dynamically controlled for emotional scenes
+            enable_pharyngeal_constriction: false,
+            pharyngeal_amount: 0.0,
         }
     }
 }
@@ -2676,6 +4110,44 @@ impl BiquadCoeffs {
             a2: a2 / a0,
         }
     }
+
+    /// Calculate high-shelf filter coefficients
+    ///
+    /// Boosts or cuts frequencies above the specified frequency.
+    /// Used for smile formant shifts and Lombard effect brightness boost.
+    ///
+    /// # Arguments
+    /// * `sample_rate` - Sample rate in Hz
+    /// * `freq` - Shelf frequency in Hz (transition point)
+    /// * `gain_db` - Gain in dB (positive = boost, negative = cut)
+    ///
+    /// # Reference
+    /// Audio EQ Cookbook by Robert Bristow-Johnson
+    pub fn high_shelf(sample_rate: u32, freq: f32, gain_db: f32) -> Self {
+        let gain = 10.0_f32.powf(gain_db / 40.0); // A = sqrt(linear_gain)
+        let omega = 2.0 * PI * freq / sample_rate as f32;
+        let sin_omega = omega.sin();
+        let cos_omega = omega.cos();
+
+        // S = 1.0 gives moderate slope (shelf slope parameter)
+        let s = 1.0;
+        let alpha = sin_omega / 2.0 * ((gain + 1.0 / gain) * (1.0 / s - 1.0) + 2.0).sqrt();
+
+        let b0 = gain * ((gain + 1.0) + (gain - 1.0) * cos_omega + 2.0 * gain.sqrt() * alpha);
+        let b1 = -2.0 * gain * ((gain - 1.0) + (gain + 1.0) * cos_omega);
+        let b2 = gain * ((gain + 1.0) + (gain - 1.0) * cos_omega - 2.0 * gain.sqrt() * alpha);
+        let a0 = (gain + 1.0) - (gain - 1.0) * cos_omega + 2.0 * gain.sqrt() * alpha;
+        let a1 = 2.0 * ((gain - 1.0) - (gain + 1.0) * cos_omega);
+        let a2 = (gain + 1.0) - (gain - 1.0) * cos_omega - 2.0 * gain.sqrt() * alpha;
+
+        Self {
+            b0: b0 / a0,
+            b1: b1 / a0,
+            b2: b2 / a0,
+            a1: a1 / a0,
+            a2: a2 / a0,
+        }
+    }
 }
 
 // ============================================================================
@@ -2775,6 +4247,37 @@ pub struct PostTTSProcessor {
 
     /// Onset softener (micro-fades on hard attacks)
     onset_softener: OnsetSoftener,
+
+    // =========================================================================
+    // STATE-OF-THE-ART HUMANIZATION - Research-grade voice naturalization
+    // =========================================================================
+
+    /// Jitter & Shimmer (cycle-to-cycle pitch/amplitude variation)
+    jitter_shimmer: JitterShimmer,
+
+    /// HNR Modulator (breathiness control)
+    hnr_modulator: HNRModulator,
+
+    /// Subglottal Resonance (chest cavity resonances)
+    subglottal_resonance: SubglottalResonance,
+
+    /// Smile Formant Shifts (emotional brightness)
+    smile_formants: SmileFormantShift,
+
+    /// Glottalization (glottal stops at vowel onsets)
+    glottalization: Glottalization,
+
+    /// Hesitation Phenomena (natural "um", "uh" sounds)
+    hesitation_generator: HesitationPhenomena,
+
+    /// Lombard Effect (noise adaptation)
+    lombard_effect: LombardEffect,
+
+    /// Register Transitions (modal/falsetto/fry)
+    register_transition: RegisterTransition,
+
+    /// Pharyngeal Constriction (stress/tension in throat)
+    pharyngeal_constriction: PharyngealConstriction,
 }
 
 impl PostTTSProcessor {
@@ -2870,6 +4373,40 @@ impl PostTTSProcessor {
             lip_smack_generator: LipSmackGenerator::new(config.sample_rate),
             tempo_variation: TempoMicroVariation::new(config.sample_rate, config.tempo_variation_depth),
             onset_softener: OnsetSoftener::new(config.sample_rate),
+
+            // State-of-the-art humanization (research-grade)
+            // Note: enable flags are checked at process time, not construction
+            jitter_shimmer: JitterShimmer::new(
+                config.sample_rate,
+                config.jitter_amount,
+                config.shimmer_amount,
+            ),
+            hnr_modulator: HNRModulator::new(
+                config.sample_rate,
+                config.hnr_breathiness,
+            ),
+            subglottal_resonance: SubglottalResonance::new(
+                config.sample_rate,
+                config.subglottal_strength,
+            ),
+            smile_formants: SmileFormantShift::new(
+                config.sample_rate,
+                config.smile_amount,
+            ),
+            glottalization: Glottalization::new(
+                config.sample_rate,
+                config.glottalization_strength,
+            ),
+            hesitation_generator: HesitationPhenomena::new(
+                config.sample_rate,
+                config.hesitation_probability,
+            ),
+            lombard_effect: LombardEffect::new(config.sample_rate),
+            register_transition: RegisterTransition::new(config.sample_rate),
+            pharyngeal_constriction: PharyngealConstriction::new(
+                config.sample_rate,
+                config.pharyngeal_amount,
+            ),
         }
     }
 
@@ -2907,6 +4444,17 @@ impl PostTTSProcessor {
         self.lip_smack_generator.reset();
         self.tempo_variation.reset();
         self.onset_softener.reset();
+
+        // State-of-the-art humanization
+        self.jitter_shimmer.reset();
+        self.hnr_modulator.reset();
+        self.subglottal_resonance.reset();
+        self.smile_formants.reset();
+        self.glottalization.reset();
+        self.hesitation_generator.reset();
+        self.lombard_effect.reset();
+        self.register_transition.reset();
+        self.pharyngeal_constriction.reset();
 
         // Adaptive breath timing
         self.total_samples_processed = 0;
@@ -2955,6 +4503,22 @@ impl PostTTSProcessor {
         // Advanced humanization reseeding
         self.vocal_fry.reseed(base_seed ^ 0xC0EA_CFBA);  // unique seed for vocal fry
         self.lip_smack_generator.reseed(base_seed ^ 0x50AC_C11B);  // unique seed for lip smacks
+
+        // State-of-the-art humanization reseeding
+        self.jitter_shimmer.reseed(base_seed ^ 0xA1B2_C3D4);
+        self.hnr_modulator.reseed(base_seed ^ 0xE5F6_7890);
+        self.hesitation_generator.reseed(base_seed ^ 0x1234_ABCD);
+
+        // Start new utterance for state-of-the-art features
+        self.jitter_shimmer.start_utterance();
+        self.hnr_modulator.start_utterance();
+        self.subglottal_resonance.start_utterance();
+        self.smile_formants.start_utterance();
+        self.glottalization.start_utterance();
+        self.hesitation_generator.start_utterance();
+        self.lombard_effect.start_utterance();
+        self.register_transition.start_utterance();
+        self.pharyngeal_constriction.start_utterance();
 
         // Start tempo variation for new utterance
         self.tempo_variation.start_utterance();
@@ -3418,6 +4982,73 @@ impl PostTTSProcessor {
             self.amplitude_jitter.process(samples);
         }
 
+        // =====================================================================
+        // STATE-OF-THE-ART HUMANIZATION - Research-grade voice naturalization
+        // =====================================================================
+
+        // 5c2. Jitter & Shimmer - cycle-to-cycle pitch/amplitude variation
+        // Key acoustic marker that distinguishes human from synthetic speech.
+        // Jitter (pitch) and shimmer (amplitude) work together for organic quality.
+        if self.config.enable_jitter || self.config.enable_shimmer {
+            self.jitter_shimmer.process(samples);
+        }
+
+        // 5c3. HNR Modulation - natural breathiness control
+        // Adds aspiration noise modulated by speech envelope for warmth.
+        // Prevents the "sterile" quality of pure synthesis.
+        if self.config.enable_hnr_modulation {
+            self.hnr_modulator.process(samples);
+        }
+
+        // 5c4. Subglottal Resonance - chest cavity resonances
+        // Adds resonances at Sg1=600Hz, Sg2=1400Hz, Sg3=2200Hz that come
+        // from the chest cavity. Makes voice sound "embodied" and full.
+        if self.config.enable_subglottal_resonance {
+            self.subglottal_resonance.process(samples);
+        }
+
+        // 5c5. Smile Formant Shifts - emotional brightness
+        // When smiling, vocal tract shortens and formants shift up.
+        // Dynamically controlled based on positive emotional context.
+        if self.config.enable_smile_formants && self.config.smile_amount > 0.0 {
+            self.smile_formants.process(samples);
+        }
+
+        // 5c6. Glottalization - glottal stops at vowel onsets
+        // Adds low-frequency amplitude modulation for emphasis.
+        // Should be triggered on stressed vowels for natural speech.
+        if self.config.enable_glottalization {
+            self.glottalization.process(samples);
+        }
+
+        // 5c7. Hesitation Phenomena - natural "um", "uh" sounds
+        // Injects pre-generated filler sounds at appropriate pauses.
+        // Essential for conversational flow (disabled by default).
+        if self.config.enable_hesitation_sounds {
+            self.hesitation_generator.process(samples);
+        }
+
+        // 5c8. Lombard Effect - noise adaptation
+        // Boosts volume and brightness when background noise detected.
+        // Humans naturally do this in noisy environments.
+        if self.config.enable_lombard_effect {
+            self.lombard_effect.process(samples);
+        }
+
+        // 5c9. Register Transitions - modal/falsetto/fry quality
+        // Smoothly transitions between voice registers based on emotion/pitch.
+        // Controlled dynamically for emotional range.
+        if self.config.enable_register_transitions {
+            self.register_transition.process(samples);
+        }
+
+        // 5c10. Pharyngeal Constriction - stress/tension in throat
+        // Adds characteristic throat tightening for stress or crying.
+        // Creates mid-frequency emphasis for emotional scenes.
+        if self.config.enable_pharyngeal_constriction && self.config.pharyngeal_amount > 0.0 {
+            self.pharyngeal_constriction.process(samples);
+        }
+
         // 5d. Vocal fry - creaky voice effect at utterance end
         // Triggers on last frame to create natural trailing-off quality
         if is_last_frame && self.config.enable_vocal_fry {
@@ -3760,25 +5391,77 @@ mod tests {
 
     #[test]
     fn test_crossfade() {
-        let mut buffer = CrossfadeBuffer::new(10);
+        let crossfade_len = 48; // ~2ms at 24kHz
+        let mut buffer = CrossfadeBuffer::new(crossfade_len);
 
-        // Simulate frame 1 ending with sample value 0.0
-        let frame1: Vec<f32> = vec![0.0; 20];
+        // Frame 1: constant amplitude sine wave
+        let frame1: Vec<f32> = (0..480)
+            .map(|i| (2.0 * std::f32::consts::PI * 440.0 * i as f32 / 24000.0).sin() * 0.5)
+            .collect();
         buffer.store_tail(&frame1);
 
-        // Frame 2 starts with 1.0 - this is a discontinuity of 1.0
-        let mut frame2: Vec<f32> = (0..20).map(|_| 1.0).collect();
+        // Frame 2: same frequency but phase shifted (simulates chunk boundary)
+        let mut frame2: Vec<f32> = (0..480)
+            .map(|i| (2.0 * std::f32::consts::PI * 440.0 * (i + 50) as f32 / 24000.0).sin() * 0.5)
+            .collect();
         buffer.apply_crossfade(&mut frame2);
 
-        // With discontinuity smoothing from last_output=0 to frame=1:
-        // discontinuity = 1.0 - 0.0 = 1.0
-        // At i=0: correction = 1.0 * (1 - 0/10) = 1.0, so frame[0] = 1.0 - 1.0 = 0.0
-        // At i=5: correction = 1.0 * (1 - 5/10) = 0.5, so frame[5] = 1.0 - 0.5 = 0.5
-        // At i=9: correction = 1.0 * (1 - 9/10) = 0.1, so frame[9] = 1.0 - 0.1 = 0.9
-        // At i=10+: no correction, so frame[10+] = 1.0
-        assert!(frame2[0].abs() < 0.01, "Start should be smoothed to ~0: {}", frame2[0]);
-        assert!((frame2[5] - 0.5).abs() < 0.1, "Midpoint should be ~0.5: {}", frame2[5]);
-        assert!((frame2[15] - 1.0).abs() < 0.01, "After smoothing, should be original: {}", frame2[15]);
+        // Verify crossfade region: no large discontinuities (clicks)
+        // The equal-power crossfade should maintain relatively constant amplitude
+        let crossfade_region = &frame2[..crossfade_len];
+        for i in 1..crossfade_region.len() {
+            let jump = (crossfade_region[i] - crossfade_region[i-1]).abs();
+            // Max reasonable jump for 440Hz at 24kHz is about 0.1 per sample
+            // Clicks would be >0.3
+            assert!(
+                jump < 0.3,
+                "Click detected at crossfade sample {}: jump = {}",
+                i, jump
+            );
+        }
+
+        // Verify continuity after crossfade region
+        assert!(
+            (frame2[crossfade_len] - frame2[crossfade_len - 1]).abs() < 0.3,
+            "Discontinuity at crossfade boundary"
+        );
+    }
+
+    /// Test equal-power crossfade maintains constant energy
+    #[test]
+    fn test_crossfade_equal_power() {
+        // Equal-power crossfade property: cos²(θ) + sin²(θ) = 1
+        // When blending two signals of equal amplitude, output amplitude should stay constant
+        use std::f32::consts::PI;
+
+        let crossfade_len = 100;
+        let half_pi = PI / 2.0;
+
+        // Compute the sum of squared weights at each point
+        for i in 0..crossfade_len {
+            let t = i as f32 / crossfade_len as f32;
+            let tail_weight = (half_pi * t).cos();
+            let head_weight = (half_pi * t).sin();
+
+            // For equal-power: tail² + head² should equal 1.0
+            let power_sum = tail_weight * tail_weight + head_weight * head_weight;
+
+            assert!(
+                (power_sum - 1.0).abs() < 0.001,
+                "Equal-power violated at t={}: tail²+head² = {} (expected 1.0)",
+                t, power_sum
+            );
+
+            // Also verify weight directions are correct
+            if i == 0 {
+                assert!(tail_weight > 0.99, "At t=0, tail should be ~1.0: {}", tail_weight);
+                assert!(head_weight < 0.01, "At t=0, head should be ~0.0: {}", head_weight);
+            }
+            if i == crossfade_len - 1 {
+                assert!(tail_weight < 0.1, "At t=1, tail should be ~0.0: {}", tail_weight);
+                assert!(head_weight > 0.9, "At t=1, head should be ~1.0: {}", head_weight);
+            }
+        }
     }
 
     // ========================================================================

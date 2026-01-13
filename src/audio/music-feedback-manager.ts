@@ -151,7 +151,14 @@ export function clearMusicFeedbackRecorder(sessionId?: string): void {
 interface SemanticPattern {
   pattern: RegExp;
   weight: number; // 0.1 (weak) to 1.0 (strong)
-  category: 'gratitude' | 'relief' | 'enjoyment' | 'emotional' | 'practical' | 'energy' | 'negative';
+  category:
+    | 'gratitude'
+    | 'relief'
+    | 'enjoyment'
+    | 'emotional'
+    | 'practical'
+    | 'energy'
+    | 'negative';
 }
 
 const POSITIVE_PATTERNS: SemanticPattern[] = [
@@ -160,18 +167,31 @@ const POSITIVE_PATTERNS: SemanticPattern[] = [
   { pattern: /appreciate (that|it|this)/i, weight: 0.7, category: 'gratitude' },
 
   // Emotional relief (very strong signal - music helped emotionally)
-  { pattern: /i (feel|felt|'m feeling) (so much )?(better|calmer|more relaxed|at peace|grounded|centered)/i, weight: 0.95, category: 'relief' },
+  {
+    pattern:
+      /i (feel|felt|'m feeling) (so much )?(better|calmer|more relaxed|at peace|grounded|centered)/i,
+    weight: 0.95,
+    category: 'relief',
+  },
   { pattern: /(that|this|it) (really )?(helped|helped me)/i, weight: 0.9, category: 'relief' },
   { pattern: /needed (that|this|to hear that)/i, weight: 0.85, category: 'relief' },
   { pattern: /exactly what i needed/i, weight: 0.95, category: 'relief' },
   { pattern: /weight off my (shoulders|chest)/i, weight: 0.9, category: 'relief' },
 
   // Enjoyment (moderate signal)
-  { pattern: /that (was |felt )?(nice|good|great|lovely|perfect|beautiful|wonderful|amazing)/i, weight: 0.7, category: 'enjoyment' },
+  {
+    pattern: /that (was |felt )?(nice|good|great|lovely|perfect|beautiful|wonderful|amazing)/i,
+    weight: 0.7,
+    category: 'enjoyment',
+  },
   { pattern: /love(d)? (that|it|the music|this)/i, weight: 0.75, category: 'enjoyment' },
   { pattern: /beautiful( music| song)?/i, weight: 0.6, category: 'enjoyment' },
   { pattern: /so (good|nice|calming|peaceful|relaxing)/i, weight: 0.7, category: 'enjoyment' },
-  { pattern: /(good|great|perfect) (choice|pick|song|music)/i, weight: 0.65, category: 'enjoyment' },
+  {
+    pattern: /(good|great|perfect) (choice|pick|song|music)/i,
+    weight: 0.65,
+    category: 'enjoyment',
+  },
 
   // Emotional resonance (strong signal)
   { pattern: /hit(s)? (me |the spot|different)/i, weight: 0.8, category: 'emotional' },

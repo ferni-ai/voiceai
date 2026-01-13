@@ -321,7 +321,7 @@ export async function handleHealthRoutes(
       req.on('data', (chunk) => (body += chunk));
       await new Promise((resolve) => req.on('end', resolve));
 
-      let options: { dryRun?: boolean; entityTypes?: string[] } = {};
+      let options: { dryRun?: boolean; collections?: string[] } = {};
       if (body) {
         try {
           options = JSON.parse(body);
@@ -333,10 +333,7 @@ export async function handleHealthRoutes(
       log.info({ dryRun: options.dryRun }, 'Starting TTL cleanup via API');
       const result = await runTTLCleanup({
         dryRun: options.dryRun,
-        // Type assertion needed for API input
-        entityTypes: options.entityTypes as unknown as
-          | import('../../../services/data-layer/types.js').EntityType[]
-          | undefined,
+        collections: options.collections,
       });
 
       res.writeHead(200, { 'Content-Type': 'application/json' });

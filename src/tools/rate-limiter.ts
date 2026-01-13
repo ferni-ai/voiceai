@@ -202,11 +202,13 @@ function getServiceConfig(service: string): Partial<RateLimitConfig> {
       refillInterval: 1000,
     },
 
-    // ESPN (sports scores) - public API, be nice
+    // ESPN (sports scores) - public API, fairly generous limits
+    // Note: getTeamScore iterates through 8 sports leagues to find a team,
+    // so we need enough tokens for multiple teams at session startup
     espn: {
-      maxTokens: 5,
-      refillRate: 1,
-      refillInterval: 2000,
+      maxTokens: 30,
+      refillRate: 5,
+      refillInterval: 1000, // 5 per second, burst of 30
     },
 
     // Weather API - generous

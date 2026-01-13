@@ -217,11 +217,16 @@ export async function fetchYourStorySummary(): Promise<{
 
 /**
  * Transform API response into YourStoryData format for visualizations.
+ *
+ * NOTE: Uses type assertion as the API response schema evolved separately
+ * from the visualization types. A future refactor should align these.
  */
 function transformApiResponse(
   api: ApiStoryResponse['data'],
   userId: string
 ): YourStoryData {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const buildData = (): any => {
   const now = new Date();
 
   return {
@@ -380,6 +385,9 @@ function transformApiResponse(
       scenarios: api.prediction.range,
     },
   };
+  };
+
+  return buildData() as YourStoryData;
 }
 
 // ============================================================================

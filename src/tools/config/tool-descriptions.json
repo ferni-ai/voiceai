@@ -2943,8 +2943,8 @@
       "file": "src/tools/event-planning.ts"
     },
     "playMusic": {
-      "description": "CALL THIS FUNCTION to play music. When user says 'play music', 'play some jazz', 'put on music', etc. - EXECUTE this function immediately. Do NOT describe what you will do - just call this function and speak the result.",
-      "file": "src/tools/spotify.ts",
+      "description": "PLAYS AUDIO DIRECTLY through speakers. Use for: 'play music', 'play some jazz', 'put on music', 'play a song'. This PLAYS AUDIO - does NOT contact people, does NOT reach out, does NOT message anyone. Just plays music immediately. NEVER use reachOut for music requests.",
+      "file": "src/tools/domains/entertainment/music.ts",
       "_original": "EXECUTE IMMEDIATELY to play music. DO NOT say"
     },
     "playPreview": {

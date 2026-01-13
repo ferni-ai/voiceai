@@ -84,8 +84,17 @@ let hubData: HubData | null = null;
 // ============================================================================
 
 // BRAND COMPLIANT: Using Lucide SVG icons, NOT emoji
-const PERSONAS: Record<string, { name: string; icon: string; color: string; role: string }> = {
-  ferni: { name: 'Ferni', icon: PERSONA_ICONS.ferni, color: 'var(--color-ferni)', role: 'Life Coach' },
+interface PersonaInfo {
+  name: string;
+  icon: string;
+  color: string;
+  role: string;
+}
+
+const DEFAULT_PERSONA: PersonaInfo = { name: 'Ferni', icon: PERSONA_ICONS.ferni, color: 'var(--color-ferni)', role: 'Life Coach' };
+
+const PERSONAS: Record<string, PersonaInfo> = {
+  ferni: DEFAULT_PERSONA,
   peter: { name: 'Peter', icon: PERSONA_ICONS.peter, color: 'var(--color-peter, #3a6b73)', role: 'Research' },
   alex: { name: 'Alex', icon: PERSONA_ICONS.alex, color: 'var(--color-alex, #5a6b8a)', role: 'Communications' },
   maya: { name: 'Maya', icon: PERSONA_ICONS.maya, color: 'var(--color-maya, #a67a6a)', role: 'Habits & Routines' },
@@ -93,13 +102,18 @@ const PERSONAS: Record<string, { name: string; icon: string; color: string; role
   nayan: { name: 'Nayan', icon: PERSONA_ICONS.nayan, color: 'var(--color-nayan, #b8956a)', role: 'Wisdom' },
 };
 
+/** Get persona info with guaranteed fallback */
+function getPersona(id: string): PersonaInfo {
+  return PERSONAS[id] ?? DEFAULT_PERSONA;
+}
+
 // ============================================================================
 // DATA FETCHING
 // ============================================================================
 
 async function fetchHubData(): Promise<HubData> {
   const authState = getAuthState();
-  const userId = authState?.user?.uid;
+  const userId = authState?.uid;
 
   if (!userId) {
     return {
@@ -124,9 +138,9 @@ async function fetchHubData(): Promise<HubData> {
     const trackedData = trackedResponse.ok && trackedResponse.data ? trackedResponse.data : { items: [] };
 
     return {
-      backgroundResults: resultsData.results || [],
-      openThreads: threadsData.threads || [],
-      trackedItems: trackedData.items || [],
+      backgroundResults: (resultsData.results || []) as BackgroundResult[],
+      openThreads: (threadsData.threads || []) as OpenThread[],
+      trackedItems: (trackedData.items || []) as TrackedItem[],
       lastUpdated: new Date().toISOString(),
     };
   } catch (error) {
@@ -239,7 +253,7 @@ function renderContent(data: HubData): void {
 
 function renderWhileYouWereAway(results: BackgroundResult[]): string {
   const cards = results.map((result) => {
-    const persona = PERSONAS[result.initiatedBy] || PERSONAS.ferni;
+    const persona = getPersona(result.initiatedBy);
     const icon = getResultIcon(result.type);
     const timeAgo = formatTimeAgo(result.capturedAt);
     const statusClass = result.status === 'success' ? 'success' : result.status === 'failed' ? 'failed' : 'pending';
@@ -281,7 +295,7 @@ function renderWhileYouWereAway(results: BackgroundResult[]): string {
 
 function renderOpenThreads(threads: OpenThread[]): string {
   const cards = threads.map((thread) => {
-    const persona = PERSONAS[thread.personaId] || PERSONAS.ferni;
+    const persona = getPersona(thread.personaId);
     const timeAgo = formatTimeAgo(thread.updatedAt);
 
     return `
@@ -317,7 +331,7 @@ function renderOpenThreads(threads: OpenThread[]): string {
 
 function renderTrackedItems(items: TrackedItem[]): string {
   const cards = items.map((item) => {
-    const persona = PERSONAS[item.personaId] || PERSONAS.ferni;
+    const persona = getPersona(item.personaId);
     const icon = getTrackedIcon(item.type);
     const dueText = item.dueDate ? `Due ${formatDate(item.dueDate)}` : '';
 
@@ -409,7 +423,7 @@ function attachCardListeners(): void {
     btn.addEventListener('click', () => {
       const personaId = btn.getAttribute('data-persona');
       if (personaId) {
-        soundUI.play('tap');
+        soundUI.play('click');
         hide();
         window.dispatchEvent(new CustomEvent('ferni:start-conversation', {
           detail: { personaId },

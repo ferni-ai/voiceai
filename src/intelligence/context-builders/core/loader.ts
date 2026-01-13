@@ -168,6 +168,7 @@ export const BUILDER_MANIFEST: Record<BuilderCategory, string[]> = {
     'memory-enhancement', // NEW: Tonal memory, curiosity follow-through, between-session thinking, persona growth
     'semantic-intelligence-integration', // MOVED: V3.0-V3.7 semantic intelligence - runs on every memory trigger (first 3 turns + every 5th)
     'generated-insights', // NEW: 10 categories of superhuman insights (correlations, growth, relationships, etc.)
+    'memory-lane', // NEW: Surfaces meaningful memories ("On This Day", topic matches, emotional echoes)
   ],
 
   // PERSONA - Character and identity
@@ -235,10 +236,12 @@ export const BUILDER_MANIFEST: Record<BuilderCategory, string[]> = {
     'music-emotion-offers',
     'daily-rituals', // NEW: Morning Sky Check, Habit Heartbeat, etc.
     'outreach-awareness', // NEW: Proactive contact outreach nudges
+    'ceo-coaching-context', // CEO coaching: wins, priorities, blockers, decisions, energy
   ],
 
   // TEAM - Multi-persona coordination
   [BuilderCategory.TEAM]: [
+    'capability-awareness', // NEW: "I can do X, defer to Y for Z" meta-awareness (runs first - high priority)
     'team-availability',
     'team-dynamics',
     'handoff',
@@ -246,7 +249,7 @@ export const BUILDER_MANIFEST: Record<BuilderCategory, string[]> = {
     'role-boundaries',
     'cameo-opportunities',
     'cameo-unlock', // Natural team member introductions
-    'team-gossip', // NEW: Cross-persona references and banter
+    'team-gossip', // Cross-persona references and banter
   ],
 
   // CONTEXT - Situational awareness
@@ -260,6 +263,7 @@ export const BUILDER_MANIFEST: Record<BuilderCategory, string[]> = {
     'family-awareness-context', // Mutual awareness between family members and sponsors
     'session-gap-awareness', // E2E: Days since last session with reconnection guidance
     'tool-failure-awareness', // E2E: Recent tool failures for honest acknowledgment
+    'routine-awareness', // E2E: "What I Do For You" automated routines awareness
     'domain-fluency', // CONCEPTUAL capability awareness - what Ferni can help with (human-level)
     'tool-capabilities', // TECHNICAL tool capabilities (JSON format, function names)
     'dynamic-tool-guidance', // High priority - injects tool hints based on user request

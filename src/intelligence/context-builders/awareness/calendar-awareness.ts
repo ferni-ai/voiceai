@@ -1,19 +1,23 @@
 /**
  * Calendar Awareness Context Builder
  *
- * Injects calendar context into conversations when Alex is active.
- * Provides proactive awareness of:
- * - Today's schedule at a glance
- * - Upcoming meetings
- * - Overload warnings
- * - Time-sensitive context
+ * Injects calendar context into conversations for ALL personas.
+ * Each persona gets a tailored level of detail based on their specialty:
  *
- * NOW ENHANCED WITH "BETTER THAN HUMAN" CAPABILITIES:
+ * PERSONA DETAIL LEVELS:
+ * - alex-chen:    'full'      - Full calendar management (primary calendar persona)
+ * - jordan-taylor: 'events'   - Event planning and celebration focus
+ * - ferni:        'awareness' - General awareness for life coaching context
+ * - maya-patel:   'habits'    - Habit-related schedule awareness
+ * - peter-john:   'research'  - Research and focus time scheduling
+ * - nayan-kumar:  'wisdom'    - Life rhythm and balance awareness
+ *
+ * ENHANCED WITH "BETTER THAN HUMAN" CAPABILITIES:
  * - Ambient calendar awareness (meeting starting soon, just ended)
  * - Calendar load factors (burnout detection)
  * - Recovery protection (proactive rest suggestions)
  *
- * Only activates for Alex (Communication Specialist).
+ * Alex gets full BTH features, other personas get tiered awareness.
  */
 
 import { createLogger } from '../../../utils/safe-logger.js';
@@ -76,37 +80,53 @@ export interface CalendarAwarenessContext {
 // CONFIGURATION
 // ============================================================================
 
-// Personas with calendar awareness (Alex is primary, others get context)
-const CALENDAR_AWARE_PERSONAS = ['alex-chen', 'ferni', 'jordan-taylor'] as const;
+// Detail levels for each persona
+type CalendarDetailLevel = 'full' | 'events' | 'awareness' | 'habits' | 'research' | 'wisdom';
+
+const CALENDAR_DETAIL_LEVELS: Record<string, CalendarDetailLevel> = {
+  'alex-chen': 'full',      // Full calendar management (primary)
+  'jordan-taylor': 'events', // Event planning and celebration focus
+  'ferni': 'awareness',      // General awareness for life coaching
+  'maya-patel': 'habits',    // Habit-related schedule awareness
+  'peter-john': 'research',  // Research and focus time scheduling
+  'nayan-kumar': 'wisdom',   // Life rhythm and balance awareness
+};
+
+// All personas get calendar awareness now
+const CALENDAR_AWARE_PERSONAS = Object.keys(CALENDAR_DETAIL_LEVELS);
 const ALEX_PERSONA_ID = 'alex-chen';
 const UPCOMING_MEETING_THRESHOLD_MINUTES = 60; // Alert if meeting within 60 min
+
+// Personas that get full "Better Than Human" features
+const BTH_FULL_PERSONAS = ['alex-chen'] as const;
+// Personas that get lite BTH features (load factors, recovery suggestions)
+const BTH_LITE_PERSONAS = ['ferni', 'maya-patel', 'nayan-kumar'] as const;
 
 // ============================================================================
 // MAIN BUILDER
 // ============================================================================
 
 /**
- * Build calendar awareness context for calendar-aware personas
+ * Build calendar awareness context for ALL personas
  *
- * Returns null if:
- * - Not a calendar-aware persona
+ * Returns null context if:
  * - Calendar not connected
  * - No relevant context to inject
  *
  * Different personas get different levels of detail:
- * - Alex: Full detail (primary calendar manager)
+ * - Alex: Full detail + full BTH (primary calendar manager)
  * - Jordan: Event planning focus (for milestone scheduling)
- * - Ferni: Light awareness (for conversation context)
+ * - Ferni: Light awareness + lite BTH (for life coaching)
+ * - Maya: Habit schedule context + lite BTH (for routines)
+ * - Peter: Research/focus time context (for deep work)
+ * - Nayan: Life rhythm context + lite BTH (for wisdom)
  */
 export async function buildCalendarAwarenessContext(
   userId: string | undefined,
   personaId: string | undefined
 ): Promise<CalendarAwarenessContext> {
-  // Check if this persona should have calendar awareness
-  if (
-    !personaId ||
-    !CALENDAR_AWARE_PERSONAS.includes(personaId as (typeof CALENDAR_AWARE_PERSONAS)[number])
-  ) {
+  // All personas get calendar awareness now - just check if persona exists
+  if (!personaId || !CALENDAR_DETAIL_LEVELS[personaId]) {
     return { isConnected: false, contextInjection: null };
   }
 
@@ -155,42 +175,73 @@ export async function buildCalendarAwarenessContext(
     );
 
     // =========================================================================
-    // BETTER THAN HUMAN: Enhanced calendar awareness (only for Alex)
+    // BETTER THAN HUMAN: Enhanced calendar awareness
+    // Full BTH for Alex, lite BTH for Ferni, Maya, Nayan
     // =========================================================================
     let ambientContext: AmbientCalendarContext | undefined;
     let loadFactors: CalendarLoadFactors | undefined;
     let recoveryNeeds: RecoveryRecommendation[] | undefined;
     let betterThanHumanInjection: string | null = null;
 
-    if (personaId === ALEX_PERSONA_ID) {
+    const isFullBTH = BTH_FULL_PERSONAS.includes(personaId as (typeof BTH_FULL_PERSONAS)[number]);
+    const isLiteBTH = BTH_LITE_PERSONAS.includes(personaId as (typeof BTH_LITE_PERSONAS)[number]);
+
+    if (isFullBTH || isLiteBTH) {
       // Get real-time ambient context (meeting starting soon, just ended, etc.)
       ambientContext = await getAmbientCalendarContext(userId);
 
-      // Get calendar load factors for burnout awareness
-      loadFactors = await getCalendarLoadFactors(userId);
-
-      // Get recovery recommendations
-      recoveryNeeds = await detectRecoveryNeeds(userId);
-
-      // Build Better Than Human injection
       const sections: string[] = [];
 
-      // Ambient awareness (high priority - affects conversation flow)
-      const ambientInjection = generateAmbientContextInjection(ambientContext);
-      if (ambientInjection) {
-        sections.push(ambientInjection);
-      }
+      if (isFullBTH) {
+        // Full BTH: Alex gets everything
+        loadFactors = await getCalendarLoadFactors(userId);
+        recoveryNeeds = await detectRecoveryNeeds(userId);
 
-      // Calendar load summary
-      const loadSummary = await getCalendarLoadSummary(userId);
-      if (loadSummary) {
-        sections.push(loadSummary);
-      }
+        // Ambient awareness (high priority - affects conversation flow)
+        const ambientInjection = generateAmbientContextInjection(ambientContext);
+        if (ambientInjection) {
+          sections.push(ambientInjection);
+        }
 
-      // Recovery context (proactive wellbeing)
-      const recoveryContext = await buildRecoveryContext(userId);
-      if (recoveryContext) {
-        sections.push(recoveryContext);
+        // Calendar load summary
+        const loadSummary = await getCalendarLoadSummary(userId);
+        if (loadSummary) {
+          sections.push(loadSummary);
+        }
+
+        // Recovery context (proactive wellbeing)
+        const recoveryContext = await buildRecoveryContext(userId);
+        if (recoveryContext) {
+          sections.push(recoveryContext);
+        }
+      } else {
+        // Lite BTH: Core awareness for Ferni, Maya, Nayan
+        // These personas care about wellbeing but aren't calendar specialists
+
+        // Meeting starting soon? All lite BTH personas should know
+        if (ambientContext.nextMeeting.event && ambientContext.nextMeeting.minutesUntil !== null && ambientContext.nextMeeting.minutesUntil <= 15) {
+          sections.push(`[TIMING: User has a meeting in ${ambientContext.nextMeeting.minutesUntil} minutes - be mindful of time]`);
+        }
+
+        // Just ended a meeting? Good context for check-ins
+        if (ambientContext.justEndedMeeting.event) {
+          sections.push('[CONTEXT: User just finished a meeting - may need transition time]');
+        }
+
+        // Load awareness for wellbeing-focused personas
+        loadFactors = await getCalendarLoadFactors(userId);
+        if (loadFactors && loadFactors.weeklyMeetingHours > 30) {
+          sections.push('[WELLBEING: Very high calendar load this week - burnout risk]');
+        } else if (loadFactors && loadFactors.weeklyMeetingHours > 20) {
+          sections.push('[WELLBEING: Moderately heavy schedule - encourage breaks]');
+        }
+
+        // Recovery needs (simplified)
+        recoveryNeeds = await detectRecoveryNeeds(userId);
+        if (recoveryNeeds && recoveryNeeds.length > 0) {
+          const topNeed = recoveryNeeds[0];
+          sections.push(`[RECOVERY OPPORTUNITY: ${topNeed.type} - ${topNeed.reason}]`);
+        }
       }
 
       if (sections.length > 0) {
@@ -233,18 +284,32 @@ function buildContextInjectionForPersona(
   alerts: CalendarAlert[],
   nextMeetingIn?: number
 ): string | null {
-  switch (personaId) {
-    case 'alex-chen':
+  const detailLevel = CALENDAR_DETAIL_LEVELS[personaId];
+  
+  switch (detailLevel) {
+    case 'full':
       // Alex gets full calendar detail - they're the Chief of Staff
       return buildContextInjectionText(overview, alerts, nextMeetingIn);
 
-    case 'jordan-taylor':
+    case 'events':
       // Jordan gets event-planning focused context
       return buildJordanCalendarContext(overview, alerts);
 
-    case 'ferni':
+    case 'awareness':
       // Ferni gets light awareness for conversation context
       return buildFerniCalendarContext(overview, nextMeetingIn);
+
+    case 'habits':
+      // Maya gets habit-schedule context
+      return buildMayaCalendarContext(overview, nextMeetingIn);
+
+    case 'research':
+      // Peter gets focus-time context
+      return buildPeterCalendarContext(overview, nextMeetingIn);
+
+    case 'wisdom':
+      // Nayan gets life-rhythm context
+      return buildNayanCalendarContext(overview, alerts);
 
     default:
       return null;
@@ -304,6 +369,128 @@ function buildFerniCalendarContext(overview: DayOverview, nextMeetingIn?: number
   }
 
   return null; // Normal day, no special context needed
+}
+
+/**
+ * Build Maya's calendar context (habit-related schedule)
+ */
+function buildMayaCalendarContext(overview: DayOverview, nextMeetingIn?: number): string | null {
+  const parts: string[] = [];
+
+  // Maya cares about routine disruption and habit windows
+  if (overview.totalMeetings === 0) {
+    parts.push('[SCHEDULE: Clear day - great conditions for habit practice and routine building]');
+  } else if (overview.isOverloaded) {
+    parts.push('[SCHEDULE: Packed day - habits may be harder. Suggest micro-practices or habit stacking]');
+  } else {
+    const freeHours = Math.round(overview.freeTimeMinutes / 60);
+    if (freeHours >= 2) {
+      parts.push(`[SCHEDULE: ${freeHours}h free today - good opportunity for habit windows]`);
+    }
+  }
+
+  // Early morning check (before 9am) - morning routine context
+  const hour = new Date().getHours();
+  if (hour < 9 && overview.firstEvent) {
+    const firstTime = overview.firstEvent.startTime.getHours();
+    if (firstTime >= 10) {
+      parts.push('[MORNING: No early meetings - morning routine window available]');
+    }
+  }
+
+  // Evening routine context
+  if (hour >= 17 && overview.totalMeetings > 0) {
+    parts.push('[EVENING: Consider winding down rituals if day was meeting-heavy]');
+  }
+
+  // Meeting soon - habit stacking opportunity
+  if (nextMeetingIn !== undefined && nextMeetingIn > 15 && nextMeetingIn <= 30) {
+    parts.push('[TIMING: 15-30 min before meeting - perfect for a micro-habit]');
+  }
+
+  return parts.length > 0 ? parts.join('\n') : null;
+}
+
+/**
+ * Build Peter's calendar context (research and focus time)
+ */
+function buildPeterCalendarContext(overview: DayOverview, nextMeetingIn?: number): string | null {
+  const parts: string[] = [];
+
+  // Peter cares about focus time and deep work
+  if (overview.totalMeetings === 0) {
+    parts.push('[FOCUS: Clear calendar - ideal for deep research and analysis work]');
+  } else if (overview.hasBackToBack) {
+    parts.push('[FOCUS: Back-to-back meetings fragmenting the day - research may need to wait]');
+  } else {
+    const freeHours = Math.round(overview.freeTimeMinutes / 60);
+    if (freeHours >= 3) {
+      parts.push(`[FOCUS: ${freeHours}h uninterrupted time available for deep work]`);
+    } else if (freeHours >= 1) {
+      parts.push(`[FOCUS: ${freeHours}h free - enough for focused reading or quick analysis]`);
+    }
+  }
+
+  // Context about meeting load vs. research needs
+  if (overview.isOverloaded) {
+    parts.push('[NOTE: Heavy meeting load today - may need to deprioritize non-urgent research]');
+  }
+
+  // Timing context for research discussions
+  if (nextMeetingIn !== undefined && nextMeetingIn <= 20) {
+    parts.push('[TIMING: Meeting soon - keep research explanations concise]');
+  } else if (nextMeetingIn === undefined || nextMeetingIn > 60) {
+    parts.push('[TIMING: No imminent meetings - can go deeper on analysis if needed]');
+  }
+
+  return parts.length > 0 ? parts.join('\n') : null;
+}
+
+/**
+ * Build Nayan's calendar context (life rhythm and wisdom)
+ */
+function buildNayanCalendarContext(overview: DayOverview, alerts: CalendarAlert[]): string | null {
+  const parts: string[] = [];
+
+  // Nayan cares about balance and life rhythm
+  if (overview.isOverloaded) {
+    parts.push('[LIFE RHYTHM: Very full day - may be disconnected from inner peace]');
+  } else if (overview.totalMeetings === 0) {
+    parts.push('[LIFE RHYTHM: Empty calendar - space for reflection and being present]');
+  } else {
+    const freePercent = Math.round((overview.freeTimeMinutes / (8 * 60)) * 100);
+    if (freePercent < 30) {
+      parts.push(`[LIFE RHYTHM: ${100 - freePercent}% of day scheduled - limited spaciousness]`);
+    } else if (freePercent > 60) {
+      parts.push('[LIFE RHYTHM: Balanced schedule with room for spontaneity]');
+    }
+  }
+
+  // Back-to-back is anti-wisdom
+  if (overview.hasBackToBack) {
+    parts.push('[BALANCE: No breathing room between commitments - rushing energy likely]');
+  }
+
+  // Check for meaningful patterns in alerts
+  const stressAlerts = alerts.filter(
+    (a) =>
+      a.severity === 'warning' ||
+      a.message.toLowerCase().includes('stress') ||
+      a.message.toLowerCase().includes('overload')
+  );
+  if (stressAlerts.length > 0) {
+    parts.push('[WISDOM NOTE: Calendar signals potential overwhelm - may need grounding]');
+  }
+
+  // Time of day wisdom
+  const hour = new Date().getHours();
+  if (hour >= 21) {
+    parts.push('[EVENING WISDOM: Day is winding down - good time for reflection]');
+  } else if (hour < 7) {
+    parts.push('[MORNING WISDOM: Early hours - sacred time for contemplation]');
+  }
+
+  return parts.length > 0 ? parts.join('\n') : null;
 }
 
 /**
@@ -417,14 +604,17 @@ export function formatCalendarContextForSpeech(context: CalendarAwarenessContext
 /**
  * Calendar Awareness Context Builder
  *
- * Injects calendar snapshot for calendar-aware personas:
- * - Alex: Full detail (primary)
+ * Injects calendar context for ALL personas with tiered detail:
+ * - Alex: Full detail + full BTH (primary calendar manager)
  * - Jordan: Event planning focus
- * - Ferni: Light awareness
+ * - Ferni: Light awareness + lite BTH
+ * - Maya: Habit schedule context + lite BTH
+ * - Peter: Research/focus time context
+ * - Nayan: Life rhythm context + lite BTH
  */
 export const calendarAwarenessBuilder: ContextBuilder = {
   name: 'calendar-awareness',
-  description: 'Provides calendar context for Alex, Jordan, and Ferni',
+  description: 'Provides calendar context for all personas with tiered detail',
   priority: 55, // Mid-priority - runs after safety/emotional but before humanizing
   category: BuilderCategory.CONTEXT,
 
@@ -433,11 +623,8 @@ export const calendarAwarenessBuilder: ContextBuilder = {
 
     const personaId = persona?.identity?.id;
 
-    // Check if this persona should have calendar awareness
-    if (
-      !personaId ||
-      !CALENDAR_AWARE_PERSONAS.includes(personaId as (typeof CALENDAR_AWARE_PERSONAS)[number])
-    ) {
+    // All personas get calendar awareness now
+    if (!personaId || !CALENDAR_DETAIL_LEVELS[personaId]) {
       return [];
     }
 

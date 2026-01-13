@@ -1,0 +1,45 @@
+{
+  "postFile": "mcp-server-integration.md",
+  "title": "Building Your First MCP Integration",
+  "date": "2026-01-11T00:00:00.000Z",
+  "snippets": {
+    "twitter": {
+      "platform": "twitter",
+      "text": "📚 Building Your First MCP Integration\n\nhttps://developers.ferni.ai/developers/blog/mcp-server-integration/\n\n#VoiceAI #DevTutorial",
+      "length": null
+    },
+    "twitterThread": {
+      "platform": "twitter_thread",
+      "tweets": [
+        {
+          "text": "🧵 Building Your First MCP Integration\n\nA thread on what you'll learn:\n\n👇",
+          "type": "hook"
+        },
+        {
+          "text": "A step-by-step guide to registering external MCP servers and making their tools available to voice agents.\n\nLet's dive in...",
+          "type": "summary"
+        },
+        {
+          "text": "📖 Read the full post:\nhttps://developers.ferni.ai/developers/blog/mcp-server-integration/\n\n#VoiceAI #DevTutorial #BuildInPublic",
+          "type": "cta"
+        }
+      ],
+      "totalTweets": 3
+    },
+    "linkedin": {
+      "platform": "linkedin",
+      "text": "Building Your First MCP Integration\n\nA step-by-step guide to registering external MCP servers and making their tools available to voice agents.\n\nThis is part of our ongoing series helping developers build with voice AI.\n\nKey takeaways:\n• Practical code examples you can use today\n• Real-world patterns from production systems\n• Best practices from the Ferni team\n\nRead the full post: https://developers.ferni.ai/developers/blog/mcp-server-integration/\n\n#VoiceAI #DevTutorial #BuildInPublic",
+      "length": 489
+    },
+    "discord": {
+      "platform": "discord",
+      "text": "📚 **Building Your First MCP Integration**\n\nA step-by-step guide to registering external MCP servers and making their tools available to voice agents.\n\n🔗 **Read more:** https://developers.ferni.ai/developers/blog/mcp-server-integration/\n\n---\n*12 min read • Tutorial*",
+      "length": 267
+    },
+    "threads": {
+      "platform": "threads",
+      "text": "Building Your First MCP Integration\n\nA step-by-step guide to registering external MCP servers and making their tools available to voice agents.\n\nRead more 👉 https://developers.ferni.ai/developers/blog/mcp-server-integration/",
+      "length": 225
+    }
+  }
+}

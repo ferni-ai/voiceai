@@ -82,6 +82,8 @@ export interface SafeGenerateReplyOptions {
   bypassCircuitBreaker?: boolean;
   /** Optional: Bypass session closing check (use when we KNOW the session is valid for handoff) */
   bypassSessionClosingCheck?: boolean;
+  /** Optional: Priority level - 'low' requests won't affect circuit breaker on failure */
+  priority?: 'high' | 'normal' | 'low';
 }
 
 export interface SafeGenerateReplyResult {
@@ -262,6 +264,15 @@ function checkConnectionHealth(session: voice.AgentSession): { healthy: boolean;
 // HELPER: Execute with timeout
 // ============================================================================
 
+/**
+ * Result from executeWithTimeout that preserves gateway fallback information
+ */
+interface ExecuteWithTimeoutResult {
+  success: boolean;
+  usedFallback: boolean;
+  error?: string;
+}
+
 async function executeWithTimeout(
   session: voice.AgentSession,
   instructions: string,
@@ -270,22 +281,30 @@ async function executeWithTimeout(
   timeoutMs: number,
   sessionId?: string,
   context?: string,
-  fallbackMessage?: string
-): Promise<void> {
+  fallbackMessage?: string,
+  priority: 'high' | 'normal' | 'low' = 'normal'
+): Promise<ExecuteWithTimeoutResult> {
   // If sessionId is provided, delegate to the centralized gateway
   // The gateway handles session readiness, debouncing, and error handling
   if (sessionId) {
     const result = await gatewayGenerateReply(session, sessionId, {
       instructions,
+      allowInterruptions, // FIX: Pass through allowInterruptions to gateway
       context: context || 'safe-generate-reply',
       fallbackMessage,
-      priority: 'normal',
+      priority, // FIX: Pass through priority to gateway
+      timeoutMs, // FIX: Pass through timeout to gateway (was defaulting to 6s!)
+      waitForPlayout, // FIX: Pass through waitForPlayout to prevent circular wait errors after handoffs
     });
 
-    if (!result.success && !result.usedFallback) {
-      throw new Error(result.error || 'Gateway call failed');
-    }
-    return;
+    // FIX: Propagate the full result so caller knows if fallback was used
+    // Previously, we only threw on complete failure, which caused the caller
+    // to incorrectly report success when fallback was used
+    return {
+      success: result.success,
+      usedFallback: result.usedFallback,
+      error: result.error,
+    };
   }
 
   // Legacy path: direct session.generateReply() with our own timeout
@@ -317,6 +336,9 @@ async function executeWithTimeout(
   });
 
   await Promise.race([replyPromise, timeoutPromise]);
+
+  // Legacy path succeeded
+  return { success: true, usedFallback: false };
 }
 
 // ============================================================================
@@ -383,6 +405,7 @@ export async function safeGenerateReply(
     sessionId,
     bypassCircuitBreaker = false,
     bypassSessionClosingCheck = false,
+    priority = 'normal',
   } = options;
 
   // SAFEGUARD 0: Check if session is closing - abort immediately
@@ -433,7 +456,7 @@ export async function safeGenerateReply(
   // Execute with timeout (SAFEGUARD 6)
   // If sessionId provided, delegates to centralized gateway which handles session readiness
   try {
-    await executeWithTimeout(
+    const result = await executeWithTimeout(
       session,
       instructions,
       allowInterruptions,
@@ -441,16 +464,42 @@ export async function safeGenerateReply(
       timeoutMs,
       sessionId,
       context,
-      fallbackMessage
+      fallbackMessage,
+      priority // FIX: Pass through priority so low-priority requests don't affect circuit breaker
     );
-    failureTracker.recordSuccess();
-    logger.debug({ context, instructionChars: instructions.length }, '✅ generateReply succeeded');
-    return {
-      success: true,
-      usedFallback: false,
-      contextWarning: contextSize.warning,
-      connectionWarning: !connectionHealth.healthy,
-    };
+
+    // FIX: Properly handle gateway results including fallback usage
+    // Previously, we always returned success: true here, even when fallback was used
+    if (result.success) {
+      failureTracker.recordSuccess();
+      logger.debug(
+        { context, instructionChars: instructions.length },
+        '✅ generateReply succeeded'
+      );
+      return {
+        success: true,
+        usedFallback: false,
+        contextWarning: contextSize.warning,
+        connectionWarning: !connectionHealth.healthy,
+      };
+    } else if (result.usedFallback) {
+      // Gateway failed but fallback was spoken - still record as partial failure
+      failureTracker.recordFailure();
+      logger.debug(
+        { context, error: result.error, instructionChars: instructions.length },
+        '🔄 generateReply failed, used fallback'
+      );
+      return {
+        success: false,
+        usedFallback: true,
+        error: result.error,
+        contextWarning: contextSize.warning,
+        connectionWarning: !connectionHealth.healthy,
+      };
+    } else {
+      // Gateway failed and no fallback was used - try our own fallback
+      throw new Error(result.error || 'Gateway call failed without fallback');
+    }
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     logger.warn(
@@ -669,7 +718,7 @@ export function formatToolResult(toolName: string, result: string): string {
   return [
     `[TOOL RESULT: ${toolName}]`,
     `[DATA: ${result}]`,
-    `[DO: Share this naturally and conversationally. Don't read verbatim - summarize key points.]`,
+    `[DO: Share this conversationally like you're telling a friend. NEVER use colons in your speech - no "label: value", no "The pro:", no "Step one:". Say "It's 72 degrees" not "Temperature: 72". Say "On one hand... on the other hand" not "The pro:... The con:". No bullet points or numbered lists. Just natural flowing speech.]`,
   ].join('\n');
 }
 

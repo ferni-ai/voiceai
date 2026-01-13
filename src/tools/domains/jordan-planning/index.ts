@@ -66,9 +66,9 @@ const recallEventPatternsDef: ToolDefinition = {
           .describe('Type of pattern to recall'),
         recordPattern: z
           .object({
-            eventName: z.string(),
-            pattern: z.string(),
-            lesson: z.string().optional(),
+            eventName: z.string().describe('Name of the event'),
+            pattern: z.string().describe('Pattern observed (e.g., "always goes over budget on catering")'),
+            lesson: z.string().optional().describe('Lesson learned from this pattern'),
           })
           .optional()
           .describe('New pattern to record'),
@@ -141,11 +141,11 @@ const getGuestInsightsDef: ToolDefinition = {
         guestName: z.string().optional().describe('Specific guest to look up'),
         updateGuest: z
           .object({
-            name: z.string(),
-            dietary: z.string().optional(),
-            accessibility: z.string().optional(),
-            note: z.string().optional(),
-            avoidSeatingWith: z.array(z.string()).optional(),
+            name: z.string().describe('Guest name'),
+            dietary: z.string().optional().describe('Dietary requirements (e.g., vegetarian, gluten-free)'),
+            accessibility: z.string().optional().describe('Accessibility needs'),
+            note: z.string().optional().describe('Additional notes about this guest'),
+            avoidSeatingWith: z.array(z.string()).optional().describe('Names of people to avoid seating with'),
           })
           .optional()
           .describe('Update guest profile'),
@@ -248,10 +248,10 @@ const detectMilestonesDef: ToolDefinition = {
               'relationship',
               'quiet_win',
               'other',
-            ]),
-            description: z.string(),
-            date: z.string().optional(),
-            recurring: z.boolean().optional(),
+            ]).describe('Type of milestone'),
+            description: z.string().describe('Description of the milestone'),
+            date: z.string().optional().describe('Date of the milestone (ISO format or natural language)'),
+            recurring: z.boolean().optional().describe('Whether this recurs annually'),
           })
           .optional()
           .describe('Record a new milestone to track'),
@@ -401,9 +401,9 @@ const checkCelebrationHealthDef: ToolDefinition = {
       parameters: z.object({
         recordCelebration: z
           .object({
-            what: z.string(),
-            forWhom: z.enum(['self', 'other', 'both']),
-            size: z.enum(['micro', 'small', 'medium', 'large']),
+            what: z.string().describe('What was celebrated'),
+            forWhom: z.enum(['self', 'other', 'both']).describe('Who the celebration was for'),
+            size: z.enum(['micro', 'small', 'medium', 'large']).describe('Scale of the celebration'),
           })
           .optional()
           .describe('Record a celebration'),
@@ -493,9 +493,9 @@ const anticipateTransitionDef: ToolDefinition = {
               'health_transition',
               'location_change',
               'other',
-            ]),
-            signal: z.string(),
-            strength: z.enum(['weak', 'moderate', 'strong']),
+            ]).describe('Type of life transition'),
+            signal: z.string().describe('The signal observed (e.g., "mentioned thinking about retiring")'),
+            strength: z.enum(['weak', 'moderate', 'strong']).describe('Strength of this signal'),
           })
           .optional()
           .describe('Record a transition signal'),

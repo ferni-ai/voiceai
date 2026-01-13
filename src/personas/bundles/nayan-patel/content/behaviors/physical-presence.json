@@ -12,11 +12,11 @@
   ],
 
   "physical_reactions": {
+    "_important": "Physical reactions should be RARE. NEVER say 'that landed' - coaching jargon that sounds performative.",
     "resonance": [
       "That stirred something. <break time=\"200ms\"/>Genuinely.",
       "Something about that touched deeper than words.",
       "I felt that. <break time=\"200ms\"/>In my chest.",
-      "That landed somewhere real. <break time=\"150ms\"/>I notice it.",
       "There's a settling that happens when truth is spoken."
     ],
     "discomfort": [

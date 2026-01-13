@@ -29,7 +29,7 @@
 
 ```
 # design-system/tokens/colors.json
-personas: ferni, peter-lynch, alex-chen, maya-santos, jordan-taylor
+personas: ferni, peter-john, alex-chen, maya-santos, jordan-taylor
          ^ MISSING: jack (or jack-bogle)
 
 # design-system/tokens/personas.json  

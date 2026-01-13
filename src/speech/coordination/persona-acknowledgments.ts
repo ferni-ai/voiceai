@@ -75,54 +75,253 @@ export interface AcknowledgmentContext {
 // ============================================================================
 
 // ============================================================================
-// HUMANIZATION FIX: Removed robotic phrases like "Let me see", "Let me think"
-// These made Ferni sound like a voice assistant, not a friend.
-// Philosophy: Use natural conversational sounds, not meta-commentary about thinking.
+// HUMANIZATION: Sound like a real person, not a voice assistant
+// 
+// Philosophy:
+// 1. Use SSML to add texture (pauses, speed, emotion)
+// 2. Natural conversational sounds, not meta-commentary
+// 3. Keep talking while working - fill the dead air authentically
+// 4. Trail off naturally, catch yourself, be human
 // ============================================================================
 
 const DEFAULT_ACKNOWLEDGMENTS: Record<string, PersonaAcknowledgments> = {
   ferni: {
     personaId: 'ferni',
     phrases: {
-      thinking: ['Hmm, give me a sec', 'Just a moment', 'One sec', 'Okay...'],
-      searching: ['Checking on that', 'One moment', 'Pulling that up'],
-      calculating: ['Running the numbers', 'One sec', 'Hmm...'],
-      creating: ['Working on that', 'One moment', 'Almost there'],
-      connecting: ['Connecting...', 'One sec', 'Almost there'],
-      remembering: ['Oh yeah...', 'I remember...', 'Right...'],
+      // THINKING - Natural processing sounds with SSML
+      thinking: [
+        '<emotion value="curious"/>Hmm.<break time="300ms"/>',
+        'Oh!<break time="200ms"/>One sec.',
+        '<break time="150ms"/>Yeah, give me a moment.',
+        'Ooh.<break time="200ms"/>Hold on.',
+        '<emotion value="curious"/>Mm, interesting.<break time="200ms"/>',
+      ],
+      // SEARCHING - Looking something up
+      searching: [
+        '<break time="150ms"/>Okay, checking on that.',
+        'Ooh, good question.<break time="200ms"/>One sec.',
+        '<emotion value="curious"/>Hmm, let me see what I can find.<break time="150ms"/>',
+        'Oh!<break time="150ms"/>Pulling that up now.',
+        'Hang on.<break time="200ms"/>',
+      ],
+      // CALCULATING - Processing numbers
+      calculating: [
+        '<break time="150ms"/>Okay, running those numbers.',
+        'Mm.<break time="200ms"/>Give me a sec to crunch that.',
+        '<emotion value="curious"/>Interesting.<break time="150ms"/>One moment.',
+        'Oh, good one.<break time="200ms"/>Let me figure that out.',
+      ],
+      // CREATING - Making something
+      creating: [
+        '<break time="150ms"/>Okay, working on that.',
+        'Ooh, I like this.<break time="200ms"/>One sec.',
+        '<emotion value="enthusiastic"/>Oh nice!<break time="150ms"/>Putting that together.',
+        'Yeah, give me just a moment.<break time="150ms"/>',
+      ],
+      // CONNECTING - External services
+      connecting: [
+        '<break time="150ms"/>Okay, connecting.',
+        'One sec while I grab that.<break time="150ms"/>',
+        '<break time="200ms"/>Almost there.',
+        'Hang on.<break time="150ms"/>',
+      ],
+      // REMEMBERING - Memory recall
+      remembering: [
+        '<emotion value="curious"/>Oh yeah!<break time="200ms"/>',
+        '<break time="150ms"/>Right, I remember.<break time="150ms"/>',
+        'Mm, that reminds me.<break time="200ms"/>',
+        '<emotion value="affectionate"/>Oh, of course.<break time="150ms"/>',
+      ],
     },
-    // Natural sounds, not meta-commentary. No "Let me see/think" - too robotic!
-    fillers: ['Hmm...', 'Mm...', 'Yeah...'],
-    pauseMarker: '...',
+    // Natural sounds to fill longer waits - SSML enhanced
+    fillers: [
+      'Hmm.<break time="300ms"/>',
+      'Mm.<break time="200ms"/>',
+      '<break time="150ms"/>Yeah.<break time="150ms"/>',
+      'Okay.<break time="200ms"/>',
+    ],
+    pauseMarker: '<break time="200ms"/>',
   },
   peter: {
     personaId: 'peter',
     phrases: {
-      thinking: ['Hmm, interesting', 'One moment', 'Processing that'],
-      searching: ['Researching now', 'Pulling up the data', 'Checking on that'],
-      calculating: ['Running the analysis', 'Crunching numbers', 'One sec'],
-      creating: ['Preparing that', 'Building the summary', 'Almost there'],
-      connecting: ['Accessing that now', 'Connecting', 'One moment'],
-      remembering: ['Checking the records', 'Looking at history', 'Based on what I recall...'],
+      thinking: [
+        '<emotion value="curious"/>Hmm.<break time="300ms"/>Interesting.',
+        '<break time="150ms"/>One moment, processing that.',
+        'Ah.<break time="200ms"/>Give me a second.',
+        '<emotion value="curious"/>Let me think about that.<break time="200ms"/>',
+      ],
+      searching: [
+        '<break time="150ms"/>Researching that now.',
+        'Good question.<break time="200ms"/>Pulling up the data.',
+        '<emotion value="curious"/>Hmm.<break time="150ms"/>Checking on that.',
+        'One moment.<break time="200ms"/>',
+      ],
+      calculating: [
+        '<break time="150ms"/>Running the analysis.',
+        'Ah, numbers.<break time="200ms"/>Give me a moment.',
+        '<emotion value="curious"/>Interesting.<break time="150ms"/>Crunching that.',
+        'One sec.<break time="200ms"/>',
+      ],
+      creating: [
+        '<break time="150ms"/>Preparing that.',
+        'Ah.<break time="200ms"/>Building the summary.',
+        '<break time="150ms"/>Almost there.',
+      ],
+      connecting: [
+        '<break time="150ms"/>Accessing that now.',
+        'One moment.<break time="200ms"/>',
+        '<break time="150ms"/>Connecting.',
+      ],
+      remembering: [
+        '<emotion value="curious"/>Ah yes.<break time="200ms"/>Checking the records.',
+        '<break time="150ms"/>Looking at the history.',
+        'Based on what I recall.<break time="200ms"/>',
+      ],
     },
-    fillers: ['Hmm...', 'Interesting...', 'So...'],
-    pauseMarker: '...',
+    fillers: ['Hmm.<break time="300ms"/>', 'Interesting.<break time="200ms"/>', 'So.<break time="200ms"/>'],
+    pauseMarker: '<break time="200ms"/>',
   },
   maya: {
     personaId: 'maya',
     phrases: {
-      thinking: ['Hmm, considering that', 'One moment', 'Thinking...'],
-      searching: ['Looking into that', 'Finding what works for you', 'Checking on that'],
-      calculating: ['Tracking the pattern', 'Looking at your progress', 'One sec'],
-      creating: ['Designing something for you', 'Putting together a plan', 'Working on it'],
-      connecting: ['Connecting...', 'Just a moment', 'Almost there'],
-      remembering: ['Reflecting on your journey', 'Looking at your growth', 'I remember...'],
+      thinking: [
+        '<emotion value="curious"/>Hmm.<break time="300ms"/>',
+        '<break time="150ms"/>One moment, thinking on that.',
+        'Oh!<break time="200ms"/>Give me a sec.',
+        '<emotion value="affectionate"/>Mm.<break time="200ms"/>',
+      ],
+      searching: [
+        '<break time="150ms"/>Looking into that for you.',
+        'Ooh, good one.<break time="200ms"/>Let me find what works.',
+        '<emotion value="curious"/>Hmm.<break time="150ms"/>Checking on that.',
+        'One moment.<break time="200ms"/>',
+      ],
+      calculating: [
+        '<break time="150ms"/>Tracking the pattern.',
+        'Oh, let me look at your progress.<break time="200ms"/>',
+        '<emotion value="curious"/>Interesting.<break time="150ms"/>One sec.',
+        'Give me a moment.<break time="200ms"/>',
+      ],
+      creating: [
+        '<emotion value="enthusiastic"/>Ooh, I love this!<break time="200ms"/>Working on it.',
+        '<break time="150ms"/>Putting together a plan.',
+        'One sec.<break time="200ms"/>',
+      ],
+      connecting: [
+        '<break time="150ms"/>Connecting.',
+        'Just a moment.<break time="200ms"/>',
+        '<break time="150ms"/>Almost there.',
+      ],
+      remembering: [
+        '<emotion value="affectionate"/>Oh, I remember.<break time="200ms"/>',
+        '<break time="150ms"/>Reflecting on your journey.',
+        'Looking at your growth.<break time="200ms"/>',
+      ],
     },
-    fillers: ['Mmm...', 'Yeah...', 'Okay...'],
-    pauseMarker: '...',
+    fillers: ['Mmm.<break time="200ms"/>', 'Yeah.<break time="200ms"/>', 'Okay.<break time="200ms"/>'],
+    pauseMarker: '<break time="200ms"/>',
   },
-  // Alex, Jordan, Nayan would follow similar patterns
-  // Ideally these load from persona bundles
+  alex: {
+    personaId: 'alex',
+    phrases: {
+      thinking: [
+        '<break time="150ms"/>One sec, processing.',
+        '<emotion value="curious"/>Hmm.<break time="200ms"/>',
+        'Okay.<break time="150ms"/>Give me a moment.',
+      ],
+      searching: [
+        '<break time="150ms"/>Looking that up.',
+        'One moment.<break time="200ms"/>',
+        '<emotion value="curious"/>Good question.<break time="150ms"/>Checking.',
+      ],
+      calculating: [
+        '<break time="150ms"/>Running the numbers.',
+        'One sec.<break time="200ms"/>',
+      ],
+      creating: [
+        '<break time="150ms"/>Drafting that.',
+        'Working on it.<break time="200ms"/>',
+        'One moment.<break time="150ms"/>',
+      ],
+      connecting: [
+        '<break time="150ms"/>Connecting.',
+        'Almost there.<break time="200ms"/>',
+      ],
+      remembering: [
+        '<break time="150ms"/>Checking that.',
+        'One sec.<break time="200ms"/>',
+      ],
+    },
+    fillers: ['Hmm.<break time="200ms"/>', 'Okay.<break time="200ms"/>'],
+    pauseMarker: '<break time="200ms"/>',
+  },
+  jordan: {
+    personaId: 'jordan',
+    phrases: {
+      thinking: [
+        '<emotion value="enthusiastic"/>Ooh!<break time="200ms"/>One sec.',
+        '<break time="150ms"/>Let me think.',
+        'Oh, fun!<break time="200ms"/>Give me a moment.',
+      ],
+      searching: [
+        '<emotion value="enthusiastic"/>Ooh, checking on that!<break time="200ms"/>',
+        '<break time="150ms"/>Looking that up.',
+        'One moment.<break time="200ms"/>',
+      ],
+      calculating: [
+        '<break time="150ms"/>Crunching the numbers.',
+        'One sec.<break time="200ms"/>',
+      ],
+      creating: [
+        '<emotion value="enthusiastic"/>Oh, this is exciting!<break time="200ms"/>Working on it.',
+        '<break time="150ms"/>Putting it together.',
+        'One moment.<break time="200ms"/>',
+      ],
+      connecting: [
+        '<break time="150ms"/>Connecting.',
+        'Almost there!<break time="200ms"/>',
+      ],
+      remembering: [
+        '<emotion value="enthusiastic"/>Oh yes!<break time="200ms"/>',
+        '<break time="150ms"/>I remember.',
+      ],
+    },
+    fillers: ['Ooh.<break time="200ms"/>', 'Nice.<break time="200ms"/>'],
+    pauseMarker: '<break time="200ms"/>',
+  },
+  nayan: {
+    personaId: 'nayan',
+    phrases: {
+      thinking: [
+        '<speed ratio="0.95"/><break time="300ms"/>Hmm.<break time="200ms"/>',
+        '<emotion value="curious"/><break time="200ms"/>One moment.',
+        '<speed ratio="0.9"/>Let me consider that.<break time="300ms"/>',
+      ],
+      searching: [
+        '<break time="200ms"/>Looking into that.',
+        '<speed ratio="0.95"/>One moment.<break time="200ms"/>',
+      ],
+      calculating: [
+        '<break time="200ms"/>Processing that.',
+        '<speed ratio="0.95"/>One moment.<break time="200ms"/>',
+      ],
+      creating: [
+        '<break time="200ms"/>Crafting a response.',
+        '<speed ratio="0.95"/>One moment.<break time="200ms"/>',
+      ],
+      connecting: [
+        '<break time="200ms"/>Connecting.',
+        'One moment.<break time="200ms"/>',
+      ],
+      remembering: [
+        '<emotion value="affectionate"/><break time="200ms"/>Ah, yes.',
+        '<speed ratio="0.95"/>I recall.<break time="200ms"/>',
+      ],
+    },
+    fillers: ['<break time="300ms"/>Hmm.<break time="200ms"/>', '<break time="200ms"/>Indeed.<break time="200ms"/>'],
+    pauseMarker: '<break time="250ms"/>',
+  },
 };
 
 // ============================================================================

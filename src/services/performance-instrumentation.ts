@@ -24,6 +24,9 @@ import { registerInterval, clearNamedInterval, hasInterval } from '../utils/inte
 
 const log = getLogger();
 
+/** Interval name for performance instrumentation checks */
+const PERF_INSTRUMENTATION_INTERVAL = 'perf-instrumentation-check';
+
 // ============================================================================
 // MEMORY ALERT CONFIGURATION
 // ============================================================================

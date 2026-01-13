@@ -18,7 +18,7 @@ import {
   type ContextBuilderInput,
   type ContextInjection,
 } from '../index.js';
-import { getDJBooth } from '../../../audio/dj-booth.js';
+import { getDJController } from '../../../audio/index.js';
 
 const log = getLogger();
 
@@ -164,18 +164,16 @@ async function buildSessionFlowContext(input: ContextBuilderInput): Promise<Cont
   const state = getOrCreateSessionState(sessionId);
 
   try {
-    // Get DJ Booth for tracking
-    const djBooth = getDJBooth();
+    // Get DJ Controller for music state (topic tracking now done via emotional-arc.ts)
+    const djController = getDJController();
+    const isMusicPlaying = djController?.isMusicActive() ?? false;
 
     // Track topics from analysis
     const currentTopics = analysis?.topics?.detected || [];
     const primaryTopic = analysis?.topics?.primary || currentTopics[0];
 
     if (primaryTopic && primaryTopic !== state.lastTrackedTopic) {
-      // Track in DJ Booth
-      if (djBooth) {
-        djBooth.trackTopic(primaryTopic);
-      }
+      // Topic tracking is now handled by emotional-arc.ts
 
       // Check if this is a significant topic shift
       const isSignificantTopic = SIGNIFICANT_TOPICS.some((t) =>
@@ -215,10 +213,7 @@ async function buildSessionFlowContext(input: ContextBuilderInput): Promise<Cont
     const emotionIntensity = analysis?.emotion?.intensity || 0;
 
     if (currentEmotion && currentEmotion !== state.lastTrackedEmotion && emotionIntensity > 0.5) {
-      // Track in DJ Booth
-      if (djBooth) {
-        djBooth.trackEmotion(currentEmotion);
-      }
+      // Emotion tracking is now handled by emotional-arc.ts
 
       // Record significant emotional moment
       if (emotionIntensity > 0.7) {
@@ -255,18 +250,10 @@ async function buildSessionFlowContext(input: ContextBuilderInput): Promise<Cont
       lowerText.includes('gotta go') ||
       lowerText.includes('have to go');
 
-    if (isGoodbyeIntent && djBooth) {
-      // Generate session summary for goodbye
-      const sessionOutro = djBooth.getSessionOutro();
-      if (sessionOutro && sessionOutro !== 'Take care!') {
-        injections.push(
-          createHintInjection(
-            'session_flow_outro',
-            `[SESSION SUMMARY FOR GOODBYE] Before saying goodbye, you could include a brief session recap: ` +
-              `"${sessionOutro}"`
-          )
-        );
-      }
+    if (isGoodbyeIntent) {
+      // Session outro summaries are now generated via conversation-state.ts
+      // and the emotional arc tracker for a more comprehensive summary
+      log.debug({ sessionId }, 'Goodbye intent detected - summary handled by conversation state');
     }
 
     // Log tracking

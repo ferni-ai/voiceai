@@ -433,7 +433,7 @@ class RitualBuilderUI {
           <span class="ritual-builder__tiny-text">${escapeHtml(t.tinyVersion)}</span>
         </div>
         
-        ${t.duration ? `
+        ${t.defaults?.duration ? `
           <div class="ritual-builder__template-meta">
             ${ICONS.clock}
             <span>${t.defaults.duration || '2 min'}</span>
@@ -875,7 +875,19 @@ class RitualBuilderUI {
         `/api/practices/time-suggestions?${params}`
       );
       if (response.ok && response.data) {
-        this.timeSuggestions = response.data.suggestions || [];
+        // Map string times to TimeSuggestion objects
+        this.timeSuggestions = (response.data.suggestions || []).map((timeStr: string): TimeSuggestion => {
+          const [hours, minutes] = timeStr.split(':').map(Number);
+          return { 
+            time: timeStr, 
+            hour: hours ?? 0, 
+            minute: minutes ?? 0,
+            dayOfWeek: '',
+            confidence: 0.8,
+            reasoning: 'Suggested time',
+            freeMinutes: 60,
+          };
+        });
       }
     } catch (err) {
       // Silently fail - suggestions are optional

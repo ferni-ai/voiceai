@@ -1006,7 +1006,7 @@ class MusicDashboardUI {
       .music-dashboard__backdrop {
         position: absolute;
         inset: 0;
-        background: rgba(44, 37, 32, 0.75);
+        background: var(--backdrop-heavy);
       }
 
       .music-dashboard__card {

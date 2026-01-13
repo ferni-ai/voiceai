@@ -1,0 +1,43 @@
+---
+permalink: /developers/blog/feed.json
+eleventyExcludeFromCollections: true
+---
+{
+  "version": "https://jsonfeed.org/version/1.1",
+  "title": "Ferni Developer Blog",
+  "description": "Build voice-first AI experiences with Ferni. Tutorials, deep dives, and updates for developers.",
+  "home_page_url": "https://developers.ferni.ai/developers/blog/",
+  "feed_url": "https://developers.ferni.ai/developers/blog/feed.json",
+  "icon": "https://developers.ferni.ai/images/ferni-eyes-logo.svg",
+  "favicon": "https://developers.ferni.ai/images/favicon.ico",
+  "language": "en-US",
+  "authors": [
+    {
+      "name": "Ferni Developer Team",
+      "url": "https://developers.ferni.ai"
+    }
+  ],
+  "items": [
+    {%- for post in collections.devPosts | reverse | slice(0, 20) %}
+    {
+      "id": "https://developers.ferni.ai{{ post.url }}",
+      "url": "https://developers.ferni.ai{{ post.url }}",
+      "title": {{ post.data.title | dump | safe }},
+      "summary": {{ post.data.excerpt | dump | safe }},
+      "content_html": {{ post.templateContent | dump | safe }},
+      "date_published": "{{ post.date | rssDate }}",
+      "date_modified": "{{ post.date | rssDate }}",
+      {%- if post.data.author %}
+      "authors": [{ "name": {{ post.data.author | dump | safe }} }],
+      {%- endif %}
+      {%- if post.data.category %}
+      "tags": [{{ post.data.category | dump | safe }}],
+      {%- endif %}
+      {%- if post.data.image %}
+      "image": "https://developers.ferni.ai/images/dev-blog/{{ post.data.image }}",
+      {%- endif %}
+      "language": "en"
+    }{% if not loop.last %},{% endif %}
+    {%- endfor %}
+  ]
+}

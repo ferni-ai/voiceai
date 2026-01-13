@@ -12,7 +12,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
   buildLifeCoachingContext,
   detectLifeCoachingDomains,
-} from '../intelligence/context-builders/life-coaching-context.js';
+} from '../intelligence/context-builders/coaching/life-coaching-context.js';
 import {
   loadSecondChancesVoice,
   loadConnectionVoice,

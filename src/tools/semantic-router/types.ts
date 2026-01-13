@@ -226,6 +226,7 @@ export type ToolCategory =
   | 'dating'
   | 'relationships'
   | 'grief'
+  | 'family'
   // Productivity
   | 'tasks'
   | 'productivity'

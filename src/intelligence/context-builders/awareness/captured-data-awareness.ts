@@ -221,7 +221,7 @@ async function buildCapturedDataAwareness(input: ContextBuilderInput): Promise<C
 
     return [
       createHintInjection('captured_data_awareness', context, {
-        priority: 40, // Lower than emotional/safety builders
+        category: 'awareness',
       }),
     ];
   } catch (error) {

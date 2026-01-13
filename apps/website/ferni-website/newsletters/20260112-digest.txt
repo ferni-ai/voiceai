@@ -1,0 +1,77 @@
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+FERNI DEV WEEKLY - January 11, 2026
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🌟 THIS WEEK'S HIGHLIGHT
+
+  Week 2: Authentication, Performance, and Your First Case Study
+  Preview of what's coming next week - deep dives into auth patterns, performance optimization, and our first community spotlight.
+  → https://developers.ferni.ai/developers/blog/week-2-preview/
+
+────────────────────────────────────────────────────
+
+🗺️ ROADMAP
+
+  • Week 2: Authentication, Performance, and Your First Case Study
+    3 min read
+    → https://developers.ferni.ai/developers/blog/week-2-preview/
+
+
+📢 ANNOUNCEMENTS
+
+  • Introducing the Ferni Developer Platform
+    8 min read
+    → https://developers.ferni.ai/developers/blog/introducing-developer-platform/
+
+
+📚 TUTORIAL
+
+  • Building Your First MCP Integration
+    12 min read
+    → https://developers.ferni.ai/developers/blog/mcp-server-integration/
+
+  • Building Multi-Step Workflows
+    15 min read
+    → https://developers.ferni.ai/developers/blog/workflow-engine-guide/
+
+
+🌍 INDUSTRY INSIGHTS
+
+  • The Future of Voice AI Interfaces
+    7 min read
+    → https://developers.ferni.ai/developers/blog/voice-ai-future/
+
+
+⚡ QUICK TIPS
+
+  • 5 Code Snippets Every Ferni Developer Needs
+    4 min read
+    → https://developers.ferni.ai/developers/blog/quick-tips-getting-started/
+
+
+📝 SECURITY
+
+  • Webhook Security Best Practices
+    10 min read
+    → https://developers.ferni.ai/developers/blog/webhook-security/
+
+
+────────────────────────────────────────────────────
+
+📣 QUICK LINKS
+
+  • Documentation: https://developers.ferni.ai/docs/
+  • Discord: https://discord.gg/ferni
+  • GitHub: https://github.com/ferni-ai
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Happy building,
+The Ferni Team
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+You're receiving this because you subscribed to Ferni Dev Weekly.
+Unsubscribe: {{unsubscribe_url}}

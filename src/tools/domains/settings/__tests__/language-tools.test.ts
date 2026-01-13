@@ -10,6 +10,18 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock logger first
 vi.mock('../../../../utils/safe-logger.js', () => ({
+  createLogger: () => ({
+    debug: vi.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    child: vi.fn(() => ({
+      debug: vi.fn(),
+      info: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn(),
+    })),
+  }),
   getLogger: () => ({
     debug: vi.fn(),
     info: vi.fn(),
@@ -112,7 +124,9 @@ describe('Language Tools', () => {
 
   describe('Tool Loading', () => {
     it('should load all language tool definitions', async () => {
-      expect(toolDefinitions.length).toBe(3);
+      // getToolDefinitions() returns ALL settings tools (language + theme = 5)
+      expect(toolDefinitions.length).toBe(5);
+      // languageToolDefinitions is just the language tools (3)
       expect(languageToolDefinitions.length).toBe(3);
     });
 

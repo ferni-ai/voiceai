@@ -43,6 +43,14 @@ export async function cleanupContextBuilderSession(sessionId: string): Promise<v
     /* module not loaded */
   }
 
+  // Clear memory lane session state
+  try {
+    const { clearMemoryLaneSession } = await import('../superhuman/memory-lane-context.js');
+    clearMemoryLaneSession(sessionId);
+  } catch {
+    /* module not loaded */
+  }
+
   log.debug({ sessionId }, '🧹 Context builder session state cleared');
 }
 
@@ -74,6 +82,14 @@ export async function cleanupAllContextBuilderSessions(): Promise<void> {
     const { clearAllSuperhumanInsightsSessions } =
       await import('../superhuman/superhuman-insights.js');
     clearAllSuperhumanInsightsSessions();
+  } catch {
+    /* module not loaded */
+  }
+
+  // Clear all memory lane sessions
+  try {
+    const { clearAllMemoryLaneSessions } = await import('../superhuman/memory-lane-context.js');
+    clearAllMemoryLaneSessions();
   } catch {
     /* module not loaded */
   }

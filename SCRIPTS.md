@@ -30,11 +30,11 @@ Primary development commands
 | `npm run dev:full` | `npm run token-server & npm run dev` |
 | `npm run dev:jack` | `PERSONA_ID=jack-bogle tsx src/agent.ts dev` |
 | `npm run dev:jack-b` | `PERSONA_ID=jack-b tsx src/agent.ts dev` |
-| `npm run dev:peter` | `PERSONA_ID=peter-lynch tsx src/agent.ts dev` |
+| `npm run dev:peter` | `PERSONA_ID=peter-john tsx src/agent.ts dev` |
 | `npm run start` | `node dist/agent.js start` |
 | `npm run start:jack` | `PERSONA_ID=jack-bogle node dist/agent.js start` |
 | `npm run start:jack-b` | `PERSONA_ID=jack-b node dist/agent.js start` |
-| `npm run start:peter` | `PERSONA_ID=peter-lynch node dist/agent.js start` |
+| `npm run start:peter` | `PERSONA_ID=peter-john node dist/agent.js start` |
 
 ## 🧪 Testing
 

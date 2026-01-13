@@ -12,8 +12,23 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
-import type { MusicPreferences } from '../../audio/dj-enhancements.js';
 import type { MusicMemory } from '../../types/user-profile.js';
+
+// MusicPreferences type (formerly from dj-enhancements)
+interface MusicPreferences {
+  likedArtists: string[];
+  dislikedArtists: string[];
+  favoriteGenres: string[];
+  preferredMusicTimes: Array<'morning' | 'afternoon' | 'evening' | 'night'>;
+  totalTracksPlayed: number;
+  lastPlayed?: {
+    artist: string;
+    track: string;
+    timestamp: number;
+  };
+  moodPreferences?: Record<string, string[]>;
+  sharedMoments?: Array<{ description: string; artist: string; timestamp: number }>;
+}
 
 const log = getLogger();
 
@@ -170,16 +185,10 @@ export async function connectDJBoothToPersistence(userId: string): Promise<{
   const existingPrefs = await loadUserMusicPreferences(userId);
 
   const cleanup = async (): Promise<void> => {
-    // Get current preferences from DJ Booth and save
-    const { getDJBooth } = await import('../../audio/dj-booth.js');
-    const djBooth = getDJBooth();
-
-    if (djBooth) {
-      const currentPrefs = djBooth.getMusicPreferences();
-      if (currentPrefs) {
-        await saveUserMusicPreferences(userId, currentPrefs);
-      }
-    }
+    // Music preferences are now persisted via music-learning-persistence.ts
+    // which is automatically called during session cleanup
+    // No manual save needed here - it's handled by the music handler cleanup
+    log.debug({ userId }, 'Music preferences cleanup - handled by music-learning-persistence');
   };
 
   return { existingPrefs, cleanup };

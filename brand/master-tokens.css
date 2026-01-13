@@ -106,6 +106,64 @@
   --color-info: #3A6B73;
   --color-info-subtle: rgba(58, 107, 115, 0.1);
 
+  /* Bright Semantic (for visualizations, data emphasis) */
+  --color-warning-bright: #F5A623;
+  --color-error-bright: #E74C3C;
+  --color-success-bright: #10B981;
+  --color-info-bright: #3B82F6;
+
+  /* Showcase/Presentation (dark backgrounds) */
+  --color-showcase-bg: #0A0A0C;
+  --color-showcase-surface: #1A1A1E;
+  --color-showcase-elevated: #2A2A2E;
+
+  /* Additional Visualization Colors */
+  --color-purple: #6366F1;
+  --color-pink: #EC4899;
+
+  /* ============================================
+     VISUALIZATION COLORS - Better Than Human
+     ============================================ */
+
+  /* Kintsugi - Golden repair (wounds → wisdom) */
+  --kintsugi-primary: #C9A227;
+  --kintsugi-bright: #E5C84B;
+  --kintsugi-deep: #9A7B1C;
+  --kintsugi-subtle: #B8956A;
+  --kintsugi-glow: rgba(201, 162, 39, 0.4);
+  --kintsugi-tint: rgba(201, 162, 39, 0.12);
+  --kintsugi-gold: #C9A227; /* Alias for backward compatibility */
+
+  /* River - Conversation flow visualization */
+  --viz-river-user: #3a6b73;
+  --viz-river-ferni: #4a6741;
+  --viz-river-silence: rgba(139, 119, 91, 0.3);
+  --viz-river-flow: rgba(58, 107, 115, 0.6);
+
+  /* Constellation - Relationship network */
+  --viz-constellation-node: #b8956a;
+  --viz-constellation-edge: rgba(184, 149, 106, 0.4);
+  --viz-constellation-highlight: #E5C84B;
+  --viz-constellation-cluster: rgba(166, 122, 106, 0.3);
+
+  /* Seasons - Life timeline */
+  --viz-seasons-spring: #7a9060;
+  --viz-seasons-summer: #C9A227;
+  --viz-seasons-autumn: #c4856a;
+  --viz-seasons-winter: #5a6b8a;
+
+  /* Energy - Sankey flow diagram */
+  --viz-energy-source: #4a6741;
+  --viz-energy-drain: #c4856a;
+  --viz-energy-neutral: #8a7a6a;
+  --viz-energy-flow: rgba(74, 103, 65, 0.5);
+
+  /* Growth - Progress rings */
+  --viz-growth-ring: rgba(74, 103, 65, 0.15);
+  --viz-growth-ring-active: #4a6741;
+  --viz-growth-milestone: #C9A227;
+  --viz-growth-potential: rgba(201, 162, 39, 0.3);
+
   /* ============================================
      TYPOGRAPHY
      ============================================ */

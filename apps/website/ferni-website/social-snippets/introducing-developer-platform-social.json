@@ -1,0 +1,45 @@
+{
+  "postFile": "introducing-developer-platform.md",
+  "title": "Introducing the Ferni Developer Platform",
+  "date": "2026-01-11T00:00:00.000Z",
+  "snippets": {
+    "twitter": {
+      "platform": "twitter",
+      "text": "📚 Introducing the Ferni Developer Platform\n\nhttps://developers.ferni.ai/developers/blog/introducing-developer-platform/\n\n#VoiceAI #Developers",
+      "length": null
+    },
+    "twitterThread": {
+      "platform": "twitter_thread",
+      "tweets": [
+        {
+          "text": "🧵 Introducing the Ferni Developer Platform\n\nA thread on what you'll learn:\n\n👇",
+          "type": "hook"
+        },
+        {
+          "text": "Build voice-first AI experiences with MCP servers, custom tools, webhooks, and workflows. The complete developer toolkit for extending voice agents.\n\nLet's dive in...",
+          "type": "summary"
+        },
+        {
+          "text": "📖 Read the full post:\nhttps://developers.ferni.ai/developers/blog/introducing-developer-platform/\n\n#VoiceAI #Developers",
+          "type": "cta"
+        }
+      ],
+      "totalTweets": 3
+    },
+    "linkedin": {
+      "platform": "linkedin",
+      "text": "Introducing the Ferni Developer Platform\n\nBuild voice-first AI experiences with MCP servers, custom tools, webhooks, and workflows. The complete developer toolkit for extending voice agents.\n\nThis is part of our ongoing series helping developers build with voice AI.\n\nKey takeaways:\n• Practical code examples you can use today\n• Real-world patterns from production systems\n• Best practices from the Ferni team\n\nRead the full post: https://developers.ferni.ai/developers/blog/introducing-developer-platform/\n\n#VoiceAI #Developers",
+      "length": 528
+    },
+    "discord": {
+      "platform": "discord",
+      "text": "📝 **Introducing the Ferni Developer Platform**\n\nBuild voice-first AI experiences with MCP servers, custom tools, webhooks, and workflows. The complete developer toolkit for extending voice agents.\n\n🔗 **Read more:** https://developers.ferni.ai/developers/blog/introducing-developer-platform/\n\n---\n*8 min read • Announcements*",
+      "length": 326
+    },
+    "threads": {
+      "platform": "threads",
+      "text": "Introducing the Ferni Developer Platform\n\nBuild voice-first AI experiences with MCP servers, custom tools, webhooks, and workflows. The complete developer toolkit for extending voice agents.\n\nRead more 👉 https://developers.ferni.ai/developers/blog/introducing-developer-platform/",
+      "length": 280
+    }
+  }
+}

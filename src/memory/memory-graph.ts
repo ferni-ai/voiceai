@@ -21,7 +21,7 @@
  * @module memory/memory-graph
  */
 
-import { getFirestoreDb } from '../services/superhuman/firestore-utils.js';
+import { getFirestoreDb } from '../utils/firestore-utils.js';
 import { createLogger } from '../utils/safe-logger.js';
 
 const log = createLogger({ module: 'MemoryGraph' });

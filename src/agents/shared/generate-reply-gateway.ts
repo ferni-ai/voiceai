@@ -15,11 +15,18 @@
  * @module generate-reply-gateway
  */
 
-import type { voice } from '@livekit/agents';
+import { voice } from '@livekit/agents';
 import { EventEmitter } from 'events';
 import { getLogger } from '../../utils/safe-logger.js';
 // Speech coordination for fallback TTS
 import { coordinatedSay } from '../../speech/coordination/index.js';
+// E2E Latency tracking - diagnose OpenAI vs TTS vs our code
+import {
+  markLLMRequestSent,
+  markLLMFirstToken,
+  markLLMComplete,
+  markAudioStarted,
+} from './e2e-latency-tracker.js';
 
 const log = getLogger();
 
@@ -36,7 +43,7 @@ export interface GatewayOptions {
   waitForPlayout?: boolean;
   /** Fallback message if generateReply fails */
   fallbackMessage?: string;
-  /** Timeout in ms (default: 6000) */
+  /** Timeout in ms (default: 4000 - reduced for human-like latency) */
   timeoutMs?: number;
 }
 
@@ -65,6 +72,16 @@ interface SessionState {
   consecutiveFailures: number;
   circuitBreakerOpenedAt?: number; // Track when circuit breaker opened for half-open recovery
   pendingCallCount: number;
+  /**
+   * Track if there's an active low-priority response (e.g., backchannel).
+   * Used to prevent "conversation_already_has_active_response" errors from OpenAI.
+   * When a new normal/high priority request comes in, we interrupt the low-priority one first.
+   */
+  hasActiveLowPriorityResponse: boolean;
+  /** Timestamp when low-priority response started (for cleanup) */
+  lowPriorityResponseStartedAt?: number;
+  /** Session reference for interrupting active responses */
+  activeSession?: voice.AgentSession;
   // Statistics
   stats: {
     totalCalls: number;
@@ -75,21 +92,30 @@ interface SessionState {
   };
 }
 
-/** Minimum time between generateReply calls to prevent overwhelming the API */
-const DEBOUNCE_MS = 500;
+/**
+ * Minimum time between generateReply calls to prevent overwhelming the API
+ * UPDATED Jan 2026: Priority-based debouncing for human-like response times
+ * - Normal/high priority: 300ms (was 500ms) - faster for real user messages
+ * - Low priority (backchannels): 500ms - keep longer to prevent "mm-hmm" spam
+ */
+const DEBOUNCE_MS_NORMAL = 300;
+const DEBOUNCE_MS_LOW = 500;
 
 /** Time after which circuit breaker enters "half-open" state to allow recovery */
 const CIRCUIT_BREAKER_RESET_MS = 10_000;
 
-/** After this many consecutive failures, trigger graceful exit instead of leaving user in silence */
-const GRACEFUL_EXIT_THRESHOLD = 5;
+/**
+ * After this many consecutive failures, trigger graceful exit instead of leaving user in silence.
+ * CRITICAL FIX: Reduced from 5 to 3 - user was stuck in silence for 14 min with 4 failures.
+ */
+const GRACEFUL_EXIT_THRESHOLD = 3;
 
 // ============================================================================
 // ERROR ANALYSIS HELPERS
 // ============================================================================
 
 interface GeminiErrorDetails {
-  errorType: 'timeout' | 'rate_limit' | 'auth' | 'connection' | 'api' | 'unknown';
+  errorType: 'timeout' | 'rate_limit' | 'auth' | 'connection' | 'api' | 'session_draining' | 'unknown';
   errorCode?: number | string;
   isRetryable: boolean;
   isGeminiDead: boolean;
@@ -135,6 +161,32 @@ function extractGeminiErrorDetails(error: unknown): GeminiErrorDetails {
   }
 
   // Classify error type based on message/code
+
+  // FIX: Detect "circular wait" error from LiveKit SDK
+  // This occurs when trying to call waitForPlayout() after a handoff tool has completed
+  // The old session is draining but the SDK still thinks we're in the tool context
+  // This is NOT a Gemini error - it's a session lifecycle issue that should be ignored
+  if (
+    errorStr.includes('waitForPlayout') &&
+    (errorStr.includes('circular wait') || errorStr.includes('from inside the function tool'))
+  ) {
+    details.errorType = 'session_draining' as GeminiErrorDetails['errorType'];
+    details.isRetryable = false; // Don't retry - session is closing
+    details.isGeminiDead = false; // Gemini is fine, it's the session that's draining
+    return details; // Return early - this is expected during handoffs
+  }
+
+  // FIX: Detect "AgentSession is not running" error from LiveKit SDK
+  // This occurs when participant disconnects but music transitions or other async
+  // operations are still trying to generate replies. This is expected and should
+  // be handled gracefully without logging as an error.
+  if (errorStr.includes('AgentSession is not running')) {
+    details.errorType = 'session_draining' as GeminiErrorDetails['errorType'];
+    details.isRetryable = false; // Don't retry - session is closed
+    details.isGeminiDead = false; // Gemini is fine, it's the session that's closed
+    return details; // Return early - this is expected after disconnect
+  }
+
   if (errorStr.includes('Gateway timeout') || errorStr.includes('Safe timeout')) {
     details.errorType = 'timeout';
     details.isGeminiDead = true; // Our timeout fired, Gemini didn't respond
@@ -165,7 +217,11 @@ function extractGeminiErrorDetails(error: unknown): GeminiErrorDetails {
   ) {
     details.errorType = 'connection';
     details.isGeminiDead = true;
-  } else if (errorStr.includes('500') || errorStr.includes('503') || errorStr.includes('INTERNAL')) {
+  } else if (
+    errorStr.includes('500') ||
+    errorStr.includes('503') ||
+    errorStr.includes('INTERNAL')
+  ) {
     details.errorType = 'api';
     details.isRetryable = true;
   }
@@ -188,19 +244,146 @@ function extractGeminiErrorDetails(error: unknown): GeminiErrorDetails {
   return details;
 }
 
+// ============================================================================
+// GEMINI RECONNECTION LOGIC
+// ============================================================================
+
+/** Track active sessions for reconnection attempts */
+const sessionObjects = new Map<string, voice.AgentSession>();
+
+/** Track reconnection attempts to prevent loops */
+const reconnectionAttempts = new Map<string, { count: number; lastAttempt: number }>();
+const MAX_RECONNECTION_ATTEMPTS = 2;
+const RECONNECTION_COOLDOWN_MS = 30_000; // 30s between reconnection attempts
+
+/**
+ * Register a session object for potential reconnection.
+ * Call this when creating a new session.
+ */
+export function registerSessionForReconnection(
+  sessionId: string,
+  session: voice.AgentSession
+): void {
+  sessionObjects.set(sessionId, session);
+}
+
+/**
+ * Unregister a session (on cleanup).
+ */
+export function unregisterSessionForReconnection(sessionId: string): void {
+  sessionObjects.delete(sessionId);
+  reconnectionAttempts.delete(sessionId);
+}
+
+/**
+ * Handle Gemini death by attempting reconnection.
+ *
+ * CRITICAL FIX: This is called when isGeminiDead is detected.
+ * Instead of just waiting for circuit breaker, we actively try to reconnect.
+ */
+async function handleGeminiDeath(sessionId: string): Promise<boolean> {
+  const attempts = reconnectionAttempts.get(sessionId) || { count: 0, lastAttempt: 0 };
+  const now = Date.now();
+
+  // Check cooldown and attempt limit
+  if (attempts.count >= MAX_RECONNECTION_ATTEMPTS) {
+    log.warn(
+      { sessionId, attempts: attempts.count },
+      '💀 [GATEWAY] Max reconnection attempts reached - giving up'
+    );
+    return false;
+  }
+
+  if (now - attempts.lastAttempt < RECONNECTION_COOLDOWN_MS && attempts.count > 0) {
+    log.debug(
+      { sessionId, cooldownRemainingMs: RECONNECTION_COOLDOWN_MS - (now - attempts.lastAttempt) },
+      '💀 [GATEWAY] Reconnection on cooldown'
+    );
+    return false;
+  }
+
+  // Update attempt tracking
+  reconnectionAttempts.set(sessionId, { count: attempts.count + 1, lastAttempt: now });
+
+  log.warn(
+    { sessionId, attempt: attempts.count + 1 },
+    '💀 [GATEWAY] Gemini dead - attempting reconnection...'
+  );
+
+  const session = sessionObjects.get(sessionId);
+  if (!session) {
+    log.error({ sessionId }, '💀 [GATEWAY] No session object for reconnection');
+    return false;
+  }
+
+  try {
+    // Notify user we're reconnecting (use TTS fallback since Gemini is dead)
+    // Note: coordinatedSay is fire-and-forget (returns void)
+    coordinatedSay(sessionId, 'One moment...', { allowInterruptions: false });
+
+    // Brief delay to let TTS start
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    // Try a minimal generateReply to re-establish the connection
+    // This often works because the SDK will reconnect the WebSocket
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error('Reconnection timeout')), 8000);
+    });
+
+    const reconnectPromise = (async () => {
+      const handle = session.generateReply({
+        instructions: ' ', // Minimal instruction
+        allowInterruptions: true,
+      });
+      await handle.waitForPlayout();
+    })();
+
+    await Promise.race([reconnectPromise, timeoutPromise]);
+
+    // SUCCESS! Reset failure counters
+    const state = sessionStates.get(sessionId);
+    if (state) {
+      state.consecutiveFailures = 0;
+      state.circuitBreakerOpenedAt = undefined;
+      state.isReady = true;
+    }
+
+    log.info({ sessionId }, '✅ [GATEWAY] Gemini reconnection successful!');
+
+    // Notify user we're back
+    coordinatedSay(sessionId, "I'm back! What were you saying?", { allowInterruptions: true });
+
+    return true;
+  } catch (err) {
+    log.error(
+      { sessionId, error: String(err), attempt: attempts.count + 1 },
+      '💀 [GATEWAY] Gemini reconnection failed'
+    );
+    return false;
+  }
+}
+
 /**
  * Trigger a graceful exit when LLM is completely unresponsive.
  *
- * This says goodbye in a warm way and signals the frontend to disconnect,
- * rather than leaving the user in awkward silence.
+ * CRITICAL FIX: Now attempts reconnection FIRST before giving up.
+ * Only disconnects if reconnection also fails.
  */
 async function triggerGracefulExit(sessionId: string): Promise<void> {
+  // FIRST: Try to reconnect Gemini
+  const reconnected = await handleGeminiDeath(sessionId);
+  if (reconnected) {
+    log.info({ sessionId }, '🔄 [GATEWAY] Reconnected during graceful exit - continuing session');
+    return; // Don't exit!
+  }
+
+  // Reconnection failed - proceed with graceful exit
   // Warm, human goodbye messages (not "I'm experiencing technical difficulties")
   const goodbyeMessages = [
-    "Oh, looks like I need to step away for a moment. Talk to you soon!",
-    "Hey, I think I need to take a quick break. Catch you in a bit!",
+    'Oh, looks like I need to step away for a moment. Talk to you soon!',
+    'Hey, I think I need to take a quick break. Catch you in a bit!',
     "Hmm, something's up on my end. Let me reconnect - talk soon!",
-    "I should probably step away for a sec. Be right back!",
+    'I should probably step away for a sec. Be right back!',
   ];
 
   const goodbye = goodbyeMessages[Math.floor(Math.random() * goodbyeMessages.length)];
@@ -238,6 +421,11 @@ async function triggerGracefulExit(sessionId: string): Promise<void> {
 const sessionStates = new Map<string, SessionState>();
 const readinessEmitter = new EventEmitter();
 
+// Increase max listeners to handle concurrent sessions
+// Each session adds one listener during prewarm/wait, removed on ready or timeout
+// Default is 10 which can cause warnings during high concurrency
+readinessEmitter.setMaxListeners(100);
+
 // Track active sessions to detect orphaned operations
 const activeSessions = new Set<string>();
 const cancelledSessions = new Set<string>();
@@ -249,6 +437,7 @@ function getSessionState(sessionId: string): SessionState {
       isReady: false,
       consecutiveFailures: 0,
       pendingCallCount: 0,
+      hasActiveLowPriorityResponse: false,
       stats: {
         totalCalls: 0,
         successfulCalls: 0,
@@ -293,6 +482,37 @@ export function getGatewayStats(sessionId: string): SessionState['stats'] {
       skippedCalls: 0,
     }
   );
+}
+
+/**
+ * Clear any pending low-priority response flag for a session.
+ * Call this when user starts speaking to ensure we can immediately respond after.
+ * This is a backup mechanism - the main interrupt happens in generateReply().
+ */
+export function clearPendingLowPriorityResponse(sessionId: string): void {
+  const state = sessionStates.get(sessionId);
+  if (state?.hasActiveLowPriorityResponse) {
+    log.debug(
+      {
+        sessionId,
+        timeSinceStart: state.lowPriorityResponseStartedAt
+          ? Date.now() - state.lowPriorityResponseStartedAt
+          : 0,
+      },
+      '🧹 [GATEWAY] Clearing pending low-priority response flag (user speaking)'
+    );
+    state.hasActiveLowPriorityResponse = false;
+    state.lowPriorityResponseStartedAt = undefined;
+
+    // Also interrupt the session to cancel any active response
+    if (state.activeSession) {
+      try {
+        state.activeSession.interrupt();
+      } catch {
+        // Ignore interrupt errors - session might already be done
+      }
+    }
+  }
 }
 
 /**
@@ -376,12 +596,17 @@ export function cleanupSessionState(sessionId: string): void {
   sessionStates.delete(sessionId);
   readinessEmitter.removeAllListeners(`ready:${sessionId}`);
 
+  // Clean up reconnection tracking
+  unregisterSessionForReconnection(sessionId);
+
   log.debug({ sessionId }, '🧹 [GATEWAY] Session state cleaned up and marked cancelled');
 
   // Clean up cancelled sessions set after a delay (prevent memory leak)
+  // Reduced from 60s to 30s - prewarm timeout is 3s, so 30s is more than enough
+  // to catch any late completions while not holding memory unnecessarily
   setTimeout(() => {
     cancelledSessions.delete(sessionId);
-  }, 60000); // Keep for 60s to catch any late prewarm completions
+  }, 30000);
 }
 
 // ============================================================================
@@ -416,7 +641,7 @@ export async function generateReply(
     priority = 'normal',
     waitForPlayout = true,
     fallbackMessage,
-    timeoutMs = 6000,
+    timeoutMs = 4000, // Reduced from 6000 for human-like response latency
   } = options;
 
   const startTime = Date.now();
@@ -425,19 +650,21 @@ export async function generateReply(
 
   // -------------------------------------------------------------------------
   // SAFEGUARD 0: Debouncing (prevent rapid-fire calls)
+  // Priority-based: high skips, normal=300ms, low=500ms
   // -------------------------------------------------------------------------
   const timeSinceLastCall = state.lastCallAt ? Date.now() - state.lastCallAt : Infinity;
-  if (timeSinceLastCall < DEBOUNCE_MS && priority !== 'high') {
+  const debounceMs = priority === 'low' ? DEBOUNCE_MS_LOW : DEBOUNCE_MS_NORMAL;
+  if (timeSinceLastCall < debounceMs && priority !== 'high') {
     state.stats.debouncedCalls++;
     log.debug(
-      { sessionId, context, timeSinceLastCall, debounceMs: DEBOUNCE_MS },
+      { sessionId, context, timeSinceLastCall, debounceMs, priority },
       '⏸️ [GATEWAY] Debouncing rapid call'
     );
     return {
       success: false,
       usedFallback: false,
       debounced: true,
-      error: `Debounced: ${timeSinceLastCall}ms < ${DEBOUNCE_MS}ms`,
+      error: `Debounced: ${timeSinceLastCall}ms < ${debounceMs}ms`,
       latencyMs: Date.now() - startTime,
     };
   }
@@ -551,9 +778,50 @@ export async function generateReply(
   }
 
   // -------------------------------------------------------------------------
+  // SAFEGUARD 4: Interrupt active low-priority response before starting new one
+  // Prevents "conversation_already_has_active_response" errors from OpenAI
+  // -------------------------------------------------------------------------
+  if (state.hasActiveLowPriorityResponse && priority !== 'low') {
+    // A backchannel or other low-priority response is still active
+    // Interrupt it before starting our new response
+    const timeSinceLowPriority = state.lowPriorityResponseStartedAt
+      ? Date.now() - state.lowPriorityResponseStartedAt
+      : 0;
+
+    log.debug(
+      { sessionId, context, priority, timeSinceLowPriority },
+      '🛑 [GATEWAY] Interrupting active low-priority response before new request'
+    );
+
+    try {
+      session.interrupt();
+      // Small delay to let OpenAI process the interrupt
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    } catch (interruptErr) {
+      log.debug(
+        { error: String(interruptErr) },
+        'Low-priority interrupt failed (non-critical, continuing anyway)'
+      );
+    }
+
+    // Clear the flag
+    state.hasActiveLowPriorityResponse = false;
+    state.lowPriorityResponseStartedAt = undefined;
+  }
+
+  // Store session reference for future interrupts
+  state.activeSession = session;
+
+  // -------------------------------------------------------------------------
   // EXECUTE: Call generateReply with proper error handling
   // -------------------------------------------------------------------------
   state.pendingCallCount++;
+
+  // Mark if this is a low-priority response that shouldn't block future calls
+  if (priority === 'low' && !waitForPlayout) {
+    state.hasActiveLowPriorityResponse = true;
+    state.lowPriorityResponseStartedAt = Date.now();
+  }
 
   try {
     log.debug(
@@ -566,27 +834,77 @@ export async function generateReply(
       '🚀 [GATEWAY] Calling generateReply'
     );
 
+    // -------------------------------------------------------------------------
+    // SPEECH-AWARE TIMEOUT: Don't interrupt while agent is actively speaking
+    // -------------------------------------------------------------------------
+    // Track if speech has started - we shouldn't cut off mid-sentence
+    let speechStarted = false;
+    let timeoutId: ReturnType<typeof setTimeout>;
+
+    // Listen for agent speaking event
+    const speakingHandler = (event: { newState: string }) => {
+      if (event.newState === 'speaking') {
+        speechStarted = true;
+      }
+    };
+    session.on(voice.AgentSessionEventTypes.AgentStateChanged, speakingHandler);
+
     // Create our own timeout (fires before SDK's 15s timeout)
+    // CRITICAL: On timeout, only interrupt if agent hasn't started speaking
+    let timeoutTriggered = false;
     const timeoutPromise = new Promise<never>((_, reject) => {
-      setTimeout(() => {
+      timeoutId = setTimeout(() => {
+        // FIX: Don't interrupt if agent is actively speaking!
+        // This prevents cutting off Ferni mid-sentence when audio playout takes longer than timeout
+        if (speechStarted) {
+          log.debug(
+            { sessionId, context, timeoutMs },
+            '⏸️ [GATEWAY] Timeout reached but agent is speaking - allowing playout to complete'
+          );
+          // Don't reject or interrupt - let the playout promise handle completion naturally
+          // The Promise.race will wait for replyPromise since we're not rejecting
+          return;
+        }
+
+        // No speech yet - safe to interrupt and fail fast
+        timeoutTriggered = true;
+        try {
+          session.interrupt();
+          log.debug(
+            { sessionId, context, timeoutMs },
+            '🛑 [GATEWAY] Session interrupted on timeout (no speech started)'
+          );
+        } catch (interruptErr) {
+          log.debug({ error: String(interruptErr) }, 'Session interrupt failed (non-critical)');
+        }
         reject(new Error(`Gateway timeout (${timeoutMs}ms)`));
       }, timeoutMs);
     });
+
+    // 📊 E2E LATENCY: Mark LLM request sent
+    markLLMRequestSent(sessionId, context);
 
     // The actual generateReply call
     const replyPromise = (async () => {
       const handle = session.generateReply({ instructions, allowInterruptions });
 
-      // CRITICAL: Attach catch handler to prevent unhandled rejection
-      // when our timeout wins the race
-      handle.waitForPlayout().catch((err: Error) => {
-        log.debug(
-          { error: err.message, context },
-          '🔇 [GATEWAY] Swallowed dangling playout rejection'
-        );
-      });
+      // 📊 E2E LATENCY: Mark first token when we start getting a response
+      // The SDK fires generation_created event when OpenAI responds
+      // For now, we mark it here since we're about to wait for playout
+      markLLMFirstToken(sessionId);
 
+      // Only call waitForPlayout when requested
+      // CRITICAL: Do NOT call waitForPlayout() at all when waitForPlayout is false
+      // because calling it from inside a function tool context creates a circular wait error
+      // (the SDK throws even if we just attach a catch handler)
       if (waitForPlayout) {
+        // Attach catch handler to prevent unhandled rejection when our timeout wins the race
+        handle.waitForPlayout().catch((err: Error) => {
+          log.debug(
+            { error: err.message, context },
+            '🔇 [GATEWAY] Swallowed dangling playout rejection'
+          );
+        });
         await handle.waitForPlayout();
       }
     })();
@@ -599,7 +917,19 @@ export async function generateReply(
       );
     });
 
-    await Promise.race([replyPromise, timeoutPromise]);
+    try {
+      await Promise.race([replyPromise, timeoutPromise]);
+    } finally {
+      // Clean up event listener and timeout
+      session.off(voice.AgentSessionEventTypes.AgentStateChanged, speakingHandler);
+      clearTimeout(timeoutId!);
+    }
+
+    // 📊 E2E LATENCY: Mark LLM complete and audio started
+    markLLMComplete(sessionId);
+    if (waitForPlayout) {
+      markAudioStarted(sessionId); // Audio played out
+    }
 
     // SUCCESS! Reset circuit breaker
     const wasCircuitBreakerOpen = state.consecutiveFailures >= 3;
@@ -625,24 +955,77 @@ export async function generateReply(
     };
   } catch (error) {
     state.stats.failedCalls++;
-    state.consecutiveFailures++;
+    // FIX: Don't increment consecutive failures for low-priority requests (e.g., backchannels)
+    // This prevents optional operations from opening the circuit breaker
+    if (priority !== 'low') {
+      state.consecutiveFailures++;
+    }
     const errorMessage = error instanceof Error ? error.message : String(error);
     const latencyMs = Date.now() - startTime;
 
     // 🔍 ENHANCED ERROR LOGGING: Extract Gemini-specific error details
     const errorDetails = extractGeminiErrorDetails(error);
-    log.error(
-      {
-        sessionId,
-        context,
-        error: errorMessage,
-        ...errorDetails,
-        consecutiveFailures: state.consecutiveFailures,
+
+    // FIX: Session draining errors are expected during handoffs - don't log as errors
+    // These occur when the old agent's operations try to run after handoff completes
+    if (errorDetails.errorType === 'session_draining') {
+      log.debug(
+        { sessionId, context, error: errorMessage, latencyMs },
+        '🔄 [GATEWAY] Session draining (post-handoff) - skipping gracefully'
+      );
+      // Reset failure count for this session - it's not a real failure
+      state.consecutiveFailures = Math.max(0, state.consecutiveFailures - 1);
+      return {
+        success: false,
+        usedFallback: false,
+        error: 'Session draining after handoff',
         latencyMs,
-        stackPreview: error instanceof Error ? error.stack?.slice(0, 500) : undefined,
-      },
-      `🚨 [GATEWAY] Gemini error: ${errorDetails.errorType} - ${errorMessage.slice(0, 100)}`
-    );
+      };
+    }
+
+    const logData = {
+      sessionId,
+      context,
+      error: errorMessage,
+      ...errorDetails,
+      consecutiveFailures: state.consecutiveFailures,
+      latencyMs,
+      priority,
+      stackPreview:
+        priority === 'low'
+          ? undefined
+          : error instanceof Error
+            ? error.stack?.slice(0, 500)
+            : undefined,
+    };
+    const logMessage = `${priority === 'low' ? '⏭️' : '🚨'} [GATEWAY] Gemini ${priority === 'low' ? 'low-priority skip' : 'error'}: ${errorDetails.errorType} - ${errorMessage.slice(0, 100)}`;
+
+    // FIX: Use debug level for low-priority failures (backchannels) - they're optional
+    if (priority === 'low') {
+      log.debug(logData, logMessage);
+    } else {
+      log.error(logData, logMessage);
+    }
+
+    // 🔄 CRITICAL FIX: Proactive reconnection when Gemini dies
+    // Don't wait for graceful exit threshold - try to reconnect immediately
+    if (errorDetails.isGeminiDead && state.consecutiveFailures >= 2 && priority !== 'low') {
+      log.warn(
+        { sessionId, context, consecutiveFailures: state.consecutiveFailures },
+        '💀 [GATEWAY] Gemini appears dead - attempting proactive reconnection'
+      );
+
+      // Fire-and-forget reconnection attempt (don't block this response)
+      handleGeminiDeath(sessionId)
+        .then((reconnected) => {
+          if (reconnected) {
+            log.info({ sessionId }, '✅ [GATEWAY] Proactive reconnection succeeded');
+          }
+        })
+        .catch((err) => {
+          log.error({ error: String(err) }, 'Proactive reconnection failed');
+        });
+    }
 
     // 🚨 GRACEFUL EXIT: Too many consecutive failures - Gemini is unrecoverable
     // Rather than leaving user in silence, say goodbye and disconnect
@@ -712,6 +1095,13 @@ export async function generateReply(
     };
   } finally {
     state.pendingCallCount--;
+
+    // Clear low-priority response flag if this was a low-priority call
+    // (either completed successfully or failed/timed out)
+    if (priority === 'low') {
+      state.hasActiveLowPriorityResponse = false;
+      state.lowPriorityResponseStartedAt = undefined;
+    }
   }
 }
 
@@ -768,9 +1158,10 @@ export async function prewarmSession(
 
   try {
     // Call generateReply with minimal instruction to establish Gemini WebSocket
-    // Reduced timeout from 20s to 5s since this is now synchronous in startup path
+    // Timeout set to 3s - if Gemini doesn't connect in 3s, use lazy connection
+    // This prevents blocking session startup while still attempting early connection
     const timeoutPromise = new Promise<never>((_, reject) => {
-      setTimeout(() => reject(new Error('Prewarm timeout (5s)')), 5000);
+      setTimeout(() => reject(new Error('Prewarm timeout (3s)')), 3000);
     });
 
     const prewarmPromise = (async () => {

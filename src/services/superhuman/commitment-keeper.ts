@@ -65,6 +65,7 @@ export interface Commitment {
   topic?: string; // What were we discussing
   emotionalWeight: number; // 0-1 how significant this feels
   personInvolved?: string; // If about a relationship/conversation
+  personaId?: string; // Which persona captured this commitment
 
   // Timing
   createdAt: number;
@@ -504,6 +505,20 @@ export async function saveCommitment(
       'Commitment saved'
     );
 
+    // Memory Lane: Capture commitment as potential memory
+    try {
+      const { captureCommitment } = await import('../memory-lane/real-time-collector.js');
+      void captureCommitment({
+        userId: commitment.userId,
+        commitmentId: id,
+        text: fullCommitment.summary,
+        context: fullCommitment.statement,
+        personaId: fullCommitment.personaId,
+      });
+    } catch {
+      // Memory capture is optional - don't fail commitment save
+    }
+
     return { commitment: fullCommitment, feasibility };
   } catch (error) {
     log.error({ error: String(error), userId: commitment.userId }, 'Failed to save commitment');
@@ -822,7 +837,7 @@ const ACTION_TO_COMMITMENT_KEYWORDS: Record<string, string[]> = {
   text: ['text', 'message', 'sms', 'send a text'],
   email: ['email', 'write to', 'send an email', 'mail'],
   calendar: ['schedule', 'meeting', 'appointment', 'calendar'],
-  reminder: ['remind', 'remember', 'don\'t forget'],
+  reminder: ['remind', 'remember', "don't forget"],
 };
 
 /**
@@ -838,7 +853,7 @@ export async function findMatchingCommitment(
   userId: string,
   actionType: string,
   target?: string,
-  withinDays: number = 14
+  withinDays = 14
 ): Promise<Commitment | null> {
   try {
     const commitments = await loadUserCommitments(userId);

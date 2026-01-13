@@ -132,6 +132,24 @@ export async function fastSessionStart(
   // NON-BLOCKING: Start background enrichment tasks
   // ============================================================================
 
+  // 🔧 NAME SYNC: If profile exists but name is null, extract from memories
+  // This fixes the case where user told us their name but it wasn't persisted to profile
+  if (profile && !profile.name) {
+    scheduleBackgroundTask('name_sync', async () => {
+      try {
+        const { syncNameFromMemories } = await import('./name-sync.js');
+        const extractedName = await syncNameFromMemories(userId, profile);
+        if (extractedName && profile) {
+          profile.name = extractedName;
+          log.info({ userId, name: extractedName }, '✅ Name synced from memories to profile');
+        }
+      } catch {
+        // Non-critical - name sync can fail silently
+      }
+    });
+    backgroundTasks.push('name_sync');
+  }
+
   if (isReturningUser && profile) {
     // Load last conversation context (for continuity)
     scheduleBackgroundTask('last_conversation', async () => {

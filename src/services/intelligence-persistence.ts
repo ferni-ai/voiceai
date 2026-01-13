@@ -644,11 +644,25 @@ export function startAutoSave(
  * Stop auto-saving for a user
  */
 export function stopAutoSave(userId: string): void {
+  const intervalName = getAutoSaveIntervalName(userId);
   const entry = autoSaveRegistry.get(userId);
+
+  // Always try to clear the interval even if not in registry
+  // (handles edge cases where registry is out of sync)
+  const intervalCleared = clearNamedInterval(intervalName);
+
   if (entry) {
-    clearNamedInterval(getAutoSaveIntervalName(userId));
     autoSaveRegistry.delete(userId);
-    getLogger().debug({ userId }, 'Stopped auto-save');
+    getLogger().info({ userId, intervalName, intervalCleared }, '🛑 Stopped auto-save for user');
+  } else if (intervalCleared) {
+    // Interval existed but wasn't in registry - still cleaned up
+    getLogger().warn(
+      { userId, intervalName },
+      '⚠️ Auto-save interval existed but was not in registry - cleaned up orphan'
+    );
+  } else {
+    // Neither existed - log for debugging memory leak issues
+    getLogger().debug({ userId, intervalName }, 'stopAutoSave called but no auto-save was active');
   }
 }
 

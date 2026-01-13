@@ -59,7 +59,7 @@ const preview: Preview = {
         items: [
           { value: 'ferni', title: 'Ferni (Sage)' },
           { value: 'jack-bogle', title: 'Jack (Cedar)' },
-          { value: 'peter-lynch', title: 'Peter (Teal)' },
+          { value: 'peter-john', title: 'Peter (Teal)' },
           { value: 'alex-chen', title: 'Alex (Slate)' },
           { value: 'maya-santos', title: 'Maya (Rose)' },
           { value: 'jordan-taylor', title: 'Jordan (Coral)' },

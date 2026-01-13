@@ -153,3 +153,12 @@ export {
   type ParsedFunctionCall,
   type ScanResult,
 } from './native-json-parser.js';
+
+// Tool Updater (Mid-session tool updates for OpenAI Realtime & Gemini)
+export {
+  updateAgentTools,
+  supportsToolUpdates,
+  hasNativeToolUpdates,
+  getAgentToolCount,
+  getAgentToolNames,
+} from './tool-updater.js';

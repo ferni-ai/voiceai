@@ -92,6 +92,14 @@ const DEFAULT_CONFIG: SemanticCacheConfig = {
 // Per-user cache: userId -> array of cached queries
 const userCaches = new Map<string, CachedQuery[]>();
 
+// Track last access time per user for TTL-based cleanup
+const userLastAccess = new Map<string, number>();
+
+// Stale user cleanup interval (every 5 minutes)
+const STALE_USER_CHECK_INTERVAL_MS = 5 * 60 * 1000;
+// Remove users who haven't accessed cache in 30 minutes
+const STALE_USER_TTL_MS = 30 * 60 * 1000;
+
 // Global stats
 let stats = {
   hits: 0,
@@ -101,6 +109,9 @@ let stats = {
 
 // Current config
 let config: SemanticCacheConfig = { ...DEFAULT_CONFIG };
+
+// Cleanup interval handle
+let cleanupInterval: ReturnType<typeof setInterval> | null = null;
 
 // ============================================================================
 // CORE FUNCTIONS
@@ -126,6 +137,9 @@ export async function findSimilarCached<T>(
   query: string
 ): Promise<CacheLookupResult<T>> {
   const userCache = userCaches.get(userId);
+
+  // Track access time for stale user cleanup
+  userLastAccess.set(userId, Date.now());
 
   // No cache for this user
   if (!userCache || userCache.length === 0) {
@@ -220,6 +234,9 @@ export async function storeInSemanticCache<T>(
   result: T,
   embedding?: number[]
 ): Promise<void> {
+  // Track access time for stale user cleanup
+  userLastAccess.set(userId, Date.now());
+
   // Get or create user cache
   let userCache = userCaches.get(userId);
   if (!userCache) {
@@ -339,10 +356,53 @@ function pruneExpiredEntries(userId: string): void {
 }
 
 /**
+ * Cleanup stale users who haven't accessed cache in STALE_USER_TTL_MS
+ * This prevents unbounded memory growth from users who disconnect without cleanup
+ */
+function cleanupStaleUsers(): void {
+  const now = Date.now();
+  let cleanedCount = 0;
+
+  for (const [userId, lastAccess] of userLastAccess) {
+    if (now - lastAccess > STALE_USER_TTL_MS) {
+      userCaches.delete(userId);
+      userLastAccess.delete(userId);
+      cleanedCount++;
+    }
+  }
+
+  if (cleanedCount > 0) {
+    log.debug({ cleanedCount, remainingUsers: userCaches.size }, '🧹 Cleaned up stale user caches');
+  }
+}
+
+/**
+ * Start automatic stale user cleanup
+ */
+export function startStaleUserCleanup(): void {
+  if (cleanupInterval) return; // Already running
+
+  cleanupInterval = setInterval(cleanupStaleUsers, STALE_USER_CHECK_INTERVAL_MS);
+  log.debug({ intervalMs: STALE_USER_CHECK_INTERVAL_MS }, '🕐 Started stale user cleanup interval');
+}
+
+/**
+ * Stop automatic stale user cleanup
+ */
+export function stopStaleUserCleanup(): void {
+  if (cleanupInterval) {
+    clearInterval(cleanupInterval);
+    cleanupInterval = null;
+    log.debug('🛑 Stopped stale user cleanup interval');
+  }
+}
+
+/**
  * Clear cache for a specific user (call on session end)
  */
 export function clearUserSemanticCache(userId: string): void {
   userCaches.delete(userId);
+  userLastAccess.delete(userId);
   log.debug({ userId }, '🧹 Cleared user semantic cache');
 }
 
@@ -351,6 +411,8 @@ export function clearUserSemanticCache(userId: string): void {
  */
 export function clearAllSemanticCaches(): void {
   userCaches.clear();
+  userLastAccess.clear();
+  stopStaleUserCleanup();
   stats = { hits: 0, misses: 0, totalSimilaritySum: 0 };
   log.info('🧹 Cleared all semantic caches');
 }
@@ -456,4 +518,6 @@ export default {
   getSemanticCacheStats,
   resetSemanticCacheStats,
   getUserCacheInfo,
+  startStaleUserCleanup,
+  stopStaleUserCleanup,
 };

@@ -29,7 +29,6 @@ export interface ControlCallbacks {
   onConnect: () => void;
   onDisconnect: () => void;
   onMuteToggle: () => void;
-  onRepeat?: () => void;
 }
 
 // ============================================================================
@@ -41,7 +40,6 @@ interface ControlElements {
   connectBtn: HTMLButtonElement;
   disconnectBtn: HTMLButtonElement;
   muteBtn: HTMLButtonElement | null;
-  repeatBtn: HTMLButtonElement | null;
 }
 
 let elements: ControlElements | null = null;
@@ -65,7 +63,6 @@ export function initControlsUI(controlCallbacks: ControlCallbacks): void {
       connectBtn: getElementById('connectBtn'),
       disconnectBtn: getElementById('disconnectBtn'),
       muteBtn: document.getElementById('muteBtn') as HTMLButtonElement | null,
-      repeatBtn: document.getElementById('repeatBtn') as HTMLButtonElement | null,
     };
 
     // Set up click handlers
@@ -109,14 +106,6 @@ function setupClickHandlers(): void {
     });
     cleanupFunctions.push(muteCleanup);
   }
-
-  // 🔄 Repeat button (optional) - replays last agent response
-  if (elements.repeatBtn) {
-    const repeatCleanup = addListener(elements.repeatBtn, 'click', () => {
-      callbacks?.onRepeat?.();
-    });
-    cleanupFunctions.push(repeatCleanup);
-  }
 }
 
 // ============================================================================
@@ -159,7 +148,6 @@ function updateButtonVisibility(state: ConnectionState): void {
     case 'disconnected':
       show(elements.connectBtn, 'flex');
       hide(elements.disconnectBtn);
-      if (elements.repeatBtn) hide(elements.repeatBtn);
       elements.connectBtn.disabled = false;
       // Reset connecting state
       removeClass(elements.connectBtn, 'btn-connecting');
@@ -173,7 +161,6 @@ function updateButtonVisibility(state: ConnectionState): void {
     case 'reconnecting':
       show(elements.connectBtn, 'flex');
       hide(elements.disconnectBtn);
-      if (elements.repeatBtn) hide(elements.repeatBtn);
       elements.connectBtn.disabled = true;
       // Apple-style: button shows connecting state inline
       addClass(elements.connectBtn, 'btn-connecting');
@@ -184,8 +171,6 @@ function updateButtonVisibility(state: ConnectionState): void {
       removeClass(elements.connectBtn, 'btn-connecting');
       hide(elements.connectBtn);
       show(elements.disconnectBtn, 'flex');
-      // 🔄 Show repeat button when connected (will enable after first response)
-      if (elements.repeatBtn) show(elements.repeatBtn, 'flex');
       elements.disconnectBtn.disabled = false;
       // Make disconnect button match persona colors!
       removeClass(elements.disconnectBtn, 'btn-secondary');
@@ -196,7 +181,6 @@ function updateButtonVisibility(state: ConnectionState): void {
     case 'error':
       show(elements.connectBtn, 'flex');
       hide(elements.disconnectBtn);
-      if (elements.repeatBtn) hide(elements.repeatBtn);
       elements.connectBtn.disabled = false;
       // Reset connecting state on error
       removeClass(elements.connectBtn, 'btn-connecting');

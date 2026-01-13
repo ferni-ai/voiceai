@@ -23,7 +23,7 @@ import {
   selectSpontaneousShare,
   formatSpontaneousShareForPrompt,
   getShareTags,
-} from '../intelligence/context-builders/spontaneous-vulnerability.js';
+} from '../intelligence/context-builders/personas/spontaneous-vulnerability.js';
 
 // Persona Mood
 import {
@@ -45,7 +45,7 @@ import {
   mapHumanizingStageToUserProfile,
   getRelationshipStageFromProfile,
   type UserProfile,
-} from '../intelligence/context-builders/relationship-behaviors.js';
+} from '../intelligence/context-builders/relationship/relationship-behaviors.js';
 
 // Humanizing Context Builder (orchestrator)
 import {
@@ -135,7 +135,8 @@ describe('Voice Emotion Intelligence', () => {
 
       expect(result.shouldAddressDiscrepancy).toBe(true);
       expect(result.guidance).toContain('VOICE EMOTION');
-      expect(result.suggestedPhrases.length).toBeGreaterThan(0);
+      // Note: suggestedPhrases is deprecated, use doBehaviors instead
+      expect(result.doBehaviors.length).toBeGreaterThan(0);
       expect(result.confidence).toBeGreaterThan(0.5);
     });
 

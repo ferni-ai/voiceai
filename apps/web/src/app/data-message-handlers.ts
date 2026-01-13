@@ -61,6 +61,8 @@ import { connectionService } from '../services/index.js';
 import { ferni } from '../ui/better-than-human.ui.js';
 // 🎧 Now Playing UI - music state visualization
 import { nowPlayingUI } from '../ui/now-playing.ui.js';
+// 🎧 Music State Manager - single source of truth for music state
+import { getMusicStateManager } from '../services/music-state-manager.js';
 // 💭 Proactive Outreach UI - "Better than Human" thinking of you
 import { proactiveOutreachUI, type ProactiveOutreachData } from '../ui/proactive-outreach.ui.js';
 // Tone detection for micro-expressions
@@ -93,6 +95,13 @@ import {
   routingStatsUI,
   type SemanticRoutingData,
 } from '../ui/routing-stats.ui.js';
+// 🌟 Transcendent Animation Systems - "Better Than Human" signature moments
+import {
+  handleEmotionEvent,
+  handleMomentTrigger,
+  setEmotionalState,
+  type EmotionCategory,
+} from '../systems/index.js';
 
 const log = createLogger('DataMessageHandlers');
 
@@ -421,6 +430,11 @@ export function handleDataMessage(message: DataMessage): void {
     case 'background_result_complete':
       // 📋 BACKGROUND TASK: Research, reservation, or other task completed
       handleBackgroundResultComplete(message as BackgroundResultCompleteEvent);
+      break;
+
+    case 'feedback_prompt':
+      // 📊 CONTEXTUAL FEEDBACK: Backend triggered a feedback prompt
+      handleFeedbackPrompt(message);
       break;
 
     default:
@@ -946,6 +960,9 @@ function handleHumanizationSignal(event: HumanizationSignalEvent): void {
       // User shared something vulnerable - honor it with gentle presence
       playMicroExpression('warmth_pulse');
       ferniExpressions.setExpression('holdingSpace', 600, 4000);
+      // 🌟 Transcendent: Trigger the full Holding Space signature moment
+      handleMomentTrigger('holding_space');
+      setEmotionalState('vulnerability' as EmotionCategory);
       break;
 
     case 'breakthrough':
@@ -955,7 +972,29 @@ function handleHumanizationSignal(event: HumanizationSignalEvent): void {
         playMicroExpression('recognition');
       }, 100);
       ferniExpressions.setExpression('pleased', 500, 2000);
+      // 🌟 Transcendent: Trigger the full Breakthrough signature moment
+      handleMomentTrigger('breakthrough');
+      setEmotionalState('celebration' as EmotionCategory);
       break;
+  }
+
+  // 🌟 Transcendent: Update emotional color system based on signal type
+  const emotionMap: Partial<Record<string, EmotionCategory>> = {
+    concern_detected: 'concern',
+    vulnerability: 'vulnerability',
+    breakthrough: 'celebration',
+    high_engagement: 'excitement',
+    disengagement: 'reflection',
+    emotional_trajectory: 'anticipation',
+  };
+
+  const mappedEmotion = emotionMap[signalType];
+  if (mappedEmotion) {
+    handleEmotionEvent({
+      emotion: mappedEmotion,
+      intensity,
+      trigger: signalType,
+    });
   }
 }
 
@@ -1798,11 +1837,24 @@ function handleProactiveOutreach(message: DataMessage & { data: ProactiveOutreac
 export function handleMusic(event: MusicEvent): void {
   log.info('🎧 Music event received:', { state: event.state, track: event.trackName });
 
-  // 🐛 FIX: Signal music track expectation IMMEDIATELY
-  // This reduces the race window where audio arrives before we're ready to identify it
+  // =========================================================================
+  // STEP 1: Update MusicStateManager (single source of truth)
+  // The NowPlayingUI subscribes to this and will update automatically
+  // =========================================================================
+  const musicStateManager = getMusicStateManager();
+  musicStateManager.initialize();
+  musicStateManager.handleStateChange(event);
+
+  // =========================================================================
+  // STEP 2: Handle connection service and ducking
+  // =========================================================================
   if (event.state === 'playing') {
     connectionService.expectMusicTrack();
     getMusicAudioController().unduckFromBackend();
+
+    // Force re-attach ducking to the correct music track
+    log.info('🎚️ Music playing - requesting track re-attachment for ducking');
+    connectionService.reattachMusicTrackForDucking();
   }
 
   // 🤲 Sidekick: Dispatch music state event for avatar sidekick
@@ -1810,7 +1862,9 @@ export function handleMusic(event: MusicEvent): void {
     detail: { state: event.state, isAmbient: event.isAmbient, trackName: event.trackName }
   }));
 
-  // Handle each state with direct UI calls (no async import - more reliable)
+  // =========================================================================
+  // STEP 3: Handle avatar feedback and expressions (side effects)
+  // =========================================================================
   if (event.state === 'playing') {
     // Avatar: Warm presence pulse - music is playing
     avatarFeedback.musicPresence();
@@ -1842,9 +1896,60 @@ export function handleMusic(event: MusicEvent): void {
         name: event.trackName,
         artist: event.artistName || 'Unknown Artist',
         duration: event.duration,
+        albumArt: event.albumArt,
         isAmbient: event.isAmbient,
         isOurSong: event.isOurSong,
         ourSongContext: event.ourSongContext,
+      });
+
+      // 🎚️ Set up music control callbacks
+      // NO optimistic updates - wait for backend music_state confirmation via MusicStateManager
+      nowPlayingUI.setCallbacks({
+        onPause: () => {
+          log.info('🎵 User clicked pause button');
+          const room = connectionService.getRoom();
+          if (room?.localParticipant) {
+            const message = JSON.stringify({ type: 'music_control', action: 'pause' });
+            void room.localParticipant.publishData(new TextEncoder().encode(message), {
+              reliable: true,
+            });
+            // Subtle haptic feedback - command sent
+            delightService.haptic('light');
+            // NO optimistic update - backend will send music_state: paused
+          } else {
+            log.warn('🎵 Cannot pause - no LiveKit room connection');
+          }
+        },
+        onResume: () => {
+          log.info('🎵 User clicked play button');
+          const room = connectionService.getRoom();
+          if (room?.localParticipant) {
+            const message = JSON.stringify({ type: 'music_control', action: 'resume' });
+            void room.localParticipant.publishData(new TextEncoder().encode(message), {
+              reliable: true,
+            });
+            // Subtle haptic feedback - command sent
+            delightService.haptic('light');
+            // NO optimistic update - backend will send music_state: playing
+          } else {
+            log.warn('🎵 Cannot resume - no LiveKit room connection');
+          }
+        },
+        onSkip: () => {
+          log.info('🎵 User clicked skip button');
+          const room = connectionService.getRoom();
+          if (room?.localParticipant) {
+            const message = JSON.stringify({ type: 'music_control', action: 'skip' });
+            void room.localParticipant.publishData(new TextEncoder().encode(message), {
+              reliable: true,
+            });
+            // Medium haptic for skip action
+            delightService.haptic('medium');
+            // NO optimistic update - backend will send music_state with new track or stopped
+          } else {
+            log.warn('🎵 Cannot skip - no LiveKit room connection');
+          }
+        },
       });
     }
 
@@ -1863,7 +1968,14 @@ export function handleMusic(event: MusicEvent): void {
     log.info('🎧 Music changing - DJ crossfade in progress');
   } else if (event.state === 'ducking') {
     // 🎚️ Duck music - agent is speaking over it
-    getMusicAudioController().duckFromBackend();
+    const controller = getMusicAudioController();
+    const diagnostics = controller.getDuckingDiagnostics();
+    log.info('🎚️ Ducking requested - diagnostics:', diagnostics);
+
+    const duckingSuccess = controller.duckFromBackend();
+    if (!duckingSuccess) {
+      log.warn('🎚️ ⚠️ DUCKING FAILED - no track attached! Audio will NOT be ducked.');
+    }
 
     // Agent speaking over music - subtle the pulse
     avatarFeedback.ducking();
@@ -2393,7 +2505,7 @@ function handleBackgroundResultComplete(event: BackgroundResultCompleteEvent): v
     // Needs user attention
     playMicroExpression('concern_flash');
     ferniExpressions.setExpression('curious', 400, 2000);
-    soundUI.play('notification');
+    soundUI.play('message'); // Use 'message' sound for notifications
     messageUI.show(`${icon} ${event.summary}`, 'warning', 5000);
   } else if (event.status === 'failed') {
     // Task failed - apologetic
@@ -2590,6 +2702,33 @@ interface SemanticRoutingEvent extends DataMessage {
   confidence?: number;
   bypassed_llm?: boolean;
   routing_path?: string;
+}
+
+// ============================================================================
+// CONTEXTUAL FEEDBACK HANDLER - Collect micro-feedback during conversation
+// ============================================================================
+
+/**
+ * Handle feedback prompt events from the backend.
+ *
+ * The backend's feedback trigger engine detects natural pauses and
+ * insight moments to ask "Did that land?" without being intrusive.
+ *
+ * This dispatches to the contextual feedback UI which appears near
+ * the avatar like a thought bubble.
+ */
+function handleFeedbackPrompt(message: DataMessage): void {
+  log.info('📊 Feedback prompt received', {
+    feedbackId: (message as Record<string, unknown>).feedbackId,
+    trigger: (message as Record<string, unknown>).trigger,
+  });
+
+  // Dispatch custom event for the contextual feedback UI
+  window.dispatchEvent(
+    new CustomEvent('ferni:data-message', {
+      detail: message,
+    })
+  );
 }
 
 /**

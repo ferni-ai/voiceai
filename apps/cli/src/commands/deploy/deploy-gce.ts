@@ -233,6 +233,7 @@ function getSecrets(): Record<string, string> {
     'twilio-account-sid',
     'twilio-auth-token',
     'twilio-from-number',
+    'twilio-phone-number',
     'ferni-alert-email',
     'ferni-alert-phone',
     // Post-TTS audio enhancement control
@@ -274,6 +275,59 @@ function formatEnvVars(secrets: Record<string, string>): string {
   return Object.entries(secrets)
     .map(([key, value]) => `-e ${key}="${value}"`)
     .join(' ');
+}
+
+// ============================================================================
+// ENV VAR VALIDATION (Prevents deploying broken containers)
+// ============================================================================
+
+/**
+ * Critical environment variables that MUST be present for production.
+ * The deploy will fail if any of these are missing.
+ */
+const CRITICAL_ENV_VARS = [
+  { name: 'LIVEKIT_URL', source: 'secrets', purpose: 'Voice agent connection' },
+  { name: 'LIVEKIT_API_KEY', source: 'secrets', purpose: 'LiveKit authentication' },
+  { name: 'LIVEKIT_API_SECRET', source: 'secrets', purpose: 'LiveKit authentication' },
+  { name: 'GOOGLE_CLOUD_PROJECT', source: 'hardcoded', purpose: 'Firestore persistence' },
+  { name: 'OPENAI_API_KEY', source: 'secrets', purpose: 'LLM for conversations' },
+  { name: 'CARTESIA_API_KEY', source: 'secrets', purpose: 'Text-to-speech' },
+] as const;
+
+/**
+ * Validates that all critical env vars will be present in the container.
+ * @throws Error if any critical env var is missing
+ */
+function validateEnvVars(secrets: Record<string, string>): void {
+  log.substep('Validating critical environment variables...');
+
+  const missing: string[] = [];
+
+  for (const envVar of CRITICAL_ENV_VARS) {
+    if (envVar.source === 'secrets') {
+      if (!secrets[envVar.name]) {
+        missing.push(`${envVar.name} (${envVar.purpose})`);
+      }
+    }
+    // Hardcoded vars are added by the deploy script, so they're always present
+  }
+
+  if (missing.length > 0) {
+    log.error('🚨 CRITICAL: Missing required secrets!');
+    log.error('================================================================================');
+    for (const v of missing) {
+      log.error(`  ❌ ${v}`);
+    }
+    log.error('================================================================================');
+    log.error('');
+    log.error('To fix: Add the missing secrets to GCP Secret Manager:');
+    log.error(`  gcloud secrets create <secret-name> --project=${CONFIG.projectId}`);
+    log.error(`  echo -n "value" | gcloud secrets versions add <secret-name> --data-file=-`);
+    log.error('');
+    throw new Error(`Missing ${missing.length} critical secret(s). Deploy aborted.`);
+  }
+
+  log.success(`All ${CRITICAL_ENV_VARS.length} critical env vars validated ✓`);
 }
 
 // ============================================================================
@@ -434,11 +488,15 @@ function deployToSlot(
     FIREBASE_PROJECT_ID: CONFIG.projectId,
     // GCS bucket for voice messages and audio storage
     GCS_BUCKET_NAME: 'ferni-voice-audio-3235',
+    // GCS bucket specifically for voice calls (Cartesia TTS → Twilio playback)
+    GCS_VOICE_BUCKET: 'ferni-voice-audio-3235',
     // Redis connection - using Docker host gateway to reach the Redis sidecar
     REDIS_HOST: '172.17.0.1',
     REDIS_PORT: String(CONFIG.redisPort),
     // Enable Pub/Sub for background task offloading
     PUBSUB_ENABLED: 'true',
+    // Enable OpenAI Realtime API (more reliable function calling than Gemini)
+    USE_OPENAI_REALTIME: 'true',
   });
 
   // Start the new container
@@ -484,8 +542,12 @@ function promoteSlot(
     GOOGLE_CLOUD_PROJECT: CONFIG.projectId,
     FIREBASE_PROJECT_ID: CONFIG.projectId,
     GCS_BUCKET_NAME: 'ferni-voice-audio-3235',
+    // GCS bucket specifically for voice calls (Cartesia TTS → Twilio playback)
+    GCS_VOICE_BUCKET: 'ferni-voice-audio-3235',
     REDIS_HOST: '172.17.0.1',
     REDIS_PORT: String(CONFIG.redisPort),
+    // Enable OpenAI Realtime API (more reliable function calling than Gemini)
+    USE_OPENAI_REALTIME: 'true',
   });
 
   // Use "blue" as the production container name for consistency
@@ -634,6 +696,8 @@ async function deployToMig(image: string, secrets: Record<string, string>): Prom
   envVarsArray.push('REDIS_URL=redis://10.237.188.163:6379'); // Redis internal IP
   envVarsArray.push('PUBSUB_ENABLED=true');
   envVarsArray.push('PORT=8080');
+  // Disable post-TTS audio enhancement (causing issues in production)
+  envVarsArray.push('POST_TTS_ENHANCEMENT_ENABLED=false');
 
   const envVarsString = envVarsArray.join(',');
 
@@ -799,6 +863,7 @@ function rollback(): void {
   const targetSlot = currentSlot === 'blue' ? 'green' : 'blue';
 
   const secrets = getSecrets();
+  validateEnvVars(secrets); // Ensure rollback also has all required vars
   deployToSlot(previousImage, targetSlot, secrets);
 
   const port = targetSlot === 'blue' ? CONFIG.bluePort : CONFIG.greenPort;
@@ -966,6 +1031,9 @@ ${colors.bold}${colors.magenta}╔═══════════════�
   }
   log.success(`Loaded ${Object.keys(secrets).length} secrets`);
 
+  // Validate all critical env vars are present BEFORE deploying
+  validateEnvVars(secrets);
+
   // =========================================================================
   // MIG DEPLOYMENT PATH
   // =========================================================================
@@ -1051,6 +1119,27 @@ ${colors.bold}${colors.green}╔════════════════
     }
 
     process.exit(1);
+  }
+
+  // Post-deploy verification: Ensure container actually has critical env vars
+  log.substep('Verifying container environment...');
+  const containerName = `${CONFIG.containerName}-${targetSlot}`;
+  try {
+    const envCheck = ssh(
+      `docker exec ${containerName} printenv GOOGLE_CLOUD_PROJECT 2>/dev/null || echo ""`,
+      { silent: true }
+    );
+    if (!envCheck.trim()) {
+      log.error('🚨 CRITICAL: Container is missing GOOGLE_CLOUD_PROJECT!');
+      log.error('This indicates a deploy script bug. Please report this issue.');
+      log.substep(`Stopping misconfigured ${targetSlot} container...`);
+      ssh(`docker stop ${containerName} 2>/dev/null || true`, { silent: true });
+      ssh(`docker rm ${containerName} 2>/dev/null || true`, { silent: true });
+      process.exit(1);
+    }
+    log.success('Container environment verified ✓');
+  } catch (e) {
+    log.warn('Could not verify container environment (continuing anyway)');
   }
 
   // Promote the new slot to production port 8080

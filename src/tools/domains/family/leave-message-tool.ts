@@ -75,7 +75,7 @@ Parameters:
       const { messageContent, emotionalContext } = args;
 
       // Get caller context from the session
-      const sessionId = ctx.services?.sessionId;
+      const sessionId = ctx.sessionId;
       if (!sessionId) {
         return {
           success: false,
@@ -290,7 +290,7 @@ Parameters:
       const { reminderMessage, reminderTime } = args;
 
       // Get caller context from the session
-      const sessionId = ctx.services?.sessionId;
+      const sessionId = ctx.sessionId;
       if (!sessionId) {
         return {
           success: false,

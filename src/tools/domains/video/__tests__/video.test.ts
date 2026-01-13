@@ -22,6 +22,13 @@ const {
 
 // Standard mocks
 vi.mock('../../../../utils/safe-logger.js', () => ({
+  createLogger: () => ({
+    debug: vi.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    child: vi.fn(() => ({ debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() })),
+  }),
   getLogger: () => ({
     debug: vi.fn(),
     info: vi.fn(),

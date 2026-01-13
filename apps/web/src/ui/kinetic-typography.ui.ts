@@ -424,14 +424,18 @@ export async function animateNameHandoff(
       easing: 'cubic-bezier(0.4, 0, 0.2, 1)',
       fill: 'forwards',
     });
-    
+
     shrinkAnim.onfinish = () => {
+      // CRITICAL: Cancel Phase 1 animation before Phase 2/3 to prevent stuck opacity: 0
+      // Web Animations with fill: 'forwards' persist even after onfinish!
+      shrinkAnim.cancel();
+
       // Phase 2: Scramble reveal new name
       scrambleReveal(element, newName, {
         duration: duration * 0.4,
         onComplete: () => {
           // Phase 3: Pop into place
-          element.animate([
+          const popAnim = element.animate([
             { transform: 'scale(0.95)', opacity: 0.8, offset: 0 },
             { transform: 'scale(1.05)', opacity: 1, offset: 0.5 },
             { transform: 'scale(1)', opacity: 1, offset: 1 },
@@ -439,7 +443,13 @@ export async function animateNameHandoff(
             duration: duration * 0.2,
             easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)',
             fill: 'forwards',
-          }).onfinish = () => {
+          });
+
+          popAnim.onfinish = () => {
+            // Clear animation and set final styles to prevent stuck states
+            popAnim.cancel();
+            element.style.transform = '';
+            element.style.opacity = '';
             onComplete?.();
             resolve();
           };

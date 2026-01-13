@@ -1397,7 +1397,7 @@ function getFallbackResponse(userMessage: string, practiceId?: string): string {
     "How does that sit with you?",
   ];
 
-  return practiceResponses[Math.floor(Math.random() * practiceResponses.length)];
+  return practiceResponses[Math.floor(Math.random() * practiceResponses.length)] ?? "I'm here with you.";
 }
 
 function scrollChatToBottom(): void {
@@ -1437,7 +1437,9 @@ function startBreathingExercise(durationSeconds: number): void {
         return;
       }
 
-      const { phase, duration } = phases[phaseIndex];
+      const currentPhase = phases[phaseIndex];
+      if (!currentPhase) return;
+      const { phase, duration } = currentPhase;
       state.breathPhase = phase as 'inhale' | 'hold' | 'exhale';
 
       circle?.classList.remove('inhale', 'hold', 'exhale');

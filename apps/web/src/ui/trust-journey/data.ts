@@ -5,6 +5,7 @@
  */
 
 import { createLogger } from '../../utils/logger.js';
+import { getApiHeadersAsync } from '../../utils/api.js';
 import type { TrustJourneyData, TrustJourneyState } from './types.js';
 
 const log = createLogger('TrustJourneyData');
@@ -132,10 +133,11 @@ export async function fetchJourneyData(
   }
 
   try {
+    // Use getApiHeadersAsync for proper Firebase auth
+    const authHeaders = await getApiHeadersAsync(false);
+    
     const response = await fetch(`/api/trust-journey?userId=${encodeURIComponent(userId)}`, {
-      headers: {
-        'x-user-id': userId,
-      },
+      headers: authHeaders,
     });
 
     if (!response.ok) {
@@ -219,8 +221,11 @@ export async function exportTrustData(): Promise<{ success: boolean; error?: str
   }
 
   try {
+    // Use getApiHeadersAsync for proper Firebase auth
+    const authHeaders = await getApiHeadersAsync(false);
+    
     const response = await fetch(`/api/trust-journey?userId=${encodeURIComponent(userId)}`, {
-      headers: { 'x-user-id': userId },
+      headers: authHeaders,
     });
 
     if (!response.ok) {

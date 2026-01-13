@@ -897,10 +897,15 @@ export function languageService() {
     /**
      * Set the user's spoken language.
      * High-level API for tool calls - handles both session and persistence.
+     *
+     * @param userId - User ID for persistence
+     * @param languageCode - Language name or code (e.g., "Japanese", "ja")
+     * @param sessionId - Optional session ID for real-time state (uses userId if not provided)
      */
     async setLanguage(
       userId: string,
-      languageCode: string
+      languageCode: string,
+      sessionId?: string
     ): Promise<{ success: boolean; confirmationMessage?: string; error?: string }> {
       try {
         // Try to parse the language name/code
@@ -915,8 +920,15 @@ export function languageService() {
           };
         }
 
-        // Set for the session (using userId as sessionId for now)
-        setSessionLanguage(userId, parsed);
+        // Set for the session using actual sessionId when available
+        // This ensures consistency with initializeSessionLanguage
+        const effectiveSessionId = sessionId || userId;
+        setSessionLanguage(effectiveSessionId, parsed, userId);
+
+        log.info(
+          { userId, sessionId: effectiveSessionId, language: parsed },
+          '🌍 Language set via service API'
+        );
 
         // Persist to Firestore
         await persistUserLanguagePreference(userId, parsed);

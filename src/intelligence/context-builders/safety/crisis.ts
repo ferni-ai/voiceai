@@ -27,23 +27,44 @@ import { onCrisisEpisodeChange } from '../../../services/data-layer/hooks/crisis
 
 const log = createLogger({ module: 'context:crisis' });
 
+// Map internal severity to CrisisEpisodeEntity severity
+type InternalSeverity = 'low' | 'moderate' | 'high' | 'critical';
+type EntitySeverity = 'minor' | 'moderate' | 'major' | 'severe';
+const SEVERITY_MAP: Record<InternalSeverity, EntitySeverity> = {
+  low: 'minor',
+  moderate: 'moderate',
+  high: 'major',
+  critical: 'severe',
+};
+
+// Map crisis type to entity type
+type CrisisType = 'emotional' | 'health' | 'financial' | 'relationship' | 'work' | 'family' | 'other';
+function mapCrisisType(type: string): CrisisType {
+  if (type.includes('market') || type.includes('financial')) return 'financial';
+  if (type.includes('grief') || type.includes('loss')) return 'emotional';
+  if (type.includes('health')) return 'health';
+  if (type.includes('relationship')) return 'relationship';
+  if (type.includes('work')) return 'work';
+  if (type.includes('family')) return 'family';
+  return 'other';
+}
+
 // Helper to record crisis episodes (fire-and-forget)
 async function recordCrisisEpisode(
   userId: string | undefined,
   type: string,
-  severity: 'low' | 'moderate' | 'high' | 'critical',
+  severity: InternalSeverity,
   description: string,
-  distressLevel: number
+  _distressLevel: number
 ): Promise<void> {
   if (!userId) return;
   try {
     const episodeData = {
-      type,
-      severity,
+      type: mapCrisisType(type),
+      severity: SEVERITY_MAP[severity],
       description,
-      distressLevel,
-      detectedAt: new Date(),
-      status: 'active' as const,
+      date: new Date().toISOString().split('T')[0], // YYYY-MM-DD format
+      whatHelped: [], // Unknown at detection time
     };
     await onCrisisEpisodeChange(userId, `crisis_${Date.now()}`, episodeData, 'create');
     log.info({ userId, type, severity }, '🚨 Crisis episode recorded');
@@ -192,7 +213,7 @@ function buildCrisisContext(input: ContextBuilderInput): ContextInjection[] {
 
     // Record crisis episode (fire-and-forget) for semantic indexing
     void recordCrisisEpisode(
-      input.userId,
+      input.services?.userId,
       'market_panic',
       distressLevel >= DISTRESS.HIGH ? 'critical' : 'high',
       'Market panic detected - user expressing fear about selling investments',
@@ -230,7 +251,7 @@ DO NOT: Promise the market will go up. DO: Promise you'll be here to talk.`,
 
       // Record grief episode (fire-and-forget) for semantic indexing
       void recordCrisisEpisode(
-        input.userId,
+        input.services?.userId,
         `grief_${lossType}`,
         distressLevel >= DISTRESS.HIGH ? 'high' : 'moderate',
         `Grief detected - ${lossType} loss`,

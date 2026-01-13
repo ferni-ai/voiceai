@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ferni Visualization System Demo</title>
+
+  <!-- Design Tokens -->
+  <link rel="stylesheet" href="../master-tokens.css">
+  <link rel="stylesheet" href="components.css">
+  <link rel="stylesheet" href="animations.css">
+
+  <style>
+    /* Demo-specific styles */
+    body {
+      font-family: var(--font-body, system-ui, sans-serif);
+      background: var(--color-bg-default, #FAF8F5);
+      color: var(--color-text-default, #1D1B18);
+      line-height: 1.6;
+      padding: 0;
+      margin: 0;
+    }
+
+    .demo-header {
+      background: linear-gradient(135deg, var(--color-ferni, #4a6741) 0%, var(--color-accent, #3D5A45) 100%);
+      color: white;
+      padding: var(--space-12, 3rem) var(--space-6, 1.5rem);
+      text-align: center;
+    }
+
+    .demo-header h1 {
+      font-size: var(--font-size-3xl, 1.875rem);
+      margin: 0 0 var(--space-2, 0.5rem);
+    }
+
+    .demo-header p {
+      opacity: 0.9;
+      margin: 0;
+    }
+
+    .demo-nav {
+      background: var(--color-bg-elevated, #fff);
+      border-bottom: 1px solid var(--color-border-default, rgba(0,0,0,0.1));
+      padding: var(--space-4, 1rem);
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .demo-nav-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      gap: var(--space-4, 1rem);
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .demo-nav a {
+      color: var(--color-text-default);
+      text-decoration: none;
+      padding: var(--space-2, 0.5rem) var(--space-4, 1rem);
+      border-radius: var(--radius-full, 999px);
+      font-size: var(--font-size-sm, 0.875rem);
+      transition: background 0.15s ease;
+    }
+
+    .demo-nav a:hover {
+      background: var(--color-bg-hover, rgba(0,0,0,0.05));
+    }
+
+    .demo-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: var(--space-8, 2rem) var(--space-6, 1.5rem);
+    }
+
+    .demo-section {
+      margin-bottom: var(--space-16, 4rem);
+    }
+
+    .demo-section h2 {
+      font-size: var(--font-size-2xl, 1.5rem);
+      margin: 0 0 var(--space-2, 0.5rem);
+      display: flex;
+      align-items: center;
+      gap: var(--space-3, 0.75rem);
+    }
+
+    .demo-section > p {
+      color: var(--color-text-muted, #6b6b6b);
+      margin: 0 0 var(--space-6, 1.5rem);
+    }
+
+    .demo-card {
+      background: var(--color-bg-elevated, #fff);
+      border: 1px solid var(--color-border-default, rgba(0,0,0,0.1));
+      border-radius: var(--radius-xl, 16px);
+      padding: var(--space-6, 1.5rem);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .demo-card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-lg, 0 10px 15px rgba(0,0,0,0.1));
+    }
+
+    .demo-card h3 {
+      font-size: var(--font-size-lg, 1.125rem);
+      margin: 0 0 var(--space-2, 0.5rem);
+    }
+
+    .demo-card p {
+      color: var(--color-text-muted);
+      font-size: var(--font-size-sm, 0.875rem);
+      margin: 0 0 var(--space-4, 1rem);
+    }
+
+    /* Validation status */
+    .validation-status {
+      background: var(--color-bg-elevated, #fff);
+      border: 1px solid var(--color-border-default);
+      border-radius: var(--radius-lg, 12px);
+      padding: var(--space-4, 1rem);
+      margin-bottom: var(--space-8, 2rem);
+    }
+
+    .validation-status h3 {
+      margin: 0 0 var(--space-3, 0.75rem);
+      font-size: var(--font-size-base);
+    }
+
+    .validation-item {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2, 0.5rem);
+      padding: var(--space-1, 0.25rem) 0;
+      font-size: var(--font-size-sm, 0.875rem);
+    }
+
+    .validation-item.pass { color: var(--color-success, #34c759); }
+    .validation-item.warn { color: var(--color-warning, #ff9500); }
+    .validation-item.fail { color: var(--color-error, #ff3b30); }
+
+    /* Interactive demo elements */
+    .tooltip-demo-dots {
+      display: flex;
+      gap: var(--space-4, 1rem);
+      justify-content: center;
+      padding: var(--space-6, 1.5rem);
+    }
+
+    .tooltip-demo-dot {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      cursor: pointer;
+      transition: transform 0.2s ease;
+    }
+
+    .tooltip-demo-dot:hover {
+      transform: scale(1.1);
+    }
+
+    .tooltip-demo-dot.ferni { background: var(--color-ferni, #4a6741); }
+    .tooltip-demo-dot.maya { background: var(--color-maya, #a67a6a); }
+    .tooltip-demo-dot.peter { background: var(--color-peter, #3a6b73); }
+    .tooltip-demo-dot.jordan { background: var(--color-jordan, #c4856a); }
+    .tooltip-demo-dot.alex { background: var(--color-alex, #5a6b8a); }
+    .tooltip-demo-dot.nayan { background: var(--color-nayan, #b8956a); }
+
+    /* Animation demo */
+    .animation-demo-bars {
+      display: flex;
+      align-items: flex-end;
+      gap: var(--space-2, 0.5rem);
+      height: 150px;
+      padding: var(--space-4, 1rem);
+      background: var(--color-bg-subtle, #f5f5f5);
+      border-radius: var(--radius-md, 8px);
+    }
+
+    .animation-demo-bar {
+      flex: 1;
+      border-radius: var(--radius-sm, 4px) var(--radius-sm, 4px) 0 0;
+    }
+
+    .animation-demo-bar.viz-bar {
+      transform-origin: bottom;
+    }
+
+    /* Disclosure demo */
+    .disclosure-demo-content {
+      padding: var(--space-4, 1rem);
+      background: var(--color-bg-subtle, #f5f5f5);
+      border-radius: var(--radius-md, 8px);
+    }
+
+    [data-expandable] {
+      overflow: hidden;
+    }
+
+    .disclosure-collapsed {
+      height: 0;
+      opacity: 0;
+    }
+
+    /* Icon gallery */
+    .icon-gallery {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+      gap: var(--space-4, 1rem);
+    }
+
+    .icon-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: var(--space-2, 0.5rem);
+      padding: var(--space-3, 0.75rem);
+      border-radius: var(--radius-md, 8px);
+      transition: background 0.15s ease;
+    }
+
+    .icon-item:hover {
+      background: var(--color-bg-hover, rgba(0,0,0,0.05));
+    }
+
+    .icon-item span {
+      font-size: var(--font-size-xs, 0.75rem);
+      color: var(--color-text-muted);
+    }
+
+    /* Comparison demo */
+    .comparison-demo-container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--space-4, 1rem);
+    }
+
+    .comparison-demo-box {
+      padding: var(--space-6, 1.5rem);
+      border-radius: var(--radius-lg, 12px);
+      text-align: center;
+    }
+
+    .comparison-demo-box.before {
+      background: var(--color-maya, #a67a6a);
+      color: white;
+    }
+
+    .comparison-demo-box.after {
+      background: var(--color-ferni, #4a6741);
+      color: white;
+    }
+
+    .sync-hover {
+      outline: 3px solid var(--kintsugi-gold, #C9A227);
+      outline-offset: 2px;
+    }
+
+    /* Run validation button */
+    .run-validation-btn {
+      background: var(--color-accent, #3D5A45);
+      color: white;
+      border: none;
+      padding: var(--space-3, 0.75rem) var(--space-6, 1.5rem);
+      border-radius: var(--radius-full, 999px);
+      font-size: var(--font-size-base);
+      cursor: pointer;
+      transition: background 0.15s ease;
+    }
+
+    .run-validation-btn:hover {
+      background: var(--color-ferni, #4a6741);
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header class="demo-header">
+    <h1>Ferni Visualization System</h1>
+    <p>World-class data storytelling • v1.0.0</p>
+  </header>
+
+  <!-- Navigation -->
+  <nav class="demo-nav">
+    <div class="demo-nav-inner">
+      <a href="#validation">Validation</a>
+      <a href="#tooltips">Tooltips</a>
+      <a href="#animations">Animations</a>
+      <a href="#disclosure">Disclosure</a>
+      <a href="#comparison">Comparison</a>
+      <a href="#icons">Icons</a>
+      <a href="#export">Export/Share</a>
+    </div>
+  </nav>
+
+  <main class="demo-container">
+    <!-- Validation Section -->
+    <section id="validation" class="demo-section">
+      <h2><span data-icon="check"></span> System Validation</h2>
+      <p>Run validation to verify all systems are working correctly.</p>
+
+      <div class="validation-status" id="validation-results">
+        <h3>Validation Results</h3>
+        <p style="color: var(--color-text-muted)">Click the button below to run validation...</p>
+      </div>
+
+      <button class="run-validation-btn" id="run-validation-btn">
+        Run Validation
+      </button>
+    </section>
+
+    <!-- Tooltips Section -->
+    <section id="tooltips" class="demo-section viz-reveal">
+      <h2><span data-icon="info"></span> Interactive Tooltips</h2>
+      <p>Hover over the persona dots to see rich tooltips.</p>
+
+      <div class="demo-card">
+        <h3>Persona Tooltips</h3>
+        <p>Each dot represents a Ferni team member.</p>
+        <div class="tooltip-demo-dots">
+          <div class="tooltip-demo-dot ferni"
+               data-tooltip='{"icon": "🌿", "title": "Ferni", "value": "Coordinator", "detail": "Your AI companion", "persona": "ferni"}'></div>
+          <div class="tooltip-demo-dot maya"
+               data-tooltip='{"icon": "🧘", "title": "Maya", "value": "Habit Coach", "detail": "Build better routines", "persona": "maya"}'></div>
+          <div class="tooltip-demo-dot peter"
+               data-tooltip='{"icon": "📚", "title": "Peter", "value": "Researcher", "detail": "Deep knowledge dives", "persona": "peter"}'></div>
+          <div class="tooltip-demo-dot jordan"
+               data-tooltip='{"icon": "⭐", "title": "Jordan", "value": "Milestone Tracker", "detail": "Celebrate your wins", "persona": "jordan"}'></div>
+          <div class="tooltip-demo-dot alex"
+               data-tooltip='{"icon": "✓", "title": "Alex", "value": "Task Manager", "detail": "Get things done", "persona": "alex"}'></div>
+          <div class="tooltip-demo-dot nayan"
+               data-tooltip='{"icon": "🔮", "title": "Nayan", "value": "Pattern Sage", "detail": "See the big picture", "persona": "nayan"}'></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Animations Section -->
+    <section id="animations" class="demo-section viz-reveal">
+      <h2><span data-icon="zap"></span> Chart Animations</h2>
+      <p>Click the button to replay the bar chart animation.</p>
+
+      <div class="demo-card">
+        <h3>Bar Chart Animation</h3>
+        <p>Bars grow from bottom with staggered timing.</p>
+        <div class="animation-demo-bars" id="bar-chart-demo">
+          <div class="animation-demo-bar viz-bar" style="height: 60%; background: var(--color-ferni);" data-value="60"></div>
+          <div class="animation-demo-bar viz-bar" style="height: 80%; background: var(--color-maya);" data-value="80"></div>
+          <div class="animation-demo-bar viz-bar" style="height: 45%; background: var(--color-peter);" data-value="45"></div>
+          <div class="animation-demo-bar viz-bar" style="height: 90%; background: var(--color-jordan);" data-value="90"></div>
+          <div class="animation-demo-bar viz-bar" style="height: 70%; background: var(--color-alex);" data-value="70"></div>
+        </div>
+        <button class="action-btn action-btn-secondary" id="replay-animation-btn" style="margin-top: var(--space-4);">
+          <span>Replay Animation</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- Progressive Disclosure Section -->
+    <section id="disclosure" class="demo-section viz-reveal" data-disclosure data-disclosure-level="summary">
+      <h2><span data-icon="layers"></span> Progressive Disclosure</h2>
+      <p>Reveal more detail on demand.</p>
+
+      <div class="demo-card">
+        <h3>Your Sleep Insights</h3>
+        <p data-show-at="summary">You slept 7.5 hours on average this week.</p>
+
+        <div data-show-at="standard">
+          <p><strong>Weekly breakdown:</strong></p>
+          <ul>
+            <li>Best night: Tuesday (8.2 hours)</li>
+            <li>Worst night: Friday (6.1 hours)</li>
+            <li>Average quality: 82%</li>
+          </ul>
+        </div>
+
+        <div data-show-at="detailed" hidden>
+          <p><strong>Deep sleep analysis:</strong></p>
+          <ul>
+            <li>REM cycles: 4-5 per night</li>
+            <li>Deep sleep: 1.5 hours average</li>
+            <li>Wake events: 2.3 per night</li>
+          </ul>
+        </div>
+
+        <!-- Level switcher -->
+        <div class="disclosure-level-switcher" style="display: flex; gap: var(--space-2); margin-top: var(--space-4);">
+          <button class="action-btn action-btn-secondary" data-level="summary">Summary</button>
+          <button class="action-btn action-btn-secondary" data-level="standard">Standard</button>
+          <button class="action-btn action-btn-secondary" data-level="detailed">Detailed</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Comparison Section -->
+    <section id="comparison" class="demo-section viz-reveal" data-comparison data-comparison-mode="side-by-side">
+      <h2><span data-icon="sliders"></span> Comparison Mode</h2>
+      <p>Compare data across time periods or categories.</p>
+
+      <div class="demo-card">
+        <h3>This Week vs Last Week</h3>
+        <div class="comparison-demo-container">
+          <div class="comparison-demo-box before" data-dataset="last-week" data-dataset-label="Last Week" data-sync-id="week-comparison">
+            <h4>Last Week</h4>
+            <p style="font-size: 2rem; font-weight: bold;">72%</p>
+            <p>Habit completion</p>
+          </div>
+          <div class="comparison-demo-box after" data-dataset="this-week" data-dataset-label="This Week" data-sync-id="week-comparison">
+            <h4>This Week</h4>
+            <p style="font-size: 2rem; font-weight: bold;">85%</p>
+            <p>Habit completion</p>
+          </div>
+        </div>
+        <p style="text-align: center; margin-top: var(--space-4); color: var(--kintsugi-gold);">
+          ↑ 13% improvement
+        </p>
+      </div>
+    </section>
+
+    <!-- Icons Section -->
+    <section id="icons" class="demo-section viz-reveal">
+      <h2><span data-icon="grid"></span> Icon System</h2>
+      <p>Unified SVG icons that match the Ferni aesthetic.</p>
+
+      <div class="demo-card">
+        <h3>Icon Gallery</h3>
+        <div class="icon-gallery" id="icon-gallery">
+          <!-- Icons will be populated by JS -->
+        </div>
+      </div>
+    </section>
+
+    <!-- Export/Share Section -->
+    <section id="export" class="demo-section viz-reveal">
+      <h2><span data-icon="share"></span> Export & Share</h2>
+      <p>Share your insights with the world.</p>
+
+      <div class="demo-card" id="shareable-demo">
+        <h3>Your Weekly Progress</h3>
+        <p>A summary of your achievements this week.</p>
+        <div style="display: flex; gap: var(--space-4); margin: var(--space-4) 0;">
+          <div style="flex: 1; text-align: center; padding: var(--space-4); background: var(--color-bg-subtle); border-radius: var(--radius-md);">
+            <div style="font-size: 1.5rem; font-weight: bold; color: var(--color-ferni);">7</div>
+            <div style="font-size: var(--font-size-sm); color: var(--color-text-muted);">Days streak</div>
+          </div>
+          <div style="flex: 1; text-align: center; padding: var(--space-4); background: var(--color-bg-subtle); border-radius: var(--radius-md);">
+            <div style="font-size: 1.5rem; font-weight: bold; color: var(--color-maya);">12</div>
+            <div style="font-size: var(--font-size-sm); color: var(--color-text-muted);">Habits completed</div>
+          </div>
+          <div style="flex: 1; text-align: center; padding: var(--space-4); background: var(--color-bg-subtle); border-radius: var(--radius-md);">
+            <div style="font-size: 1.5rem; font-weight: bold; color: var(--color-jordan);">3</div>
+            <div style="font-size: var(--font-size-sm); color: var(--color-text-muted);">Milestones reached</div>
+          </div>
+        </div>
+        <!-- Share button will be added by JS -->
+      </div>
+    </section>
+  </main>
+
+  <script type="module">
+    import FerniViz from './viz-system.js';
+
+    // Initialize the visualization system
+    const viz = FerniViz.init({ debug: true });
+
+    // Validation button handler using safe DOM methods
+    document.getElementById('run-validation-btn').addEventListener('click', function() {
+      const results = FerniViz.printValidation();
+      const container = document.getElementById('validation-results');
+
+      // Clear container safely
+      while (container.firstChild) {
+        container.removeChild(container.firstChild);
+      }
+
+      // Add header
+      const header = document.createElement('h3');
+      header.textContent = 'Validation Results';
+      container.appendChild(header);
+
+      // Add checks
+      results.checks.forEach(check => {
+        const item = document.createElement('div');
+        item.className = 'validation-item pass';
+        item.textContent = check;
+        container.appendChild(item);
+      });
+
+      // Add warnings
+      results.warnings.forEach(warn => {
+        const item = document.createElement('div');
+        item.className = 'validation-item warn';
+        item.textContent = warn;
+        container.appendChild(item);
+      });
+
+      // Add errors
+      results.errors.forEach(err => {
+        const item = document.createElement('div');
+        item.className = 'validation-item fail';
+        item.textContent = err;
+        container.appendChild(item);
+      });
+
+      // Add overall result
+      const overall = document.createElement('div');
+      overall.style.marginTop = 'var(--space-4)';
+      overall.style.fontWeight = 'bold';
+      overall.style.color = results.passed ? 'var(--color-success)' : 'var(--color-error)';
+      overall.textContent = 'Overall: ' + (results.passed ? 'PASSED ✓' : 'FAILED ✗');
+      container.appendChild(overall);
+    });
+
+    // Replay animation button handler
+    document.getElementById('replay-animation-btn').addEventListener('click', function() {
+      const container = document.getElementById('bar-chart-demo');
+      FerniViz.animations.animateBarChart(container, {
+        direction: 'up',
+        stagger: 80,
+        duration: 600
+      });
+    });
+
+    // Populate icon gallery
+    const iconGallery = document.getElementById('icon-gallery');
+    const iconNames = ['expand', 'share', 'download', 'heart', 'star', 'calendar', 'clock', 'trendUp', 'barChart', 'ferni', 'maya', 'peter', 'jordan', 'alex', 'nayan', 'kintsugi'];
+
+    iconNames.forEach(name => {
+      const item = document.createElement('div');
+      item.className = 'icon-item';
+
+      const icon = FerniViz.icons.createIcon(name, { size: 24 });
+      item.appendChild(icon);
+
+      const label = document.createElement('span');
+      label.textContent = name;
+      item.appendChild(label);
+
+      iconGallery.appendChild(item);
+    });
+
+    // Make the export demo shareable
+    const shareableDemo = document.getElementById('shareable-demo');
+    FerniViz.makeShareable(shareableDemo);
+
+    // Run initial validation after a short delay
+    setTimeout(() => {
+      console.log('[Demo] Running initial validation...');
+      FerniViz.printValidation();
+    }, 500);
+  </script>
+</body>
+</html>

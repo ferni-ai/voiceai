@@ -94,7 +94,19 @@ describe('Better Than Human UI - Ferni EQ', () => {
     vi.clearAllMocks();
     vi.useFakeTimers();
 
-    // Mock DOM
+    // Mock Web Animations API (Element.animate) - not available in JSDOM
+    Element.prototype.animate = vi.fn().mockReturnValue({
+      finished: Promise.resolve(),
+      cancel: vi.fn(),
+      play: vi.fn(),
+      pause: vi.fn(),
+      reverse: vi.fn(),
+      finish: vi.fn(),
+      onfinish: null,
+      oncancel: null,
+    });
+
+    // Mock DOM - using static test content, not user input
     document.body.innerHTML = '<div class="avatar-container"></div>';
 
     // Initialize the EQ system

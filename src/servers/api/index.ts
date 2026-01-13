@@ -33,6 +33,7 @@ import {
   handleHealthRoutes,
   handleTokenRoutes,
   handleGoogleCalendarRoutes,
+  handleAppleCalendarRoutes,
   handleMicrosoftCalendarRoutes,
   handleMusicRoutes,
   handleAgentRoutes,
@@ -321,6 +322,11 @@ const server = http.createServer(async (req, res) => {
   // Google Calendar OAuth routes
   if (pathname.startsWith('/auth/google')) {
     if (await handleGoogleCalendarRoutes(req, res, pathname, parsedUrl)) return;
+  }
+
+  // Apple Calendar OAuth routes (Sign in with Apple)
+  if (pathname.startsWith('/auth/apple')) {
+    if (await handleAppleCalendarRoutes(req, res, pathname, parsedUrl)) return;
   }
 
   // Microsoft Calendar OAuth routes

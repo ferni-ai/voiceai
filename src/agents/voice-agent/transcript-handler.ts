@@ -25,7 +25,7 @@ import { TextEncoder } from 'node:util';
 import {
   detectFeedbackFromResponse,
   extractMusicPreferences,
-  getDJBooth,
+  getDJController,
   hasMusicContext,
   hasPendingMusicFeedback,
   recordMusicFeedback,
@@ -93,6 +93,11 @@ import {
   processDailyCheckIn,
   type DailyCheckInContext,
 } from './daily-checkin-handler.js';
+// E2E Latency tracking - diagnose OpenAI vs TTS vs our code
+import {
+  startTurn as startLatencyTurn,
+  markProcessingStarted,
+} from '../shared/e2e-latency-tracker.js';
 
 // Check Rust availability at module load
 const RUST_COUNTING_AVAILABLE = isTokenCountingAvailable();
@@ -116,6 +121,9 @@ import { getAnticipationPipeline } from '../../speech/anticipation/index.js';
 import { isOrchestratorEnabled } from '../integrations/speech-orchestrator-integration.js';
 // Speech coordination for centralized speech management
 import { coordinatedSay } from '../../speech/coordination/index.js';
+// Tool updater for mid-session tool updates (OpenAI Realtime)
+import { updateAgentTools, supportsToolUpdates } from '../shared/tool-updater.js';
+import { createLogger } from '../../utils/safe-logger.js';
 // PersonaIdString is just a string alias, defined locally to avoid import issues
 
 // ============================================================================
@@ -147,7 +155,10 @@ export interface TranscriptHandlerContext {
   dynamicToolLoader: {
     processMessage: (message: string) => Promise<string[]>;
     getLoadedDomains: () => string[];
+    getCurrentTools: () => Record<string, unknown>;
   };
+  /** Voice agent reference for tool updates */
+  agent: voice.Agent<UserData>;
   /** Auto optimizer for feedback collection */
   autoOptimizer: {
     processUserMessage: (
@@ -183,14 +194,23 @@ const ECHO_PREVENTION_COOLDOWN_MS_DEFAULT = 2000;
 /**
  * Get adaptive echo prevention window.
  * Uses learned timing from SpeechCoordinator when available.
+ *
+ * CRITICAL FIX: Now content-aware! Pass userTranscript to enable
+ * intelligent detection of legitimate requests vs echoes.
+ *
+ * @param lastUtteranceDurationMs - Duration of last agent utterance
+ * @param userTranscript - The user's transcript for content-aware detection
  */
-function getEchoPreventioncooldownMs(lastUtteranceDurationMs?: number): number {
+function getEchoPreventioncooldownMs(
+  lastUtteranceDurationMs?: number,
+  userTranscript?: string
+): number {
   try {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { getAdaptiveEchoWindow } = require('../../speech/coordination/index.js') as {
-      getAdaptiveEchoWindow: (duration?: number) => number;
+      getAdaptiveEchoWindow: (duration?: number, transcript?: string) => number;
     };
-    return getAdaptiveEchoWindow(lastUtteranceDurationMs);
+    return getAdaptiveEchoWindow(lastUtteranceDurationMs, userTranscript);
   } catch {
     // Fall back to default if coordination module unavailable
     return ECHO_PREVENTION_COOLDOWN_MS_DEFAULT;
@@ -251,6 +271,7 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
     dynamicToolLoader,
     autoOptimizer,
     sendDataMessage,
+    agent,
   } = ctx;
 
   const handler = (event: TranscriptEvent): void => {
@@ -603,6 +624,11 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
     // FINAL TRANSCRIPT PROCESSING
     // ===============================================
     if (event.isFinal && event.transcript) {
+      // 📊 E2E LATENCY: Start tracking this turn
+      // This helps diagnose whether pauses are OpenAI, TTS, or our code
+      const turnId = startLatencyTurn(sessionId, event.transcript);
+      markProcessingStarted(sessionId);
+
       // ===============================================
       // 🧠 INTELLIGENT NOISE/ECHO FILTERING
       // Validate transcript before treating as user turn
@@ -714,6 +740,30 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
         recommendedDelay: finalTurnSignals.recommendedDelay,
         isUrgent: finalTurnSignals.isUrgent,
       });
+
+      // ===============================================
+      // 🔄 WORKFLOW PHRASE TRIGGER CHECK
+      // Check if this transcript matches any phrase-triggered routines
+      // Fire-and-forget since routine execution is independent
+      // ===============================================
+      if (userData.userId) {
+        const userId = userData.userId;
+        void (async () => {
+          try {
+            const { getWorkflowEngine } = await import('../../services/workflows/workflow-engine.js');
+            const engine = getWorkflowEngine(userId);
+            const triggered = await engine.handlePhraseTrigger(cleanedTranscript);
+            if (triggered) {
+              diag.state('🔄 Routine triggered by phrase', {
+                routineName: triggered.name,
+                transcript: cleanedTranscript.slice(0, 30),
+              });
+            }
+          } catch {
+            // Phrase trigger check is non-critical - silently continue
+          }
+        })();
+      }
 
       // ===============================================
       // 🧠 ANTICIPATORY TRIGGER OUTCOME RECORDING
@@ -857,9 +907,11 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
       // - STT processing delay
       // - Network latency
       // NOTE: lastAgentSpeechEnd and timeSinceAgentSpoke already calculated above
-      // NEW: Use adaptive echo window based on last utterance duration
+      // CRITICAL FIX: Use content-aware echo window that checks transcript content
+      // This prevents blocking legitimate user requests like "Could you check the news?"
       const adaptiveEchoCooldown = getEchoPreventioncooldownMs(
-        userData.lastAgentUtteranceDurationMs
+        userData.lastAgentUtteranceDurationMs,
+        event.transcript // Pass transcript for content-aware detection
       );
       const isInEchoCooldown = timeSinceAgentSpoke < adaptiveEchoCooldown;
 
@@ -924,6 +976,7 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
         silenceContext,
         dynamicToolLoader,
         autoOptimizer,
+        agent,
       }).catch((err) => {
         diag.warn('processFinalTranscript error', { error: String(err) });
       });
@@ -1076,6 +1129,7 @@ async function processFinalTranscript(
     silenceContext,
     dynamicToolLoader,
     autoOptimizer,
+    agent,
   } = ctx;
 
   // ===============================================
@@ -1154,6 +1208,67 @@ async function processFinalTranscript(
       preview: event.transcript.slice(0, 50),
       sessionId,
     });
+  }
+
+  // ===============================================
+  // 🎯 DIRECT TOOL ROUTING (Surgical Pre-LLM Execution)
+  // HIGH-CONFIDENCE ONLY: Music, weather, handoff - obvious intents
+  // This fixes the "Gemini returns nothing" bug for clear tool requests
+  // Unlike full semantic routing, this has very low false positive rate
+  // ===============================================
+  if (event.transcript) {
+    try {
+      const { routeDirectly, isDirectRoutingEnabled } = await import('./direct-tool-router.js');
+
+      if (isDirectRoutingEnabled()) {
+        const directResult = await routeDirectly(event.transcript, {
+          userId: userId || 'anonymous',
+          sessionId,
+          personaId: sessionPersona.id,
+          recentTopics: userData.recentTopics,
+          lastAgentMessage: userData.lastAgentResponse,
+          userLocation: userData.userLocation,
+        });
+
+        if (directResult.handled) {
+          diag.state('🎯 Direct router handled transcript', {
+            toolId: directResult.toolId,
+            confidence: directResult.confidence,
+            intent: directResult.intent,
+          });
+
+          // Track turn count and user message
+          userData.turnCount = (userData.turnCount || 0) + 1;
+          userData.lastUserMessage = event.transcript;
+
+          // 🚫 DEDUPLICATION: Mark tool as executed to prevent LLM from also calling it
+          // This prevents double-execution when:
+          // 1. Direct router executes tool
+          // 2. LLM (OpenAI native function calling or JSON workaround) also tries to call same tool
+          if (directResult.toolId) {
+            try {
+              const { markToolExecutedBySemanticRouter } = await import(
+                '../shared/tool-call-sanitizer.js'
+              );
+              markToolExecutedBySemanticRouter(sessionId, directResult.toolId);
+            } catch {
+              // Non-critical - deduplication is defensive
+            }
+          }
+
+          // 🛑 EARLY RETURN: Skip LLM processing to prevent double-response
+          // Previously we let LLM "respond naturally" but this caused issues:
+          // 1. LLM didn't know tool was already executed
+          // 2. With JSON prompts, LLM output JSON instead of natural speech
+          // 3. Even with OpenAI native function calling, LLM might call the tool again
+          // The tool result provides the response (e.g., music starts playing)
+          return;
+        }
+      }
+    } catch (directRouteError) {
+      // Non-fatal - fall through to semantic routing / Gemini
+      diag.debug('Direct routing error (non-blocking)', { error: String(directRouteError) });
+    }
   }
 
   // ===============================================
@@ -1282,14 +1397,12 @@ async function processFinalTranscript(
 
   // 🎵 Music Preference Extraction
   // Detects: "I love jazz", "I don't like country", "Taylor Swift is my favorite"
-  // Learns music preferences from natural conversation without explicit commands
+  // Music preferences are now learned automatically via music-user-learning.ts
+  // using Thompson Sampling for preference optimization
   if (hasMusicContext(event.transcript)) {
     const extractedPrefs = extractMusicPreferences(event.transcript);
     if (extractedPrefs.length > 0) {
-      const djBooth = getDJBooth();
-      for (const pref of extractedPrefs) {
-        djBooth?.recordExplicitPreference(pref);
-      }
+      // Preferences are stored via the music learning persistence system
       diag.state('🎵 Extracted music preferences from conversation', {
         count: extractedPrefs.length,
         preferences: extractedPrefs.map((p) => `${p.type} ${p.category}: ${p.value}`),
@@ -1389,20 +1502,48 @@ async function processFinalTranscript(
   processGameTopicChange(event.transcript, silenceContext, sessionId);
 
   // Dynamic tool loading based on conversation topic
+  // When new domains are loaded, update the agent's tools for OpenAI Realtime
   if (dynamicToolLoader) {
+    const toolUpdaterLog = createLogger({ module: 'DynamicToolUpdate' });
     dynamicToolLoader
       .processMessage(event.transcript)
-      .then((loadedDomains) => {
+      .then(async (loadedDomains) => {
         if (loadedDomains.length > 0) {
           diag.tool('Dynamic domains loaded based on user message', {
             transcript: event.transcript.slice(0, 50),
             loadedDomains,
             totalLoadedDomains: dynamicToolLoader.getLoadedDomains().length,
           });
+
+          // 🔧 MID-SESSION TOOL UPDATE: Register new tools with LLM
+          // - OpenAI Realtime: Uses native updateTools() API
+          // - Gemini: Injects system message about new tools
+          if (supportsToolUpdates() && agent) {
+            try {
+              const newTools = dynamicToolLoader.getCurrentTools();
+              const updated = await updateAgentTools(agent, newTools, {
+                domains: loadedDomains,
+              });
+              if (updated) {
+                toolUpdaterLog.info(
+                  {
+                    loadedDomains,
+                    newToolCount: Object.keys(newTools).length,
+                  },
+                  '🔧 Agent tools updated mid-session'
+                );
+              }
+            } catch (updateError) {
+              toolUpdaterLog.warn(
+                { error: String(updateError) },
+                'Failed to update agent tools mid-session'
+              );
+            }
+          }
         }
       })
       .catch((error) => {
-        getLogger().warn({ error }, 'Failed to process message for dynamic tool loading');
+        toolUpdaterLog.warn({ error }, 'Failed to process message for dynamic tool loading');
       });
   }
 
@@ -1667,53 +1808,36 @@ function processVoiceIdentity(sessionId: string, transcript: string, userData: U
 
 /**
  * Process DJ session flow tracking
+ * Note: Topic and emotion tracking is now handled by the emotional-arc.ts system
  */
 function processDJSessionFlow(transcript: string, userData: UserData): void {
   fireAndForget(async () => {
-    const booth = getDJBooth();
-    if (!booth) return;
+    const djController = getDJController();
 
-    // Track topics discussed for session summary
+    // Topic tracking is now handled by emotional-arc.ts and conversation-state.ts
+    // which provide more sophisticated analysis than keyword matching
+    const transcriptLower = transcript.toLowerCase();
+    
+    // Simple topic detection for debugging (actual tracking done elsewhere)
     const topicKeywords: Record<string, string[]> = {
       work: ['work', 'job', 'boss', 'meeting', 'project', 'deadline', 'office'],
       family: ['mom', 'dad', 'sister', 'brother', 'family', 'kids', 'parents'],
       health: ['health', 'exercise', 'gym', 'doctor', 'sleep', 'tired', 'sick'],
-      finances: ['money', 'budget', 'save', 'invest', 'bills', 'debt', 'salary'],
-      relationships: ['dating', 'relationship', 'partner', 'friend', 'boyfriend', 'girlfriend'],
-      goals: ['goal', 'dream', 'plan', 'future', 'want to', 'hope to', 'wish'],
-      stress: ['stress', 'anxious', 'worried', 'overwhelmed', 'burned out'],
     };
 
-    const transcriptLower = transcript.toLowerCase();
     for (const [topic, keywords] of Object.entries(topicKeywords)) {
       if (keywords.some((kw) => transcriptLower.includes(kw))) {
-        booth.trackTopic(topic);
-        diag.state('Session flow: tracked topic', { topic });
+        diag.state('Session flow: detected topic', { topic });
         break;
       }
     }
 
-    // Track emotional moments
-    const emotionKeywords: Record<string, string[]> = {
-      happy: ['happy', 'excited', 'great', 'amazing', 'wonderful', 'love'],
-      sad: ['sad', 'upset', 'miss', 'hurt', 'lonely'],
-      anxious: ['anxious', 'worried', 'nervous', 'scared', 'fear'],
-      grateful: ['grateful', 'thankful', 'appreciate', 'blessed'],
-    };
-
-    for (const [emotion, keywords] of Object.entries(emotionKeywords)) {
-      if (keywords.some((kw) => transcriptLower.includes(kw))) {
-        booth.trackEmotion(emotion);
-        diag.state('Session flow: tracked emotion', { emotion });
-        break;
-      }
-    }
-
-    // "OUR SONGS" - Process user speech during music for meaningful moments
-    if (booth.isPlayingMusic()) {
+    // Process speech during music for "Our Songs" memories
+    if (djController.isMusicActive()) {
       const voiceEmotion = userData.voiceEmotion?.primary || undefined;
-      booth.processUserSpeechDuringMusic(transcript, voiceEmotion, userData.lastTopic);
-      diag.state('Processed user speech during music for "Our Songs"', {
+      // Music memories are now stored via music-memory-integration.ts
+      diag.state('User speech during music', {
+        hasEmotion: !!voiceEmotion,
         transcript: transcript.slice(0, 50),
         emotion: voiceEmotion,
       });

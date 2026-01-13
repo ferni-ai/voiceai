@@ -10,7 +10,7 @@
 import { getLogger } from '../../utils/safe-logger.js';
 import type { Firestore as FirestoreType } from '@google-cloud/firestore';
 import type { ContactGroup, OccasionPreferences } from './types.js';
-import { cleanForFirestore } from '../../utils/firestore-utils.js';
+import { cleanForFirestore, toSafeDate } from '../../utils/firestore-utils.js';
 
 const log = getLogger();
 
@@ -333,8 +333,8 @@ async function ensureUserLoaded(userId: string): Promise<void> {
       const data = doc.data();
       groups.push({
         ...data,
-        createdAt: data.createdAt?.toDate() || new Date(),
-        updatedAt: data.updatedAt?.toDate() || new Date(),
+        createdAt: toSafeDate(data.createdAt),
+        updatedAt: toSafeDate(data.updatedAt),
       } as ContactGroup);
     }
 

@@ -77,6 +77,11 @@ import { prewarmBuildersInBackground } from '../../intelligence/context-builders
 // Redis session warmup - pre-warm caches for fast first-turn response
 import { warmSessionCaches, warmHandoffCaches } from '../../services/session-warmup.js';
 
+// Developer Platform: Webhook integration for marketplace personas
+import { onSessionStarted as dispatchSessionStartedWebhook } from '../integrations/developer-webhook-integration.js';
+// Developer Platform: Load API-registered custom tools into voice agent
+import { loadDeveloperTools } from '../integrations/developer-tool-integration.js';
+
 // Naturalness Engine - unified voice adaptation (stress, patterns, ambient, rapport)
 import { initializeNaturalnessEngine } from '../../speech/naturalness/index.js';
 
@@ -118,6 +123,9 @@ import { createSessionStateManager, type SessionStateManager } from '../session/
 import { createUserDataProxy } from '../session/user-data-proxy.js';
 import type { UserData } from '../shared/types.js';
 
+// Language Service - Load user's preferred language at session start
+import { loadUserLanguagePreference } from '../../services/language/index.js';
+
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -139,6 +147,8 @@ export interface SessionInitContext {
       publishData: (data: Uint8Array, opts: { reliable: boolean }) => Promise<void>;
     };
   };
+  /** Publisher ID for marketplace/custom personas (Developer Platform) */
+  publisherId?: string;
 }
 
 export interface SessionInitResult {
@@ -180,7 +190,7 @@ export type UserDataInit = UserData;
  * This is STEP 2-3 of the entry() function.
  */
 export async function initializeSession(ctx: SessionInitContext): Promise<SessionInitResult> {
-  const { sessionId, userId, userName, userAccent, sessionPersona, room } = ctx;
+  const { sessionId, userId, userName, userAccent, sessionPersona, room, publisherId } = ctx;
   const logger = log();
   const initStart = Date.now();
 
@@ -984,6 +994,33 @@ export async function initializeSession(ctx: SessionInitContext): Promise<Sessio
     hasSpokenTrialEndPrompt: false,
   });
 
+  // ⚡ CRITICAL FIX: Load user's preferred language from Firestore
+  // Without this, Japanese/Spanish/etc speakers get their transcripts rejected as "foreign"
+  // because expectedLanguage defaults to 'en' in the transcript validator
+  if (userId) {
+    // IMMEDIATE: Check if userProfile already has language preference (avoids race condition)
+    const profileLang = (services.userProfile?.preferences as { spokenLanguage?: string } | undefined)
+      ?.spokenLanguage;
+    if (profileLang) {
+      userData.preferredLanguage = profileLang;
+      diag.session('🌍 User language loaded from cached profile', {
+        userId,
+        language: profileLang,
+      });
+    } else {
+      // ASYNC FALLBACK: Load from Firestore if not in cached profile
+      void loadUserLanguagePreference(userId).then((savedLanguage) => {
+        if (savedLanguage) {
+          userData.preferredLanguage = savedLanguage;
+          diag.session('🌍 User language preference loaded from Firestore', {
+            userId,
+            language: savedLanguage,
+          });
+        }
+      });
+    }
+  }
+
   // ⚡ OPTIMIZATION: Update userData when trial check completes (non-blocking)
   void trialStatusPromise.then((state) => {
     userData.isTrialUser = state.isTrialUser;
@@ -1183,6 +1220,48 @@ export async function initializeSession(ctx: SessionInitContext): Promise<Sessio
       });
     }
   }
+
+  // ================================================================
+  // DEVELOPER PLATFORM: LOAD API-REGISTERED CUSTOM TOOLS
+  // Only loads if publisherId is available (marketplace/custom personas)
+  // ================================================================
+  if (publisherId) {
+    try {
+      const devToolResult = await loadDeveloperTools({
+        publisherId,
+        sessionId,
+        personaId: sessionPersona.id,
+      });
+
+      if (devToolResult.toolsLoaded > 0) {
+        diag.session('Developer tools loaded', {
+          toolsLoaded: devToolResult.toolsLoaded,
+          toolNames: devToolResult.toolNames,
+        });
+      }
+
+      if (devToolResult.errors && devToolResult.errors.length > 0) {
+        diag.warn('Some developer tools failed to load', {
+          errors: devToolResult.errors,
+        });
+      }
+    } catch (devToolErr) {
+      diag.warn('Developer tool loading failed (non-fatal)', {
+        error: String(devToolErr),
+      });
+    }
+  }
+
+  // ================================================================
+  // DEVELOPER PLATFORM: DISPATCH SESSION STARTED WEBHOOK
+  // Only fires if publisherId is available (marketplace/custom personas)
+  // ================================================================
+  dispatchSessionStartedWebhook({
+    sessionId,
+    userId,
+    personaId: sessionPersona.id,
+    publisherId,
+  });
 
   return {
     services,

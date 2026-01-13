@@ -97,6 +97,12 @@ export class RedisCache {
   private readonly BIOMARKER_TTL = 60; // 1 minute (very transient)
   private readonly OUTREACH_SUPPRESS_TTL = 1800; // 30 minutes after session
 
+  // Log rate-limiting to prevent spam during Redis outages
+  private lastWarningTime = 0;
+  private warningCount = 0;
+  private readonly WARNING_INTERVAL_MS = 60_000; // Only log once per minute
+  private readonly WARNING_BATCH_SIZE = 10; // After this many, batch them
+
   constructor(config?: RedisConfig) {
     this.config = config || {
       url: process.env.REDIS_URL,
@@ -160,9 +166,23 @@ export class RedisCache {
 
       // CRITICAL: Add error handler to prevent "Unhandled error event" crashes
       // This is required by ioredis when Redis is not available locally
+      // FIX: Throttle error logging to prevent log spam (log once every 60 seconds per error type)
+      const loggedErrors = new Map<string, number>();
+      const ERROR_LOG_THROTTLE_MS = 60000; // 60 seconds
+
       redisClient.on('error', (error) => {
-        // Only log once per error type to avoid log spam
-        getLogger().debug({ error: String(error) }, 'Redis connection error (non-blocking)');
+        const errorKey = String(error).split(':')[0]; // Group by error type (e.g., "AggregateError")
+        const lastLogged = loggedErrors.get(errorKey) || 0;
+        const now = Date.now();
+
+        if (now - lastLogged > ERROR_LOG_THROTTLE_MS) {
+          loggedErrors.set(errorKey, now);
+          getLogger().debug(
+            { error: String(error) },
+            'Redis connection error (non-blocking, throttled)'
+          );
+        }
+        // Silently ignore repeated errors within the throttle window
       });
 
       this.client = redisClient as unknown as RedisClient;
@@ -518,6 +538,46 @@ export class RedisCache {
   // ============================================================================
 
   /**
+   * Rate-limited warning logger to prevent log spam during Redis outages
+   */
+  private logWarningRateLimited(context: Record<string, unknown>, message: string): void {
+    const now = Date.now();
+    this.warningCount++;
+
+    // Reset counter if we're in a new time window
+    if (now - this.lastWarningTime > this.WARNING_INTERVAL_MS) {
+      if (this.warningCount > this.WARNING_BATCH_SIZE) {
+        // Log a summary of suppressed warnings
+        getLogger().warn(
+          { suppressedCount: this.warningCount - 1, windowMs: this.WARNING_INTERVAL_MS },
+          'Redis cache warnings suppressed (rate-limited)'
+        );
+      }
+      this.warningCount = 1;
+      this.lastWarningTime = now;
+      getLogger().warn(context, message);
+    } else if (this.warningCount <= this.WARNING_BATCH_SIZE) {
+      // Log first few warnings
+      getLogger().warn(context, message);
+    }
+    // Otherwise, suppress the log
+  }
+
+  // Keys that are non-critical and should fail completely silently
+  private static readonly SILENT_FAIL_KEY_PREFIXES = [
+    'presence:', // Presence tracking is nice-to-have, not critical
+    'biomarker:', // Voice biomarkers are supplementary
+    'emotion:', // Emotion state is cached but not critical
+  ];
+
+  /**
+   * Check if a key is non-critical and should fail silently
+   */
+  private shouldFailSilently(key: string): boolean {
+    return RedisCache.SILENT_FAIL_KEY_PREFIXES.some((prefix) => key.startsWith(prefix));
+  }
+
+  /**
    * Set a value with optional TTL
    * Fails silently if Redis unavailable
    */
@@ -536,7 +596,14 @@ export class RedisCache {
       }
       return true;
     } catch (error) {
-      getLogger().warn({ error: String(error), key }, 'Failed to set cache value (non-blocking)');
+      // Skip logging for non-critical keys to reduce noise
+      if (!this.shouldFailSilently(key)) {
+        // Use rate-limited logging to prevent spam during Redis outages
+        this.logWarningRateLimited(
+          { error: String(error), key },
+          'Failed to set cache value (non-blocking)'
+        );
+      }
       return false;
     }
   }
@@ -926,12 +993,14 @@ export class RedisCache {
   /**
    * Get recent tool failures for a session
    */
-  async getRecentToolFailures(sessionId: string): Promise<Array<{
-    toolName: string;
-    error: string;
-    timestamp: string;
-    attemptedAction?: string;
-  }>> {
+  async getRecentToolFailures(sessionId: string): Promise<
+    Array<{
+      toolName: string;
+      error: string;
+      timestamp: string;
+      attemptedAction?: string;
+    }>
+  > {
     if (!this.client) return [];
     try {
       const key = `tool_failure:${sessionId}`;

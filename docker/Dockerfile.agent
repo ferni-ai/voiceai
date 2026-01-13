@@ -21,6 +21,10 @@
 
 ARG NODE_VERSION=20
 
+# LiveKit agents SDK version - update this when upgrading @livekit/agents packages
+# Check latest: https://www.npmjs.com/package/@livekit/agents
+ARG LIVEKIT_AGENTS_VERSION=1.0.31
+
 # ============================================================================
 # Stage 0: Build Rust native modules (SIMD-accelerated audio processing)
 # ============================================================================
@@ -70,6 +74,9 @@ RUN cargo build --release && \
 # ============================================================================
 FROM node:${NODE_VERSION}-slim AS builder
 
+# Re-declare ARG after FROM to make it available in this stage
+ARG LIVEKIT_AGENTS_VERSION
+
 WORKDIR /app
 
 # Install git and enable pnpm
@@ -96,13 +103,14 @@ RUN mkdir -p apps/rust-audio apps/rust-perf design-system && \
 
 # Replace local file: dependencies with npm registry versions for Docker builds
 # The local agents-js is not available in Docker context
-# All @livekit/agents packages are at version 1.0.31 (Dec 2024)
-RUN sed -i 's|"file:../agents-js/agents"|"^1.0.31"|g' package.json && \
-    sed -i 's|"file:../agents-js/plugins/cartesia"|"^1.0.31"|g' package.json && \
-    sed -i 's|"file:../agents-js/plugins/deepgram"|"^1.0.31"|g' package.json && \
-    sed -i 's|"file:../agents-js/plugins/google"|"^1.0.31"|g' package.json && \
-    sed -i 's|"file:../agents-js/plugins/openai"|"^1.0.31"|g' package.json && \
-    sed -i 's|"file:../agents-js/plugins/silero"|"^1.0.31"|g' package.json && \
+# Version is controlled by LIVEKIT_AGENTS_VERSION build arg (defined at top of file)
+RUN echo "Using @livekit/agents version: ^${LIVEKIT_AGENTS_VERSION}" && \
+    sed -i "s|\"file:../agents-js/agents\"|\"^${LIVEKIT_AGENTS_VERSION}\"|g" package.json && \
+    sed -i "s|\"file:../agents-js/plugins/cartesia\"|\"^${LIVEKIT_AGENTS_VERSION}\"|g" package.json && \
+    sed -i "s|\"file:../agents-js/plugins/deepgram\"|\"^${LIVEKIT_AGENTS_VERSION}\"|g" package.json && \
+    sed -i "s|\"file:../agents-js/plugins/google\"|\"^${LIVEKIT_AGENTS_VERSION}\"|g" package.json && \
+    sed -i "s|\"file:../agents-js/plugins/openai\"|\"^${LIVEKIT_AGENTS_VERSION}\"|g" package.json && \
+    sed -i "s|\"file:../agents-js/plugins/silero\"|\"^${LIVEKIT_AGENTS_VERSION}\"|g" package.json && \
     cat package.json | grep -A5 '"@livekit/agents"' | head -10
 
 # Copy build configs

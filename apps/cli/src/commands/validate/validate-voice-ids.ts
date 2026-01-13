@@ -15,7 +15,7 @@ import { getVoiceId, initializeVoiceRegistry, getAllPersonaIds } from '../../../
 const PERSONAS = [
   { id: 'ferni', displayName: 'Ferni', envVar: 'JACK_B_VOICE_ID' },
   { id: 'jack-bogle', displayName: 'Jack Bogle', envVar: 'JACK_BOGLE_VOICE_ID' },
-  { id: 'peter-lynch', displayName: 'Peter Lynch', envVar: 'PETER_LYNCH_VOICE_ID' },
+  { id: 'peter-john', displayName: 'Peter John', envVar: 'PETER_LYNCH_VOICE_ID' }, // Env var kept for backward compatibility
   { id: 'alex-chen', displayName: 'Alex Chen', envVar: 'COMM_SPECIALIST_VOICE_ID' },
   { id: 'maya-santos', displayName: 'Maya Santos', envVar: 'SPEND_SAVE_VOICE_ID' },
   { id: 'jordan-taylor', displayName: 'Jordan Taylor', envVar: 'EVENT_PLANNER_VOICE_ID' },

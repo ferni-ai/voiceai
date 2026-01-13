@@ -145,6 +145,8 @@ import {
 import { initCelebrationService as _initCelebrationService } from './services/celebration.service.js';
 // Ferni EQ - Superhuman emotional intelligence ("Better than Human")
 import { disposeFerniEQ, initFerniEQ as _initFerniEQ } from './ui/better-than-human.ui.js';
+// 🌟 Transcendent Animation Systems - Signature moments that surpass Apple, Google, and Pixar
+import { handleMomentTrigger, initTranscendentSystems, destroyTranscendentSystems } from './systems/index.js';
 // Humanization Bridge - Connects backend humanization signals to frontend EQ
 import { initHumanizationBridge as _initHumanizationBridge, disposeHumanizationBridge } from './services/humanization-bridge.service.js';
 // Proactive Outreach UI - "Thinking of You" notifications
@@ -190,6 +192,7 @@ import {
 } from './services/engagement-demo-data.js';
 // Environment detection
 import { shouldUseDemoData } from './utils/environment.js';
+import { getApiHeadersAsync, apiPost, apiGet } from './utils/api.js';
 
 // New Feature UIs (v2)
 import accentSettingsUI from './ui/accent-settings.ui.js';
@@ -414,7 +417,6 @@ import {
   handleDataMessage,
   handleEngagementTrigger,
   setShowTeamHuddleCallback,
-  getLastAgentResponse,
 } from './app/data-message-handlers.js';
 
 // ============================================================================
@@ -558,6 +560,30 @@ class VoiceAIApp {
 
       const rosterContainer = document.querySelector('.entrance-roster');
       rosterContainer?.classList.add('entrance-complete');
+
+      // Also mark persona name as entrance-complete to ensure it stays visible
+      // after persona transitions (fixes opacity: 0 stuck state bug)
+      const personaNameEl = document.querySelector('.entrance-name');
+      personaNameEl?.classList.add('entrance-complete');
+
+      // CRITICAL FIX: CSS animations with fill:forwards override even !important rules.
+      // We must wait for animations to finish, then cancel them and commit final styles.
+      // Animation delay is 250ms + 400ms duration = 650ms total
+      setTimeout(() => {
+        const nameEl = document.querySelector('.entrance-name') as HTMLElement;
+        if (nameEl) {
+          // Cancel the CSS animation and force final styles
+          nameEl.getAnimations().forEach(a => a.cancel());
+          nameEl.style.setProperty('opacity', '1', 'important');
+          nameEl.style.setProperty('transform', 'none', 'important');
+        }
+        const subtitleEl = document.querySelector('.entrance-subtitle') as HTMLElement;
+        if (subtitleEl) {
+          subtitleEl.getAnimations().forEach(a => a.cancel());
+          subtitleEl.style.setProperty('opacity', '1', 'important');
+          subtitleEl.style.setProperty('transform', 'none', 'important');
+        }
+      }, 700); // 250ms delay + 400ms duration + 50ms buffer
 
       // Signal entrance complete to avatar feedback system
       avatarFeedback.setEntranceComplete();
@@ -1254,27 +1280,6 @@ class VoiceAIApp {
           void this.disconnect();
         },
         onMuteToggle: () => this.toggleMute(),
-        onRepeat: () => {
-          const lastResponse = getLastAgentResponse();
-          if (!lastResponse) {
-            messageUI.show("Nothing to repeat yet", 'info', 1500);
-            return;
-          }
-          // Send repeat request to backend via data channel
-          const room = connectionService.getRoom();
-          if (room?.localParticipant) {
-            const message = JSON.stringify({
-              type: 'repeat_last',
-              text: lastResponse.text,
-              personaId: lastResponse.personaId,
-            });
-            void room.localParticipant.publishData(
-              new TextEncoder().encode(message),
-              { reliable: true }
-            );
-            log.info('🔄 Repeat last response requested', { text: lastResponse.text.slice(0, 50) + '...' });
-          }
-        },
       })
     );
 
@@ -1316,10 +1321,15 @@ class VoiceAIApp {
       const { initCelebrationsUI } = await import('./ui/celebrations.ui.js');
       initCelebrationsUI();
     });
-    // 🎭 Quick Reactions - floating panel for sending reactions during calls
-    this.deferredInit('QuickReactionsUI', 300, async () => {
-      const { initQuickReactionsUI } = await import('./ui/quick-reactions.ui.js');
-      initQuickReactionsUI();
+    // 📊 Contextual Feedback - avatar-attached feedback during natural pauses
+    this.deferredInit('ContextualFeedbackUI', 300, async () => {
+      const { initContextualFeedbackUI } = await import('./ui/contextual-feedback.ui.js');
+      initContextualFeedbackUI();
+    });
+    // 📊 Feedback Insights Panel - user reflection on conversation patterns
+    this.deferredInit('FeedbackInsightsPanel', 300, async () => {
+      const { initFeedbackInsightsPanel } = await import('./ui/feedback-insights-panel.ui.js');
+      initFeedbackInsightsPanel();
     });
     // 📜 Music History - slide-out drawer showing recently played tracks
     this.deferredInit('MusicHistoryUI', 300, async () => {
@@ -1331,11 +1341,13 @@ class VoiceAIApp {
       const { initBookmarkUI } = await import('./ui/bookmark.ui.js');
       initBookmarkUI();
     });
-    // 🔥 Streak - daily usage streak visualization near avatar
-    this.deferredInit('StreakUI', 300, async () => {
-      const { initStreakUI } = await import('./ui/streak.ui.js');
-      initStreakUI();
-    });
+    // 🔥 Streak - DISABLED: Now consolidated into Connection Heart indicator
+    // The connection heart shows both streak (top-left fire badge) and milestones (bottom-right)
+    // Opening Journey modal shows full stats including streak, milestones, and relationship stage
+    // this.deferredInit('StreakUI', 300, async () => {
+    //   const { initStreakUI } = await import('./ui/streak.ui.js');
+    //   initStreakUI();
+    // });
     this.deferredInit('StatsUI', 300, async () => {
       const { initStatsUI } = await import('./ui/stats.ui.js');
       initStatsUI();
@@ -1528,6 +1540,11 @@ class VoiceAIApp {
       initProactiveOutreachUI();
       initTeamInsightsUI();
 
+      // 🌟 Transcendent Animation Systems - Initialize signature moments
+      // This must come after FerniEQ and HumanizationBridge
+      const { initTranscendentSystems: initTS } = await import('./systems/index.js');
+      initTS();
+
       // Initialize cross-team notifications with userId if available
       const userId = appState.get('deviceId');
       if (userId) {
@@ -1642,29 +1659,16 @@ class VoiceAIApp {
       // Wire up prediction resolution callback
       getPredictionsUI().setOnResolutionSubmit(async (predictionId, actualValue) => {
         try {
-          const userId = localStorage.getItem('ferni_user_id');
-          const headers: HeadersInit = { 'Content-Type': 'application/json' };
-          if (userId) {
-            headers['X-User-ID'] = userId;
-          }
-
-          const response = await fetch(`/api/predictions/${predictionId}/actuals`, {
-            method: 'POST',
-            headers,
-            body: JSON.stringify({ userId, actuals: { result: actualValue } }),
+          // Use apiPost for proper Firebase auth
+          const postResponse = await apiPost(`/api/predictions/${predictionId}/actuals`, {
+            actuals: { result: actualValue },
           });
-          if (!response.ok) throw new Error('Failed to save');
+          if (!postResponse.ok) throw new Error('Failed to save');
 
-          // Refresh predictions data
-          const refreshResponse = await fetch(
-            `/api/predictions${userId ? `?userId=${userId}` : ''}`,
-            {
-              headers: userId ? { 'X-User-ID': userId } : {},
-            }
-          );
-          if (refreshResponse.ok) {
-            const data = await refreshResponse.json();
-            const predictions = data.predictions || [];
+          // Refresh predictions data using apiGet
+          const refreshResponse = await apiGet<{ predictions: Record<string, unknown>[]; stats?: { averageAccuracy?: number } }>('/api/predictions');
+          if (refreshResponse.ok && refreshResponse.data) {
+            const predictions = refreshResponse.data.predictions || [];
             getPredictionsUI().update({
               predictions: predictions.map((p: Record<string, unknown>) => ({
                 id: p.id as string,
@@ -1675,7 +1679,7 @@ class VoiceAIApp {
                 status: p.completedAt ? ('resolved' as const) : ('pending' as const),
                 createdAt: p.createdAt as string,
               })),
-              accuracy: data.stats?.averageAccuracy || null,
+              accuracy: refreshResponse.data.stats?.averageAccuracy || null,
               totalResolved: predictions.filter((p: Record<string, unknown>) => p.completedAt)
                 .length,
               currentStreak: 0,
@@ -2028,6 +2032,12 @@ class VoiceAIApp {
             void show();
           });
         },
+        onWhatIDoForYouClick: () => {
+          // Open "What I Do For You" - Ferni's care routines
+          void import('./ui/ferni-care/index.js').then(({ showFerniCareDashboard }) => {
+            showFerniCareDashboard();
+          });
+        },
         onConnectionsClick: () => void showIntegrationsSettings(),
         onContactsClick: () => void openYourPeople(),
         onGiftsClick: () => void openYourPeople(), // Gifts now integrated into relationship cards
@@ -2059,6 +2069,14 @@ class VoiceAIApp {
           const container = document.querySelector('.app-shell') as HTMLElement | null;
           if (container) {
             void patternInsightsUI.show(container);
+          }
+        },
+        onConversationInsightsClick: async () => {
+          // Show feedback insights panel (how conversations are resonating)
+          const { openFeedbackInsightsPanel } = await import('./ui/feedback-insights-panel.ui.js');
+          const userId = appState.get('firebaseUid');
+          if (userId) {
+            void openFeedbackInsightsPanel(userId);
           }
         },
         onKnowledgeQuizClick: () => void openKnowledgeQuiz(),
@@ -2217,6 +2235,27 @@ class VoiceAIApp {
         // Clean up the URL without reload
         window.history.replaceState({}, '', window.location.pathname);
       }, 800);
+    }
+
+    // 📅 Handle Calendar OAuth callback
+    const calendarStatus = urlParams.get('calendar');
+    const calendarResult = urlParams.get('status');
+    const calendarError = urlParams.get('calendar_error');
+    if (calendarStatus && calendarResult === 'connected') {
+      setTimeout(() => {
+        const providerName = calendarStatus === 'google' ? 'Google Calendar' : 
+                             calendarStatus === 'apple' ? 'Apple Calendar' : 
+                             calendarStatus === 'outlook' ? 'Outlook Calendar' : 'Calendar';
+        toast.success(`${providerName} connected!`);
+        // Clean up the URL without reload
+        window.history.replaceState({}, '', window.location.pathname);
+      }, 500);
+    } else if (calendarError) {
+      setTimeout(() => {
+        toast.error("Couldn't connect calendar. Try again?");
+        // Clean up the URL without reload
+        window.history.replaceState({}, '', window.location.pathname);
+      }, 500);
     }
 
     // 💼 Handle LinkedIn OAuth callback
@@ -2528,6 +2567,10 @@ class VoiceAIApp {
       const greeting = greetingUI.getGreeting();
       messageUI.setHelper(greeting);
 
+      // 🌟 Transcendent: Recognition moment for returning users
+      // This creates the powerful "I see you, I remember you" moment
+      handleMomentTrigger('recognition');
+
       // Check for streak milestone - only for returning users
       const streakMilestone = greetingUI.checkStreakMilestone();
       if (streakMilestone) {
@@ -2540,11 +2583,12 @@ class VoiceAIApp {
         }, 2000);
       }
 
-      // Show streak badge if streak >= 3 - only for returning users
-      const streak = greetingUI.getStreak();
-      if (streak >= 3) {
-        this.showStreakBadge(streak);
-      }
+      // Show streak badge if streak >= 3 - DISABLED: Now shown in Connection Heart
+      // Streak is visible on the heart indicator (fire badge) and in Journey modal
+      // const streak = greetingUI.getStreak();
+      // if (streak >= 3) {
+      //   this.showStreakBadge(streak);
+      // }
     }
 
     // Ambient particles removed - keeping UI clean and human
@@ -2646,25 +2690,27 @@ class VoiceAIApp {
 
   /**
    * Show streak badge.
+   * @deprecated DISABLED: Streak now consolidated into Connection Heart indicator.
+   * The heart shows a fire badge (top-left) with streak count.
+   * Journey modal shows full stats when user taps the heart.
    */
-  private showStreakBadge(streak: number): void {
+  private showStreakBadge(_streak: number): void {
+    // DISABLED - streak now shown in Connection Heart
+    // The connection heart shows both streak and milestones
+    // return;
+
+    // Legacy code kept for reference:
     // Check if badge already exists
-    if (document.getElementById('streakBadge')) return;
-
-    const badge = document.createElement('div');
-    badge.id = 'streakBadge';
-    badge.className = 'streak-badge';
-    badge.innerHTML = `
-      <span class="streak-count">${streak}</span>
-      <span class="streak-label">day streak</span>
-    `;
-
-    document.body.appendChild(badge);
-
-    // Animate in after a delay
-    setTimeout(() => {
-      badge.classList.add('visible');
-    }, 1000);
+    // if (document.getElementById('streakBadge')) return;
+    // const badge = document.createElement('div');
+    // badge.id = 'streakBadge';
+    // badge.className = 'streak-badge';
+    // badge.innerHTML = `
+    //   <span class="streak-count">${streak}</span>
+    //   <span class="streak-label">day streak</span>
+    // `;
+    // document.body.appendChild(badge);
+    // setTimeout(() => badge.classList.add('visible'), 1000);
   }
 
   /**
@@ -2956,119 +3002,15 @@ class VoiceAIApp {
         dispatchAgentSpeechEnd();
       },
 
-      // 🎚️ Music track detected - attach for ducking control AND show Now Playing UI
+      // 🎚️ Music track detected - attach for ducking control
+      // NOTE: Now Playing UI is shown by handleMusic() when music_state message arrives,
+      // NOT here. This callback ONLY handles Web Audio attachment for ducking.
       onMusicTrack: (audioElement, trackId) => {
-        log.info('🎚️ Music track detected', { trackId });
+        log.info('🎚️ Music track detected - attaching Web Audio for ducking', { trackId });
 
-        // 🔇 PROPER BYPASS: Check if we're expecting music (backend sent music_state message)
-        // System stingers (sound-*) don't send music_state messages, so isExpectingMusic() will be false
-        // Real music sends music_state: playing BEFORE the audio, so isExpectingMusic() will be true
         const isExpectingMusic = connectionService.isExpectingMusic();
 
-        if (!isExpectingMusic) {
-          log.info('🔇 Skipping Now Playing UI - not expecting music (likely system stinger)', {
-            trackId,
-          });
-        } else {
-          // 🎵 Show Now Playing UI for actual music (backend sent music_state message)
-          void (async () => {
-            try {
-              const { nowPlayingUI } = await import('./ui/now-playing.ui.js');
-              const { waveformUI } = await import('./ui/waveform.ui.js');
-
-              log.info('🎵 Showing Now Playing UI for expected music track');
-              nowPlayingUI.show({
-                name: 'Music Playing',
-                artist: 'Ferni DJ',
-                isAmbient: false,
-              });
-              nowPlayingUI.updateState('playing');
-              waveformUI.setMusicPlaying(true);
-
-              // 🎵 Set up music control callbacks
-              nowPlayingUI.setCallbacks({
-                onPause: () => {
-                  log.info('🎵 User clicked pause button');
-                  // Send pause command to backend
-                  const room = connectionService.getRoom();
-                  if (room?.localParticipant) {
-                    const message = JSON.stringify({ type: 'music_control', action: 'pause' });
-                    void room.localParticipant.publishData(
-                      new TextEncoder().encode(message),
-                      { reliable: true }
-                    );
-                    // Update UI immediately for responsiveness
-                    nowPlayingUI.updateState('paused');
-                  }
-                },
-                onResume: () => {
-                  log.info('🎵 User clicked play button');
-                  // Send resume command to backend
-                  const room = connectionService.getRoom();
-                  if (room?.localParticipant) {
-                    const message = JSON.stringify({ type: 'music_control', action: 'resume' });
-                    void room.localParticipant.publishData(
-                      new TextEncoder().encode(message),
-                      { reliable: true }
-                    );
-                    // Update UI immediately for responsiveness
-                    nowPlayingUI.updateState('playing');
-                  }
-                },
-                onSkip: () => {
-                  log.info('🎵 User clicked skip button');
-                  // Send skip command to backend
-                  const room = connectionService.getRoom();
-                  if (room?.localParticipant) {
-                    const message = JSON.stringify({ type: 'music_control', action: 'skip' });
-                    void room.localParticipant.publishData(
-                      new TextEncoder().encode(message),
-                      { reliable: true }
-                    );
-                    // Hide current UI - new track will trigger new show()
-                    nowPlayingUI.hide();
-                  }
-                },
-                onVolumeChange: (volume: number) => {
-                  log.info('🎵 User adjusted volume', { volume });
-                  // Send volume command to backend
-                  const room = connectionService.getRoom();
-                  if (room?.localParticipant) {
-                    const message = JSON.stringify({ type: 'music_control', action: 'volume', volume });
-                    void room.localParticipant.publishData(
-                      new TextEncoder().encode(message),
-                      { reliable: true }
-                    );
-                  }
-                },
-                onFavorite: (track) => {
-                  log.info('🎵 User favorited track', { track: track.name, artist: track.artist });
-                  // Send favorite command to backend
-                  const room = connectionService.getRoom();
-                  if (room?.localParticipant) {
-                    const message = JSON.stringify({
-                      type: 'music_control',
-                      action: 'favorite',
-                      track: { name: track.name, artist: track.artist },
-                    });
-                    void room.localParticipant.publishData(
-                      new TextEncoder().encode(message),
-                      { reliable: true }
-                    );
-                  }
-                },
-              });
-
-              // Start avatar dancing
-              avatarFeedback.musicPresence();
-              expressiveEyes.startDancing(); // 👀 Eyes groove to the beat!
-            } catch (err) {
-              log.warn('Failed to show Now Playing UI', err);
-            }
-          })();
-        }
-
-        // 🎚️ SEPARATE: Attach ducking control AND start visualization
+        // 🎚️ Attach ducking control AND start visualization
         void (async () => {
           try {
             const controller = getMusicAudioController();
@@ -3547,6 +3489,7 @@ class VoiceAIApp {
     disposeConnectionHeart();
     disposeLogoExpressions();
     disposeFerniEQ();
+    destroyTranscendentSystems();
     disposeHumanizationBridge();
     disposeProactiveOutreach();
     disposeTeamInsightsUI();

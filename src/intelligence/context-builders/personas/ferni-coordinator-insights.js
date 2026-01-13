@@ -1,0 +1,422 @@
+/**
+ * Ferni Coordinator Intelligence Context Builder
+ *
+ * > "Six brilliant minds. One conversation. One coordinator."
+ *
+ * Ferni is the coordinator who sees the whole picture. This builder gives
+ * Ferni intelligent handoff suggestions based on cross-team insights:
+ *
+ * - When Peter notices stress patterns → suggest Maya for habits
+ * - When Maya sees habit decay → suggest Jordan for milestone reset
+ * - When Jordan has deadlines → suggest Alex for scheduling
+ * - When deep existential questions → suggest Nayan for wisdom
+ *
+ * This makes Ferni's handoffs feel intelligent and proactive, not reactive.
+ *
+ * @module intelligence/context-builders/ferni-coordinator-insights
+ */
+import { createLogger } from '../../../utils/safe-logger.js';
+import { BuilderCategory, createHighInjection, createStandardInjection, registerContextBuilder, } from '../index.js';
+import { getInsightsForPersona, generateTeamStatus, } from '../../../services/cross-persona-insights.js';
+// Better Than Human: Calendar awareness for smart handoffs
+import { getCalendarLoadFactors, } from '../../../services/calendar/calendar-load-service.js';
+import { detectRecoveryNeeds } from '../../../services/calendar/recovery-protection.js';
+// Superhuman services: 19 "Better Than Human" capabilities
+import { getSuperhuman } from '../superhuman/superhuman-integration.js';
+const log = createLogger({ module: 'context:ferni-coordinator' });
+// ============================================================================
+// HANDOFF SUGGESTION LOGIC
+// ============================================================================
+// Helper: Group insights by source
+function groupInsightsBySource(insights) {
+    const bySource = new Map();
+    for (const insight of insights) {
+        const arr = bySource.get(insight.source) || [];
+        arr.push(insight);
+        bySource.set(insight.source, arr);
+    }
+    return bySource;
+}
+// Helper: Analyze Peter's insights for handoff opportunities
+function analyzePeterInsights(insights) {
+    return insights
+        .filter((i) => i.content.toLowerCase().includes('stress') || i.content.includes('spending'))
+        .map((insight) => ({
+        targetPersona: 'maya-santos',
+        reason: 'Peter noticed stress patterns in spending',
+        trigger: insight.content,
+        urgency: insight.priority === 'high' ? 'high' : 'normal',
+        suggestedPhrase: 'I noticed Peter flagged some stress patterns. Maya might help build some habits around that - want me to get her?',
+    }));
+}
+// Helper: Analyze Maya's insights for handoff opportunities
+function analyzeMayaInsights(insights) {
+    return insights
+        .filter((i) => {
+        const lower = i.content.toLowerCase();
+        const isHabitRelated = lower.includes('streak') || lower.includes('habit');
+        const isStruggling = lower.includes('broken') || lower.includes('struggling');
+        return isHabitRelated && isStruggling;
+    })
+        .map((insight) => ({
+        targetPersona: 'jordan-taylor',
+        reason: 'Maya noticed habit struggles that might need goal adjustment',
+        trigger: insight.content,
+        urgency: 'normal',
+        suggestedPhrase: 'Maya mentioned some habit patterns that might connect to your goals. Want Jordan to take a look?',
+    }));
+}
+// Helper: Analyze Jordan's insights for handoff opportunities
+function analyzeJordanInsights(insights) {
+    return insights
+        .filter((i) => i.content.toLowerCase().includes('deadline') || i.content.includes('upcoming'))
+        .map((insight) => ({
+        targetPersona: 'alex-chen',
+        reason: 'Jordan has upcoming deadlines that need scheduling',
+        trigger: insight.content,
+        urgency: insight.priority === 'critical' ? 'urgent' : 'normal',
+        suggestedPhrase: 'Jordan flagged some deadlines coming up. Alex could help get things scheduled - want me to bring them in?',
+    }));
+}
+// Helper: Analyze team status for handoff opportunities
+function analyzeTeamStatusForHandoffs(teamStatus) {
+    const suggestions = [];
+    if (teamStatus.habitHealth.atRiskCount > 2) {
+        suggestions.push({
+            targetPersona: 'maya-santos',
+            reason: `${teamStatus.habitHealth.atRiskCount} habits at risk`,
+            trigger: 'Multiple habits showing streak breaks',
+            urgency: 'high',
+            suggestedPhrase: "I'm seeing a few habits that could use some attention. Maya's great at getting things back on track - interested?",
+        });
+    }
+    if (teamStatus.financialHealth.budgetUsedPercent > 90 ||
+        !teamStatus.financialHealth.savingsOnTrack) {
+        suggestions.push({
+            targetPersona: 'peter-john',
+            reason: 'Budget showing signs of stress',
+            trigger: 'Financial health indicators showing concern',
+            urgency: 'normal',
+            suggestedPhrase: 'Your budget is showing some patterns Peter might want to look at. Want to dig into that?',
+        });
+    }
+    if (teamStatus.goalStatus.nearingCompletion > 0) {
+        suggestions.push({
+            targetPersona: 'jordan-taylor',
+            reason: `${teamStatus.goalStatus.nearingCompletion} goals almost complete`,
+            trigger: 'Goals approaching finish line',
+            urgency: 'low',
+            suggestedPhrase: "By the way, you've got goals that are almost done! Jordan would love to help plan a celebration.",
+        });
+    }
+    return suggestions;
+}
+function analyzeInsightsForHandoffs(insights, teamStatus) {
+    const bySource = groupInsightsBySource(insights);
+    const suggestions = [
+        ...analyzePeterInsights(bySource.get('peter') || []),
+        ...analyzeMayaInsights(bySource.get('maya') || []),
+        ...analyzeJordanInsights(bySource.get('jordan') || []),
+        ...(teamStatus ? analyzeTeamStatusForHandoffs(teamStatus) : []),
+    ];
+    // Sort by urgency
+    const urgencyOrder = { urgent: 0, high: 1, normal: 2, low: 3 };
+    suggestions.sort((a, b) => urgencyOrder[a.urgency] - urgencyOrder[b.urgency]);
+    return suggestions;
+}
+function identifyPatternsToSurface(insights, teamStatus) {
+    const patterns = [];
+    // Extract key patterns from insights
+    const highPriorityInsights = insights.filter((i) => i.priority === 'high' || i.priority === 'critical');
+    for (const insight of highPriorityInsights.slice(0, 3)) {
+        patterns.push(`[${insight.source}] ${insight.content}`);
+    }
+    // Add team status patterns
+    if (teamStatus) {
+        if (teamStatus.habitHealth.keystoneActive) {
+            patterns.push('Keystone habit is active - great foundation!');
+        }
+        if (teamStatus.goalStatus.totalSaved > 1000) {
+            patterns.push(`Over $${teamStatus.goalStatus.totalSaved.toLocaleString()} saved toward goals`);
+        }
+    }
+    return patterns;
+}
+function identifyUrgentTeamMembers(insights) {
+    const urgent = [];
+    const urgentInsights = insights.filter((i) => i.priority === 'critical');
+    const urgentSources = new Set(urgentInsights.map((i) => i.source));
+    for (const source of urgentSources) {
+        const personaName = getPersonaDisplayName(source);
+        urgent.push(personaName);
+    }
+    return urgent;
+}
+function getPersonaDisplayName(personaId) {
+    const names = {
+        ferni: 'Ferni',
+        maya: 'Maya',
+        'maya-santos': 'Maya',
+        peter: 'Peter',
+        'peter-john': 'Peter',
+        alex: 'Alex',
+        'alex-chen': 'Alex',
+        jordan: 'Jordan',
+        'jordan-taylor': 'Jordan',
+        nayan: 'Nayan',
+        'nayan-patel': 'Nayan',
+        jack: 'Jack',
+        system: 'System',
+    };
+    return names[personaId] || personaId;
+}
+// ============================================================================
+// BRIEFING BUILDER
+// ============================================================================
+async function buildCoordinatorBriefing(userId) {
+    let teamStatus = null;
+    let insights = [];
+    let calendarContext = null;
+    try {
+        teamStatus = await generateTeamStatus(userId);
+    }
+    catch (err) {
+        log.debug({ error: String(err) }, 'Could not get team status');
+    }
+    try {
+        // Get insights targeted at Ferni (coordinator)
+        const rawInsights = getInsightsForPersona(userId, 'ferni');
+        // Extract the insight objects from the wrapped format
+        insights = rawInsights.map((item) => {
+            if ('insight' in item && typeof item.insight === 'object') {
+                return item.insight;
+            }
+            return item;
+        });
+    }
+    catch (err) {
+        log.debug({ error: String(err) }, 'Could not get insights');
+    }
+    // Better Than Human: Get calendar context for smart handoff timing
+    try {
+        calendarContext = await analyzeCalendarForHandoffs(userId);
+    }
+    catch (err) {
+        log.debug({ error: String(err) }, 'Could not get calendar context');
+    }
+    const handoffSuggestions = analyzeInsightsForHandoffs(insights, teamStatus);
+    // Add calendar-driven handoff suggestion if needed
+    if (calendarContext?.calendarHandoffSuggestion) {
+        handoffSuggestions.unshift(calendarContext.calendarHandoffSuggestion);
+    }
+    const patternsToSurface = identifyPatternsToSurface(insights, teamStatus);
+    const urgentFromTeam = identifyUrgentTeamMembers(insights);
+    return {
+        teamStatus,
+        handoffSuggestions,
+        patternsToSurface,
+        urgentFromTeam,
+        calendarContext,
+    };
+}
+/**
+ * Analyze calendar load to inform smart handoff suggestions.
+ * This is "better than human" because Ferni knows when to suggest Alex for scheduling help.
+ */
+async function analyzeCalendarForHandoffs(userId) {
+    const loadFactors = await getCalendarLoadFactors(userId);
+    const recoveryNeeds = await detectRecoveryNeeds(userId);
+    // Determine load level
+    let loadLevel = 'light';
+    if (loadFactors.weeklyMeetingHours >= 35) {
+        loadLevel = 'overloaded';
+    }
+    else if (loadFactors.weeklyMeetingHours >= 25) {
+        loadLevel = 'heavy';
+    }
+    else if (loadFactors.weeklyMeetingHours >= 15) {
+        loadLevel = 'moderate';
+    }
+    const focusTimePercent = Math.round(loadFactors.weeklyFocusTimeRatio * 100);
+    const needsSchedulingHelp = loadLevel === 'overloaded' ||
+        loadLevel === 'heavy' ||
+        focusTimePercent < 20 ||
+        loadFactors.consecutiveOverloadedDays >= 2;
+    const recoveryNeeded = recoveryNeeds.length > 0;
+    // Generate calendar-driven handoff suggestion
+    let calendarHandoffSuggestion = null;
+    if (loadLevel === 'overloaded') {
+        calendarHandoffSuggestion = {
+            targetPersona: 'alex-chen',
+            reason: `Calendar overload: ${Math.round(loadFactors.weeklyMeetingHours)}h of meetings this week`,
+            trigger: 'calendar_overload',
+            urgency: 'high',
+            suggestedPhrase: 'Your calendar looks really packed this week. Want me to get Alex to help find some breathing room?',
+        };
+    }
+    else if (recoveryNeeded && recoveryNeeds.some((r) => r.urgency === 'immediate')) {
+        calendarHandoffSuggestion = {
+            targetPersona: 'alex-chen',
+            reason: 'Immediate recovery needed based on calendar patterns',
+            trigger: 'recovery_urgent',
+            urgency: 'urgent',
+            suggestedPhrase: "I'm noticing your schedule has been intense. Alex could help protect some recovery time - want me to bring them in?",
+        };
+    }
+    else if (focusTimePercent < 15) {
+        calendarHandoffSuggestion = {
+            targetPersona: 'alex-chen',
+            reason: `Only ${focusTimePercent}% focus time available`,
+            trigger: 'low_focus_time',
+            urgency: 'normal',
+            suggestedPhrase: "You don't have much unscheduled time this week. Alex could help create some space if you'd like.",
+        };
+    }
+    return {
+        loadLevel,
+        weeklyMeetingHours: loadFactors.weeklyMeetingHours,
+        focusTimePercent,
+        needsSchedulingHelp,
+        recoveryNeeded,
+        calendarHandoffSuggestion,
+    };
+}
+// ============================================================================
+// FORMATTING
+// ============================================================================
+function formatBriefingForInjection(briefing) {
+    const sections = ['[COORDINATOR INTELLIGENCE]'];
+    // Urgent team members
+    if (briefing.urgentFromTeam.length > 0) {
+        sections.push(`\n🚨 URGENT: ${briefing.urgentFromTeam.join(', ')} flagged something important`);
+    }
+    // Handoff suggestions
+    if (briefing.handoffSuggestions.length > 0) {
+        sections.push('\n--- SMART HANDOFF OPPORTUNITIES ---');
+        sections.push("These aren't commands - they're conversation tools:");
+        for (const suggestion of briefing.handoffSuggestions.slice(0, 3)) {
+            const urgencyEmoji = suggestion.urgency === 'urgent' ? '🚨' : suggestion.urgency === 'high' ? '⚡' : '💡';
+            sections.push(`\n${urgencyEmoji} → ${getPersonaDisplayName(suggestion.targetPersona)}`);
+            sections.push(`   Reason: ${suggestion.reason}`);
+            if (suggestion.suggestedPhrase) {
+                sections.push(`   Try saying: "${suggestion.suggestedPhrase}"`);
+            }
+        }
+    }
+    // Patterns to naturally mention
+    if (briefing.patternsToSurface.length > 0) {
+        sections.push('\n--- PATTERNS TO SURFACE NATURALLY ---');
+        sections.push('Weave these into conversation when relevant:');
+        for (const pattern of briefing.patternsToSurface) {
+            sections.push(`• ${pattern}`);
+        }
+    }
+    // Team health snapshot
+    if (briefing.teamStatus) {
+        sections.push('\n--- TEAM HEALTH SNAPSHOT ---');
+        const ts = briefing.teamStatus;
+        sections.push(`• Habits: ${ts.habitHealth.activeHabits} active, ${ts.habitHealth.totalStreakDays} streak days`);
+        sections.push(`• Goals: ${ts.goalStatus.activeGoals} active, ${ts.goalStatus.nearingCompletion} almost done`);
+        sections.push(`• Budget: ${ts.financialHealth.budgetUsedPercent < 90 && ts.financialHealth.savingsOnTrack ? '✅ On track' : '⚠️ Needs attention'}`);
+    }
+    // Better Than Human: Calendar awareness
+    if (briefing.calendarContext) {
+        const cal = briefing.calendarContext;
+        sections.push('\n--- 📅 CALENDAR AWARENESS (Better Than Human) ---');
+        const loadEmoji = cal.loadLevel === 'overloaded'
+            ? '🔴'
+            : cal.loadLevel === 'heavy'
+                ? '🟠'
+                : cal.loadLevel === 'moderate'
+                    ? '🟡'
+                    : '🟢';
+        sections.push(`• Load: ${loadEmoji} ${cal.loadLevel} (${Math.round(cal.weeklyMeetingHours)}h meetings)`);
+        sections.push(`• Focus time: ${cal.focusTimePercent}% available`);
+        if (cal.recoveryNeeded) {
+            sections.push('• ⚠️ Recovery time recommended');
+        }
+        if (cal.needsSchedulingHelp) {
+            sections.push('• 💡 Consider offering Alex for scheduling help');
+        }
+    }
+    sections.push("\n[Remember: You're the coordinator. These insights help you guide the conversation to the right team member at the right time. Be natural, not pushy.]");
+    return sections;
+}
+// ============================================================================
+// CONTEXT BUILDER
+// ============================================================================
+async function buildFerniCoordinatorIntelligenceContext(input) {
+    const injections = [];
+    // Only for Ferni
+    const currentPersona = input.services?.personaId || '';
+    const isFerni = ['ferni', 'coordinator', 'life-coach'].includes(currentPersona.toLowerCase());
+    if (!isFerni)
+        return injections;
+    const userId = input.services?.userId || 'anonymous';
+    try {
+        const briefing = await buildCoordinatorBriefing(userId);
+        // Only inject if there's meaningful content
+        const hasContent = briefing.handoffSuggestions.length > 0 ||
+            briefing.patternsToSurface.length > 0 ||
+            briefing.urgentFromTeam.length > 0;
+        if (hasContent) {
+            const formattedSections = formatBriefingForInjection(briefing);
+            // Use high priority for urgent items, standard otherwise
+            const hasUrgent = briefing.urgentFromTeam.length > 0;
+            if (hasUrgent) {
+                injections.push(createHighInjection(formattedSections.join('\n'), 'coordinator_intel'));
+            }
+            else {
+                injections.push(createStandardInjection(formattedSections.join('\n'), 'coordinator_intel'));
+            }
+            log.info({
+                userId,
+                suggestions: briefing.handoffSuggestions.length,
+                patterns: briefing.patternsToSurface.length,
+            }, '🧠 Ferni loaded with coordinator intelligence');
+        }
+        else {
+            injections.push(createStandardInjection('[Coordinator Ready: Team is running smoothly. No urgent handoff opportunities detected.]', 'coordinator_intel'));
+        }
+        // =========================================================================
+        // SUPERHUMAN SERVICES INJECTION
+        // Ferni has access to ALL 19 capabilities since they're the coordinator
+        // V3 Semantic Intelligence needs current conversation context
+        // =========================================================================
+        try {
+            // Quick person extraction for semantic intelligence
+            const personMatch = input.userText?.match(/\b(my (?:mom|dad|wife|husband|partner|sister|brother|friend|boss|coworker)|(?:mom|dad|wife|husband)\b)/i);
+            const mentionedPerson = personMatch ? personMatch[1] : undefined;
+            const superhumanContext = await getSuperhuman(userId, 'ferni', {
+                // V3 Semantic Intelligence - pass current conversation context
+                currentTranscript: input.userText,
+                currentTopics: input.analysis?.topics?.detected,
+                currentEmotion: input.analysis?.emotion?.primary,
+                currentMentionedPerson: mentionedPerson,
+            });
+            if (superhumanContext) {
+                injections.push(createHighInjection(`[🌟 SUPERHUMAN INTELLIGENCE - "Better Than Human"]\n${superhumanContext}`, 'superhuman_services'));
+                log.info({ userId }, '🌟 Superhuman services context injected for Ferni');
+            }
+        }
+        catch (superhumanErr) {
+            log.debug({ error: String(superhumanErr) }, 'Superhuman context failed (non-fatal)');
+        }
+    }
+    catch (err) {
+        log.warn({ error: String(err) }, 'Failed to build coordinator intelligence');
+    }
+    return injections;
+}
+// ============================================================================
+// REGISTRATION
+// ============================================================================
+registerContextBuilder({
+    name: 'ferni-coordinator-insights',
+    description: 'Gives Ferni smart handoff suggestions based on cross-team insights',
+    priority: 40, // High priority so Ferni sees this early
+    category: BuilderCategory.PERSONA,
+    build: buildFerniCoordinatorIntelligenceContext,
+});
+export { buildFerniCoordinatorIntelligenceContext };
+//# sourceMappingURL=ferni-coordinator-insights.js.map

@@ -182,6 +182,22 @@ pub struct SolaPitchShifter {
 
     /// Has been initialized with audio
     is_initialized: bool,
+
+    // =========================================================================
+    // FORMANT PRESERVATION
+    // =========================================================================
+    // When pitch shifting, formants (vocal tract resonances) shift too, causing
+    // unnatural "chipmunk" (pitch up) or "monster" (pitch down) effects.
+    // We compensate by applying an inverse spectral tilt to preserve formants.
+
+    /// Enable formant preservation (compensates for spectral envelope shift)
+    enable_formant_preserve: bool,
+
+    /// Biquad filter coefficients for formant compensation [b0, b1, b2, a1, a2]
+    formant_coeffs: [f32; 5],
+
+    /// Biquad filter state [z1, z2]
+    formant_state: [f32; 2],
 }
 
 impl SolaPitchShifter {
@@ -192,11 +208,18 @@ impl SolaPitchShifter {
             pitch_ratio: 1.0,
             target_pitch_ratio: 1.0,
             // Smoothing coefficient for pitch changes
-            // 0.7 = reaches 90% of target in ~4 frames (~80ms at 20ms/frame)
-            // This allows 5.5 Hz LFO modulation (182ms cycle) to be audible
-            // while still preventing artifacts from abrupt changes
-            // Previous value (0.99) had 1.4s half-life, killing all modulation!
-            pitch_smooth_coef: 0.7,
+            // 0.3 = reaches 91% of target in ~2 frames (~40ms at 20ms/frame)
+            // This allows natural LFO modulation (5-8 Hz vibrato) to be fully audible
+            // while still preventing click-inducing abrupt changes.
+            //
+            // Response time analysis:
+            //   0.3 coef: 70% in 1 frame (20ms), 91% in 2 frames (40ms)
+            //   0.7 coef: 30% in 1 frame, 76% in 4 frames (80ms) - too slow!
+            //   0.99 coef: 1.4s half-life - kills all modulation
+            //
+            // For human-like speech with natural pitch variation, we need
+            // fast response to preserve prosody while avoiding digital artifacts.
+            pitch_smooth_coef: 0.3,
             input_buffer: Vec::with_capacity(ANALYSIS_FRAME_SIZE * 4),
             output_buffer: Vec::with_capacity(ANALYSIS_FRAME_SIZE * 4),
             overlap_buffer: vec![0.0; ANALYSIS_FRAME_SIZE],
@@ -204,7 +227,115 @@ impl SolaPitchShifter {
             window: HannWindow::new(ANALYSIS_FRAME_SIZE),
             resample_pos: 0.0,
             is_initialized: false,
+            // Formant preservation enabled by default for natural-sounding pitch shifts
+            enable_formant_preserve: true,
+            // Coefficients computed dynamically based on pitch ratio
+            formant_coeffs: [1.0, 0.0, 0.0, 0.0, 0.0], // passthrough initially
+            formant_state: [0.0, 0.0],
         }
+    }
+
+    /// Enable or disable formant preservation
+    ///
+    /// When enabled, applies spectral tilt compensation to maintain natural
+    /// vocal character during pitch shifts. Highly recommended for speech.
+    pub fn set_formant_preserve(&mut self, enabled: bool) {
+        self.enable_formant_preserve = enabled;
+        if !enabled {
+            // Reset to passthrough
+            self.formant_coeffs = [1.0, 0.0, 0.0, 0.0, 0.0];
+            self.formant_state = [0.0, 0.0];
+        }
+    }
+
+    /// Compute formant compensation filter coefficients based on pitch ratio
+    ///
+    /// When pitch goes UP by ratio R, formants shift UP by R - compensate with LOW shelf boost
+    /// When pitch goes DOWN by ratio R, formants shift DOWN - compensate with HIGH shelf boost
+    ///
+    /// Uses Robert Bristow-Johnson's Audio EQ Cookbook low shelf formula:
+    /// https://www.w3.org/2011/audio/audio-eq-cookbook.html
+    fn update_formant_coeffs(&mut self) {
+        if !self.enable_formant_preserve {
+            return;
+        }
+
+        // Amount of compensation needed (in semitones)
+        // pitch_ratio = 1.0 means no shift, 1.059 = +1 semitone, 0.944 = -1 semitone
+        let shift_semitones = 12.0 * (self.pitch_ratio).ln() / (2.0_f32).ln();
+
+        // Skip tiny adjustments (less than 0.1 semitones = ~10 cents)
+        if shift_semitones.abs() < 0.1 {
+            self.formant_coeffs = [1.0, 0.0, 0.0, 0.0, 0.0];
+            return;
+        }
+
+        // Design a shelf filter to compensate
+        // For speech, first formant (F1) is 300-700 Hz, second (F2) is 700-2500 Hz
+        // We use a transition frequency around 800 Hz
+        let transition_freq = 800.0;
+        let w0 = 2.0 * PI * transition_freq / self.sample_rate as f32;
+        let cos_w0 = w0.cos();
+        let sin_w0 = w0.sin();
+
+        // Gain compensation: ~2 dB per semitone of shift
+        // When pitch UP, we need to BOOST low frequencies (positive low shelf gain)
+        // When pitch DOWN, we need to BOOST high frequencies (negative low shelf gain = high boost)
+        let gain_db = shift_semitones * 2.0; // 2 dB per semitone
+
+        // A = sqrt(10^(dBgain/20)) = 10^(dBgain/40)
+        let a = 10.0_f32.powf(gain_db / 40.0);
+        let a_sqrt = a.sqrt();
+
+        // Audio EQ Cookbook: alpha for shelf filter with slope S=1 (maximum slope)
+        // alpha = sin(w0)/2 * sqrt( (A + 1/A)*(1/S - 1) + 2 )
+        // For S=1: alpha = sin(w0)/2 * sqrt(2)
+        let alpha = sin_w0 / 2.0 * (2.0_f32).sqrt();
+
+        // The term 2*sqrt(A)*alpha appears in the cookbook formulas
+        let two_sqrt_a_alpha = 2.0 * a_sqrt * alpha;
+
+        // Audio EQ Cookbook low shelf coefficients:
+        // b0 =    A*[ (A+1) - (A-1)*cos(w0) + 2*sqrt(A)*alpha ]
+        // b1 =  2*A*[ (A-1) - (A+1)*cos(w0)                   ]
+        // b2 =    A*[ (A+1) - (A-1)*cos(w0) - 2*sqrt(A)*alpha ]
+        // a0 =        (A+1) + (A-1)*cos(w0) + 2*sqrt(A)*alpha
+        // a1 =   -2*[ (A-1) + (A+1)*cos(w0)                   ]
+        // a2 =        (A+1) + (A-1)*cos(w0) - 2*sqrt(A)*alpha
+        let b0 = a * ((a + 1.0) - (a - 1.0) * cos_w0 + two_sqrt_a_alpha);
+        let b1 = 2.0 * a * ((a - 1.0) - (a + 1.0) * cos_w0);
+        let b2 = a * ((a + 1.0) - (a - 1.0) * cos_w0 - two_sqrt_a_alpha);
+        let a0 = (a + 1.0) + (a - 1.0) * cos_w0 + two_sqrt_a_alpha;
+        let a1 = -2.0 * ((a - 1.0) + (a + 1.0) * cos_w0);
+        let a2 = (a + 1.0) + (a - 1.0) * cos_w0 - two_sqrt_a_alpha;
+
+        // Normalize by a0
+        let a0_inv = 1.0 / a0.max(0.0001);
+        self.formant_coeffs = [
+            b0 * a0_inv,
+            b1 * a0_inv,
+            b2 * a0_inv,
+            a1 * a0_inv,
+            a2 * a0_inv,
+        ];
+    }
+
+    /// Apply formant compensation filter to a sample
+    #[inline]
+    fn apply_formant_filter(&mut self, input: f32) -> f32 {
+        if !self.enable_formant_preserve {
+            return input;
+        }
+
+        let [b0, b1, b2, a1, a2] = self.formant_coeffs;
+        let [z1, z2] = self.formant_state;
+
+        // Direct Form II transposed biquad
+        let output = b0 * input + z1;
+        self.formant_state[0] = b1 * input - a1 * output + z2;
+        self.formant_state[1] = b2 * input - a2 * output;
+
+        output
     }
 
     /// Set target pitch ratio (will smooth toward this value)
@@ -233,6 +364,9 @@ impl SolaPitchShifter {
         self.target_pitch_ratio = 1.0;
         self.resample_pos = 0.0;
         self.is_initialized = false;
+        // Reset formant filter state (keep enable flag and recompute coeffs on next process)
+        self.formant_coeffs = [1.0, 0.0, 0.0, 0.0, 0.0];
+        self.formant_state = [0.0, 0.0];
     }
 
     /// Process input samples and return pitch-shifted output
@@ -243,6 +377,10 @@ impl SolaPitchShifter {
         // Smooth pitch ratio toward target
         self.pitch_ratio = self.pitch_ratio * self.pitch_smooth_coef
             + self.target_pitch_ratio * (1.0 - self.pitch_smooth_coef);
+
+        // Update formant compensation filter for current pitch ratio
+        // This preserves vocal character by counteracting spectral envelope shift
+        self.update_formant_coeffs();
 
         // If pitch ratio is very close to 1.0, pass through unchanged
         // NOTE: Threshold lowered to 0.00001 (~0.017 cents) to ensure even subtle
@@ -262,7 +400,15 @@ impl SolaPitchShifter {
         }
 
         // Resample output to achieve pitch shift while maintaining duration
-        let output = self.resample_output(input.len());
+        let mut output = self.resample_output(input.len());
+
+        // Apply formant preservation filter to maintain natural vocal character
+        // This compensates for the spectral envelope shift caused by pitch shifting
+        if self.enable_formant_preserve {
+            for sample in output.iter_mut() {
+                *sample = self.apply_formant_filter(*sample);
+            }
+        }
 
         output
     }
@@ -910,8 +1056,8 @@ impl SolaTimeStretch {
             // Extract analysis frame
             let frame = &self.input_buffer[input_pos..input_pos + TS_FRAME_SIZE];
 
-            // Find best correlation offset
-            let best_offset = if self.output_buffer.len() >= TS_SYNTH_HOP {
+            // Find best correlation offset (reserved for future correlation-aligned OLA)
+            let _best_offset = if self.output_buffer.len() >= TS_SYNTH_HOP {
                 self.find_best_offset(frame)
             } else {
                 0
@@ -1237,5 +1383,94 @@ mod tests {
 
         // For real-time voice, latency should be under 50ms
         assert!(latency_ms < 50.0, "SOLA latency should be under 50ms for real-time, got {:.2}ms", latency_ms);
+    }
+
+    /// Test formant preservation filter coefficients are valid
+    /// Verifies the Audio EQ Cookbook low shelf formula is correctly implemented
+    #[test]
+    fn test_formant_preservation_coefficients() {
+        let mut shifter = SolaPitchShifter::new(24000);
+        shifter.set_formant_preserve(true);
+
+        // Test with various pitch shifts
+        let test_cases = [
+            (1.0, "no shift"),
+            (1.0595, "+1 semitone"),
+            (0.9439, "-1 semitone"),
+            (1.122, "+2 semitones"),
+            (0.891, "-2 semitones"),
+            (1.5, "+7 semitones"),
+            (0.667, "-7 semitones"),
+        ];
+
+        for (ratio, desc) in test_cases {
+            shifter.set_pitch_ratio(ratio);
+            // Process a tiny buffer to trigger coefficient update
+            let _output = shifter.process(&[0.0; 10]);
+
+            let coeffs = shifter.formant_coeffs;
+
+            // Verify coefficients are finite
+            for (i, &coef) in coeffs.iter().enumerate() {
+                assert!(
+                    coef.is_finite(),
+                    "Formant coef[{}] is not finite for {} (ratio {}): {}",
+                    i, desc, ratio, coef
+                );
+            }
+
+            // For stability, verify the denominator coefficients (a1, a2) produce stable poles
+            // A biquad is stable if |a2| < 1 and |a1| < 1 + a2
+            let a1 = coeffs[3];
+            let a2 = coeffs[4];
+
+            assert!(
+                a2.abs() < 1.0,
+                "Filter unstable: |a2| >= 1 for {} (a2 = {})",
+                desc, a2
+            );
+            assert!(
+                a1.abs() < 1.0 + a2,
+                "Filter unstable: |a1| >= 1 + a2 for {} (a1 = {}, a2 = {})",
+                desc, a1, a2
+            );
+        }
+    }
+
+    /// Test that formant filter actually processes audio without artifacts
+    #[test]
+    fn test_formant_preservation_audio() {
+        let mut shifter = SolaPitchShifter::new(24000);
+        shifter.set_formant_preserve(true);
+        shifter.set_pitch_cents(100.0); // +1 semitone
+
+        // Generate a voiced signal (sine wave simulating speech fundamental)
+        let input: Vec<f32> = (0..4800) // 200ms
+            .map(|i| (2.0 * PI * 150.0 * i as f32 / 24000.0).sin() * 0.5)
+            .collect();
+
+        let output = shifter.process(&input);
+
+        // Verify output is valid
+        for (i, &sample) in output.iter().enumerate() {
+            assert!(
+                sample.is_finite(),
+                "Output sample {} is not finite: {}",
+                i, sample
+            );
+            assert!(
+                sample.abs() < 2.0,
+                "Output sample {} is too large (clipping): {}",
+                i, sample
+            );
+        }
+
+        // Verify output has reasonable amplitude (not zeroed out)
+        let rms: f32 = (output.iter().map(|s| s * s).sum::<f32>() / output.len() as f32).sqrt();
+        assert!(
+            rms > 0.01,
+            "Output RMS too low, signal may have been killed: {}",
+            rms
+        );
     }
 }

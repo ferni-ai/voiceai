@@ -298,6 +298,21 @@ export function recordWin(
     '🎯 Win recorded'
   );
 
+  // Memory Lane: Capture celebration as potential memory (non-blocking)
+  void (async () => {
+    try {
+      const { captureCelebration } = await import('../memory-lane/real-time-collector.js');
+      void captureCelebration({
+        userId,
+        celebrationId: trackedWin.id,
+        description: trackedWin.description,
+        type: trackedWin.type,
+      });
+    } catch {
+      // Memory capture is optional
+    }
+  })();
+
   return trackedWin;
 }
 

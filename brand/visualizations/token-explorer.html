@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="zen">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ferni Design Token Explorer</title>
+  <link rel="stylesheet" href="../../design-system/dist/tokens.css">
+  <style>
+    /* Base Reset */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--font-body, system-ui, sans-serif);
+      background: var(--color-background, #faf8f5);
+      color: var(--color-text, #2C2520);
+      line-height: 1.6;
+      min-height: 100vh;
+      transition: background var(--duration-slow, 400ms) var(--easing-smooth, ease-out),
+                  color var(--duration-slow, 400ms) var(--easing-smooth, ease-out);
+    }
+
+    [data-theme="midnight"] body {
+      background: var(--color-cedar, #584840);
+      color: var(--color-warm-paper, #faf8f5);
+    }
+
+    /* Layout */
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+
+    /* Header */
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 3rem;
+      padding-bottom: 1.5rem;
+      border-bottom: 1px solid var(--color-divider, rgba(0,0,0,0.1));
+    }
+
+    h1 {
+      font-family: var(--font-display, Georgia, serif);
+      font-size: 2.5rem;
+      font-weight: 400;
+      letter-spacing: -0.02em;
+    }
+
+    .theme-toggle {
+      display: flex;
+      gap: 0.5rem;
+      background: var(--color-surface, rgba(0,0,0,0.05));
+      padding: 0.25rem;
+      border-radius: 2rem;
+    }
+
+    .theme-btn {
+      padding: 0.5rem 1rem;
+      border: none;
+      background: transparent;
+      border-radius: 1.5rem;
+      cursor: pointer;
+      font-size: 0.875rem;
+      transition: all var(--duration-normal, 200ms) var(--easing-smooth, ease-out);
+      color: inherit;
+    }
+
+    .theme-btn.active {
+      background: var(--color-accent, #3D5A45);
+      color: white;
+    }
+
+    /* Section Styles */
+    section {
+      margin-bottom: 4rem;
+    }
+
+    h2 {
+      font-family: var(--font-display, Georgia, serif);
+      font-size: 1.75rem;
+      font-weight: 400;
+      margin-bottom: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    h2::before {
+      content: '';
+      width: 4px;
+      height: 1.5rem;
+      background: var(--color-accent, #3D5A45);
+      border-radius: 2px;
+    }
+
+    .section-description {
+      color: var(--color-text-muted, rgba(0,0,0,0.6));
+      margin-bottom: 2rem;
+      max-width: 600px;
+    }
+
+    [data-theme="midnight"] .section-description {
+      color: rgba(255,255,255,0.7);
+    }
+
+    /* Persona Grid */
+    .persona-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .persona-card {
+      background: var(--color-surface, rgba(255,255,255,0.8));
+      border-radius: 1rem;
+      padding: 1.5rem;
+      text-align: center;
+      cursor: pointer;
+      transition: all var(--duration-normal, 200ms) var(--easing-spring, cubic-bezier(0.175, 0.885, 0.32, 1.275));
+      border: 2px solid transparent;
+    }
+
+    .persona-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+    }
+
+    .persona-card.selected {
+      border-color: var(--persona-primary, var(--color-accent));
+    }
+
+    .persona-orb {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      margin: 0 auto 1rem;
+      background: var(--persona-gradient, linear-gradient(135deg, var(--color-ferni) 0%, var(--color-ferni-dark) 100%));
+      box-shadow: 0 4px 12px var(--persona-glow, rgba(74, 103, 65, 0.3));
+    }
+
+    .persona-name {
+      font-weight: 500;
+      margin-bottom: 0.25rem;
+    }
+
+    .persona-role {
+      font-size: 0.75rem;
+      color: var(--color-text-muted, rgba(0,0,0,0.6));
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    /* Circadian Timeline */
+    .circadian-timeline {
+      display: flex;
+      gap: 0.5rem;
+      padding: 1rem;
+      background: var(--color-surface, rgba(0,0,0,0.03));
+      border-radius: 1rem;
+      overflow-x: auto;
+    }
+
+    .circadian-period {
+      flex: 1;
+      min-width: 120px;
+      padding: 1rem;
+      border-radius: 0.75rem;
+      cursor: pointer;
+      transition: all var(--duration-normal, 200ms) var(--easing-smooth, ease-out);
+      text-align: center;
+    }
+
+    .circadian-period:hover {
+      transform: scale(1.02);
+    }
+
+    .circadian-period.active {
+      box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+    }
+
+    .circadian-period[data-period="earlyMorning"] {
+      background: linear-gradient(135deg, #fce4ec 0%, #f8bbd9 100%);
+    }
+    .circadian-period[data-period="morning"] {
+      background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);
+    }
+    .circadian-period[data-period="midday"] {
+      background: linear-gradient(135deg, #fffde7 0%, #fff59d 100%);
+    }
+    .circadian-period[data-period="afternoon"] {
+      background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+    }
+    .circadian-period[data-period="evening"] {
+      background: linear-gradient(135deg, #fff8e1 0%, #ffcc80 100%);
+    }
+    .circadian-period[data-period="night"] {
+      background: linear-gradient(135deg, #e8eaf6 0%, #9fa8da 100%);
+      color: #1a237e;
+    }
+    .circadian-period[data-period="lateNight"] {
+      background: linear-gradient(135deg, #311b92 0%, #4527a0 100%);
+      color: white;
+    }
+    .circadian-period[data-period="deepNight"] {
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      color: white;
+    }
+
+    .circadian-time {
+      font-size: 0.75rem;
+      opacity: 0.8;
+      margin-bottom: 0.5rem;
+    }
+
+    .circadian-name {
+      font-weight: 500;
+      margin-bottom: 0.5rem;
+    }
+
+    .circadian-values {
+      font-size: 0.7rem;
+      opacity: 0.7;
+    }
+
+    /* Breath Sync Demo */
+    .breath-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 2rem;
+    }
+
+    .breath-card {
+      background: var(--color-surface, rgba(255,255,255,0.8));
+      border-radius: 1rem;
+      padding: 2rem;
+      text-align: center;
+    }
+
+    .breath-orb {
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      margin: 0 auto 1.5rem;
+      background: var(--color-ferni, #4a6741);
+    }
+
+    .breath-orb.calm {
+      animation: breathSync-calm 6s ease-in-out infinite;
+    }
+    .breath-orb.relaxed {
+      animation: breathSync-relaxed 5s ease-in-out infinite;
+    }
+    .breath-orb.attentive {
+      animation: breathSync-attentive 4s ease-in-out infinite;
+    }
+    .breath-orb.concerned {
+      animation: breathSync-concerned 3s ease-in-out infinite;
+    }
+
+    .breath-label {
+      font-weight: 500;
+      margin-bottom: 0.5rem;
+      text-transform: capitalize;
+    }
+
+    .breath-timing {
+      font-size: 0.875rem;
+      color: var(--color-text-muted, rgba(0,0,0,0.6));
+    }
+
+    /* Easing Curves */
+    .easing-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .easing-card {
+      background: var(--color-surface, rgba(255,255,255,0.8));
+      border-radius: 1rem;
+      padding: 1.5rem;
+      text-align: center;
+    }
+
+    .easing-preview {
+      height: 80px;
+      position: relative;
+      margin-bottom: 1rem;
+      background: var(--color-divider, rgba(0,0,0,0.05));
+      border-radius: 0.5rem;
+      overflow: hidden;
+    }
+
+    .easing-ball {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: var(--color-accent, #3D5A45);
+      position: absolute;
+      left: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+
+    .easing-card:hover .easing-ball {
+      animation: easingDemo 1s forwards;
+    }
+
+    .easing-card[data-easing="smooth"]:hover .easing-ball {
+      animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .easing-card[data-easing="spring"]:hover .easing-ball {
+      animation-timing-function: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    .easing-card[data-easing="bounce"]:hover .easing-ball {
+      animation-timing-function: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    }
+    .easing-card[data-easing="snappy"]:hover .easing-ball {
+      animation-timing-function: cubic-bezier(0.4, 0, 0, 1);
+    }
+
+    @keyframes easingDemo {
+      to { left: calc(100% - 30px); }
+    }
+
+    .easing-name {
+      font-weight: 500;
+      margin-bottom: 0.25rem;
+    }
+
+    .easing-value {
+      font-size: 0.7rem;
+      font-family: monospace;
+      color: var(--color-text-muted, rgba(0,0,0,0.6));
+      word-break: break-all;
+    }
+
+    /* Animation Triggers */
+    .animation-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 1rem;
+    }
+
+    .animation-trigger {
+      padding: 1rem 1.5rem;
+      border: none;
+      background: var(--color-accent, #3D5A45);
+      color: white;
+      border-radius: 0.75rem;
+      cursor: pointer;
+      font-size: 0.875rem;
+      font-weight: 500;
+      transition: all var(--duration-fast, 150ms) var(--easing-spring, cubic-bezier(0.175, 0.885, 0.32, 1.275));
+    }
+
+    .animation-trigger:hover {
+      transform: scale(1.05);
+      box-shadow: 0 4px 12px rgba(61, 90, 69, 0.3);
+    }
+
+    .animation-trigger:active {
+      transform: scale(0.98);
+    }
+
+    .animation-trigger.anticipate:active {
+      animation: anticipate 0.4s var(--easing-anticipate, cubic-bezier(0.68, -0.6, 0.32, 1.6));
+    }
+
+    .animation-trigger.squash:active {
+      animation: squash 0.3s var(--easing-bounce);
+    }
+
+    .animation-trigger.overshoot:active {
+      animation: overshoot 0.5s var(--easing-spring);
+    }
+
+    @keyframes anticipate {
+      0% { transform: scale(1); }
+      30% { transform: scale(0.9); }
+      100% { transform: scale(1.1); }
+    }
+
+    @keyframes squash {
+      0% { transform: scale(1, 1); }
+      50% { transform: scale(1.2, 0.8); }
+      100% { transform: scale(1, 1); }
+    }
+
+    @keyframes overshoot {
+      0% { transform: translateX(0); }
+      50% { transform: translateX(20px); }
+      70% { transform: translateX(-5px); }
+      100% { transform: translateX(0); }
+    }
+
+    /* Color Swatches */
+    .color-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 1rem;
+    }
+
+    .color-swatch {
+      border-radius: 0.75rem;
+      overflow: hidden;
+      background: white;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+
+    .color-preview {
+      height: 80px;
+    }
+
+    .color-info {
+      padding: 0.75rem;
+    }
+
+    .color-name {
+      font-weight: 500;
+      font-size: 0.875rem;
+      margin-bottom: 0.25rem;
+    }
+
+    .color-value {
+      font-size: 0.75rem;
+      font-family: monospace;
+      color: var(--color-text-muted, rgba(0,0,0,0.6));
+    }
+
+    /* Footer */
+    footer {
+      text-align: center;
+      padding: 2rem;
+      color: var(--color-text-muted, rgba(0,0,0,0.5));
+      font-size: 0.875rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Ferni Design Tokens</h1>
+      <div class="theme-toggle">
+        <button class="theme-btn active" data-theme="zen">Zen Garden</button>
+        <button class="theme-btn" data-theme="midnight">Cedar Night</button>
+      </div>
+    </header>
+
+    <!-- Persona Colors Section -->
+    <section id="personas">
+      <h2>Persona Colors</h2>
+      <p class="section-description">
+        Each AI team member has a unique color identity. Click to see their full palette applied.
+      </p>
+      <div class="persona-grid">
+        <div class="persona-card selected" data-persona="ferni">
+          <div class="persona-orb" style="background: linear-gradient(135deg, var(--color-ferni) 0%, var(--color-ferni-dark, #3d5634) 100%);"></div>
+          <div class="persona-name">Ferni</div>
+          <div class="persona-role">Coordinator</div>
+        </div>
+        <div class="persona-card" data-persona="maya">
+          <div class="persona-orb" style="background: linear-gradient(135deg, var(--color-maya, #7c4dbd) 0%, #5c3d8d 100%);"></div>
+          <div class="persona-name">Maya</div>
+          <div class="persona-role">Life Coach</div>
+        </div>
+        <div class="persona-card" data-persona="peter">
+          <div class="persona-orb" style="background: linear-gradient(135deg, var(--color-peter, #2e7d9a) 0%, #1e5d7a 100%);"></div>
+          <div class="persona-name">Peter</div>
+          <div class="persona-role">Financial Advisor</div>
+        </div>
+        <div class="persona-card" data-persona="jordan">
+          <div class="persona-orb" style="background: linear-gradient(135deg, var(--color-jordan, #d17a47) 0%, #b16a37 100%);"></div>
+          <div class="persona-name">Jordan</div>
+          <div class="persona-role">Life Planner</div>
+        </div>
+        <div class="persona-card" data-persona="alex">
+          <div class="persona-orb" style="background: linear-gradient(135deg, var(--color-alex, #5a8f7b) 0%, #4a7f6b 100%);"></div>
+          <div class="persona-name">Alex</div>
+          <div class="persona-role">Communication</div>
+        </div>
+        <div class="persona-card" data-persona="nayan">
+          <div class="persona-orb" style="background: linear-gradient(135deg, var(--color-nayan, #8b6b4a) 0%, #7b5b3a 100%);"></div>
+          <div class="persona-name">Nayan</div>
+          <div class="persona-role">Wisdom Guide</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Circadian System Section -->
+    <section id="circadian">
+      <h2>Circadian System</h2>
+      <p class="section-description">
+        Time-aware design that adapts warmth, brightness, and animation speed throughout the day.
+        Better than Apple's Night Shift – this is semantic circadian design.
+      </p>
+      <div class="circadian-timeline">
+        <div class="circadian-period" data-period="earlyMorning">
+          <div class="circadian-time">5-7 AM</div>
+          <div class="circadian-name">Early Morning</div>
+          <div class="circadian-values">Warm: 0.3 | Bright: 0.4</div>
+        </div>
+        <div class="circadian-period" data-period="morning">
+          <div class="circadian-time">7-10 AM</div>
+          <div class="circadian-name">Morning</div>
+          <div class="circadian-values">Warm: 0.5 | Bright: 0.7</div>
+        </div>
+        <div class="circadian-period active" data-period="midday">
+          <div class="circadian-time">10 AM-2 PM</div>
+          <div class="circadian-name">Midday</div>
+          <div class="circadian-values">Warm: 0.6 | Bright: 1.0</div>
+        </div>
+        <div class="circadian-period" data-period="afternoon">
+          <div class="circadian-time">2-5 PM</div>
+          <div class="circadian-name">Afternoon</div>
+          <div class="circadian-values">Warm: 0.7 | Bright: 0.9</div>
+        </div>
+        <div class="circadian-period" data-period="evening">
+          <div class="circadian-time">5-8 PM</div>
+          <div class="circadian-name">Evening</div>
+          <div class="circadian-values">Warm: 0.8 | Bright: 0.6</div>
+        </div>
+        <div class="circadian-period" data-period="night">
+          <div class="circadian-time">8-10 PM</div>
+          <div class="circadian-name">Night</div>
+          <div class="circadian-values">Warm: 0.7 | Bright: 0.4</div>
+        </div>
+        <div class="circadian-period" data-period="lateNight">
+          <div class="circadian-time">10 PM-1 AM</div>
+          <div class="circadian-name">Late Night</div>
+          <div class="circadian-values">Warm: 0.5 | Bright: 0.2</div>
+        </div>
+        <div class="circadian-period" data-period="deepNight">
+          <div class="circadian-time">1-5 AM</div>
+          <div class="circadian-name">Deep Night</div>
+          <div class="circadian-values">Warm: 0.3 | Bright: 0.1</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Breath Sync Section -->
+    <section id="breath-sync">
+      <h2>Breath Sync Animations</h2>
+      <p class="section-description">
+        Living animations that sync with emotional states. Inspired by Pixar's principle of
+        "breathing" – making static elements feel alive.
+      </p>
+      <div class="breath-grid">
+        <div class="breath-card">
+          <div class="breath-orb calm"></div>
+          <div class="breath-label">Calm</div>
+          <div class="breath-timing">6s cycle · 4:1:5 ratio</div>
+        </div>
+        <div class="breath-card">
+          <div class="breath-orb relaxed"></div>
+          <div class="breath-label">Relaxed</div>
+          <div class="breath-timing">5s cycle · 3:0.5:4 ratio</div>
+        </div>
+        <div class="breath-card">
+          <div class="breath-orb attentive"></div>
+          <div class="breath-label">Attentive</div>
+          <div class="breath-timing">4s cycle · 2:0.3:2 ratio</div>
+        </div>
+        <div class="breath-card">
+          <div class="breath-orb concerned"></div>
+          <div class="breath-label">Concerned</div>
+          <div class="breath-timing">3s cycle · 1.5:0.2:1.5 ratio</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Easing Curves Section -->
+    <section id="easing">
+      <h2>Easing Curves</h2>
+      <p class="section-description">
+        Motion curves that bring personality to transitions. Hover over each card to see the easing in action.
+      </p>
+      <div class="easing-grid">
+        <div class="easing-card" data-easing="smooth">
+          <div class="easing-preview">
+            <div class="easing-ball"></div>
+          </div>
+          <div class="easing-name">Smooth</div>
+          <div class="easing-value">cubic-bezier(0.4, 0, 0.2, 1)</div>
+        </div>
+        <div class="easing-card" data-easing="spring">
+          <div class="easing-preview">
+            <div class="easing-ball"></div>
+          </div>
+          <div class="easing-name">Spring</div>
+          <div class="easing-value">cubic-bezier(0.175, 0.885, 0.32, 1.275)</div>
+        </div>
+        <div class="easing-card" data-easing="bounce">
+          <div class="easing-preview">
+            <div class="easing-ball"></div>
+          </div>
+          <div class="easing-name">Bounce</div>
+          <div class="easing-value">cubic-bezier(0.68, -0.55, 0.265, 1.55)</div>
+        </div>
+        <div class="easing-card" data-easing="snappy">
+          <div class="easing-preview">
+            <div class="easing-ball"></div>
+          </div>
+          <div class="easing-name">Snappy</div>
+          <div class="easing-value">cubic-bezier(0.4, 0, 0, 1)</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Animation Triggers Section -->
+    <section id="animations">
+      <h2>Pixar-Style Animations</h2>
+      <p class="section-description">
+        Animation principles from the masters: anticipation, follow-through, squash and stretch.
+        Click each button to feel the difference.
+      </p>
+      <div class="animation-grid">
+        <button class="animation-trigger anticipate">Anticipate</button>
+        <button class="animation-trigger squash">Squash</button>
+        <button class="animation-trigger overshoot">Overshoot</button>
+        <button class="animation-trigger" style="transition: transform 0.2s var(--easing-spring);">Spring Pop</button>
+        <button class="animation-trigger" style="transition: transform 0.3s var(--easing-bounce);">Bounce In</button>
+        <button class="animation-trigger" style="transition: transform 0.15s var(--easing-snappy);">Snappy</button>
+      </div>
+    </section>
+
+    <!-- Core Colors Section -->
+    <section id="colors">
+      <h2>Core Colors</h2>
+      <p class="section-description">
+        The foundational palette. Every color has semantic meaning and accessibility considerations built in.
+      </p>
+      <div class="color-grid">
+        <div class="color-swatch">
+          <div class="color-preview" style="background: var(--color-accent, #3D5A45);"></div>
+          <div class="color-info">
+            <div class="color-name">Accent</div>
+            <div class="color-value">#3D5A45</div>
+          </div>
+        </div>
+        <div class="color-swatch">
+          <div class="color-preview" style="background: var(--color-ferni, #4a6741);"></div>
+          <div class="color-info">
+            <div class="color-name">Ferni</div>
+            <div class="color-value">#4a6741</div>
+          </div>
+        </div>
+        <div class="color-swatch">
+          <div class="color-preview" style="background: var(--color-natural-ink, #2C2520);"></div>
+          <div class="color-info">
+            <div class="color-name">Natural Ink</div>
+            <div class="color-value">#2C2520</div>
+          </div>
+        </div>
+        <div class="color-swatch">
+          <div class="color-preview" style="background: var(--color-warm-paper, #faf8f5);"></div>
+          <div class="color-info">
+            <div class="color-name">Warm Paper</div>
+            <div class="color-value">#faf8f5</div>
+          </div>
+        </div>
+        <div class="color-swatch">
+          <div class="color-preview" style="background: var(--color-cedar, #584840);"></div>
+          <div class="color-info">
+            <div class="color-name">Cedar</div>
+            <div class="color-value">#584840</div>
+          </div>
+        </div>
+        <div class="color-swatch">
+          <div class="color-preview" style="background: var(--color-gold, #d4a84a);"></div>
+          <div class="color-info">
+            <div class="color-name">Gold</div>
+            <div class="color-value">#d4a84a</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      <p>Ferni Design System · Token Explorer v1.0</p>
+      <p>Built with love for designers and developers who care about the details.</p>
+    </footer>
+  </div>
+
+  <script>
+    // Theme Toggle
+    document.querySelectorAll('.theme-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.theme-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        document.documentElement.setAttribute('data-theme', btn.dataset.theme);
+      });
+    });
+
+    // Persona Selection
+    document.querySelectorAll('.persona-card').forEach(card => {
+      card.addEventListener('click', () => {
+        document.querySelectorAll('.persona-card').forEach(c => c.classList.remove('selected'));
+        card.classList.add('selected');
+        document.documentElement.setAttribute('data-persona', card.dataset.persona);
+      });
+    });
+
+    // Circadian Period Selection
+    document.querySelectorAll('.circadian-period').forEach(period => {
+      period.addEventListener('click', () => {
+        document.querySelectorAll('.circadian-period').forEach(p => p.classList.remove('active'));
+        period.classList.add('active');
+        document.documentElement.setAttribute('data-circadian', period.dataset.period);
+      });
+    });
+
+    // Auto-detect current circadian period
+    function getCurrentCircadianPeriod() {
+      const hour = new Date().getHours();
+      if (hour >= 5 && hour < 7) return 'earlyMorning';
+      if (hour >= 7 && hour < 10) return 'morning';
+      if (hour >= 10 && hour < 14) return 'midday';
+      if (hour >= 14 && hour < 17) return 'afternoon';
+      if (hour >= 17 && hour < 20) return 'evening';
+      if (hour >= 20 && hour < 22) return 'night';
+      if (hour >= 22 || hour < 1) return 'lateNight';
+      return 'deepNight';
+    }
+
+    // Set initial circadian period
+    const currentPeriod = getCurrentCircadianPeriod();
+    document.querySelectorAll('.circadian-period').forEach(p => {
+      p.classList.toggle('active', p.dataset.period === currentPeriod);
+    });
+    document.documentElement.setAttribute('data-circadian', currentPeriod);
+  </script>
+
+  <!-- Ferni Visualization System -->
+  <script type="module">
+    import FerniViz from './viz-system.js';
+    FerniViz.init({ enableAnimations: true, enableTooltips: true });
+  </script>
+</body>
+</html>

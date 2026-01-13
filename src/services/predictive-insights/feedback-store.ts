@@ -9,11 +9,15 @@
  * This store is intentionally lightweight and safe:
  * - If Firestore isn't available, it returns a graceful failure
  * - It never blocks the user-facing request with a hard crash
+ *
+ * NOTE: Also delegates to the unified ConversationFeedbackStore for
+ * cross-system analytics.
  */
 import { FieldValue, getFirestore } from 'firebase-admin/firestore';
 
 import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { createFeedbackPrompt } from '../feedback/index.js';
 
 const log = createLogger({ module: 'PredictiveInsightFeedbackStore' });
 
@@ -75,6 +79,34 @@ export async function recordPredictiveInsightFeedback(
         createdAtMs: Date.now(),
       })
     );
+
+    // Delegate to unified feedback store for cross-system analytics
+    // This is fire-and-forget, don't block on it
+    void createFeedbackPrompt({
+      userId,
+      sessionId: `insight_${insightId}`,
+      personaId: 'ferni', // Insights come from Ferni
+      trigger: 'insight_moment',
+      context: {
+        lastAgentMessage: notes || '',
+        lastUserMessage: '',
+        topic: 'predictive_insight',
+        turnCount: 0,
+      },
+    }).then((result) => {
+      if (result.ok) {
+        // Record the reaction immediately since we have it
+        void import('../feedback/index.js').then(({ recordFeedbackReaction }) => {
+          void recordFeedbackReaction({
+            feedbackId: result.feedbackId,
+            userId,
+            reaction: helpful ? 'helpful' : 'off_track',
+          });
+        });
+      }
+    }).catch(() => {
+      // Silent fail - unified store is optional
+    });
 
     return { ok: true, id };
   } catch (error) {

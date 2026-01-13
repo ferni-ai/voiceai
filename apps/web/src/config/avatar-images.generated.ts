@@ -7,7 +7,7 @@
  * Central source of truth for all persona avatar images.
  * Update images in persona-kits.json, then run the generator.
  *
- * Generated: 2025-12-30T20:40:52.545Z
+ * Generated: 2026-01-12T19:50:54.098Z
  */
 
 /**

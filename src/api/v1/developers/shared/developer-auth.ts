@@ -27,6 +27,14 @@ export interface FirebaseDecodedToken {
 
 export interface Firestore {
   collection: (path: string) => CollectionReference;
+  batch: () => WriteBatch;
+}
+
+export interface WriteBatch {
+  set: (docRef: DocumentReference, data: unknown, options?: { merge?: boolean }) => WriteBatch;
+  update: (docRef: DocumentReference, data: Record<string, unknown>) => WriteBatch;
+  delete: (docRef: DocumentReference) => WriteBatch;
+  commit: () => Promise<void>;
 }
 
 export interface CollectionReference {
@@ -48,6 +56,7 @@ export interface DocumentSnapshot {
   exists: boolean;
   data: () => Record<string, unknown> | undefined;
   id: string;
+  ref: DocumentReference;
 }
 
 export interface Query {
@@ -55,6 +64,7 @@ export interface Query {
   get: () => Promise<QuerySnapshot>;
   where: (field: string, op: string, value: unknown) => Query;
   orderBy: (field: string, direction?: 'asc' | 'desc') => Query;
+  startAfter: (snapshot: DocumentSnapshot) => Query;
 }
 
 export interface QuerySnapshot {

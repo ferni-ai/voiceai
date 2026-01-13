@@ -73,6 +73,41 @@ const recentFailures = new Map<string, { count: number; lastAt: number }>();
 const FAILURE_DEDUP_WINDOW_MS = 60_000; // 1 minute window
 const FAILURE_DEDUP_THRESHOLD = 5; // After 5 failures, batch log
 
+// Expected errors that should not be logged as failures (normal operation)
+const EXPECTED_ERROR_PATTERNS = [
+  // User interrupted the agent - this is normal conversation flow
+  'Superseded by new generate_reply call',
+  // Clean cancellation during handoffs
+  'generation cancelled',
+  'Generation cancelled',
+  // Clean session cleanup
+  'session is closing',
+  'Session is closing',
+  // LiveKit agent cleanup - happens when participant disconnects and tasks are cancelled
+  'Task cancellation timed out',
+  // Normal playout completion
+  'playout completed',
+] as const;
+
+/**
+ * Check if an error is expected (not a real failure)
+ * Uses duck typing to handle errors from different realms/modules
+ */
+function isExpectedError(error: unknown): boolean {
+  // Duck typing: check if it has message/stack properties (handles cross-realm errors)
+  const errorLike = error as { message?: string; stack?: string; name?: string };
+  const message = errorLike?.message ?? '';
+  const stack = errorLike?.stack ?? '';
+
+  // Also check if the raw error string matches (handles edge cases)
+  const rawString = typeof error === 'string' ? error : String(error);
+
+  // Check all possible representations of the error
+  const allText = `${message} ${stack} ${rawString}`.toLowerCase();
+
+  return EXPECTED_ERROR_PATTERNS.some((pattern) => allText.includes(pattern.toLowerCase()));
+}
+
 function shouldLogFailure(context: string): boolean {
   const now = Date.now();
   const recent = recentFailures.get(context);
@@ -176,6 +211,20 @@ export function safeFireAndForget(
   // Helper to handle errors (both sync and async)
   const handleError = (error: unknown) => {
     if (timeoutId) clearTimeout(timeoutId);
+
+    // Skip expected errors - these are normal operation, not failures
+    if (isExpectedError(error)) {
+      log.debug(
+        { context, error: error instanceof Error ? error.message : String(error) },
+        `Fire-and-forget "${context}" - expected error (not a failure)`
+      );
+      if (trackMetrics) {
+        metrics.successCount++; // Count as success since it's expected
+        const contextMetrics = metrics.byContext.get(context);
+        if (contextMetrics) contextMetrics.successes++;
+      }
+      return;
+    }
 
     const durationMs = Date.now() - startTime;
     const errorMessage = error instanceof Error ? error.message : String(error);
@@ -355,6 +404,15 @@ export function registerGlobalErrorHandlers(): void {
 
   // Handle unhandled promise rejections
   process.on('unhandledRejection', (reason, promise) => {
+    // Skip expected errors - these are normal operation, not real rejections
+    if (isExpectedError(reason)) {
+      log.debug(
+        { reason: reason instanceof Error ? reason.message : String(reason) },
+        '📊 [SafeFireAndForget] Ignored expected unhandled rejection'
+      );
+      return;
+    }
+
     log.error(
       {
         reason: reason instanceof Error ? reason.message : String(reason),

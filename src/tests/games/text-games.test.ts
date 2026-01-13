@@ -381,7 +381,9 @@ describe('Word Association', () => {
   describe('processInput', () => {
     it('should accept valid word and respond', () => {
       const state = createWordAssociationState();
-      const result = processWordAssociationInput(state, 'happy');
+      // Use 'butterfly' - not in STARTING_WORDS to avoid flaky test
+      // when random start word matches input (causes rejection)
+      const result = processWordAssociationInput(state, 'butterfly');
 
       expect(result.newState.chain.length).toBeGreaterThan(1);
       expect(result.newState.turnCount).toBe(1);

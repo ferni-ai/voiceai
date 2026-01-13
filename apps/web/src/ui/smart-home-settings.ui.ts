@@ -137,7 +137,7 @@ function createIcon(name: IconName): SVGSVGElement | null {
   if (svg && !doc.querySelector('parsererror')) {
     // Import the node from the XML document into the current HTML document
     // This ensures the SVG renders correctly
-    return document.importNode(svg, true) as SVGSVGElement;
+    return document.importNode(svg, true);
   }
   return null;
 }
@@ -1042,7 +1042,7 @@ function renderEcobeeSetup(container: HTMLElement): void {
     });
     btn.textContent = t('ui.smarthomesettings.connectEcobee');
     btn.addEventListener('click', async () => {
-      const apiKey = (input as HTMLInputElement).value.trim();
+      const apiKey = (input).value.trim();
       if (!apiKey) {
         toast.warning(t('toasts.enterApiKeyFirst'));
         return;
@@ -1095,7 +1095,7 @@ function renderHueSetup(container: HTMLElement): void {
     const input = createElement('input', { 
       className: 'smart-home-settings__input',
       attributes: { type: 'text', placeholder: 'e.g., 192.168.1.100' }
-    }) as HTMLInputElement;
+    });
     if (hueBridgeIp) input.value = hueBridgeIp;
     inputGroup.appendChild(input);
     
@@ -1269,7 +1269,7 @@ function renderLifxSetup(container: HTMLElement): void {
     });
     btn.textContent = t('ui.smarthomesettings.connectLifx');
     btn.addEventListener('click', async () => {
-      const token = (input as HTMLInputElement).value.trim();
+      const token = (input).value.trim();
       if (!token) {
         toast.warning(t('toasts.enterTokenFirst'));
         return;

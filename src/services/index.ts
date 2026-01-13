@@ -368,28 +368,25 @@ export {
 } from './stores/life-data-store.js';
 
 // ============================================================================
-// DJ & MUSIC SERVICES
+// DJ & MUSIC SERVICES (NEW ARCHITECTURE)
 // ============================================================================
 
+// DJ orchestration is now handled by the DJController
+// Re-export from audio module for backward compatibility
 export {
-  DJOrchestrator,
-  getDJOrchestrator,
-  resetDJOrchestrator,
-  type DJPersonaStyle,
-  type SessionContext as DJSessionContext,
-  type SessionIntro,
-  type SessionOutro,
-} from './dj-orchestrator.js';
+  getDJController,
+  resetDJController,
+  PERSONA_DJ_STYLES as DJ_PERSONA_STYLES,
+  type PersonaDJStyle as DJPersonaStyle,
+} from '../audio/index.js';
 
-export { getDJSessionService, resetDJSessionService } from './dj-session.service.js';
-
+// Legacy DJ service functions - re-exported from dj-service.js
 export {
-  DJ_PERSONA_STYLES,
   getContextualMusicSuggestion,
   getCrossSessionMusicCallback,
   getDJStyle,
   getMusicAppreciationComment,
-  getMusicConversationStarter,
+  getMusicConversationStarter as getDJMusicConversationStarter,
   getMusicDiscoveryOffer,
   getMusicElementAppreciation,
   getQueueTeaser,
@@ -630,6 +627,61 @@ export {
   type WALStats,
   type WALConfig,
 } from './write-ahead-log.js';
+
+// ============================================================================
+// LIFE AUTOMATION SERVICES (NEW - Phase 1 Foundation)
+// ============================================================================
+
+// Integration Hub - Central API management
+export { IntegrationHub, getIntegrationHub, INTEGRATIONS } from './integrations/index.js';
+
+// Email Intelligence
+export { EmailIntelligence, FollowUpTracker, UnsubscribeDetector } from './email/index.js';
+
+// Action Engine - Two-phase transactional execution
+export {
+  ActionEngine,
+  getActionEngine,
+  registerActionType,
+  getActionTypeConfig,
+} from './actions/action-engine.js';
+
+export type {
+  Action,
+  ActionPayload,
+  ActionType,
+  ActionStatus,
+  ActionResult,
+  ActionTypeConfig,
+  ActionExecutionContext,
+  ActionConfirmationDetails,
+  ActionPriority,
+  GroceryOrderPayload,
+  UberRidePayload,
+  LyftRidePayload,
+} from './actions/action-types.js';
+
+// Subscription Detector - Detect recurring subscriptions from transactions
+export {
+  SubscriptionDetector,
+  getSubscriptionDetector,
+  resetSubscriptionDetector,
+  type PlaidTransaction,
+  type DetectedSubscription,
+} from './subscriptions/subscription-detector.js';
+
+// Meal Planner - Recipe and meal planning
+export { MealPlanner, getMealPlanner } from './meals/meal-planner.js';
+
+// Workflow Engine - Automation workflows
+export {
+  WorkflowEngine,
+  getWorkflowEngine,
+  resetWorkflowEngine,
+  WORKFLOW_TEMPLATES,
+  type WorkflowContext,
+  type ActionResult as WorkflowActionResult,
+} from './workflows/workflow-engine.js';
 
 export default {
   initializeServices: _initializeServices,

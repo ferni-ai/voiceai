@@ -20,6 +20,21 @@ vi.mock('../../../utils/safe-logger.js', () => ({
 }));
 
 vi.mock('../../../utils/firestore-utils.js', () => ({
+  getFirestoreDb: vi.fn(() => null),
+  cleanForFirestore: vi.fn((obj: unknown) => {
+    if (obj === null || obj === undefined) return obj;
+    if (obj instanceof Date) return obj.toISOString();
+    if (typeof obj === 'object') {
+      const result: Record<string, unknown> = {};
+      for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
+        if (value !== undefined) {
+          result[key] = value;
+        }
+      }
+      return result;
+    }
+    return obj;
+  }),
   removeUndefined: (obj: Record<string, unknown>) => {
     const result: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(obj)) {
@@ -29,6 +44,17 @@ vi.mock('../../../utils/firestore-utils.js', () => ({
     }
     return result;
   },
+  deepRemoveUndefined: vi.fn((obj: unknown) => obj),
+  recordDegradation: vi.fn(),
+  getFirestoreHealth: vi.fn(() => ({
+    dbAvailable: true,
+    initialized: true,
+    initializationError: null,
+    degradationCount: 0,
+    recentDegradations: [],
+    lastDegradationAt: null,
+  })),
+  resetFirestoreInstance: vi.fn(),
 }));
 
 vi.mock('firebase-admin/firestore', () => ({

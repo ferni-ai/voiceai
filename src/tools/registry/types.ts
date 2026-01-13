@@ -140,7 +140,9 @@ export type ToolDomain =
   | 'social-events' // Birthdays, anniversaries, gift tracking
   | 'transportation' // Uber/Lyft rides, commute tracking
   | 'vehicle' // Maintenance schedules, registration alerts
-  | 'workflows'; // Custom automations, IFTTT-style triggers
+  | 'workflows' // Custom automations, IFTTT-style triggers
+  // CEO Coaching Domain
+  | 'ceo-coaching'; // CEO personal coaching: briefings, wins, energy, priorities, decisions
 
 /**
  * All available tool domains
@@ -271,6 +273,8 @@ export const ALL_TOOL_DOMAINS: readonly ToolDomain[] = [
   'transportation',
   'vehicle',
   'workflows',
+  // CEO Coaching
+  'ceo-coaching',
 ] as const;
 
 // ============================================================================
@@ -415,6 +419,8 @@ export const DOMAIN_TO_CATEGORY: Record<ToolDomain, ToolCategory> = {
   vehicle: 'lifestyle', // Maintenance schedules, registration alerts
   workflows: 'productivity', // Custom automations, IFTTT-style triggers
   routines: 'lifestyle', // Ferni's care routines - "What I Do For You"
+  // CEO Coaching
+  'ceo-coaching': 'productivity', // CEO personal coaching: briefings, wins, priorities, decisions
 };
 
 // ============================================================================

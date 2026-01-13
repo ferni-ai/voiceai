@@ -57,8 +57,42 @@ const LIVEKIT_URL = process.env.LIVEKIT_URL || '';
 const LIVEKIT_API_KEY = process.env.LIVEKIT_API_KEY || '';
 const LIVEKIT_API_SECRET = process.env.LIVEKIT_API_SECRET || '';
 
-if (!LIVEKIT_URL || !LIVEKIT_API_KEY || !LIVEKIT_API_SECRET) {
-  log('ERROR: Missing LiveKit credentials');
+// ============================================================================
+// CRITICAL ENV VAR CHECK (Fast-fail before any heavy initialization)
+// ============================================================================
+
+/**
+ * Critical environment variables required for production operation.
+ * Missing any of these will cause the worker to fail immediately with a clear error.
+ */
+const CRITICAL_ENV_VARS = [
+  { name: 'LIVEKIT_URL', value: LIVEKIT_URL, purpose: 'Voice agent connection' },
+  { name: 'LIVEKIT_API_KEY', value: LIVEKIT_API_KEY, purpose: 'LiveKit authentication' },
+  { name: 'LIVEKIT_API_SECRET', value: LIVEKIT_API_SECRET, purpose: 'LiveKit authentication' },
+];
+
+// In production, also require persistence config
+if (process.env.NODE_ENV === 'production') {
+  CRITICAL_ENV_VARS.push({
+    name: 'GOOGLE_CLOUD_PROJECT',
+    value: process.env.GOOGLE_CLOUD_PROJECT || '',
+    purpose: 'Firestore persistence (required in production)',
+  });
+}
+
+const missingVars = CRITICAL_ENV_VARS.filter((v) => !v.value);
+
+if (missingVars.length > 0) {
+  log('🚨 CRITICAL: Missing required environment variables!');
+  log('================================================================================');
+  for (const v of missingVars) {
+    log(`  ❌ ${v.name} - ${v.purpose}`);
+  }
+  log('================================================================================');
+  log('The worker cannot start without these variables.');
+  log('');
+  log('To fix: Redeploy with `ferni deploy gce` which sets all required env vars.');
+  log('');
   process.exit(1);
 }
 

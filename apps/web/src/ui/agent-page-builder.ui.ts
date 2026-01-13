@@ -910,7 +910,7 @@ export class AgentPageBuilder {
       id: 'color-custom',
       className: 'color-input',
       value: selectedColor,
-    }) as HTMLInputElement;
+    });
     colorInput.addEventListener('input', () => {
       if (this.config.brand) {
         this.config.brand.primary = colorInput.value;
@@ -927,7 +927,7 @@ export class AgentPageBuilder {
       className: 'form-input',
       placeholder: '#000000',
       value: selectedColor,
-    }) as HTMLInputElement;
+    });
     hexInput.style.width = '120px';
     hexInput.addEventListener('input', () => {
       const color = hexInput.value;
@@ -965,7 +965,7 @@ export class AgentPageBuilder {
       type: 'file',
       id: 'voice-file',
       accept: '.mp3,.wav,.m4a,audio/*',
-    }) as HTMLInputElement;
+    });
     fileInput.hidden = true;
     dropzone.appendChild(fileInput);
 
@@ -980,7 +980,7 @@ export class AgentPageBuilder {
     dropzone.addEventListener('drop', (e) => {
       e.preventDefault();
       dropzone.classList.remove('dragover');
-      const files = (e as DragEvent).dataTransfer?.files;
+      const files = (e).dataTransfer?.files;
       if (files?.[0]) this.handleAudioFile(files[0]);
     });
     fileInput.addEventListener('change', () => {
@@ -1066,7 +1066,7 @@ export class AgentPageBuilder {
       className: 'subdomain-input',
       placeholder: 'your-agent',
       value: subdomain,
-    }) as HTMLInputElement;
+    });
     subdomainInput.addEventListener('input', () => {
       const value = subdomainInput.value.toLowerCase().replace(/[^a-z0-9-]/g, '');
       subdomainInput.value = value;
@@ -1099,7 +1099,7 @@ export class AgentPageBuilder {
       className: 'btn btn-secondary',
     }, ['Back']);
     if (isFirst) {
-      (backBtn as HTMLButtonElement).disabled = true;
+      (backBtn).disabled = true;
     } else {
       backBtn.addEventListener('click', () => this.goBack());
     }

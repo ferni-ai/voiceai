@@ -108,10 +108,12 @@ export interface SettingsMenuUICallbacks {
   onGiftsClick?: () => void;
   onJournalClick?: () => void;
   onHubClick?: () => void;
+  onWhatIDoForYouClick?: () => void;
   onLinkedInClick?: () => void;
   // New feature callbacks
   onMemoryLaneClick?: () => void;
   onPatternInsightsClick?: () => void;
+  onConversationInsightsClick?: () => void;
   onKnowledgeQuizClick?: () => void;
   onGrowthJournalClick?: () => void;
   onClose?: () => void;
@@ -198,6 +200,8 @@ const ICONS = {
   // Rituals & Practices
   ritual:
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M12 22c-4 0-7-3-7-7 0-2 1-4 2-5 .5-1.5.5-3 0-4 2 1 4 3 4 6 0-3 2-5 4-6-.5 1-.5 2.5 0 4 1 1 2 3 2 5 0 4-3 7-7 7Z"/><path d="M12 22v-3"/></svg>',
+  // Hands/care icon for "What I Do For You"
+  care: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/><path d="M12 5 9.04 7.96a2.17 2.17 0 0 0 0 3.08c.82.82 2.13.85 3 .07l2.07-1.9a2.82 2.82 0 0 1 3.79 0l2.96 2.66"/><path d="M9 18c-4.51 2-5-2-7-2"/></svg>',
   coffee:
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M17 8h1a4 4 0 1 1 0 8h-1"/><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z"/><line x1="6" x2="6" y1="2" y2="4"/><line x1="10" x2="10" y1="2" y2="4"/><line x1="14" x2="14" y1="2" y2="4"/></svg>',
 
@@ -264,6 +268,10 @@ const ICONS = {
   // Digital Twin / Journal
   journal:
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/><path d="M8 7h6"/><path d="M8 11h8"/></svg>',
+
+  // Memory Lane - book icon for shared history
+  book:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>',
 
   // New icons for restructured menu
   phone:
@@ -765,6 +773,7 @@ class SettingsMenuUI {
                   t('menu.sections.understandingYou'),
                   expandedSections.has('understandingYou'),
                   `
+            ${this.renderMenuItemWithBadge('what-i-do-for-you', ICONS.care, 'What I Do For You', t('common.new'))}
             ${this.renderMenuItemWithBadge('hub', ICONS.hub, 'Your Day with Ferni', t('common.new'))}
             ${this.renderMenuItem('your-story', ICONS.heart, t('menu.items.yourStory') || 'Your Story')}
             ${this.renderMenuItemWithBadge('your-year', ICONS.sparkles, t('menu.items.yourYear') || 'Your Year with Ferni', t('common.new'))}
@@ -773,8 +782,9 @@ class SettingsMenuUI {
             ${this.renderMenuItem('conversation-memory', ICONS.memory, t('menu.items.memoryBrowser'))}
             ${this.renderMenuItem('history', ICONS.history, t('menu.items.conversationHistory'))}
             ${this.renderMenuItemWithBadge('activity', ICONS.activity, t('menu.items.activity') || 'Activity', t('common.new'))}
-            ${this.renderMenuItemWithBadge('memory-lane', ICONS.calendar, t('menu.items.memoryLane') || 'On This Day', t('common.new'))}
+            ${this.renderMenuItemWithBadge('memory-lane', ICONS.book, t('menu.items.memoryLane') || 'Memory Lane', t('common.new'))}
             ${this.renderMenuItemWithBadge('pattern-insights', ICONS.analytics, t('menu.items.patternInsights') || 'Your Patterns', t('common.new'))}
+            ${this.renderMenuItemWithBadge('conversation-insights', ICONS.heart, t('menu.items.conversationInsights') || 'How We Connect', t('common.new'))}
             ${this.renderMenuItemWithBadge('growth-journal', ICONS.seedling, t('menu.items.growthJournal') || 'Growth Journal', t('common.new'))}
           `
                 )
@@ -1034,6 +1044,7 @@ class SettingsMenuUI {
       'together-sessions': { icon: ICONS.users, label: t('menu.items.togetherSessions') },
       'all-connections': { icon: ICONS.link, label: t('menu.items.allConnections') },
       // Core items
+      'what-i-do-for-you': { icon: ICONS.care, label: 'What I Do For You' },
       'your-story': { icon: ICONS.heart, label: t('menu.items.yourStory') || 'Your Story' },
       'your-year': { icon: ICONS.sparkles, label: t('menu.items.yourYear') || 'Your Year with Ferni' },
       'future-insights': { icon: ICONS.sparkles, label: t('menu.items.whatIllKnow') },
@@ -1394,6 +1405,9 @@ class SettingsMenuUI {
       case 'hub':
         this.callbacks.onHubClick?.();
         break;
+      case 'what-i-do-for-you':
+        this.callbacks.onWhatIDoForYouClick?.();
+        break;
       case 'connections':
         this.callbacks.onConnectionsClick?.();
         break;
@@ -1420,6 +1434,9 @@ class SettingsMenuUI {
         break;
       case 'pattern-insights':
         this.callbacks.onPatternInsightsClick?.();
+        break;
+      case 'conversation-insights':
+        this.callbacks.onConversationInsightsClick?.();
         break;
       case 'knowledge-quiz':
         this.callbacks.onKnowledgeQuizClick?.();

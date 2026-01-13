@@ -67,6 +67,8 @@ import {
   checkMilestonesToCelebrate,
   type StreakAtRiskResult,
 } from '../../../services/outreach/maya-habit-outreach.js';
+// Cross-Domain: CEO Coaching energy data for energy-aware habit suggestions
+import { getEnergyTrend, getRecentEnergyEntries } from '../../../tools/domains/ceo-coaching/storage.js';
 
 const log = createLogger({ module: 'context:maya-habit-insights' });
 
@@ -334,6 +336,105 @@ function generateCelebrationInsight(data: HabitInsightData): string | null {
 }
 
 // ============================================================================
+// ENERGY-AWARE HABIT SUGGESTIONS (Cross-Domain: CEO Coaching)
+// ============================================================================
+
+/**
+ * Energy-boosting habits to suggest when energy is low
+ */
+const ENERGY_BOOSTING_HABITS = [
+  'exercise',
+  'workout',
+  'walk',
+  'movement',
+  'meditation',
+  'sleep',
+  'hydration',
+  'water',
+  'sunlight',
+  'outdoor',
+  'stretching',
+  'yoga',
+  'breathing',
+];
+
+/**
+ * Check if habit name suggests energy-boosting activity
+ */
+function isEnergyBoostingHabit(habitName: string): boolean {
+  const lower = habitName.toLowerCase();
+  return ENERGY_BOOSTING_HABITS.some((keyword) => lower.includes(keyword));
+}
+
+/**
+ * Generate energy-aware habit suggestions based on CEO coaching energy data
+ */
+async function generateEnergyAwareInsight(
+  userId: string,
+  data: HabitInsightData
+): Promise<string | null> {
+  try {
+    // Get energy trend from CEO coaching
+    const energyTrend = await getEnergyTrend(userId);
+
+    if (!energyTrend || energyTrend.current === undefined) {
+      return null;
+    }
+
+    const { current, weekAverage, trend } = energyTrend;
+
+    // Find energy-boosting habits the user already has
+    const activeHabits = await getProductivityStore().getUserHabits(userId);
+    const energyHabits = activeHabits.filter((h) => h.isActive && isEnergyBoostingHabit(h.name));
+
+    // Low energy with declining trend - suggest energy habits
+    if (current <= 4 && trend === 'down') {
+      if (energyHabits.length > 0) {
+        const habitName = energyHabits[0].name;
+        return `I noticed your energy has been trending down (${current}/10 today, ${weekAverage}/10 average). ` +
+          `When energy dips, "${habitName}" often helps - even a tiny version. ` +
+          `Want to try a 2-minute version right now?`;
+      } else {
+        return `Your energy has been declining lately (${current}/10 today). ` +
+          `Quick movement or sunlight can help. Would you be open to adding a 2-minute "energy reset" habit?`;
+      }
+    }
+
+    // Low energy but stable - gentle check-in
+    if (current <= 4) {
+      if (energyHabits.length > 0) {
+        const habitName = energyHabits[0].name;
+        return `Energy at ${current}/10 today. Your "${habitName}" habit could help - ` +
+          `even the tiniest version counts. What feels doable right now?`;
+      }
+    }
+
+    // Consistently low energy (3+ days)
+    const recentEnergy = await getRecentEnergyEntries(userId, 5);
+    const lowEnergyDays = recentEnergy.filter((e) => e.level <= 4).length;
+
+    if (lowEnergyDays >= 3) {
+      return `I've noticed ${lowEnergyDays} low-energy days recently. ` +
+        `Sometimes that's a sign to simplify - what if we focused on just ONE keystone habit until you feel restored?`;
+    }
+
+    // High energy - capitalize on it
+    if (current >= 8 && trend !== 'down') {
+      const strugglingHabits = data.atRiskHabits;
+      if (strugglingHabits.length > 0) {
+        return `Energy at ${current}/10 - great momentum! ` +
+          `Good time to tackle "${strugglingHabits[0]}" which has been harder lately?`;
+      }
+    }
+
+    return null;
+  } catch (error) {
+    log.debug({ error: String(error), userId }, 'Could not generate energy-aware insight');
+    return null;
+  }
+}
+
+// ============================================================================
 // HABIT-AWARE GREETING
 // ============================================================================
 
@@ -424,7 +525,7 @@ export const mayaHabitInsightsBuilder: ContextBuilder = {
       return [];
     }
 
-    // Priority order: Streak protection > Pattern > Celebration > Predictive care
+    // Priority order: Streak protection > Energy-aware > Pattern > Celebration > Predictive care
     let insight: string | null = null;
     let insightType = '';
 
@@ -434,19 +535,25 @@ export const mayaHabitInsightsBuilder: ContextBuilder = {
       if (insight) insightType = 'streak_protection';
     }
 
-    // 2. Pattern recognition
+    // 2. Energy-aware suggestions (Cross-Domain: CEO Coaching)
+    if (!insight && !session.surfacedInsightTypes.has('energy_aware')) {
+      insight = await generateEnergyAwareInsight(userId, habitData);
+      if (insight) insightType = 'energy_aware';
+    }
+
+    // 3. Pattern recognition
     if (!insight && !session.surfacedInsightTypes.has('pattern')) {
       insight = generatePatternInsight(habitData);
       if (insight) insightType = 'pattern';
     }
 
-    // 3. Celebration
+    // 4. Celebration
     if (!insight && !session.surfacedInsightTypes.has('celebration')) {
       insight = generateCelebrationInsight(habitData);
       if (insight) insightType = 'celebration';
     }
 
-    // 4. Predictive care
+    // 5. Predictive care
     if (!insight && !session.surfacedInsightTypes.has('predictive')) {
       insight = generatePredictiveCareInsight(habitData);
       if (insight) insightType = 'predictive';

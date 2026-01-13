@@ -438,3 +438,4 @@ export function getClientBrandRules() {
         wordsToUse: WORDS_TO_USE.map((w) => w.word),
     };
 }
+//# sourceMappingURL=brand-context.js.map

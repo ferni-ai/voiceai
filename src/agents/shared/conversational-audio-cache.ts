@@ -14,9 +14,9 @@
  * @module agents/shared/conversational-audio-cache
  */
 
-import { createLogger } from '../../utils/safe-logger.js';
-import { getVoiceIdForPersona } from '../../speech/tts/cartesia-core.js';
 import { CARTESIA_MODEL } from '../../config/voice-ids.js';
+import { getVoiceIdForPersona } from '../../speech/tts/cartesia-core.js';
+import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'ConversationalAudioCache' });
 
@@ -267,6 +267,14 @@ function estimateDuration(byteLength: number): number {
  * @returns Number of phrases successfully cached
  */
 export async function prewarmConversationalAudio(): Promise<number> {
+  // SKIP_CONVERSATIONAL_PREWARM=true skips this entirely for faster dev restarts
+  // The phrases will be generated on-demand (slightly higher first-use latency)
+  if (process.env.SKIP_CONVERSATIONAL_PREWARM === 'true') {
+    log.info({}, '⏭️ Skipping conversational audio prewarm (SKIP_CONVERSATIONAL_PREWARM=true)');
+    warmupComplete = true; // Allow cache lookups even though cache is empty
+    return 0;
+  }
+
   const startTime = Date.now();
   let cachedCount = 0;
   const categoryCount: Record<string, number> = {
@@ -311,8 +319,10 @@ export async function prewarmConversationalAudio(): Promise<number> {
 
   log.info({ totalPhrases: tasks.length }, '⚡ Starting conversational audio prewarm');
 
-  // Process in parallel batches (avoid overwhelming Cartesia)
-  const BATCH_SIZE = 10;
+  // Process in parallel batches
+  // Increased from 10 to 25 for faster warmup (~3x speedup)
+  // Cartesia can handle 25 concurrent requests without issues
+  const BATCH_SIZE = 25;
   for (let i = 0; i < tasks.length; i += BATCH_SIZE) {
     const batch = tasks.slice(i, i + BATCH_SIZE);
 

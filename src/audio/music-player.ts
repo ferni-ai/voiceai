@@ -1,15 +1,23 @@
 /**
  * Music Player for LiveKit Calls
  *
- * Streams music directly into the phone/web call using LiveKit's
- * built-in BackgroundAudioPlayer.
+ * LOW-LEVEL AUDIO PLAYBACK ENGINE
  *
- * Features:
+ * This is a pure playback engine. It handles:
  * - Background music playback via BackgroundAudioPlayer
- * - DJ-style fade-out at track end (via ffmpeg pre-processing)
+ * - Audio fade-out at track end (via ffmpeg pre-processing)
  * - Play/pause/skip controls
  * - Spotify/iTunes preview support (downloads and plays)
  * - Crossfade between tracks
+ * - Duck/unduck for volume control during speech
+ *
+ * DJ Logic is handled elsewhere:
+ * - DJController (dj-controller.ts) - State machine, single source of truth
+ * - DJTimingEngine (dj-timing-engine.ts) - Schedules DJ moments
+ * - DJSpeechEngine (dj-speech-engine.ts) - Generates phrases
+ * - DJDecisionEngine (dj-decision-engine.ts) - Decides when to speak
+ *
+ * The music-handler.ts wires MusicPlayer events -> DJController.
  *
  * ARCHITECTURE:
  * - Uses @livekit/agents BackgroundAudioPlayer for actual audio publishing
@@ -28,7 +36,7 @@
  *   1. Low default volume (25%) so speech is always clear
  *   2. Pausing ambient music when agent speaks (duck() method)
  *   3. Visual "ducking" feedback on frontend (waveform calms down)
- *   4. DJ-style fade-out at track end via ffmpeg pre-processing
+ *   4. Audio fade-out at track end via ffmpeg pre-processing
  *
  * For games and other scenarios, we use 30% volume to ensure speech clarity.
  */
@@ -69,6 +77,7 @@ export interface MusicTrack {
   previewUrl?: string; // 30-second preview URL
   duration?: number; // Duration in ms
   genre?: string; // For mood matching
+  albumArt?: string; // Album artwork URL (from Spotify/iTunes)
 }
 
 /**
@@ -183,7 +192,7 @@ export class CallMusicPlayer {
     isPlaying: false,
     currentTrack: null,
     volume: 0.25, // Default 25% volume - pleasant background that doesn't compete with speech
-    duckingVolume: 0.08, // 8% when agent speaks - barely audible but still present
+    duckingVolume: 0.04, // 4% when agent speaks - nearly silent so voice dominates (was 8%)
     isDucked: false,
     queue: [],
     isInitialized: false,
@@ -382,6 +391,10 @@ export class CallMusicPlayer {
    * @deprecated Use on('trackEnded', callback) instead for multiple listeners
    */
   setOnTrackEndedCallback(callback: OnTrackEndedCallback): void {
+    // 🐛 FIX: Remove existing callback before adding new one to prevent listener accumulation
+    if (this.onTrackEndedCallback) {
+      this.events.off('trackEnded', this.onTrackEndedCallback);
+    }
     // Legacy: store for backward compatibility
     this.onTrackEndedCallback = callback;
     // Also register with event emitter for proper multi-listener support
@@ -395,6 +408,10 @@ export class CallMusicPlayer {
    * @deprecated Use on('stateChange', callback) instead for multiple listeners
    */
   setOnMusicStateChangeCallback(callback: OnMusicStateChangeCallback): void {
+    // 🐛 FIX: Remove existing callback before adding new one to prevent listener accumulation
+    if (this.onMusicStateChangeCallback) {
+      this.events.off('stateChange', this.onMusicStateChangeCallback);
+    }
     // Legacy: store for backward compatibility
     this.onMusicStateChangeCallback = callback;
     // Also register with event emitter for proper multi-listener support
@@ -408,6 +425,10 @@ export class CallMusicPlayer {
    * @deprecated Use on('midSongMoment', callback) instead for multiple listeners
    */
   setOnMidSongMomentCallback(callback: OnMidSongMomentCallback): void {
+    // 🐛 FIX: Remove existing callback before adding new one to prevent listener accumulation
+    if (this.onMidSongMomentCallback) {
+      this.events.off('midSongMoment', this.onMidSongMomentCallback);
+    }
     // Legacy: store for backward compatibility
     this.onMidSongMomentCallback = callback;
     // Also register with event emitter for proper multi-listener support
@@ -576,6 +597,10 @@ export class CallMusicPlayer {
   /**
    * Schedule a "Wait for it..." moment during playback
    * Only triggers 10% of the time to keep it rare and special
+   *
+   * @deprecated This functionality is now handled by DJTimingEngine.
+   * The music-handler.ts uses timingEngine.scheduleTrackMoments() instead.
+   * This method is kept for backward compatibility but will be removed in a future version.
    *
    * HUMANIZATION: Reduced from 30% to 10% - constant DJ commentary
    * interrupts the music experience. Less is more.

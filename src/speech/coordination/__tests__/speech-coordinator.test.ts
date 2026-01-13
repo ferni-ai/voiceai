@@ -159,4 +159,57 @@ describe('SpeechCoordinator', () => {
       expect(timing.avgEchoDelayMs).toBeGreaterThan(0);
     });
   });
+
+  describe('content-aware echo detection', () => {
+    it('should recognize questions as legitimate requests', () => {
+      // Questions should get minimal echo window (300ms)
+      const questionWindow = coordinator.getEchoWindow(1000, 'Are you okay?');
+      expect(questionWindow).toBe(300);
+    });
+
+    it('should recognize short questions with "?" as legitimate', () => {
+      // Even short questions like "what?" should be trusted
+      const shortQuestion = coordinator.getEchoWindow(1000, 'What?');
+      expect(shortQuestion).toBe(300);
+    });
+
+    it('should recognize reaction patterns as legitimate', () => {
+      // "wait", "hold on", etc. are user reactions, not echoes
+      const waitPattern = coordinator.getEchoWindow(1000, 'wait, hold on');
+      expect(waitPattern).toBe(300);
+    });
+
+    it('should recognize question word patterns as legitimate', () => {
+      // "are you", "do you", etc. are user questions
+      const areYouPattern = coordinator.getEchoWindow(1000, 'Are you feeling okay?');
+      expect(areYouPattern).toBe(300);
+    });
+
+    it('should recognize common affirmatives as legitimate', () => {
+      // "yeah", "okay" etc. are common user responses, not echoes
+      const yeahText = coordinator.getEchoWindow(1000, 'yeah');
+      expect(yeahText).toBe(300); // Now recognized as legitimate reaction
+    });
+
+    it('should recognize "okay" patterns as legitimate', () => {
+      // "okay sure" starts with "okay" which is a common reaction
+      const okayPattern = coordinator.getEchoWindow(1000, 'okay sure');
+      expect(okayPattern).toBe(300); // Now recognized as legitimate
+    });
+
+    it('should use timing-based detection for gibberish/noise', () => {
+      // Random short text that doesn't match patterns should use timing
+      const noise = coordinator.getEchoWindow(1000, 'mxyzptlk');
+      expect(noise).toBeGreaterThan(300); // Not bypassed - timing-based
+    });
+
+    it('should trust longer unique content', () => {
+      // Long, unique content should be trusted
+      const longContent = coordinator.getEchoWindow(
+        1000,
+        "I've been thinking about changing careers lately"
+      );
+      expect(longContent).toBe(300);
+    });
+  });
 });

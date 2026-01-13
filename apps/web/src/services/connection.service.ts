@@ -265,6 +265,44 @@ class ConnectionService {
   }
 
   /**
+   * 🎚️ FIX: Re-attach the most recent music track for ducking.
+   * Called when we receive music_state: playing to ensure ducking is on the right track.
+   * This handles the case where a stinger was attached instead of real music.
+   */
+  reattachMusicTrackForDucking(): void {
+    // Find the most recent music track from pending buffer
+    if (this.pendingMusicTracks.size === 0) {
+      log.debug('🎚️ No pending tracks to re-attach for ducking');
+      return;
+    }
+
+    let mostRecentTrack: { trackKey: string; audioEl: HTMLAudioElement } | null = null;
+    let mostRecentTime = 0;
+
+    for (const [trackKey, { audioEl, timestamp }] of this.pendingMusicTracks) {
+      if (timestamp > mostRecentTime) {
+        mostRecentTime = timestamp;
+        mostRecentTrack = { trackKey, audioEl };
+      }
+    }
+
+    if (!mostRecentTrack) {
+      return;
+    }
+
+    const { trackKey, audioEl } = mostRecentTrack;
+
+    // Mark as music track
+    this.musicTrackIds.add(trackKey);
+    this.pendingMusicTracks.delete(trackKey);
+
+    log.info('🎚️ Re-attaching music track for ducking', { trackKey });
+
+    // Route to MusicAudioController for ducking
+    this.callbacks.onMusicTrack?.(audioEl, trackKey);
+  }
+
+  /**
    * Check if we're expecting a music track (music_state: playing was received).
    * Used by fallback UI logic to distinguish real music from system stingers.
    * System stingers (sound-*) don't send music_state messages.
@@ -764,13 +802,38 @@ class ConnectionService {
           }
         };
 
-        void playAudio();
-
-        // 🎚️ Route music tracks to MusicAudioController for ducking
-        // Music tracks have their own visualization via MusicAudioController.startVisualization()
+        // 🎚️ CRITICAL FIX: For music tracks, we need Web Audio attached BEFORE playing!
+        // If we play first and attach Web Audio later, the audio bypasses our GainNode.
+        // 
+        // For MUSIC tracks: Trigger attachment, wait briefly for Web Audio setup, then play
+        // For VOICE tracks: Play immediately (ducking triggers from this callback)
         if (isMusicTrack) {
-          this.callbacks.onMusicTrack?.(audioEl, trackKey);
+          // 🎚️ Attach to Web Audio FIRST, then play
+          // This ensures the audio flows through our GainNode from the start
+          const musicCallback = this.callbacks.onMusicTrack;
+          if (musicCallback) {
+            log.info('🎚️ Music track detected - starting Web Audio attachment BEFORE playback', { trackKey });
+            
+            // Call the callback which will start async attachment
+            // The callback's async work will complete in parallel with our timeout
+            musicCallback(audioEl, trackKey);
+            
+            // Give Web Audio time to:
+            // 1. Initialize AudioContext if needed (may require user gesture)
+            // 2. Create MediaElementSource 
+            // 3. Connect the audio chain
+            // 200ms should be enough for Web Audio initialization
+            setTimeout(() => {
+              log.info('🎚️ Starting music playback (Web Audio attachment should be complete)', { trackKey });
+              void playAudio();
+            }, 200);
+          } else {
+            // No callback - just play directly
+            void playAudio();
+          }
         } else {
+          // Voice tracks: Play immediately, fire callback for ducking trigger
+          void playAudio();
           // Pass VOICE audio element AND track for visualization
           // Track-based visualization works better for WebRTC streams
           // NOTE: Only for voice tracks - music visualization is handled separately

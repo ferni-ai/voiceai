@@ -330,26 +330,141 @@ export class PersonaAwareTTS extends tts.TTS {
   }
 
   /**
+   * Strip SSML tags from text before sending to TTS.
+   * Cartesia doesn't support SSML and will speak tags literally (e.g., "break time 300ms").
+   * BTCW has its own stripping, so this is a safety net for Cartesia.
+   */
+  private stripSsml(text: string): string {
+    // Remove <break> tags entirely
+    let result = text.replace(/<break[^>]*\/>/gi, ' ');
+    result = result.replace(/<break[^>]*>[^<]*<\/break>/gi, ' ');
+
+    // Remove <emotion> tags but keep content
+    result = result.replace(/<emotion[^>]*>(.*?)<\/emotion>/gi, '$1');
+
+    // Remove <prosody> tags but keep content
+    result = result.replace(/<prosody[^>]*>(.*?)<\/prosody>/gi, '$1');
+
+    // Remove <speed> and <volume> tags (self-closing)
+    result = result.replace(/<speed[^>]*\/?>/gi, '');
+    result = result.replace(/<volume[^>]*\/?>/gi, '');
+
+    // Remove <speak> wrapper if present
+    result = result.replace(/<\/?speak>/gi, '');
+
+    // Remove any other XML-like tags
+    result = result.replace(/<[^>]+>/g, ' ');
+
+    // Clean up colon-based speech patterns that TTS doesn't handle well
+    result = this.cleanColonPatterns(result);
+
+    // Clean up multiple spaces
+    result = result.replace(/\s+/g, ' ').trim();
+
+    return result;
+  }
+
+  /**
+   * Clean up colon-based patterns that sound unnatural in speech.
+   * OpenAI models often produce "The pro: X. The con: Y." patterns.
+   * TTS either says "colon" or pauses awkwardly.
+   */
+  private cleanColonPatterns(text: string): string {
+    let result = text;
+
+    // "The pro: X" → "On one hand, X"
+    result = result.replace(/\bThe pro:\s*/gi, 'On one hand, ');
+    // "The con: X" → "On the other hand, X"
+    result = result.replace(/\bThe con:\s*/gi, 'On the other hand, ');
+
+    // "Pros: X" → "The advantages are X"
+    result = result.replace(/\bPros?:\s*/gi, 'The advantage is ');
+    // "Cons: X" → "The downside is X"
+    result = result.replace(/\bCons?:\s*/gi, 'The downside is ');
+
+    // "Option one: X" / "Option 1: X" → "One option is X"
+    result = result.replace(/\bOption\s*(?:one|1):\s*/gi, 'One option is ');
+    result = result.replace(/\bOption\s*(?:two|2):\s*/gi, 'Another option is ');
+    result = result.replace(/\bOption\s*(?:three|3):\s*/gi, 'A third option is ');
+
+    // "Step one: X" / "Step 1: X" → "First, X"
+    result = result.replace(/\bStep\s*(?:one|1):\s*/gi, 'First, ');
+    result = result.replace(/\bStep\s*(?:two|2):\s*/gi, 'Second, ');
+    result = result.replace(/\bStep\s*(?:three|3):\s*/gi, 'Third, ');
+
+    // "Note: X" → "One thing to note, X"
+    result = result.replace(/\bNote:\s*/gi, 'One thing to note, ');
+
+    // "Summary: X" → "To summarize, X"
+    result = result.replace(/\bSummary:\s*/gi, 'To summarize, ');
+
+    // "Example: X" → "For example, X"
+    result = result.replace(/\bExample:\s*/gi, 'For example, ');
+
+    // "Result: X" → "The result is X"
+    result = result.replace(/\bResult:\s*/gi, 'The result is ');
+
+    // "Answer: X" → "The answer is X"
+    result = result.replace(/\bAnswer:\s*/gi, 'The answer is ');
+
+    // "Reason: X" → "The reason is X"
+    result = result.replace(/\bReason:\s*/gi, 'The reason is ');
+
+    // Generic "Label: value" at sentence start - replace colon with period or comma
+    // "Here's the thing: X" → "Here's the thing. X"
+    result = result.replace(/:\s*(?=[A-Z])/g, '. ');
+
+    // Cleanup: fix double spaces and awkward punctuation
+    result = result.replace(/\.\s*\./g, '.');
+    result = result.replace(/,\s*,/g, ',');
+    result = result.replace(/\s+/g, ' ');
+
+    return result;
+  }
+
+  /**
    * Synthesize text to speech.
    * Note: When using BTCW provider, this returns a Promise. We cast to satisfy
    * the base class signature since both implementations produce compatible audio streams.
+   *
+   * SSML tags are stripped before synthesis since Cartesia doesn't support them
+   * and will speak them literally (e.g., "break time 300ms").
    */
   synthesize(text: string): tts.ChunkedStream {
-    log('debug', { persona: this.personaName, voiceId: this.voiceId }, 'TTS synthesize');
+    // Strip SSML tags - Cartesia speaks them literally if not removed
+    const cleanText = this.stripSsml(text);
+    log(
+      'debug',
+      { persona: this.personaName, voiceId: this.voiceId, hadSsml: cleanText !== text },
+      'TTS synthesize'
+    );
     // BTCW.synthesize() returns Promise<BTCWChunkedStream>, Cartesia returns ChunkedStream
     // Both are functionally compatible audio iterables, so we cast for the base class
-    return this.trackStream(() => this.personaTTS.synthesize(text)) as tts.ChunkedStream;
+    return this.trackStream(() => this.personaTTS.synthesize(cleanText)) as tts.ChunkedStream;
   }
 
   /**
    * Start a streaming synthesis.
    * Note: BTCWSynthesizeStream and SynthesizeStream are structurally compatible
    * (both are AsyncIterable producing audio frames), so we cast for type safety.
+   *
+   * The returned stream wraps pushText() to strip SSML tags before synthesis.
    */
   stream(): tts.SynthesizeStream {
     log('debug', { persona: this.personaName, voiceId: this.voiceId }, 'TTS stream');
     // BTCWSynthesizeStream is structurally compatible with SynthesizeStream
-    return this.trackStream(() => this.personaTTS.stream()) as tts.SynthesizeStream;
+    const underlyingStream = this.trackStream(() =>
+      this.personaTTS.stream()
+    ) as tts.SynthesizeStream;
+
+    // Wrap pushText to strip SSML before forwarding to underlying stream
+    const originalPushText = underlyingStream.pushText.bind(underlyingStream);
+    underlyingStream.pushText = (text: string) => {
+      const cleanText = this.stripSsml(text);
+      return originalPushText(cleanText);
+    };
+
+    return underlyingStream;
   }
 
   // ============================================================================

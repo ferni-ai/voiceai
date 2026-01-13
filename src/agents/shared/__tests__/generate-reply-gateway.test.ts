@@ -64,6 +64,8 @@ interface MockGenerateReplyHandle {
 interface MockSession {
   generateReply: Mock;
   say: Mock;
+  on: Mock;
+  off: Mock;
 }
 
 function createMockSession(options?: {
@@ -90,6 +92,8 @@ function createMockSession(options?: {
       };
     }),
     say: vi.fn(),
+    on: vi.fn(),
+    off: vi.fn(),
   };
 }
 

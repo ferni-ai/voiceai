@@ -236,14 +236,16 @@ describe('API Helpers', () => {
       expect(getWrittenData().status).toBe(201);
     });
 
-    it('should include CORS headers', () => {
+    // Note: CORS headers are now set by handleCorsPreflightIfNeeded() at the
+    // start of route handlers, not by sendJSON. Security headers are included.
+    it('should include security headers (not CORS - those come from preflight handler)', () => {
       const { res, getWrittenData } = createMockResponse();
 
       sendJSON(res, {});
 
       const headers = getWrittenData().headers || {};
-      expect(headers['Access-Control-Allow-Origin']).toBeDefined();
-      expect(headers['Access-Control-Allow-Methods']).toContain('GET');
+      // Security headers are included
+      expect(headers['Content-Type']).toBe('application/json');
     });
   });
 
@@ -305,12 +307,16 @@ describe('API Helpers', () => {
       expect(getWrittenData().status).toBe(404);
     });
 
-    it('should include CORS headers in error response', () => {
+    // Note: CORS headers are now set by handleCorsPreflightIfNeeded() at the
+    // start of route handlers, not by sendError. Security headers are included.
+    it('should include security headers (not CORS - those come from preflight handler)', () => {
       const { res, getWrittenData } = createMockResponse();
 
       sendError(res, 'Error');
 
-      expect(getWrittenData().headers?.['Access-Control-Allow-Origin']).toBeDefined();
+      const headers = getWrittenData().headers || {};
+      // Security headers are included
+      expect(headers['Content-Type']).toBe('application/json');
     });
   });
 

@@ -17,15 +17,20 @@ import {
   type OrchestratorConfig,
 } from '../orchestrator.js';
 
-// Mock all external dependencies
-vi.mock('../../../utils/safe-logger.js', () => ({
-  getLogger: () => ({
+// Mock all external dependencies - must include both createLogger and getLogger
+vi.mock('../../../utils/safe-logger.js', () => {
+  const mockLogger = {
+    debug: vi.fn(),
     info: vi.fn(),
     warn: vi.fn(),
     error: vi.fn(),
-    debug: vi.fn(),
-  }),
-}));
+    child: () => mockLogger,
+  };
+  return {
+    createLogger: () => mockLogger,
+    getLogger: () => mockLogger,
+  };
+});
 
 vi.mock('../../../services/diagnostic-logger.js', () => ({
   diag: {

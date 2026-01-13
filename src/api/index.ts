@@ -22,6 +22,7 @@ export { handleWidgetRoutes } from './widget-routes.js';
 export { handleDORARoutes } from './dora-routes.js';
 export { handleEngagementRoutes } from './engagement-routes.js';
 export { handleFeatureFlagsRoutes } from './feature-flags-routes.js';
+export { handleFeedbackRoutes, isFeedbackRoute } from './feedback-routes.js';
 export { handleGardenRoutes } from './garden-routes.js';
 export { handleGDPRRoutes } from './gdpr-routes.js';
 export { handleHouseholdRoutes } from './household-routes.js';

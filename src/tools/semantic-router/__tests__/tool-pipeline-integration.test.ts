@@ -125,7 +125,7 @@ describe('Tool Pipeline Integration', () => {
       for (const tool of allToolDefinitions) {
         expect(tool.triggers.phrases).toBeDefined();
         expect(Array.isArray(tool.triggers.phrases)).toBe(true);
-        expect(tool.triggers.phrases.length).toBeGreaterThan(0);
+        expect(tool.triggers.phrases?.length).toBeGreaterThan(0);
       }
     });
 
@@ -191,7 +191,7 @@ describe('Tool Pipeline Integration', () => {
         const inputLower = input.toLowerCase();
         const hasMatch = categoryTools.some((tool) => {
           // Check phrases
-          const phraseMatch = tool.triggers.phrases.some((phrase) =>
+          const phraseMatch = tool.triggers.phrases?.some((phrase) =>
             inputLower.includes(phrase.toLowerCase()) ||
             phrase.toLowerCase().includes(inputLower.split(' ')[0])
           );

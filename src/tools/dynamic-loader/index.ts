@@ -15,6 +15,7 @@ import { getLogger } from '../../utils/safe-logger.js';
 import { toolRegistry } from '../registry/index.js';
 import { loadToolDomain } from '../registry/loader.js';
 import type { ToolDomain, ToolContext, Tool } from '../registry/types.js';
+import { EnvironmentServiceRegistry } from '../registry/types.js';
 
 import type {
   DynamicLoaderConfig,
@@ -63,7 +64,11 @@ export class DynamicToolLoader {
    * Initialize with tool context and load essential domains
    */
   async initialize(ctx: ToolContext): Promise<void> {
-    this.toolContext = ctx;
+    // Ensure services has a .has() method - EnvironmentServiceRegistry checks env vars
+    this.toolContext = {
+      ...ctx,
+      services: ctx.services || new EnvironmentServiceRegistry(),
+    };
 
     // Load essential domains
     for (const domain of this.config.essentialDomains) {

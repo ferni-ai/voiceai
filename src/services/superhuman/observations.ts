@@ -49,7 +49,7 @@ export interface ObservationResult {
   shouldSurface: boolean;
   observation?: SuperhumanObservation;
   phrase?: string;
-  timing?: 'before_response' | 'after_response' | 'standalone';
+  timing?: 'now' | 'after_response' | 'next_relevant_moment';
 }
 
 // ============================================================================

@@ -1,0 +1,599 @@
+/**
+ * Shared Detection Utilities
+ *
+ * Centralized detection functions for conversation analysis.
+ * These utilities are used across multiple conversation modules:
+ * - deep-humanization.ts
+ * - vocal-humanization.ts
+ * - humanization/index.ts
+ * - humanizer.ts
+ *
+ * @module @ferni/conversation/utils/detection
+ */
+import { createLogger } from '../../utils/safe-logger.js';
+// 🦀 Rust-accelerated word counting
+import { countWordsRust, isTokenCountingAvailable } from '../../memory/rust-accelerator.js';
+const log = createLogger({ module: 'ConversationDetection' });
+const RUST_COUNTING_AVAILABLE = isTokenCountingAvailable();
+// ============================================================================
+// PATTERN CONSTANTS
+// ============================================================================
+/**
+ * Patterns indicating high energy in user message
+ */
+export const HIGH_ENERGY_PATTERNS = [
+    /!{2,}/,
+    /\b(amazing|awesome|incredible|fantastic|excited|thrilled|pumped|yes|yeah|yay)\b/i,
+    /\b(can't wait|so happy|love it|best|great news)\b/i,
+    /^(omg|oh my god|wow|whoa|holy)\b/i,
+    /\?!|\?{2,}/,
+];
+/**
+ * Patterns indicating low/subdued energy
+ */
+export const LOW_ENERGY_PATTERNS = [
+    /\b(tired|exhausted|drained|overwhelmed|sad|down|depressed|anxious)\b/i,
+    /\b(struggling|hard time|difficult|tough|rough)\b/i,
+    /\b(I don't know|not sure|maybe|I guess)\b/i,
+    /\.{3,}/, // Trailing off...
+    /\b(sigh|ugh|meh)\b/i,
+];
+/**
+ * Patterns indicating emotional content in responses
+ */
+export const EMOTIONAL_CONTENT_PATTERNS = [
+    /\b(I'm sorry|that's hard|that sounds|I hear you|that's heavy)\b/i,
+    /\b(proud of you|believe in you|you matter|you're not alone)\b/i,
+    /\b(love|care|feel|heart|soul)\b/i,
+    /\b(hurt|pain|struggle|suffer|grief|loss)\b/i,
+];
+/**
+ * Patterns indicating heavy/serious content
+ */
+export const HEAVY_CONTENT_PATTERNS = [
+    /\b(death|dying|died|passed away|suicide|crisis)\b/i,
+    /\b(abuse|trauma|assault|violence)\b/i,
+    /\b(divorce|breakup|separation|lost my)\b/i,
+    /\b(fired|laid off|bankrupt|homeless)\b/i,
+    /\b(diagnosis|cancer|terminal|chronic)\b/i,
+    /\b(depression|anxiety|panic)\b/i,
+];
+/**
+ * Keywords that suggest heavy content
+ * Used for detailed detection (returns which keywords were found)
+ */
+export const HEAVY_CONTENT_KEYWORDS = [
+    // Emotional/Crisis
+    'suicide',
+    'kill',
+    'die',
+    'death',
+    'dying',
+    'dead',
+    'abuse',
+    'abused',
+    'trauma',
+    'traumatic',
+    'depressed',
+    'depression',
+    'hopeless',
+    'worthless',
+    'panic',
+    'terrified',
+    'devastated',
+    // Life events
+    'divorce',
+    'cancer',
+    'diagnosed',
+    'terminal',
+    'fired',
+    'bankrupt',
+    'homeless',
+    'miscarriage',
+    'stillborn',
+    // Relationship
+    'cheated',
+    'affair',
+    'betrayed',
+    'estranged',
+    'disowned',
+    // Disclosure markers
+    'never told anyone',
+    'first time saying',
+    'secret',
+    'ashamed',
+    'embarrassed to admit',
+];
+/**
+ * Patterns indicating light/positive content
+ */
+export const LIGHT_CONTENT_PATTERNS = [
+    /\b(haha|lol|lmao|funny|joke)\b/i,
+    /\b(great|awesome|amazing|wonderful)\b/i,
+    /\b(excited|happy|glad|thrilled)\b/i,
+    /\b(weekend|vacation|holiday|party)\b/i,
+];
+/**
+ * Patterns indicating user presented evidence/counter-argument
+ */
+export const EVIDENCE_PATTERNS = [
+    /here'?s the thing/i,
+    /but actually/i,
+    /what about/i,
+    /consider this/i,
+    /in my experience/i,
+    /when I tried/i,
+    /what happened was/i,
+    /I disagree/i,
+    /that'?s not how I see it/i,
+    /but what if/i,
+    /let me tell you/i,
+    /I know someone who/i,
+];
+/**
+ * Patterns indicating breakthrough/insight moment
+ */
+export const BREAKTHROUGH_PATTERNS = [
+    /I (just )?realized/i,
+    /it hit me/i,
+    /I (just )?figured out/i,
+    /maybe what I need/i,
+    /finally/i,
+    /for the first time/i,
+    /I never thought of it/i,
+    /I'?ve never told anyone/i,
+    /this is hard to say/i,
+    /oh my god/i,
+    /wait\s*[,.!]/i,
+];
+/**
+ * Patterns indicating agent is giving advice
+ */
+export const ADVICE_PATTERNS = [
+    /you should/i,
+    /I'?d recommend/i,
+    /try to/i,
+    /consider/i,
+    /my advice/i,
+    /what I suggest/i,
+    /here'?s what/i,
+    /the key is/i,
+    /I think you should/i,
+    /you might want to/i,
+    /my suggestion/i,
+];
+/**
+ * Patterns indicating user disengagement
+ */
+export const DISENGAGEMENT_PATTERNS = [
+    /^yeah[.,!?]?$/i,
+    /^ok(ay)?[.,!?]?$/i,
+    /^sure[.,!?]?$/i,
+    /^i (guess|suppose)[.,!?]?$/i,
+    /^whatever[.,!?]?$/i,
+    /^fine[.,!?]?$/i,
+    /^not really[.,!?]?$/i,
+    /^i don'?t (know|care)[.,!?]?$/i,
+];
+/**
+ * Single-word disengagement responses
+ */
+export const DISENGAGEMENT_WORDS = new Set([
+    'yeah',
+    'ok',
+    'okay',
+    'sure',
+    'fine',
+    'whatever',
+    'i guess',
+    'uh huh',
+    'mhm',
+    'yep',
+    'nope',
+    'dunno',
+    'idk',
+    'meh',
+    'eh',
+    'k',
+    'kk',
+    'cool',
+    'right',
+]);
+/**
+ * Patterns indicating high engagement/enthusiasm
+ */
+export const HIGH_ENGAGEMENT_PATTERNS = [
+    /!{2,}/, // Multiple exclamation marks
+    /that'?s (so |really )?(interesting|cool|amazing|fascinating)/i,
+    /i (love|really like) (this|that|what you)/i,
+    /wow/i,
+    /oh my (god|gosh)/i,
+    /yes!+/i,
+    /exactly!?/i,
+    /you know what/i,
+    /i'?ve (been thinking|never thought)/i,
+    /i want to tell you/i,
+    /can i share something/i,
+    /this is (hard|difficult|important)/i,
+    /i'?ve never told anyone/i,
+];
+/**
+ * Patterns indicating deep sharing
+ */
+export const DEEP_SHARING_PATTERNS = [
+    /i feel like/i,
+    /it makes me feel/i,
+    /i'?ve been struggling/i,
+    /honestly|truthfully/i,
+    /i realized/i,
+    /the thing is/i,
+    /what i really want/i,
+];
+/**
+ * Hesitation signals for first-turn detection
+ */
+export const HESITATION_PATTERNS = [
+    // Deflection
+    /^(fine|okay|good|not bad|alright|ok)\.?$/i,
+    /^(i'?m? )?(doing )?(fine|okay|good|alright)/i,
+    /nothing (much|really|special)/i,
+    /just (wanted to|thought i'd|checking in)/i,
+    // Minimizing
+    /not that (big|important|bad)/i,
+    /no big deal/i,
+    /it'?s? (nothing|fine|whatever)/i,
+    /doesn'?t (matter|bother)/i,
+    // Hedging
+    /i guess/i,
+    /maybe i/i,
+    /i don'?t (really )?know/i,
+    /sort of/i,
+    /kind of/i,
+    /probably/i,
+    // Trailing off
+    /\.\.\./,
+    /anyway\s*\.?$/i,
+    // Vague responses
+    /^(um|uh|hmm)/i,
+    /^just.*$/i,
+];
+// ============================================================================
+// ENERGY DETECTION
+// ============================================================================
+/**
+ * Detect user's energy level from their message
+ *
+ * @param userMessage - The user's message to analyze
+ * @returns The detected energy level
+ *
+ * @example
+ * detectUserEnergy("This is AMAZING!!!") // 'high'
+ * detectUserEnergy("I'm so tired...") // 'low'
+ * detectUserEnergy("That sounds good") // 'medium'
+ */
+export function detectUserEnergy(userMessage) {
+    if (!userMessage)
+        return 'medium';
+    const lower = userMessage.toLowerCase();
+    // Check for high energy signals
+    let highScore = 0;
+    const highSignals = [];
+    for (const pattern of HIGH_ENERGY_PATTERNS) {
+        if (pattern.test(userMessage)) {
+            highScore++;
+            highSignals.push(pattern.source);
+        }
+    }
+    // Check for low energy signals
+    let lowScore = 0;
+    const lowSignals = [];
+    for (const pattern of LOW_ENERGY_PATTERNS) {
+        if (pattern.test(lower)) {
+            lowScore++;
+            lowSignals.push(pattern.source);
+        }
+    }
+    // Word count and punctuation analysis
+    // 🦀 Rust-accelerated word counting
+    const wordCount = RUST_COUNTING_AVAILABLE
+        ? countWordsRust(userMessage)
+        : userMessage.split(/\s+/).length;
+    const exclamationCount = (userMessage.match(/!/g) || []).length;
+    const questionCount = (userMessage.match(/\?/g) || []).length;
+    const capsRatio = (userMessage.match(/[A-Z]/g) || []).length / Math.max(userMessage.length, 1);
+    // High energy: lots of exclamations, caps, short excited messages
+    if (exclamationCount >= 2 || capsRatio > 0.3)
+        highScore++;
+    if (wordCount < 10 && exclamationCount > 0)
+        highScore++;
+    // Low energy: short responses, trailing off
+    if (wordCount < 5 && !exclamationCount && !questionCount)
+        lowScore++;
+    if (/\.{2,}$/.test(userMessage))
+        lowScore++;
+    // Determine energy level
+    if (highScore >= 2 || (highScore > 0 && lowScore === 0 && exclamationCount > 0)) {
+        return 'high';
+    }
+    if (lowScore >= 2 || (lowScore > 0 && highScore === 0)) {
+        return HEAVY_CONTENT_PATTERNS.some((p) => p.test(lower)) ? 'subdued' : 'low';
+    }
+    return 'medium';
+}
+/**
+ * Detect user energy with detailed result
+ */
+export function detectUserEnergyDetailed(userMessage) {
+    if (!userMessage) {
+        return { detected: true, value: 'medium', confidence: 0.5, signals: [] };
+    }
+    const lower = userMessage.toLowerCase();
+    const signals = [];
+    let highScore = 0;
+    let lowScore = 0;
+    for (const pattern of HIGH_ENERGY_PATTERNS) {
+        if (pattern.test(userMessage)) {
+            highScore++;
+            signals.push(`high: ${pattern.source}`);
+        }
+    }
+    for (const pattern of LOW_ENERGY_PATTERNS) {
+        if (pattern.test(lower)) {
+            lowScore++;
+            signals.push(`low: ${pattern.source}`);
+        }
+    }
+    // 🦀 Rust-accelerated word counting
+    const wordCount = RUST_COUNTING_AVAILABLE
+        ? countWordsRust(userMessage)
+        : userMessage.split(/\s+/).length;
+    const exclamationCount = (userMessage.match(/!/g) || []).length;
+    if (exclamationCount >= 2) {
+        highScore++;
+        signals.push('multiple exclamations');
+    }
+    if (wordCount < 5 && exclamationCount === 0) {
+        lowScore++;
+        signals.push('short response');
+    }
+    let value = 'medium';
+    let confidence = 0.5;
+    if (highScore >= 2 || (highScore > 0 && lowScore === 0 && exclamationCount > 0)) {
+        value = 'high';
+        confidence = Math.min(0.95, 0.6 + highScore * 0.1);
+    }
+    else if (lowScore >= 2 || (lowScore > 0 && highScore === 0)) {
+        value = HEAVY_CONTENT_PATTERNS.some((p) => p.test(lower)) ? 'subdued' : 'low';
+        confidence = Math.min(0.95, 0.6 + lowScore * 0.1);
+    }
+    return { detected: true, value, confidence, signals };
+}
+// ============================================================================
+// TOPIC WEIGHT CLASSIFICATION
+// ============================================================================
+/**
+ * Classify the emotional weight of a topic
+ *
+ * @param userMessage - The user's message to analyze
+ * @param detectedEmotion - Optional detected emotion from voice/sentiment analysis
+ * @returns The topic weight classification
+ *
+ * @example
+ * classifyTopicWeight("My father passed away") // 'heavy'
+ * classifyTopicWeight("Going on vacation!") // 'light'
+ * classifyTopicWeight("Working on a project") // 'medium'
+ */
+export function classifyTopicWeight(userMessage, detectedEmotion) {
+    const lower = userMessage.toLowerCase();
+    // Check heavy indicators
+    if (HEAVY_CONTENT_PATTERNS.some((p) => p.test(lower))) {
+        return 'heavy';
+    }
+    if (detectedEmotion === 'sadness' || detectedEmotion === 'fear' || detectedEmotion === 'grief') {
+        return 'heavy';
+    }
+    // Check light indicators
+    if (LIGHT_CONTENT_PATTERNS.some((p) => p.test(lower))) {
+        return 'light';
+    }
+    if (detectedEmotion === 'joy' || detectedEmotion === 'excitement') {
+        return 'light';
+    }
+    return 'medium';
+}
+// ============================================================================
+// CONTENT DETECTION
+// ============================================================================
+/**
+ * Detect if content is emotionally charged
+ */
+export function detectEmotionalContent(text) {
+    return EMOTIONAL_CONTENT_PATTERNS.some((p) => p.test(text));
+}
+/**
+ * Detect if content is heavy/serious
+ */
+export function detectHeavyContent(text) {
+    return HEAVY_CONTENT_PATTERNS.some((p) => p.test(text));
+}
+/**
+ * Detect heavy content and return which keywords were found
+ * Useful when you need to know *what* was detected, not just *if*
+ *
+ * @param text - The text to analyze
+ * @returns Array of keywords found in the text
+ *
+ * @example
+ * detectHeavyContentKeywords("dealing with depression") // ['depression']
+ * detectHeavyContentKeywords("had a great day!") // []
+ */
+export function detectHeavyContentKeywords(text) {
+    const found = [];
+    const lowerText = text.toLowerCase();
+    for (const keyword of HEAVY_CONTENT_KEYWORDS) {
+        if (lowerText.includes(keyword.toLowerCase())) {
+            found.push(keyword);
+        }
+    }
+    return found;
+}
+/**
+ * Detect if user presented evidence or counter-argument
+ */
+export function detectEvidence(userMessage) {
+    return EVIDENCE_PATTERNS.some((p) => p.test(userMessage));
+}
+/**
+ * Detect breakthrough/insight moment
+ */
+export function detectBreakthrough(userMessage) {
+    return BREAKTHROUGH_PATTERNS.some((p) => p.test(userMessage));
+}
+/**
+ * Detect if agent response is giving advice
+ */
+export function detectAdviceGiving(agentMessage) {
+    return ADVICE_PATTERNS.some((p) => p.test(agentMessage));
+}
+// ============================================================================
+// ENGAGEMENT DETECTION
+// ============================================================================
+/**
+ * Detect if user seems disengaged based on message content
+ *
+ * @param userMessage - The user's message to analyze
+ * @returns true if user appears disengaged
+ *
+ * @example
+ * detectDisengagement("yeah") // true
+ * detectDisengagement("That's really interesting, tell me more!") // false
+ */
+export function detectDisengagement(userMessage) {
+    const trimmed = userMessage.trim().toLowerCase();
+    // Very short responses (under 15 chars) with disengagement words
+    if (trimmed.length < 15) {
+        if (DISENGAGEMENT_WORDS.has(trimmed) ||
+            [...DISENGAGEMENT_WORDS].some((word) => trimmed.startsWith(`${word} `))) {
+            return true;
+        }
+    }
+    // Pattern-based disengagement detection
+    return DISENGAGEMENT_PATTERNS.some((p) => p.test(trimmed));
+}
+/**
+ * Detect if user seems highly engaged
+ *
+ * @param userMessage - The user's message to analyze
+ * @returns true if user appears highly engaged
+ */
+export function detectHighEngagement(userMessage) {
+    const trimmed = userMessage.trim().toLowerCase();
+    // Long responses (over 100 chars) often indicate engagement
+    const isLongResponse = trimmed.length > 100;
+    // Enthusiasm markers
+    const hasEnthusiasm = HIGH_ENGAGEMENT_PATTERNS.some((p) => p.test(trimmed));
+    // Deep sharing indicators
+    const isDeepSharing = DEEP_SHARING_PATTERNS.some((p) => p.test(trimmed));
+    // Combined heuristic
+    return (isLongResponse && (hasEnthusiasm || isDeepSharing)) || (hasEnthusiasm && isDeepSharing);
+}
+/**
+ * Detect hesitation in user message (for first-turn "I notice" moments)
+ */
+export function detectHesitation(userMessage) {
+    const lower = userMessage.toLowerCase();
+    return HESITATION_PATTERNS.some((p) => p.test(lower));
+}
+/**
+ * Get overall engagement level with confidence
+ */
+export function detectEngagementLevel(userMessage) {
+    const signals = [];
+    if (detectDisengagement(userMessage)) {
+        signals.push('disengagement_pattern');
+        return { detected: true, value: 'disengaged', confidence: 0.8, signals };
+    }
+    if (detectHighEngagement(userMessage)) {
+        signals.push('high_engagement_pattern');
+        const isVeryHigh = userMessage.length > 200 && HIGH_ENGAGEMENT_PATTERNS.some((p) => p.test(userMessage));
+        return {
+            detected: true,
+            value: isVeryHigh ? 'very_high' : 'high',
+            confidence: isVeryHigh ? 0.9 : 0.75,
+            signals,
+        };
+    }
+    // Medium engagement by default
+    // 🦀 Rust-accelerated word counting
+    const wordCount = RUST_COUNTING_AVAILABLE
+        ? countWordsRust(userMessage)
+        : userMessage.split(/\s+/).length;
+    if (wordCount > 30) {
+        signals.push('substantial_response');
+        return { detected: true, value: 'medium', confidence: 0.6, signals };
+    }
+    return { detected: true, value: 'low', confidence: 0.5, signals };
+}
+/**
+ * Perform comprehensive analysis of a user message
+ *
+ * @param userMessage - The user's message to analyze
+ * @param detectedEmotion - Optional detected emotion
+ * @returns Complete message analysis
+ */
+export function analyzeMessage(userMessage, detectedEmotion) {
+    const energyResult = detectUserEnergyDetailed(userMessage);
+    const engagementResult = detectEngagementLevel(userMessage);
+    const analysis = {
+        energy: energyResult.value,
+        topicWeight: classifyTopicWeight(userMessage, detectedEmotion),
+        engagement: engagementResult.value,
+        hasEvidence: detectEvidence(userMessage),
+        isBreakthrough: detectBreakthrough(userMessage),
+        hasHesitation: detectHesitation(userMessage),
+        isEmotional: detectEmotionalContent(userMessage),
+        isHeavy: detectHeavyContent(userMessage),
+        confidence: (energyResult.confidence + engagementResult.confidence) / 2,
+    };
+    log.debug({ analysis, messageLength: userMessage.length }, 'Message analyzed');
+    return analysis;
+}
+// ============================================================================
+// EXPORTS
+// ============================================================================
+export default {
+    // Energy
+    detectUserEnergy,
+    detectUserEnergyDetailed,
+    // Topic weight
+    classifyTopicWeight,
+    // Content detection
+    detectEmotionalContent,
+    detectHeavyContent,
+    detectHeavyContentKeywords,
+    detectEvidence,
+    detectBreakthrough,
+    detectAdviceGiving,
+    // Engagement
+    detectDisengagement,
+    detectHighEngagement,
+    detectHesitation,
+    detectEngagementLevel,
+    // Composite
+    analyzeMessage,
+    // Pattern constants (for testing/extension)
+    HIGH_ENERGY_PATTERNS,
+    LOW_ENERGY_PATTERNS,
+    EMOTIONAL_CONTENT_PATTERNS,
+    HEAVY_CONTENT_PATTERNS,
+    HEAVY_CONTENT_KEYWORDS,
+    LIGHT_CONTENT_PATTERNS,
+    EVIDENCE_PATTERNS,
+    BREAKTHROUGH_PATTERNS,
+    ADVICE_PATTERNS,
+    DISENGAGEMENT_PATTERNS,
+    HIGH_ENGAGEMENT_PATTERNS,
+    DEEP_SHARING_PATTERNS,
+    HESITATION_PATTERNS,
+};
+//# sourceMappingURL=detection.js.map

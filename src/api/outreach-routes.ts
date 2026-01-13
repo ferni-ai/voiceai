@@ -304,7 +304,8 @@ export async function handleOutreachRoutes(
           id: checkinItem.id,
           type: checkinItem.type,
           iconType: iconTypes[checkinItem.type] || 'heart',
-          preview: checkinItem.message.slice(0, 50) + (checkinItem.message.length > 50 ? '...' : ''),
+          preview:
+            checkinItem.message.slice(0, 50) + (checkinItem.message.length > 50 ? '...' : ''),
           fullMessage: checkinItem.message,
           priority: checkinItem.priority,
           personaId: checkinItem.personaId || 'ferni',

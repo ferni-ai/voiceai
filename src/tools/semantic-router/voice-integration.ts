@@ -778,12 +778,26 @@ export async function routeVoiceInput(
     const emotionContext: EmotionContext = {
       primary: context.detectedEmotion.emotion,
       intensity: context.detectedEmotion.intensity,
-      valence: context.detectedEmotion.valence,
-      source: context.detectedEmotion.source,
     };
-    
+
     // Apply emotion-based boosts to tool matches
-    routingResult.matches = applyEmotionBoosts(routingResult.matches, emotionContext);
+    // Map ToolMatch (confidence) to ScoredToolMatch (score) format
+    const scoredMatches = routingResult.matches.map(m => ({
+      toolId: m.toolId,
+      score: m.confidence,
+      domain: m.metadata?.domain as string | undefined,
+      category: m.metadata?.category as string | undefined,
+    }));
+    const boostedMatches = applyEmotionBoosts(scoredMatches, emotionContext);
+    // Map boosted scores back to confidence
+    for (let i = 0; i < routingResult.matches.length; i++) {
+      const boosted = boostedMatches.find(b => b.toolId === routingResult.matches[i].toolId);
+      if (boosted) {
+        routingResult.matches[i].confidence = boosted.score;
+      }
+    }
+    // Re-sort by confidence
+    routingResult.matches.sort((a, b) => b.confidence - a.confidence);
     
     log.debug(
       { emotion: emotionContext.primary, matchCount: routingResult.matches.length },
@@ -802,9 +816,25 @@ export async function routeVoiceInput(
       durationDays: 1,
       startedAt: new Date().toISOString(),
     };
-    
-    routingResult.matches = applyTrajectoryBoosts(routingResult.matches, [trajectoryArc]);
-    
+
+    // Map ToolMatch (confidence) to ScoredToolMatch (score) format for trajectory boosts
+    const scoredMatchesForTrajectory = routingResult.matches.map(m => ({
+      toolId: m.toolId,
+      score: m.confidence,
+      domain: m.metadata?.domain as string | undefined,
+      category: m.metadata?.category as string | undefined,
+    }));
+    const trajectoryBoostedMatches = applyTrajectoryBoosts(scoredMatchesForTrajectory, [trajectoryArc]);
+    // Map boosted scores back to confidence
+    for (let i = 0; i < routingResult.matches.length; i++) {
+      const boosted = trajectoryBoostedMatches.find(b => b.toolId === routingResult.matches[i].toolId);
+      if (boosted) {
+        routingResult.matches[i].confidence = boosted.score;
+      }
+    }
+    // Re-sort by confidence
+    routingResult.matches.sort((a, b) => b.confidence - a.confidence);
+
     log.debug(
       { trajectory: trajectoryArc.direction, needsAttention: emotionalArc.needsAttention },
       '📈 Applied trajectory-based tool boosts'

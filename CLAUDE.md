@@ -113,6 +113,35 @@ LiveKit dispatches jobs to ALL registered workers. If local dev and GCE producti
 
 With separate projects, your local dev is completely isolated from production.
 
+## 🔐 Critical Environment Variables (MANDATORY)
+
+The GCE voice agent **requires** these environment variables. Missing any will cause immediate startup failure with clear error messages:
+
+| Variable | Purpose | Required In |
+|----------|---------|-------------|
+| `GOOGLE_CLOUD_PROJECT` | Firestore persistence | Production |
+| `LIVEKIT_URL` | Voice agent connection | All |
+| `LIVEKIT_API_KEY` | LiveKit authentication | All |
+| `LIVEKIT_API_SECRET` | LiveKit authentication | All |
+| `OPENAI_API_KEY` | LLM for conversations | All |
+| `CARTESIA_API_KEY` | Text-to-speech | All |
+
+### How These Are Set
+
+- **Deploy script**: `ferni deploy gce` automatically fetches secrets from GCP Secret Manager and adds `GOOGLE_CLOUD_PROJECT`
+- **Container startup**: Fast-fail validation at the very start if any critical var is missing
+- **Post-deploy check**: Verifies the running container has the right env vars before promoting to production
+
+### If You See "Missing GOOGLE_CLOUD_PROJECT"
+
+This means the container was started manually without all required env vars. Fix with:
+
+```bash
+ferni deploy gce  # Redeploy with all env vars
+```
+
+**NEVER** start containers manually with `docker run`. Always use `ferni deploy gce`.
+
 ## 🌐 Production Deployment (Blue-Green)
 
 **⚠️ ALWAYS use the Ferni CLI** - it's intelligent and handles blue-green deployment with health checks:
@@ -519,6 +548,94 @@ ferni: {
 3. Run `pnpm tokens:sync`
 4. Run `pnpm brand:check`
 
+## 📝 Developer Blog (developers.ferni.ai/blog)
+
+Content management for the developer-facing blog. All posts live in `apps/website/ferni-website/src/dev-blog/`.
+
+### Quick Commands
+
+```bash
+# Content generation
+pnpm devblog:changelog          # Generate changelog post from git release
+pnpm devblog:changelog:dry      # Preview changelog (don't create file)
+
+# Image generation
+pnpm devblog:image              # Generate single OG image (interactive)
+pnpm devblog:images:batch       # Generate OG images for all posts
+
+# Newsletter & Social
+pnpm devblog:newsletter         # Generate weekly digest newsletter
+pnpm devblog:newsletter:preview # Preview newsletter without saving
+pnpm devblog:social             # Generate social snippets for recent posts
+pnpm devblog:social:batch       # Generate snippets for all posts
+```
+
+### Via Ferni CLI
+
+```bash
+ferni devblog changelog v1.2.3  # Generate changelog for version
+ferni devblog images            # Batch generate OG images
+ferni devblog newsletter        # Generate weekly newsletter
+ferni devblog social            # Generate social snippets
+```
+
+### File Structure
+
+| Path | Purpose |
+|------|---------|
+| `apps/website/ferni-website/src/dev-blog/*.md` | Blog posts (frontmatter + markdown) |
+| `apps/website/ferni-website/images/dev-blog/*.png` | OG images (1200x630) |
+| `apps/website/ferni-website/social-snippets/*.json` | Social media snippets |
+| `apps/website/ferni-website/newsletters/*.html` | Generated newsletters |
+| `brand/docs/DEVELOPER-BLOG-365-PLAN.md` | Content strategy & calendar |
+| `brand/docs/CONTENT-CALENDAR-TEMPLATE.md` | Weekly planning template |
+
+### Adding a New Post
+
+1. Create `apps/website/ferni-website/src/dev-blog/your-post.md` with frontmatter:
+
+```yaml
+---
+title: "Your Post Title"
+excerpt: "Brief description for cards and SEO"
+author: "Your Name"
+authorInitials: "YN"
+authorColor: "#38bdf8"
+date: 2026-01-12
+category: "Tutorial"
+image: "your-post.png"
+readTime: 5
+---
+```
+
+2. Generate OG image: `pnpm devblog:image --title "Your Post Title" --category tutorial`
+
+3. Build site: `cd apps/website/ferni-website && npx @11ty/eleventy`
+
+### Categories
+
+| Category | Color | Use For |
+|----------|-------|---------|
+| Tutorial | Cyan | Step-by-step guides |
+| Changelog | Emerald | Release notes |
+| Deep Dive | Violet | Architecture, internals |
+| Case Study | Amber | Customer stories |
+| Community | Pink | Community spotlights |
+| Quick Tip | Blue | Short tips, snippets |
+
+### RSS Feeds
+
+- Atom: `https://developers.ferni.ai/developers/blog/feed.xml`
+- JSON: `https://developers.ferni.ai/developers/blog/feed.json`
+
+### GitHub Action (Automated Changelog)
+
+The `.github/workflows/dev-blog-changelog.yml` action automatically:
+1. Generates a changelog post when a release is published
+2. Creates an OG image for the release
+3. Commits and pushes the new post
+4. Posts to Slack (if configured)
+
 ## 🔌 Agent Extensibility System
 
 Extend personas with custom commands, hooks, MCP servers, and embeddable widgets. **All extensions are opt-in and per-persona.**
@@ -644,6 +761,7 @@ toast.success('Operation completed successfully');
 - **Tool Loading**: `docs/architecture/TOOL-LOADING-SYSTEM.md` (how tools get to Gemini, config files, debugging)
 - **Memory Management**: `docs/architecture/MEMORY-MANAGEMENT.md` (stateless Node, caching, cleanup)
 - **Pre-STT Audio Enhancement**: `docs/architecture/PRE-STT-AUDIO-ENHANCEMENT.md` (Rust DSP, AGC, noise suppression, bandwidth extension)
+- **DJ/Music System**: `src/audio/CLAUDE.md` (DJController state machine, decision/speech/timing engines)
 - **Tool/Persona patterns**: `docs/architecture/AGENT-AGNOSTIC-ARCHITECTURE.md`
 - **Agent Extensibility**: `docs/architecture/AGENT-EXTENSIBILITY.md` (commands, hooks, MCP, widgets)
 - **Cross-Persona Intelligence**: `docs/architecture/CROSS-PERSONA-INTELLIGENCE.md` (team coordination, superhuman services)
@@ -999,6 +1117,30 @@ Ferni uses a **custom JSON-based function calling workaround** because Gemini Li
 🚨 TOOL CALL LEAKAGE DETECTED     # Bad - LLM spoke instead of calling
 ```
 
+### Full Response Logging (Debug Mode)
+
+By default, long responses (LLM output, TTS text, tool results) are **truncated in logs** to keep output manageable. To see **full, untruncated responses**:
+
+```bash
+# Enable full response logging (WARNING: produces large log output!)
+LOG_FULL_RESPONSES=true pnpm dev
+```
+
+| Env Variable | Default | Effect |
+|--------------|---------|--------|
+| `LOG_FULL_RESPONSES` | `false` | When `true`, disables truncation of LLM responses, TTS text, and tool results in logs |
+
+**Use this when:**
+- Debugging why speech sounds wrong (e.g., SSML tags being spoken)
+- Tracing tool call arguments and results
+- Investigating conversation flow issues
+
+**Key log traces affected:**
+- `E2E_LLM_OUTPUT` - Raw LLM response
+- `E2E_TTS_OUTPUT` - Final text sent to TTS
+- `E2E_USER_INPUT` - User transcript
+- `E2E_TOOL_SUCCESS` - Tool execution results
+
 ### Quick Validation
 
 ```bash
@@ -1141,6 +1283,61 @@ Level 10-30 (Infrastructure):
   utils/            → Shared utilities
   types/            → Type definitions
 ```
+
+## 🎧 DJ/Music Architecture (January 2026 Refactor)
+
+The DJ system uses a **state machine architecture** with single source of truth:
+
+```
+┌─────────────────────┐
+│    DJController     │  ← Single source of truth for ALL DJ state
+│   (State Machine)   │
+└─────────────────────┘
+          │
+   ┌──────┼──────┐
+   ▼      ▼      ▼
+┌─────┐ ┌─────┐ ┌─────┐
+│Decn │ │Spch │ │Time │   ← Pure function engines
+│Engn │ │Engn │ │Engn │
+└─────┘ └─────┘ └─────┘
+          │
+          ▼
+┌─────────────────────┐
+│    MusicPlayer      │  ← Low-level playback only
+└─────────────────────┘
+```
+
+| Component | File | Purpose |
+|-----------|------|---------|
+| **DJController** | `src/audio/dj-controller.ts` | State machine (idle→playing→ducking→fading→stopped) |
+| **DecisionEngine** | `src/audio/dj-decision-engine.ts` | Pure functions: when to duck, speak, interject |
+| **SpeechEngine** | `src/audio/dj-speech-engine.ts` | What to say: phrases, intros, outros |
+| **TimingEngine** | `src/audio/dj-timing-engine.ts` | Timer management for scheduled moments |
+| **MusicPlayer** | `src/audio/music-player.ts` | Low-level playback (LiveKit/Spotify) |
+
+### Usage
+
+```typescript
+// Get controller (singleton)
+import { getDJController } from './audio/dj-controller.js';
+const controller = getDJController();
+
+// Dispatch commands (the ONLY way to change state)
+controller.dispatch({ type: 'PLAY_TRACK', track, isAmbient: false });
+controller.dispatch({ type: 'AGENT_SPEAKING_START' }); // Auto-ducks
+controller.dispatch({ type: 'AGENT_SPEAKING_END' });   // Auto-unducks
+
+// Query state
+const isActive = controller.isMusicActive();
+```
+
+### Legacy Files (DELETED - Don't Import!)
+
+- `dj-booth.ts` → Use `dj-controller.ts`
+- `dj-enhancements.ts` → Logic in decision/speech engines
+- `dj-integration.ts` → Logic in `music-handler.ts`
+
+See `src/audio/CLAUDE.md` for full documentation.
 
 ## Before Creating New Files
 
@@ -1306,12 +1503,146 @@ git commit --no-verify -m "EMERGENCY: ..."
 # Then IMMEDIATELY fix and redeploy properly
 ```
 
+## 🎯 Complete CLI Reference
+
+The Ferni CLI (`ferni`) provides comprehensive access to all development, deployment, and operations workflows. Run `ferni help` for full details.
+
+### Development Commands
+
+| Command | Description | Key Subcommands |
+|---------|-------------|-----------------|
+| `ferni dev` | Development workflow | start, stop, restart, status, ports |
+| `ferni deploy` | Deploy services | gce, ui, frontend, landing, all |
+| `ferni build` | Build applications | frontend, electron, ios, android |
+| `ferni test` | Run test suites | unit, e2e, storage, quick, all |
+| `ferni setup` | Configure environment | local, icons, firestore, secrets |
+| `ferni quality` | Code quality checks | all, typecheck, lint, test, audit |
+| `ferni pr` | Pull request workflow | create, check, list, merge |
+| `ferni release` | Release management | create, changelog, tag, notes |
+| `ferni migrate` | Database migrations | status, run, rollback, create |
+| `ferni deps` | Dependency management | audit, outdated, update, cleanup |
+| `ferni devblog` | Developer blog | new, preview, publish, validate |
+| `ferni icons` | Generate icons | favicons, smile-gif, app-icons, all |
+
+### Operations Commands
+
+| Command | Description | Key Subcommands |
+|---------|-------------|-----------------|
+| `ferni status` | Deployment status | services, revisions, traffic |
+| `ferni logs` | View & analyze logs | agent, ui, errors, analyze, gce |
+| `ferni doctor` | System diagnostics | all, apis, quotas, billing, env |
+| `ferni db` | Database operations | status, backup, migrate, query |
+| `ferni env` | Environment variables | list, diff, check, sync, secrets |
+| `ferni ops` | Operational tasks | zombies, health, semantic, scheduler |
+| `ferni users` | User data management | list, show, dump, cleanup, grant |
+| `ferni data` | Data analysis | profiles, behaviors, tools, contacts |
+| `ferni waitlist` | Manage waitlist | list, approve, stats, export |
+| `ferni disk` | GCE disk management | status, clean, setup-cron |
+| `ferni secrets` | Secret management | list, check, rotate, sync, audit |
+
+### Quality & Agents Commands
+
+| Command | Description | Key Subcommands |
+|---------|-------------|-----------------|
+| `ferni agents` | Manage AI agents | new, list, show, validate, install |
+| `ferni agent` | Custom agents | create, list, voice, memory, deploy |
+| `ferni personas` | Manage personas | list, show, validate, generate |
+| `ferni tools` | LLM tools | list, show, validate, stats, test |
+| `ferni voices` | Voice/TTS management | list, preview, validate |
+| `ferni validate` | Validation checks | voices, humanization, integrations |
+| `ferni audit` | Architecture audits | quality, architecture, bth, tools |
+| `ferni smoke` | Smoke tests | api, livekit, gemini, tools, all |
+| `ferni tokens` | Design tokens | sync, check, version, brand |
+
+### Platform Oversight Commands
+
+| Command | Description | Key Subcommands |
+|---------|-------------|-----------------|
+| `ferni rollback` | Rollback deploys | gce, agent, ui, status |
+| `ferni metrics` | Platform metrics | live, latency, errors, throughput |
+| `ferni sessions` | Session analytics | active, history, stats, users |
+| `ferni traffic` | Traffic management | status, canary, split, rollout |
+| `ferni alerts` | Alert management | list, active, silence, acknowledge |
+| `ferni oncall` | On-call rotation | who, schedule, handoff, escalate |
+| `ferni calls` | Test phone calls | test, status, family, invite |
+| `ferni runtime` | Container diagnostics | status, memory, sessions, health |
+
+### CEO Features (Personal Assistant)
+
+| Command | Description | Key Subcommands |
+|---------|-------------|-----------------|
+| `ferni goals` | Track your goals | list, add, complete, progress |
+| `ferni roster` | Leadership team info | show, maya, alex, jordan, peter |
+| `ferni remember` | Add notes for Ferni | (just the text) |
+| `ferni brain` | What Ferni knows | show, summary, delete |
+| `ferni briefing` | Morning briefing | today, tomorrow, week |
+| `ferni focus` | Start a focus session | start, stop, status, history |
+| `ferni reflect` | End-of-day reflection | today, prompts, history |
+| `ferni weekly` | Weekly review | review, plan, last |
+| `ferni wins` | Log achievements | add, list, today, week, celebrate |
+| `ferni habits` | Track habits | add, list, check, streak, delete |
+| `ferni energy` | Log energy levels | log, today, week, history |
+| `ferni journal` | Quick journal entries | add, list, today, week |
+| `ferni gratitude` | Gratitude logging | add, list, today, week |
+| `ferni decisions` | Track decisions | add, list, pending, outcome |
+| `ferni priorities` | Manage priorities | list, add, reorder, complete, clear |
+| `ferni blockers` | Track blockers | add, list, resolve, active |
+| `ferni ideas` | Capture ideas | add, list, tag, random |
+| `ferni ask` | Ask Ferni anything | (just ask your question) |
+| `ferni coach` | AI coaching | career, relationship, mindset, health |
+| `ferni meetings` | Meeting notes | add, list, today, week, search |
+
+### Quick Examples
+
+```bash
+# Development
+ferni dev start           # Start local dev servers
+ferni deploy gce          # Deploy voice agent to GCE
+ferni test quick          # Run quick test suite
+ferni quality             # Full quality check
+
+# Operations
+ferni logs agent --tail   # Stream agent logs
+ferni ops zombies         # Check for zombie revisions
+ferni audit bth           # Audit Better Than Human features
+
+# Platform
+ferni status              # Check all services
+ferni oncall who          # Who's on call?
+ferni traffic canary 10   # Canary 10% traffic
+
+# CEO Features - Daily Workflow
+ferni briefing            # Morning briefing with calendar & priorities
+ferni focus start 90      # Start a 90-minute focus session
+ferni reflect             # End-of-day reflection prompts
+ferni weekly              # Weekly review and planning
+
+# CEO Features - Personal Tracking
+ferni goals               # View your goals
+ferni wins "Shipped v2!"  # Log an achievement
+ferni habits check sleep  # Mark a habit as done
+ferni energy 8            # Log your energy level (1-10)
+ferni journal "Great day" # Quick journal entry
+ferni gratitude "Sunshine"# Log something you're grateful for
+
+# CEO Features - Decision Support
+ferni brain               # What does Ferni know about you?
+ferni decisions add "..."  # Track a decision
+ferni priorities          # View your current priorities
+ferni blockers add "..."  # Track a blocker
+ferni ideas "New feature" # Capture an idea
+
+# CEO Features - AI Coaching
+ferni ask "How do I..."   # Ask Ferni anything
+ferni coach career        # Career coaching session
+```
+
 ## Subdirectory CLAUDE.md Files
 
 **Core Modules:**
 - `src/agents/CLAUDE.md` - Voice agent development
 - `src/conversation/CLAUDE.md` - Humanization subsystem (26K+ lines)
-- `src/audio/CLAUDE.md` - DJ Booth, music player, preference learning
+- `src/audio/CLAUDE.md` - DJ Controller architecture, music player, preference learning
 - `src/tasks/CLAUDE.md` - Task system, emotion-aware execution
 - `src/servers/CLAUDE.md` - Token server, OAuth, API routes
 
@@ -1347,3 +1678,22 @@ git commit --no-verify -m "EMERGENCY: ..."
 | Tool domains | 118 |
 | AI personas | 6 |
 | Superhuman services | 45 |
+
+---
+
+## 🎯 Seth's Preferences
+
+- **Always start local dev servers** when beginning a coding session
+- Start all 4 servers in background so logs can be watched in terminals:
+  1. Token Server (port 3001)
+  2. UI Server (port 3002)
+  3. Vite Dev Server (port 3004)
+  4. Voice Agent (LiveKit worker)
+
+```bash
+# Quick start all servers (run in background)
+pnpm token-server &                       # Token Server (3001)
+pnpm ui-server &                          # UI Server (3002)
+cd apps/web && pnpm dev &                 # Vite (3004)
+pnpm dev &                                # Voice Agent (LiveKit worker)
+```

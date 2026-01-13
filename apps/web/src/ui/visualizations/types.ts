@@ -67,7 +67,14 @@ export type VisualizationType =
   | 'silence'
   | 'correlations'
   | 'fingerprint'
-  | 'contradictions';
+  | 'contradictions'
+  // Tufte-inspired additions (Phase 1)
+  | 'sparkline'
+  | 'micro-trend'
+  // Superhuman capability visualizations (Phase 1)
+  | 'energy-wave'
+  | 'social-battery'
+  | 'celebration-wheel';
 
 // ============================================================================
 // DATA TYPES - Shared across platforms

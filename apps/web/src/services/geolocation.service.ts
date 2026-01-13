@@ -42,6 +42,7 @@
  */
 
 import { createLogger } from '../utils/logger.js';
+import { getApiHeadersAsync } from '../utils/api.js';
 import { getUserTimezone } from './timezone.service.js';
 
 const log = createLogger('GeolocationService');
@@ -353,12 +354,12 @@ async function syncLocationToBackend(location: LocationData): Promise<boolean> {
   }
 
   try {
+    // Use getApiHeadersAsync for proper Firebase auth
+    const authHeaders = await getApiHeadersAsync(true);
+    
     const response = await fetch('/api/user/location', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-User-Id': userId,
-      },
+      headers: authHeaders,
       body: JSON.stringify({
         userId,
         ...location,

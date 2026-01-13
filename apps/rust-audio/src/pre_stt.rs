@@ -674,7 +674,9 @@ pub struct PreSTTProcessor {
 
 impl PreSTTProcessor {
     pub fn new(config: PreSTTConfig) -> Self {
-        let sample_rate = if config.input_is_8khz { 8000 } else { config.sample_rate };
+        // Note: sample_rate computed for potential 8kHz handling but components
+        // currently use config.sample_rate directly. Prefixed to suppress warning.
+        let _sample_rate = if config.input_is_8khz { 8000 } else { config.sample_rate };
 
         Self {
             agc: AutoGainControl::new(config.sample_rate),

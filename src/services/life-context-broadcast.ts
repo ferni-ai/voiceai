@@ -43,12 +43,18 @@ class LifeContextBroadcast extends EventEmitter {
   private userLastScan = new Map<string, number>();
   private userPreviousSnapshot = new Map<string, LifeContextSnapshot>();
   private scanIntervals = new Map<string, NodeJS.Timeout>();
+  private activeUsers = new Set<string>();
   private readonly scanIntervalMs = 2 * 60 * 1000; // 2 minutes - more frequent for life context
   private readonly minScanGapMs = 30 * 1000; // 30 seconds minimum between scans
 
   constructor() {
     super();
     log.info('LifeContextBroadcast service initialized');
+  }
+
+  /** Get interval name for a user */
+  private getIntervalName(userId: string): string {
+    return `life-context-${userId}`;
   }
 
   /**

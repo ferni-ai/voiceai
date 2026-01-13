@@ -256,3 +256,4 @@ export function isAntiPattern(content, personaId) {
     const lowerContent = content.toLowerCase();
     return persona.antiPatterns.some((pattern) => lowerContent.includes(pattern.toLowerCase()));
 }
+//# sourceMappingURL=brand-hooks.js.map

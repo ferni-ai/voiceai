@@ -108,6 +108,9 @@ import {
 import { analyzeHandoffForJordan } from './handoff-analysis.js';
 import { formatJordanBriefing } from './formatting.js';
 
+// Cross-Domain: CEO Coaching wins for celebration opportunities
+import { getRecentWins } from '../../../../tools/domains/ceo-coaching/storage.js';
+
 import type { JordanInsightBriefing } from './types.js';
 import {
   DEFAULT_GOALS_OVERVIEW,
@@ -138,6 +141,7 @@ async function buildJordanBriefing(userId: string): Promise<JordanInsightBriefin
     memoryInsights,
     milestoneCalendarSync,
     alexCoordinationContext,
+    ceoWins,
   ] = await Promise.all([
     analyzeGoalsOverview(userId).catch((e) => {
       log.warn({ error: String(e) }, 'Failed to analyze goals overview');
@@ -163,6 +167,8 @@ async function buildJordanBriefing(userId: string): Promise<JordanInsightBriefin
     buildMilestoneCalendarContext(userId).catch(() => null),
     // Cross-Persona: Jordan ↔ Alex coordination
     getCoordinationContext(userId, []).catch(() => null),
+    // Cross-Domain: CEO Coaching wins for celebration
+    getRecentWins(userId, 7).catch(() => []),
   ]);
 
   // Compute planning metrics
@@ -182,7 +188,8 @@ async function buildJordanBriefing(userId: string): Promise<JordanInsightBriefin
   const celebrationOpportunities = detectCelebrationOpportunities(
     goalsOverview,
     planningMetrics,
-    memoryInsights
+    memoryInsights,
+    ceoWins // Cross-Domain: Include CEO coaching wins
   );
 
   // Build partial briefing for proactive discoveries
@@ -225,6 +232,7 @@ async function buildJordanMilestoneInsightsContext(
   const isJordan = [
     'jordan',
     'jordan-chen',
+    'jordan-taylor',
     'event-planner',
     'milestone',
     'celebration',

@@ -95,12 +95,20 @@ export interface CoordinatorStats {
 /**
  * Calculates adaptive timing parameters based on observed patterns.
  * No hardcoded values - learns from actual speech patterns.
+ *
+ * CRITICAL FIX (2026-01-10): Added content-aware echo detection to prevent
+ * blocking legitimate user requests. The old algorithm only used timing,
+ * which caused "Could you check the news?" to be blocked as potential echo.
  */
 class AdaptiveTimingCalculator {
   private speechDurations: number[] = [];
   private echoDelays: number[] = [];
   private pacingGaps: number[] = [];
   private lastSpeechEndTime = 0;
+
+  // Track recent agent speech for echo comparison
+  private recentAgentSpeech: string[] = [];
+  private readonly MAX_RECENT_SPEECH = 5;
 
   // Defaults based on typical voice patterns (will be overridden by learning)
   private readonly INITIAL_COOLDOWN = 300; // Will adapt
@@ -110,10 +118,18 @@ class AdaptiveTimingCalculator {
   /**
    * Record a speech event for learning
    */
-  recordSpeech(durationMs: number): void {
+  recordSpeech(durationMs: number, spokenText?: string): void {
     this.speechDurations.push(durationMs);
     if (this.speechDurations.length > this.MAX_SAMPLES) {
       this.speechDurations.shift();
+    }
+
+    // Track recent agent speech for echo comparison
+    if (spokenText) {
+      this.recentAgentSpeech.push(spokenText.toLowerCase().trim());
+      if (this.recentAgentSpeech.length > this.MAX_RECENT_SPEECH) {
+        this.recentAgentSpeech.shift();
+      }
     }
 
     // Record gap from last speech for pacing
@@ -165,23 +181,135 @@ class AdaptiveTimingCalculator {
   }
 
   /**
-   * Calculate echo prevention window for a specific utterance
-   * INTELLIGENT: Based on utterance length, not hardcoded
+   * Calculate echo prevention window for a specific utterance.
+   *
+   * CRITICAL FIX: Now content-aware! Long, complete sentences that don't
+   * match recent agent speech are trusted as legitimate user input.
+   *
+   * @param utteranceDurationMs - Duration of the last agent utterance
+   * @param userTranscript - Optional: the user's transcript to check if it's echo
+   * @returns Echo prevention window in milliseconds
    */
-  getEchoWindowForUtterance(utteranceDurationMs: number): number {
+  getEchoWindowForUtterance(utteranceDurationMs: number, userTranscript?: string): number {
+    // CRITICAL FIX: Content-aware echo detection
+    // If we have the transcript, check if it looks like a legitimate new request
+    if (userTranscript) {
+      const isLikelyLegitimate = this.isLikelyLegitimateRequest(userTranscript);
+      if (isLikelyLegitimate) {
+        log.debug(
+          { transcript: userTranscript.slice(0, 30), reason: 'content-aware bypass' },
+          '✅ Echo prevention bypassed - legitimate user request detected'
+        );
+        return 300; // Minimal window - trust this is a real utterance
+      }
+    }
+
     const timing = this.getTiming();
 
     // Base: learned echo delay with buffer
     const baseWindow = timing.avgEchoDelayMs * 1.5;
 
     // Proportional: longer utterances need longer windows (more reverb)
-    const proportional = utteranceDurationMs * 0.2; // 20% of utterance
+    // REDUCED from 0.2 to 0.15 to be less aggressive
+    const proportional = utteranceDurationMs * 0.15;
 
     // Combined, with reasonable bounds
+    // REDUCED max from 3000ms to 2000ms - 3s was too long
     return Math.max(
       300, // Minimum 300ms
-      Math.min(baseWindow + proportional, 3000) // Maximum 3s
+      Math.min(baseWindow + proportional, 2000) // Maximum 2s (was 3s)
     );
+  }
+
+  /**
+   * Check if a transcript is likely a legitimate user request (not echo).
+   *
+   * Legitimate requests typically:
+   * 1. Are longer than typical echo fragments (>15 chars)
+   * 2. Don't match recent agent speech
+   * 3. Are complete sentences/questions (especially those ending with ?)
+   * 4. Contain unique content not in recent agent speech
+   * 5. Start with question words or interjections
+   */
+  private isLikelyLegitimateRequest(transcript: string): boolean {
+    const normalized = transcript.toLowerCase().trim();
+
+    // Questions are almost always legitimate user input
+    // Users don't just echo back questions - they answer them
+    if (normalized.endsWith('?')) {
+      // Even short questions like "what?" or "really?" are legitimate
+      if (normalized.length >= 5) {
+        log.debug(
+          { transcript: normalized.slice(0, 30) },
+          '✅ Question detected - likely legitimate request'
+        );
+        return true;
+      }
+    }
+
+    // Interjections and reactions are typically user-initiated
+    const REACTION_PATTERNS = [
+      /^(wait|hold on|actually|no|yes|yeah|what|huh|really|okay|oh|hmm|um)/i,
+      /^(are you|do you|can you|could you|would you|will you|is it|is that)/i,
+      /^(tell me|show me|help me|let me|give me)/i,
+    ];
+    for (const pattern of REACTION_PATTERNS) {
+      if (pattern.test(normalized)) {
+        log.debug(
+          { transcript: normalized.slice(0, 30), pattern: pattern.toString() },
+          '✅ Reaction/question pattern detected - likely legitimate request'
+        );
+        return true;
+      }
+    }
+
+    // Short transcripts without question marks or known patterns - use timing-based
+    // Reduced from 25 to 15 chars to be less aggressive
+    if (normalized.length < 15) {
+      return false;
+    }
+
+    // Check if it matches or is contained in recent agent speech
+    for (const agentSpeech of this.recentAgentSpeech) {
+      // Exact match = definitely echo
+      if (agentSpeech.includes(normalized) || normalized.includes(agentSpeech)) {
+        log.debug(
+          { transcript: normalized.slice(0, 30) },
+          '🔊 Matches recent agent speech - likely echo'
+        );
+        return false;
+      }
+
+      // High word overlap = likely echo (raised threshold from 0.6 to 0.7)
+      const overlap = this.calculateWordOverlap(normalized, agentSpeech);
+      if (overlap > 0.7) {
+        log.debug(
+          { transcript: normalized.slice(0, 30), overlap: overlap.toFixed(2) },
+          '🔊 High word overlap with agent speech - likely echo'
+        );
+        return false;
+      }
+    }
+
+    // Looks like a new, distinct request
+    return true;
+  }
+
+  /**
+   * Calculate word overlap between two strings (0-1).
+   */
+  private calculateWordOverlap(a: string, b: string): number {
+    const wordsA = new Set(a.split(/\s+/).filter((w) => w.length > 2));
+    const wordsB = new Set(b.split(/\s+/).filter((w) => w.length > 2));
+
+    if (wordsA.size === 0 || wordsB.size === 0) return 0;
+
+    let overlap = 0;
+    for (const word of wordsA) {
+      if (wordsB.has(word)) overlap++;
+    }
+
+    return overlap / Math.min(wordsA.size, wordsB.size);
   }
 
   private average(arr: number[]): number {
@@ -224,7 +352,7 @@ export class SpeechCoordinator {
 
   /**
    * Attach a session to the coordinator.
-   * 
+   *
    * HANDOFF FIX: If coordinator is stuck in SPEAKING state from a previous session,
    * reset to IDLE and process queue. This happens during handoffs when the old
    * session is replaced before its onSpeechEnded callback fires.
@@ -232,9 +360,9 @@ export class SpeechCoordinator {
   attachSession(session: voice.AgentSession): void {
     const wasInSpeakingState = this.state === CoordinatorState.SPEAKING;
     const hadPendingRequests = this.queue.length > 0;
-    
+
     this.session = session;
-    
+
     // HANDOFF FIX: If we're replacing a session that was speaking,
     // the onSpeechEnded callback from the old session won't fire.
     // Reset state to IDLE so queued requests can be processed.
@@ -246,18 +374,21 @@ export class SpeechCoordinator {
       this.currentRequest = null;
       this.transitionTo(CoordinatorState.IDLE);
     }
-    
+
     log.info(
       { queueLength: this.queue.length, wasInSpeakingState },
       'Session attached to speech coordinator'
     );
-    
+
     // Process any pending queue items after a brief delay
     // (allows the new session to fully initialize)
     if (hadPendingRequests || wasInSpeakingState) {
       setTimeout(() => {
         if (this.state === CoordinatorState.IDLE && this.queue.length > 0) {
-          log.info({ queueLength: this.queue.length }, '🔄 Processing pending speech queue after session attach');
+          log.info(
+            { queueLength: this.queue.length },
+            '🔄 Processing pending speech queue after session attach'
+          );
           this.processQueue();
         }
       }, 100);
@@ -385,11 +516,18 @@ export class SpeechCoordinator {
   }
 
   /**
-   * Get echo prevention window for current context
+   * Get echo prevention window for current context.
+   *
+   * CRITICAL FIX: Now content-aware! Pass userTranscript to enable
+   * intelligent detection of legitimate requests vs echoes.
+   *
+   * @param lastUtteranceDurationMs - Duration of last agent utterance
+   * @param userTranscript - The user's transcript (for content-aware detection)
    */
-  getEchoWindow(lastUtteranceDurationMs?: number): number {
+  getEchoWindow(lastUtteranceDurationMs?: number, userTranscript?: string): number {
     return this.timing.getEchoWindowForUtterance(
-      lastUtteranceDurationMs ?? this.timing.getTiming().avgSpeechDurationMs
+      lastUtteranceDurationMs ?? this.timing.getTiming().avgSpeechDurationMs,
+      userTranscript
     );
   }
 
@@ -410,9 +548,13 @@ export class SpeechCoordinator {
 
   /**
    * Notify that speech ended (call from session state handler)
+   *
+   * @param wasInterrupted - Whether the speech was interrupted
+   * @param durationMs - Duration of the speech in milliseconds
+   * @param spokenText - Optional: the text that was spoken (for echo comparison)
    */
-  onSpeechEnded(wasInterrupted: boolean, durationMs: number): void {
-    this.timing.recordSpeech(durationMs);
+  onSpeechEnded(wasInterrupted: boolean, durationMs: number, spokenText?: string): void {
+    this.timing.recordSpeech(durationMs, spokenText);
 
     if (this.currentRequest?.onEnd) {
       this.currentRequest.onEnd(wasInterrupted);
@@ -526,7 +668,13 @@ export class SpeechCoordinator {
       });
       // Note: onSpeechEnded() will be called by session state handler
     } catch (error) {
-      log.error({ error: String(error), id: request.id }, 'Speech failed');
+      const errorStr = String(error);
+      // Expected error when session disconnects - use debug level
+      if (errorStr.includes('AgentSession is not running')) {
+        log.debug({ error: errorStr, id: request.id }, 'Speech skipped - session closed');
+      } else {
+        log.error({ error: errorStr, id: request.id }, 'Speech failed');
+      }
       this.currentRequest = null;
       this.transitionTo(CoordinatorState.IDLE);
       this.processQueue();

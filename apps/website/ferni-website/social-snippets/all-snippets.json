@@ -1,0 +1,587 @@
+[
+  {
+    "postFile": "authentication-deep-dive.md",
+    "title": "Authentication Deep Dive: OAuth, API Keys, and JWTs",
+    "date": "2026-01-13T00:00:00.000Z",
+    "snippets": {
+      "twitter": {
+        "platform": "twitter",
+        "text": "📚 Authentication Deep Dive: OAuth, API Keys, and JWTs\n\nhttps://developers.ferni.ai/developers/blog/authentication-deep-dive/\n\n#TechDeepDive #Engineering",
+        "length": null
+      },
+      "twitterThread": {
+        "platform": "twitter_thread",
+        "tweets": [
+          {
+            "text": "🧵 Authentication Deep Dive: OAuth, API Keys, and JWTs\n\nA thread on what you'll learn:\n\n👇",
+            "type": "hook"
+          },
+          {
+            "text": "A comprehensive guide to securing your Ferni integration - from simple API keys to enterprise SSO.\n\nLet's dive in...",
+            "type": "summary"
+          },
+          {
+            "text": "📖 Read the full post:\nhttps://developers.ferni.ai/developers/blog/authentication-deep-dive/\n\n#TechDeepDive #Engineering #VoiceAI",
+            "type": "cta"
+          }
+        ],
+        "totalTweets": 3
+      },
+      "linkedin": {
+        "platform": "linkedin",
+        "text": "Authentication Deep Dive: OAuth, API Keys, and JWTs\n\nA comprehensive guide to securing your Ferni integration - from simple API keys to enterprise SSO.\n\nThis is part of our ongoing series helping developers build with voice AI.\n\nKey takeaways:\n• Practical code examples you can use today\n• Real-world patterns from production systems\n• Best practices from the Ferni team\n\nRead the full post: https://developers.ferni.ai/developers/blog/authentication-deep-dive/\n\n#TechDeepDive #Engineering #VoiceAI",
+        "length": 498
+      },
+      "discord": {
+        "platform": "discord",
+        "text": "🔬 **Authentication Deep Dive: OAuth, API Keys, and JWTs**\n\nA comprehensive guide to securing your Ferni integration - from simple API keys to enterprise SSO.\n\n🔗 **Read more:** https://developers.ferni.ai/developers/blog/authentication-deep-dive/\n\n---\n*12 min read • Deep Dives*",
+        "length": 279
+      },
+      "threads": {
+        "platform": "threads",
+        "text": "Authentication Deep Dive: OAuth, API Keys, and JWTs\n\nA comprehensive guide to securing your Ferni integration - from simple API keys to enterprise SSO.\n\nRead more 👉 https://developers.ferni.ai/developers/blog/authentication-deep-dive/",
+        "length": 235
+      }
+    }
+  },
+  {
+    "postFile": "community-spotlight-healthtech.md",
+    "title": "Community Spotlight: Building Voice AI for Mental Health Support",
+    "date": "2026-01-15T00:00:00.000Z",
+    "snippets": {
+      "twitter": {
+        "platform": "twitter",
+        "text": "📚 Community Spotlight: Building Voice AI for Mental Health Support\n\nhttps://developers.ferni.ai/developers/blog/community-spotlight-healthtech/\n\n#DevCommunity #OpenSource",
+        "length": null
+      },
+      "twitterThread": {
+        "platform": "twitter_thread",
+        "tweets": [
+          {
+            "text": "🧵 Community Spotlight: Building Voice AI for Mental Health Support\n\nA thread on what you'll learn:\n\n👇",
+            "type": "hook"
+          },
+          {
+            "text": "How Sarah Chen built a voice-first therapy companion that's helping thousands of users practice mindfulness.\n\nLet's dive in...",
+            "type": "summary"
+          },
+          {
+            "text": "📖 Read the full post:\nhttps://developers.ferni.ai/developers/blog/community-spotlight-healthtech/\n\n#DevCommunity #OpenSource #VoiceAI",
+            "type": "cta"
+          }
+        ],
+        "totalTweets": 3
+      },
+      "linkedin": {
+        "platform": "linkedin",
+        "text": "Community Spotlight: Building Voice AI for Mental Health Support\n\nHow Sarah Chen built a voice-first therapy companion that's helping thousands of users practice mindfulness.\n\nThis is part of our ongoing series helping developers build with voice AI.\n\nKey takeaways:\n• Practical code examples you can use today\n• Real-world patterns from production systems\n• Best practices from the Ferni team\n\nRead the full post: https://developers.ferni.ai/developers/blog/community-spotlight-healthtech/\n\n#DevCommunity #OpenSource #VoiceAI",
+        "length": 526
+      },
+      "discord": {
+        "platform": "discord",
+        "text": "👥 **Community Spotlight: Building Voice AI for Mental Health Support**\n\nHow Sarah Chen built a voice-first therapy companion that's helping thousands of users practice mindfulness.\n\n🔗 **Read more:** https://developers.ferni.ai/developers/blog/community-spotlight-healthtech/\n\n---\n*8 min read • Community*",
+        "length": 306
+      },
+      "threads": {
+        "platform": "threads",
+        "text": "Community Spotlight: Building Voice AI for Mental Health Support\n\nHow Sarah Chen built a voice-first therapy companion that's helping thousands of users practice mindfulness.\n\nRead more 👉 https://developers.ferni.ai/developers/blog/community-spotlight-healthtech/",
+        "length": 264
+      }
+    }
+  },
+  {
+    "postFile": "error-handling-patterns.md",
+    "title": "Error Handling Patterns for Voice AI",
+    "date": "2026-01-16T00:00:00.000Z",
+    "snippets": {
+      "twitter": {
+        "platform": "twitter",
+        "text": "📚 Error Handling Patterns for Voice AI\n\nhttps://developers.ferni.ai/developers/blog/error-handling-patterns/\n\n#DevTips #CodeSnippets",
+        "length": null
+      },
+      "twitterThread": {
+        "platform": "twitter_thread",
+        "tweets": [
+          {
+            "text": "🧵 Error Handling Patterns for Voice AI\n\nA thread on what you'll learn:\n\n👇",
+            "type": "hook"
+          },
+          {
+            "text": "Beyond try/catch - building resilient voice applications that recover gracefully and keep users informed.\n\nLet's dive in...",
+            "type": "summary"
+          },
+          {
+            "text": "📖 Read the full post:\nhttps://developers.ferni.ai/developers/blog/error-handling-patterns/\n\n#DevTips #CodeSnippets #VoiceAI",
+            "type": "cta"
+          }
+        ],
+        "totalTweets": 3
+      },
+      "linkedin": {
+        "platform": "linkedin",
+        "text": "Error Handling Patterns for Voice AI\n\nBeyond try/catch - building resilient voice applications that recover gracefully and keep users informed.\n\nThis is part of our ongoing series helping developers build with voice AI.\n\nKey takeaways:\n• Practical code examples you can use today\n• Real-world patterns from production systems\n• Best practices from the Ferni team\n\nRead the full post: https://developers.ferni.ai/developers/blog/error-handling-patterns/\n\n#DevTips #CodeSnippets #VoiceAI",
+        "length": 485
+      },
+      "discord": {
+        "platform": "discord",
+        "text": "⚡ **Error Handling Patterns for Voice AI**\n\nBeyond try/catch - building resilient voice applications that recover gracefully and keep users informed.\n\n🔗 **Read more:** https://developers.ferni.ai/developers/blog/error-handling-patterns/\n\n---\n*6 min read • Quick Tips*",
+        "length": 268
+      },
+      "threads": {
+        "platform": "threads",
+        "text": "Error Handling Patterns for Voice AI\n\nBeyond try/catch - building resilient voice applications that recover gracefully and keep users informed.\n\nRead more 👉 https://developers.ferni.ai/developers/blog/error-handling-patterns/",
+        "length": 226
+      }
+    }
+  },
+  {
+    "postFile": "introducing-developer-platform.md",
+    "title": "Introducing the Ferni Developer Platform",
+    "date": "2026-01-11T00:00:00.000Z",
+    "snippets": {
+      "twitter": {
+        "platform": "twitter",
+        "text": "📚 Introducing the Ferni Developer Platform\n\nhttps://developers.ferni.ai/developers/blog/introducing-developer-platform/\n\n#VoiceAI #Developers",
+        "length": null
+      },
+      "twitterThread": {
+        "platform": "twitter_thread",
+        "tweets": [
+          {
+            "text": "🧵 Introducing the Ferni Developer Platform\n\nA thread on what you'll learn:\n\n👇",
+            "type": "hook"
+          },
+          {
+            "text": "Build voice-first AI experiences with MCP servers, custom tools, webhooks, and workflows. The complete developer toolkit for extending voice agents.\n\nLet's dive in...",
+            "type": "summary"
+          },
+          {
+            "text": "📖 Read the full post:\nhttps://developers.ferni.ai/developers/blog/introducing-developer-platform/\n\n#VoiceAI #Developers",
+            "type": "cta"
+          }
+        ],
+        "totalTweets": 3
+      },
+      "linkedin": {
+        "platform": "linkedin",
+        "text": "Introducing the Ferni Developer Platform\n\nBuild voice-first AI experiences with MCP servers, custom tools, webhooks, and workflows. The complete developer toolkit for extending voice agents.\n\nThis is part of our ongoing series helping developers build with voice AI.\n\nKey takeaways:\n• Practical code examples you can use today\n• Real-world patterns from production systems\n• Best practices from the Ferni team\n\nRead the full post: https://developers.ferni.ai/developers/blog/introducing-developer-platform/\n\n#VoiceAI #Developers",
+        "length": 528
+      },
+      "discord": {
+        "platform": "discord",
+        "text": "📝 **Introducing the Ferni Developer Platform**\n\nBuild voice-first AI experiences with MCP servers, custom tools, webhooks, and workflows. The complete developer toolkit for extending voice agents.\n\n🔗 **Read more:** https://developers.ferni.ai/developers/blog/introducing-developer-platform/\n\n---\n*8 min read • Announcements*",
+        "length": 326
+      },
+      "threads": {
+        "platform": "threads",
+        "text": "Introducing the Ferni Developer Platform\n\nBuild voice-first AI experiences with MCP servers, custom tools, webhooks, and workflows. The complete developer toolkit for extending voice agents.\n\nRead more 👉 https://developers.ferni.ai/developers/blog/introducing-developer-platform/",
+        "length": 280
+      }
+    }
+  },
+  {
+    "postFile": "mcp-server-integration.md",
+    "title": "Building Your First MCP Integration",
+    "date": "2026-01-11T00:00:00.000Z",
+    "snippets": {
+      "twitter": {
+        "platform": "twitter",
+        "text": "📚 Building Your First MCP Integration\n\nhttps://developers.ferni.ai/developers/blog/mcp-server-integration/\n\n#VoiceAI #DevTutorial",
+        "length": null
+      },
+      "twitterThread": {
+        "platform": "twitter_thread",
+        "tweets": [
+          {
+            "text": "🧵 Building Your First MCP Integration\n\nA thread on what you'll learn:\n\n👇",
+            "type": "hook"
+          },
+          {
+            "text": "A step-by-step guide to registering external MCP servers and making their tools available to voice agents.\n\nLet's dive in...",
+            "type": "summary"
+          },
+          {
+            "text": "📖 Read the full post:\nhttps://developers.ferni.ai/developers/blog/mcp-server-integration/\n\n#VoiceAI #DevTutorial #BuildInPublic",
+            "type": "cta"
+          }
+        ],
+        "totalTweets": 3
+      },
+      "linkedin": {
+        "platform": "linkedin",
+        "text": "Building Your First MCP Integration\n\nA step-by-step guide to registering external MCP servers and making their tools available to voice agents.\n\nThis is part of our ongoing series helping developers build with voice AI.\n\nKey takeaways:\n• Practical code examples you can use today\n• Real-world patterns from production systems\n• Best practices from the Ferni team\n\nRead the full post: https://developers.ferni.ai/developers/blog/mcp-server-integration/\n\n#VoiceAI #DevTutorial #BuildInPublic",
+        "length": 489
+      },
+      "discord": {
+        "platform": "discord",
+        "text": "📚 **Building Your First MCP Integration**\n\nA step-by-step guide to registering external MCP servers and making their tools available to voice agents.\n\n🔗 **Read more:** https://developers.ferni.ai/developers/blog/mcp-server-integration/\n\n---\n*12 min read • Tutorial*",
+        "length": 267
+      },
+      "threads": {
+        "platform": "threads",
+        "text": "Building Your First MCP Integration\n\nA step-by-step guide to registering external MCP servers and making their tools available to voice agents.\n\nRead more 👉 https://developers.ferni.ai/developers/blog/mcp-server-integration/",
+        "length": 225
+      }
+    }
+  },
+  {
+    "postFile": "performance-optimization.md",
+    "title": "Performance Optimization: Achieving Sub-200ms Response Times",
+    "date": "2026-01-14T00:00:00.000Z",
+    "snippets": {
+      "twitter": {
+        "platform": "twitter",
+        "text": "📚 Performance Optimization: Achieving Sub-200ms Response Times\n\nhttps://developers.ferni.ai/developers/blog/performance-optimization/\n\n#TechDeepDive #Engineering",
+        "length": null
+      },
+      "twitterThread": {
+        "platform": "twitter_thread",
+        "tweets": [
+          {
+            "text": "🧵 Performance Optimization: Achieving Sub-200ms Response Times\n\nA thread on what you'll learn:\n\n👇",
+            "type": "hook"
+          },
+          {
+            "text": "How Ferni delivers real-time voice AI - and how you can optimize your integration for the best user experience.\n\nLet's dive in...",
+            "type": "summary"
+          },
+          {
+            "text": "📖 Read the full post:\nhttps://developers.ferni.ai/developers/blog/performance-optimization/\n\n#TechDeepDive #Engineering #VoiceAI",
+            "type": "cta"
+          }
+        ],
+        "totalTweets": 3
+      },
+      "linkedin": {
+        "platform": "linkedin",
+        "text": "Performance Optimization: Achieving Sub-200ms Response Times\n\nHow Ferni delivers real-time voice AI - and how you can optimize your integration for the best user experience.\n\nThis is part of our ongoing series helping developers build with voice AI.\n\nKey takeaways:\n• Practical code examples you can use today\n• Real-world patterns from production systems\n• Best practices from the Ferni team\n\nRead the full post: https://developers.ferni.ai/developers/blog/performance-optimization/\n\n#TechDeepDive #Engineering #VoiceAI",
+        "length": 520
+      },
+      "discord": {
+        "platform": "discord",
+        "text": "🔬 **Performance Optimization: Achieving Sub-200ms Response Times**\n\nHow Ferni delivers real-time voice AI - and how you can optimize your integration for the best user experience.\n\n🔗 **Read more:** https://developers.ferni.ai/developers/blog/performance-optimization/\n\n---\n*10 min read • Deep Dives*",
+        "length": 301
+      },
+      "threads": {
+        "platform": "threads",
+        "text": "Performance Optimization: Achieving Sub-200ms Response Times\n\nHow Ferni delivers real-time voice AI - and how you can optimize your integration for the best user experience.\n\nRead more 👉 https://developers.ferni.ai/developers/blog/performance-optimization/",
+        "length": 257
+      }
+    }
+  },
+  {
+    "postFile": "quick-tips-getting-started.md",
+    "title": "5 Code Snippets Every Ferni Developer Needs",
+    "date": "2026-01-10T00:00:00.000Z",
+    "snippets": {
+      "twitter": {
+        "platform": "twitter",
+        "text": "📚 5 Code Snippets Every Ferni Developer Needs\n\nhttps://developers.ferni.ai/developers/blog/quick-tips-getting-started/\n\n#DevTips #CodeSnippets",
+        "length": null
+      },
+      "twitterThread": {
+        "platform": "twitter_thread",
+        "tweets": [
+          {
+            "text": "🧵 5 Code Snippets Every Ferni Developer Needs\n\nA thread on what you'll learn:\n\n👇",
+            "type": "hook"
+          },
+          {
+            "text": "Essential patterns for voice AI development - from session handling to graceful error recovery.\n\nLet's dive in...",
+            "type": "summary"
+          },
+          {
+            "text": "📖 Read the full post:\nhttps://developers.ferni.ai/developers/blog/quick-tips-getting-started/\n\n#DevTips #CodeSnippets #VoiceAI",
+            "type": "cta"
+          }
+        ],
+        "totalTweets": 3
+      },
+      "linkedin": {
+        "platform": "linkedin",
+        "text": "5 Code Snippets Every Ferni Developer Needs\n\nEssential patterns for voice AI development - from session handling to graceful error recovery.\n\nThis is part of our ongoing series helping developers build with voice AI.\n\nKey takeaways:\n• Practical code examples you can use today\n• Real-world patterns from production systems\n• Best practices from the Ferni team\n\nRead the full post: https://developers.ferni.ai/developers/blog/quick-tips-getting-started/\n\n#DevTips #CodeSnippets #VoiceAI",
+        "length": 485
+      },
+      "discord": {
+        "platform": "discord",
+        "text": "⚡ **5 Code Snippets Every Ferni Developer Needs**\n\nEssential patterns for voice AI development - from session handling to graceful error recovery.\n\n🔗 **Read more:** https://developers.ferni.ai/developers/blog/quick-tips-getting-started/\n\n---\n*4 min read • Quick Tips*",
+        "length": 268
+      },
+      "threads": {
+        "platform": "threads",
+        "text": "5 Code Snippets Every Ferni Developer Needs\n\nEssential patterns for voice AI development - from session handling to graceful error recovery.\n\nRead more 👉 https://developers.ferni.ai/developers/blog/quick-tips-getting-started/",
+        "length": 226
+      }
+    }
+  },
+  {
+    "postFile": "voice-ai-future.md",
+    "title": "The Future of Voice AI Interfaces",
+    "date": "2026-01-11T00:00:00.000Z",
+    "snippets": {
+      "twitter": {
+        "platform": "twitter",
+        "text": "📚 The Future of Voice AI Interfaces\n\nhttps://developers.ferni.ai/developers/blog/voice-ai-future/\n\n#VoiceAI #FutureOfTech",
+        "length": null
+      },
+      "twitterThread": {
+        "platform": "twitter_thread",
+        "tweets": [
+          {
+            "text": "🧵 The Future of Voice AI Interfaces\n\nA thread on what you'll learn:\n\n👇",
+            "type": "hook"
+          },
+          {
+            "text": "Why voice-first is the next mobile-first, and what it means for developers building the next generation of applications.\n\nLet's dive in...",
+            "type": "summary"
+          },
+          {
+            "text": "📖 Read the full post:\nhttps://developers.ferni.ai/developers/blog/voice-ai-future/\n\n#VoiceAI #FutureOfTech #AITrends",
+            "type": "cta"
+          }
+        ],
+        "totalTweets": 3
+      },
+      "linkedin": {
+        "platform": "linkedin",
+        "text": "The Future of Voice AI Interfaces\n\nWhy voice-first is the next mobile-first, and what it means for developers building the next generation of applications.\n\nThis is part of our ongoing series helping developers build with voice AI.\n\nKey takeaways:\n• Practical code examples you can use today\n• Real-world patterns from production systems\n• Best practices from the Ferni team\n\nRead the full post: https://developers.ferni.ai/developers/blog/voice-ai-future/\n\n#VoiceAI #FutureOfTech #AITrends",
+        "length": 490
+      },
+      "discord": {
+        "platform": "discord",
+        "text": "🌍 **The Future of Voice AI Interfaces**\n\nWhy voice-first is the next mobile-first, and what it means for developers building the next generation of applications.\n\n🔗 **Read more:** https://developers.ferni.ai/developers/blog/voice-ai-future/\n\n---\n*7 min read • Industry Insights*",
+        "length": 280
+      },
+      "threads": {
+        "platform": "threads",
+        "text": "The Future of Voice AI Interfaces\n\nWhy voice-first is the next mobile-first, and what it means for developers building the next generation of applications.\n\nRead more 👉 https://developers.ferni.ai/developers/blog/voice-ai-future/",
+        "length": 230
+      }
+    }
+  },
+  {
+    "postFile": "voice-ai-vs-chatbots.md",
+    "title": "Voice AI vs Chatbots: A Developer's Perspective",
+    "date": "2026-01-17T00:00:00.000Z",
+    "snippets": {
+      "twitter": {
+        "platform": "twitter",
+        "text": "📚 Voice AI vs Chatbots: A Developer's Perspective\n\nhttps://developers.ferni.ai/developers/blog/voice-ai-vs-chatbots/\n\n#VoiceAI #FutureOfTech",
+        "length": null
+      },
+      "twitterThread": {
+        "platform": "twitter_thread",
+        "tweets": [
+          {
+            "text": "🧵 Voice AI vs Chatbots: A Developer's Perspective\n\nA thread on what you'll learn:\n\n👇",
+            "type": "hook"
+          },
+          {
+            "text": "When to use voice, when to use text, and why the future isn't either/or - it's knowing when each shines.\n\nLet's dive in...",
+            "type": "summary"
+          },
+          {
+            "text": "📖 Read the full post:\nhttps://developers.ferni.ai/developers/blog/voice-ai-vs-chatbots/\n\n#VoiceAI #FutureOfTech #AITrends",
+            "type": "cta"
+          }
+        ],
+        "totalTweets": 3
+      },
+      "linkedin": {
+        "platform": "linkedin",
+        "text": "Voice AI vs Chatbots: A Developer's Perspective\n\nWhen to use voice, when to use text, and why the future isn't either/or - it's knowing when each shines.\n\nThis is part of our ongoing series helping developers build with voice AI.\n\nKey takeaways:\n• Practical code examples you can use today\n• Real-world patterns from production systems\n• Best practices from the Ferni team\n\nRead the full post: https://developers.ferni.ai/developers/blog/voice-ai-vs-chatbots/\n\n#VoiceAI #FutureOfTech #AITrends",
+        "length": 493
+      },
+      "discord": {
+        "platform": "discord",
+        "text": "🌍 **Voice AI vs Chatbots: A Developer's Perspective**\n\nWhen to use voice, when to use text, and why the future isn't either/or - it's knowing when each shines.\n\n🔗 **Read more:** https://developers.ferni.ai/developers/blog/voice-ai-vs-chatbots/\n\n---\n*7 min read • Industry Insights*",
+        "length": 283
+      },
+      "threads": {
+        "platform": "threads",
+        "text": "Voice AI vs Chatbots: A Developer's Perspective\n\nWhen to use voice, when to use text, and why the future isn't either/or - it's knowing when each shines.\n\nRead more 👉 https://developers.ferni.ai/developers/blog/voice-ai-vs-chatbots/",
+        "length": 233
+      }
+    }
+  },
+  {
+    "postFile": "webhook-security.md",
+    "title": "Webhook Security Best Practices",
+    "date": "2026-01-10T00:00:00.000Z",
+    "snippets": {
+      "twitter": {
+        "platform": "twitter",
+        "text": "📚 Webhook Security Best Practices\n\nhttps://developers.ferni.ai/developers/blog/webhook-security/\n\n#VoiceAI #Developers",
+        "length": null
+      },
+      "twitterThread": {
+        "platform": "twitter_thread",
+        "tweets": [
+          {
+            "text": "🧵 Webhook Security Best Practices\n\nA thread on what you'll learn:\n\n👇",
+            "type": "hook"
+          },
+          {
+            "text": "How to verify webhook signatures, handle retries, and build robust event handlers for the Ferni Developer Platform.\n\nLet's dive in...",
+            "type": "summary"
+          },
+          {
+            "text": "📖 Read the full post:\nhttps://developers.ferni.ai/developers/blog/webhook-security/\n\n#VoiceAI #Developers",
+            "type": "cta"
+          }
+        ],
+        "totalTweets": 3
+      },
+      "linkedin": {
+        "platform": "linkedin",
+        "text": "Webhook Security Best Practices\n\nHow to verify webhook signatures, handle retries, and build robust event handlers for the Ferni Developer Platform.\n\nThis is part of our ongoing series helping developers build with voice AI.\n\nKey takeaways:\n• Practical code examples you can use today\n• Real-world patterns from production systems\n• Best practices from the Ferni team\n\nRead the full post: https://developers.ferni.ai/developers/blog/webhook-security/\n\n#VoiceAI #Developers",
+        "length": 472
+      },
+      "discord": {
+        "platform": "discord",
+        "text": "📝 **Webhook Security Best Practices**\n\nHow to verify webhook signatures, handle retries, and build robust event handlers for the Ferni Developer Platform.\n\n🔗 **Read more:** https://developers.ferni.ai/developers/blog/webhook-security/\n\n---\n*10 min read • Security*",
+        "length": 266
+      },
+      "threads": {
+        "platform": "threads",
+        "text": "Webhook Security Best Practices\n\nHow to verify webhook signatures, handle retries, and build robust event handlers for the Ferni Developer Platform.\n\nRead more 👉 https://developers.ferni.ai/developers/blog/webhook-security/",
+        "length": 224
+      }
+    }
+  },
+  {
+    "postFile": "week-2-preview.md",
+    "title": "Week 2: Authentication, Performance, and Your First Case Study",
+    "date": "2026-01-12T00:00:00.000Z",
+    "snippets": {
+      "twitter": {
+        "platform": "twitter",
+        "text": "📚 Week 2: Authentication, Performance, and Your First Case Study\n\nhttps://developers.ferni.ai/developers/blog/week-2-preview/\n\n#VoiceAI #Developers",
+        "length": null
+      },
+      "twitterThread": {
+        "platform": "twitter_thread",
+        "tweets": [
+          {
+            "text": "🧵 Week 2: Authentication, Performance, and Your First Case Study\n\nA thread on what you'll learn:\n\n👇",
+            "type": "hook"
+          },
+          {
+            "text": "Preview of what's coming next week - deep dives into auth patterns, performance optimization, and our first community spotlight.\n\nLet's dive in...",
+            "type": "summary"
+          },
+          {
+            "text": "📖 Read the full post:\nhttps://developers.ferni.ai/developers/blog/week-2-preview/\n\n#VoiceAI #Developers",
+            "type": "cta"
+          }
+        ],
+        "totalTweets": 3
+      },
+      "linkedin": {
+        "platform": "linkedin",
+        "text": "Week 2: Authentication, Performance, and Your First Case Study\n\nPreview of what's coming next week - deep dives into auth patterns, performance optimization, and our first community spotlight.\n\nThis is part of our ongoing series helping developers build with voice AI.\n\nKey takeaways:\n• Practical code examples you can use today\n• Real-world patterns from production systems\n• Best practices from the Ferni team\n\nRead the full post: https://developers.ferni.ai/developers/blog/week-2-preview/\n\n#VoiceAI #Developers",
+        "length": 514
+      },
+      "discord": {
+        "platform": "discord",
+        "text": "📝 **Week 2: Authentication, Performance, and Your First Case Study**\n\nPreview of what's coming next week - deep dives into auth patterns, performance optimization, and our first community spotlight.\n\n🔗 **Read more:** https://developers.ferni.ai/developers/blog/week-2-preview/\n\n---\n*3 min read • Roadmap*",
+        "length": 306
+      },
+      "threads": {
+        "platform": "threads",
+        "text": "Week 2: Authentication, Performance, and Your First Case Study\n\nPreview of what's coming next week - deep dives into auth patterns, performance optimization, and our first community spotlight.\n\nRead more 👉 https://developers.ferni.ai/developers/blog/week-2-preview/",
+        "length": 266
+      }
+    }
+  },
+  {
+    "postFile": "week-3-preview.md",
+    "title": "Week 3: Testing, Deployment, and Going to Production",
+    "date": "2026-01-18T00:00:00.000Z",
+    "snippets": {
+      "twitter": {
+        "platform": "twitter",
+        "text": "📚 Week 3: Testing, Deployment, and Going to Production\n\nhttps://developers.ferni.ai/developers/blog/week-3-preview/\n\n#VoiceAI #Developers",
+        "length": null
+      },
+      "twitterThread": {
+        "platform": "twitter_thread",
+        "tweets": [
+          {
+            "text": "🧵 Week 3: Testing, Deployment, and Going to Production\n\nA thread on what you'll learn:\n\n👇",
+            "type": "hook"
+          },
+          {
+            "text": "Next week we cover everything you need to ship your voice AI to real users - testing strategies, deployment patterns, and production monitoring.\n\nLet's dive in...",
+            "type": "summary"
+          },
+          {
+            "text": "📖 Read the full post:\nhttps://developers.ferni.ai/developers/blog/week-3-preview/\n\n#VoiceAI #Developers",
+            "type": "cta"
+          }
+        ],
+        "totalTweets": 3
+      },
+      "linkedin": {
+        "platform": "linkedin",
+        "text": "Week 3: Testing, Deployment, and Going to Production\n\nNext week we cover everything you need to ship your voice AI to real users - testing strategies, deployment patterns, and production monitoring.\n\nThis is part of our ongoing series helping developers build with voice AI.\n\nKey takeaways:\n• Practical code examples you can use today\n• Real-world patterns from production systems\n• Best practices from the Ferni team\n\nRead the full post: https://developers.ferni.ai/developers/blog/week-3-preview/\n\n#VoiceAI #Developers",
+        "length": 520
+      },
+      "discord": {
+        "platform": "discord",
+        "text": "📝 **Week 3: Testing, Deployment, and Going to Production**\n\nNext week we cover everything you need to ship your voice AI to real users - testing strategies, deployment patterns, and production monitoring.\n\n🔗 **Read more:** https://developers.ferni.ai/developers/blog/week-3-preview/\n\n---\n*3 min read • Roadmap*",
+        "length": 312
+      },
+      "threads": {
+        "platform": "threads",
+        "text": "Week 3: Testing, Deployment, and Going to Production\n\nNext week we cover everything you need to ship your voice AI to real users - testing strategies, deployment patterns, and production monitoring.\n\nRead more 👉 https://developers.ferni.ai/developers/blog/week-3-preview/",
+        "length": 272
+      }
+    }
+  },
+  {
+    "postFile": "workflow-engine-guide.md",
+    "title": "Building Multi-Step Workflows",
+    "date": "2026-01-09T00:00:00.000Z",
+    "snippets": {
+      "twitter": {
+        "platform": "twitter",
+        "text": "📚 Building Multi-Step Workflows\n\nhttps://developers.ferni.ai/developers/blog/workflow-engine-guide/\n\n#VoiceAI #DevTutorial",
+        "length": null
+      },
+      "twitterThread": {
+        "platform": "twitter_thread",
+        "tweets": [
+          {
+            "text": "🧵 Building Multi-Step Workflows\n\nA thread on what you'll learn:\n\n👇",
+            "type": "hook"
+          },
+          {
+            "text": "Create sophisticated automations with the Ferni Workflow Engine. Supports branching, parallel execution, and voice-triggered workflows.\n\nLet's dive in...",
+            "type": "summary"
+          },
+          {
+            "text": "📖 Read the full post:\nhttps://developers.ferni.ai/developers/blog/workflow-engine-guide/\n\n#VoiceAI #DevTutorial #BuildInPublic",
+            "type": "cta"
+          }
+        ],
+        "totalTweets": 3
+      },
+      "linkedin": {
+        "platform": "linkedin",
+        "text": "Building Multi-Step Workflows\n\nCreate sophisticated automations with the Ferni Workflow Engine. Supports branching, parallel execution, and voice-triggered workflows.\n\nThis is part of our ongoing series helping developers build with voice AI.\n\nKey takeaways:\n• Practical code examples you can use today\n• Real-world patterns from production systems\n• Best practices from the Ferni team\n\nRead the full post: https://developers.ferni.ai/developers/blog/workflow-engine-guide/\n\n#VoiceAI #DevTutorial #BuildInPublic",
+        "length": 511
+      },
+      "discord": {
+        "platform": "discord",
+        "text": "📚 **Building Multi-Step Workflows**\n\nCreate sophisticated automations with the Ferni Workflow Engine. Supports branching, parallel execution, and voice-triggered workflows.\n\n🔗 **Read more:** https://developers.ferni.ai/developers/blog/workflow-engine-guide/\n\n---\n*15 min read • Tutorial*",
+        "length": 289
+      },
+      "threads": {
+        "platform": "threads",
+        "text": "Building Multi-Step Workflows\n\nCreate sophisticated automations with the Ferni Workflow Engine. Supports branching, parallel execution, and voice-triggered workflows.\n\nRead more 👉 https://developers.ferni.ai/developers/blog/workflow-engine-guide/",
+        "length": 247
+      }
+    }
+  }
+]

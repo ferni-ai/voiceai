@@ -366,3 +366,4 @@ function analyzeContentTone(content) {
         warmth: Math.min(5, Math.max(1, warmth)),
     };
 }
+//# sourceMappingURL=channel-adapter.js.map

@@ -13,13 +13,14 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-// Mock logger first
+// Mock logger first - must include child() method
 vi.mock('../utils/safe-logger.js', () => {
   const mockLogger = {
     debug: () => {},
     info: () => {},
     warn: () => {},
     error: () => {},
+    child: () => mockLogger,
   };
   return {
     createLogger: () => mockLogger,
@@ -30,6 +31,43 @@ vi.mock('../utils/safe-logger.js', () => {
 // Mock Firestore for persistence tests
 vi.mock('../services/superhuman/firestore-utils.js', () => ({
   getFirestoreDb: () => null,
+
+  cleanForFirestore: vi.fn((obj) => {
+    if (obj === null || obj === undefined) return obj;
+    if (obj instanceof Date) return obj.toISOString();
+    if (Array.isArray(obj)) return obj.map((item) => item);
+    if (typeof obj === 'object') {
+      const result: Record<string, unknown> = {};
+      for (const [key, value] of Object.entries(obj)) {
+        if (value !== undefined) {
+          result[key] = value;
+        }
+      }
+      return result;
+    }
+    return obj;
+  }),
+  removeUndefined: vi.fn((obj) => {
+    if (!obj) return obj;
+    const result: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(obj)) {
+      if (value !== undefined) {
+        result[key] = value;
+      }
+    }
+    return result;
+  }),
+  deepRemoveUndefined: vi.fn((obj) => obj),
+  recordDegradation: vi.fn(),
+  getFirestoreHealth: vi.fn(() => ({
+    dbAvailable: true,
+    initialized: true,
+    initializationError: null,
+    degradationCount: 0,
+    recentDegradations: [],
+    lastDegradationAt: null,
+  })),
+  resetFirestoreInstance: vi.fn(),
 }));
 
 // Mock calendar service

@@ -38,29 +38,55 @@ import { ALL_TOOL_DOMAINS, type ToolDefinition, type ToolDomain } from './types.
  * If a tool isn't here, Gemini won't know it can call it!
  */
 export const ESSENTIAL_DOMAINS: ToolDomain[] = [
+  // Core system domains
   'memory', // Core memory operations
   'handoff', // Agent switching
   'awareness', // Time/context awareness
   'simple-utilities', // Timers, conversions, etc.
-  'entertainment', // Music - MUST be available immediately (users ask for music often!)
   'behavior', // Behavior control - modes, pacing, presence (core to how Ferni speaks)
+
+  // User-facing essential domains (CRITICAL: users expect these immediately!)
+  'calendar', // Schedule meetings, events, reminders - users ask constantly!
+  'scheduling', // Scheduling coordination - complements calendar
+  'communication', // Email, SMS - core actions
+  'telephony', // Phone calls ("call my mom") - must be available immediately!
+  'productivity', // Tasks, notes, todos - users create these immediately!
+  'family', // Family actions, messages - common use case
+
+  // Daily wellness & habits (people check these every day!)
+  'habits', // "How are my habits?", "Log my workout" - daily use
+  'wellness', // "I'm stressed", emotional support - critical for relationship
+
+  // Entertainment & info
+  'entertainment', // Music - MUST be available immediately (users ask for music often!)
   'information', // News, weather, search - users ask constantly!
-  'communication', // Email, SMS, phone calls - core actions
 ];
 
 /**
  * High-priority domains loaded shortly after essential.
- * These are commonly used but can be slightly delayed.
+ * These are commonly used but load after startup to keep initial load fast.
  */
 export const HIGH_PRIORITY_DOMAINS: ToolDomain[] = [
-  'productivity', // Tasks, notes
-  // Note: 'entertainment', 'information', 'communication' moved to ESSENTIAL_DOMAINS
+  // Life management (common but slightly less urgent)
+  'finance', // "Check my budget" - common daily question
+  'health', // Health tracking, nutrition - frequent use
+  'decisions', // "Help me decide" - common but not urgent
+  'home', // Home tasks, errands - daily life
+  'research', // "Look up..." - information gathering
+  'life-planning', // Goals, milestones - periodic check-ins
 ];
 
 /**
  * Track which domains have been loaded
  */
 const loadedDomains = new Set<ToolDomain>();
+
+/**
+ * Track in-progress domain loads to prevent race conditions.
+ * When multiple callers request the same domain simultaneously,
+ * only one load executes and others await the same promise.
+ */
+const pendingLoads = new Map<ToolDomain, Promise<number>>();
 
 /**
  * Check if a domain has been loaded
@@ -112,6 +138,33 @@ export async function loadToolDomain(
     return toolRegistry.getByDomain(domain).length;
   }
 
+  // RACE CONDITION FIX: If another caller is already loading this domain,
+  // wait for that load to complete instead of starting a duplicate load.
+  const existingLoad = pendingLoads.get(domain);
+  if (existingLoad) {
+    getLogger().debug({ domain }, 'Domain load already in progress, awaiting existing promise');
+    return existingLoad;
+  }
+
+  // Create and track the loading promise
+  const loadPromise = doLoadDomain(domain, options);
+  pendingLoads.set(domain, loadPromise);
+
+  try {
+    return await loadPromise;
+  } finally {
+    // Always clean up pending loads map
+    pendingLoads.delete(domain);
+  }
+}
+
+/**
+ * Internal domain loading implementation (separated for race condition handling)
+ */
+async function doLoadDomain(
+  domain: ToolDomain,
+  options: { isLazy?: boolean }
+): Promise<number> {
   const startTime = Date.now();
   const loader = domainLoaders[domain];
   let toolCount = 0;
@@ -167,8 +220,12 @@ export async function loadToolDomainLazy(domain: ToolDomain): Promise<number> {
   return loadToolDomain(domain, { isLazy: true });
 }
 
+/** Maximum time to wait for lazy domain loading before timing out */
+const LAZY_LOAD_TIMEOUT_MS = 5000; // 5 seconds
+
 /**
- * Load multiple domains lazily
+ * Load multiple domains lazily with timeout protection.
+ * Prevents hanging requests if domain loading gets stuck.
  */
 export async function loadToolDomainsLazy(domains: ToolDomain[]): Promise<number> {
   const unloadedDomains = domains.filter((d) => !loadedDomains.has(d));
@@ -178,9 +235,30 @@ export async function loadToolDomainsLazy(domains: ToolDomain[]): Promise<number
 
   getLogger().info({ domains: unloadedDomains }, '🔄 Lazy loading multiple domains');
 
-  const results = await Promise.allSettled(
-    unloadedDomains.map(async (d) => loadToolDomain(d, { isLazy: true }))
-  );
+  // Wrap with timeout to prevent hanging indefinitely
+  const loadWithTimeout = async (domain: ToolDomain): Promise<number> => {
+    return Promise.race([
+      loadToolDomain(domain, { isLazy: true }),
+      new Promise<number>((_, reject) =>
+        setTimeout(
+          () => reject(new Error(`Timeout loading domain "${domain}" after ${LAZY_LOAD_TIMEOUT_MS}ms`)),
+          LAZY_LOAD_TIMEOUT_MS
+        )
+      ),
+    ]);
+  };
+
+  const results = await Promise.allSettled(unloadedDomains.map(loadWithTimeout));
+
+  // Log any timeouts or failures
+  results.forEach((result, i) => {
+    if (result.status === 'rejected') {
+      getLogger().warn(
+        { domain: unloadedDomains[i], error: String(result.reason) },
+        '⚠️ Domain lazy load failed or timed out'
+      );
+    }
+  });
 
   return results.reduce((sum, r) => sum + (r.status === 'fulfilled' ? r.value : 0), 0);
 }
@@ -478,6 +556,14 @@ export async function autoRegisterAllDomains(): Promise<void> {
         import('../domains/developer/index.js').then(async (m) => m.getToolDefinitions()),
     },
 
+    // === DEVELOPER-CUSTOM DOMAIN (API-registered tools) ===
+    // This domain is populated dynamically via Developer Platform API, not static files.
+    // Tools are registered at runtime through developer-tool-integration.ts
+    {
+      name: 'developer-custom' as ToolDomain,
+      loader: async () => [], // Empty - tools are registered dynamically via API
+    },
+
     // === BEHAVIOR DOMAIN (Bidirectional behavior system) ===
     {
       name: 'behavior' as ToolDomain,
@@ -731,6 +817,13 @@ export async function autoRegisterAllDomains(): Promise<void> {
         import('../domains/settings/index.js').then(async (m) => m.getToolDefinitions()),
     },
 
+    // === ROUTINES DOMAIN (Ferni's care routines - "What I Do For You") ===
+    {
+      name: 'routines' as ToolDomain,
+      loader: async () =>
+        import('../domains/routines/index.js').then(async (m) => m.getToolDefinitions()),
+    },
+
     // === NAYAN'S SUPERHUMAN WISDOM DOMAIN ===
     {
       name: 'nayan-wisdom' as ToolDomain,
@@ -773,6 +866,67 @@ export async function autoRegisterAllDomains(): Promise<void> {
       name: 'local-search' as ToolDomain,
       loader: async () =>
         import('../domains/local-search/index.js').then(async (m) => m.getToolDefinitions()),
+    },
+
+    // === VOICE ENROLLMENT DOMAIN (Phone caller voice enrollment) ===
+    {
+      name: 'voice-enrollment' as ToolDomain,
+      loader: async () =>
+        import('../domains/voice-enrollment/index.js').then(async (m) => m.getToolDefinitions()),
+    },
+
+    // === INSIGHTS DOMAIN (Analytics summaries, progress tracking) ===
+    {
+      name: 'insights' as ToolDomain,
+      loader: async () =>
+        import('../domains/insights/index.js').then(async (m) => m.getToolDefinitions()),
+    },
+
+    // === LIFE AUTOMATION DOMAINS ===
+    {
+      name: 'commerce' as ToolDomain,
+      loader: async () =>
+        import('../domains/commerce/index.js').then(async (m) => m.getToolDefinitions()),
+    },
+    {
+      name: 'documents' as ToolDomain,
+      loader: async () =>
+        import('../domains/documents/index.js').then(async (m) => m.getToolDefinitions()),
+    },
+    {
+      name: 'email-intelligence' as ToolDomain,
+      loader: async () =>
+        import('../domains/email-intelligence/index.js').then(async (m) => m.getToolDefinitions()),
+    },
+    {
+      name: 'meal-planning' as ToolDomain,
+      loader: async () =>
+        import('../domains/meal-planning/index.js').then(async (m) => m.getToolDefinitions()),
+    },
+    {
+      name: 'projects' as ToolDomain,
+      loader: async () =>
+        import('../domains/projects/index.js').then(async (m) => m.getToolDefinitions()),
+    },
+    {
+      name: 'social-events' as ToolDomain,
+      loader: async () =>
+        import('../domains/social-events/index.js').then(async (m) => m.getToolDefinitions()),
+    },
+    {
+      name: 'transportation' as ToolDomain,
+      loader: async () =>
+        import('../domains/transportation/index.js').then(async (m) => m.getToolDefinitions()),
+    },
+    {
+      name: 'vehicle' as ToolDomain,
+      loader: async () =>
+        import('../domains/vehicle/index.js').then(async (m) => m.getToolDefinitions()),
+    },
+    {
+      name: 'workflows' as ToolDomain,
+      loader: async () =>
+        import('../domains/workflows/index.js').then(async (m) => m.getToolDefinitions()),
     },
   ];
 

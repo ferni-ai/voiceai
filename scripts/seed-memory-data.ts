@@ -54,7 +54,7 @@ const MOCK_CONVERSATIONS = [
   },
   {
     id: 'conv_seed_004',
-    personaId: 'peter-lynch',
+    personaId: 'peter-john',
     summary: 'Discussed your investment strategy and concerns about market volatility',
     topics: ['investing', 'finance', 'savings'],
     turnCount: 10,

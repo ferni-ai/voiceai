@@ -156,9 +156,8 @@ class NotificationSettingsUI {
       const response = await apiGet<{ upcoming?: Array<Record<string, unknown>> }>('/api/outreach/upcoming');
       if (response.ok && response.data) {
         this.upcomingItems = (response.data.upcoming || []).map((item: Record<string, unknown>) => ({
-          ...item,
           scheduledFor: new Date(item.scheduledFor as string),
-        }));
+        })) as unknown as ScheduledOutreach[];
       } else {
         this.upcomingItems = [];
       }

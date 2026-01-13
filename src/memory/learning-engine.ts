@@ -7,11 +7,15 @@
  * Philosophy: "Better than human" means learning from every interaction.
  * A human friend slowly learns what topics to bring up and when.
  * We learn faster, with perfect recall of what worked.
+ *
+ * NOTE: Also delegates to the unified ConversationFeedbackStore for
+ * cross-system analytics.
  */
 
 import { getLogger } from '../utils/safe-logger.js';
-import { getFirestoreDb } from '../services/superhuman/firestore-utils.js';
+import { getFirestoreDb } from '../utils/firestore-utils.js';
 import type { MemoryItem } from './advanced-retrieval.js';
+import type { FeedbackReaction } from '../types/feedback.js';
 
 const log = getLogger();
 
@@ -146,8 +150,17 @@ export class LearningEngine {
   private userLearnings = new Map<string, UserLearnings>();
   private pendingEvents = new Map<string, SurfacingEvent>();
 
+  /** Pending events older than this are auto-cleaned (30 minutes) */
+  private static readonly PENDING_EVENT_TTL_MS = 30 * 60 * 1000;
+  /** Cleanup interval (every 5 minutes) */
+  private static readonly CLEANUP_INTERVAL_MS = 5 * 60 * 1000;
+  /** Cleanup interval handle */
+  private cleanupInterval: ReturnType<typeof setInterval> | null = null;
+
   constructor(config?: Partial<LearningConfig>) {
     this.config = { ...DEFAULT_CONFIG, ...config };
+    // Start automatic cleanup of stale pending events
+    this.startPendingEventsCleanup();
   }
 
   // ==========================================================================
@@ -214,7 +227,72 @@ export class LearningEngine {
     // Remove from pending
     this.pendingEvents.delete(eventId);
 
+    // Delegate to unified feedback store for cross-system analytics
+    // Map memory reaction to feedback reaction
+    const feedbackReaction = this.mapToFeedbackReaction(reaction);
+    if (feedbackReaction) {
+      void this.delegateToUnifiedStore(event, feedbackReaction).catch(() => {
+        // Silent fail - unified store is optional
+      });
+    }
+
     log.debug({ eventId, reaction, userId: event.userId }, 'Recorded reaction');
+  }
+
+  /**
+   * Map memory reaction to unified feedback reaction
+   */
+  private mapToFeedbackReaction(reaction: MemoryReaction): FeedbackReaction | null {
+    switch (reaction) {
+      case 'engaged':
+      case 'grateful':
+        return 'resonated';
+      case 'acknowledged':
+        return 'helpful';
+      case 'ignored':
+        return 'skipped';
+      case 'negative':
+        return 'too_much';
+      default:
+        return null;
+    }
+  }
+
+  /**
+   * Delegate to the unified ConversationFeedbackStore
+   */
+  private async delegateToUnifiedStore(
+    event: SurfacingEvent,
+    feedbackReaction: FeedbackReaction
+  ): Promise<void> {
+    try {
+      const { createFeedbackPrompt, recordFeedbackReaction } =
+        await import('../services/feedback/index.js');
+
+      const result = await createFeedbackPrompt({
+        userId: event.userId,
+        sessionId: `memory_${event.memoryId}`,
+        personaId: 'ferni',
+        trigger: 'insight_moment',
+        context: {
+          lastAgentMessage: `Surfaced memory: ${event.memoryType}`,
+          lastUserMessage: '',
+          topic: event.memoryTopics[0] || 'memory',
+          emotionalTone: event.userEmotionalState === 'negative' ? 'heavy' : 'neutral',
+          turnCount: 0,
+        },
+      });
+
+      if (result.ok) {
+        await recordFeedbackReaction({
+          feedbackId: result.feedbackId,
+          userId: event.userId,
+          reaction: feedbackReaction,
+        });
+      }
+    } catch {
+      // Silent fail - unified store is optional
+    }
   }
 
   /**
@@ -666,6 +744,79 @@ export class LearningEngine {
         });
     } catch (error) {
       log.error({ error, eventId: event.id }, 'Failed to persist event');
+    }
+  }
+
+  // ==========================================================================
+  // PENDING EVENTS CLEANUP
+  // ==========================================================================
+
+  /**
+   * Start automatic cleanup of stale pending events
+   */
+  private startPendingEventsCleanup(): void {
+    if (this.cleanupInterval) return; // Already running
+
+    this.cleanupInterval = setInterval(() => {
+      this.cleanupStalePendingEvents();
+    }, LearningEngine.CLEANUP_INTERVAL_MS);
+
+    log.debug(
+      { intervalMs: LearningEngine.CLEANUP_INTERVAL_MS },
+      '🕐 Started pending events cleanup interval'
+    );
+  }
+
+  /**
+   * Stop automatic cleanup (call on shutdown)
+   */
+  stopPendingEventsCleanup(): void {
+    if (this.cleanupInterval) {
+      clearInterval(this.cleanupInterval);
+      this.cleanupInterval = null;
+      log.debug('🛑 Stopped pending events cleanup interval');
+    }
+  }
+
+  /**
+   * Cleanup pending events older than PENDING_EVENT_TTL_MS
+   * Treats unreacted events as "ignored" for learning purposes
+   */
+  private cleanupStalePendingEvents(): void {
+    const now = Date.now();
+    let cleanedCount = 0;
+
+    for (const [eventId, event] of this.pendingEvents) {
+      const eventAge = now - event.surfacedAt.getTime();
+      if (eventAge > LearningEngine.PENDING_EVENT_TTL_MS) {
+        // Event was surfaced but user never reacted - treat as "ignored"
+        // Don't update learnings to avoid penalizing for abandoned sessions
+        this.pendingEvents.delete(eventId);
+        cleanedCount++;
+      }
+    }
+
+    if (cleanedCount > 0) {
+      log.debug(
+        { cleanedCount, remaining: this.pendingEvents.size },
+        '🧹 Cleaned up stale pending events'
+      );
+    }
+  }
+
+  /**
+   * Clear all pending events for a user (call on session end)
+   */
+  clearPendingEventsForUser(userId: string): void {
+    let clearedCount = 0;
+    for (const [eventId, event] of this.pendingEvents) {
+      if (event.userId === userId) {
+        this.pendingEvents.delete(eventId);
+        clearedCount++;
+      }
+    }
+    if (clearedCount > 0) {
+      log.debug({ userId, clearedCount }, '🧹 Cleared pending events for user');
     }
   }
 

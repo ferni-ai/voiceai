@@ -16,6 +16,9 @@ import { registerInterval, clearNamedInterval } from '../../utils/interval-manag
 
 const log = createLogger({ module: 'MemoryMonitor' });
 
+/** Interval name for memory monitoring */
+const MEMORY_MONITOR_INTERVAL = 'memory-monitor-check';
+
 // ============================================================================
 // TYPES
 // ============================================================================

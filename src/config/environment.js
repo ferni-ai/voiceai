@@ -237,3 +237,4 @@ export default {
     getGCPProjectId,
     getFirestoreDatabase,
 };
+//# sourceMappingURL=environment.js.map

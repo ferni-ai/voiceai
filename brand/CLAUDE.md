@@ -1,6 +1,9 @@
 # Ferni Brand Library
 
-This directory contains the complete Ferni brand system: design tokens, avatar expressions, marketing pages, and visual identity guidelines.
+**Interactive brand showcase** with HTML galleries, expression demos, and visual references.
+
+> **For brand DOCUMENTATION**, see `design-system/docs/brand/` (canonical location)
+> **For design TOKENS**, see `design-system/tokens/` (source of truth)
 
 ## Critical Design Rules
 
@@ -59,17 +62,19 @@ color: #4a6741;
 ## File Structure
 
 ```
-brand/
-├── master-tokens.css        # Single source of truth for all tokens
-├── index.html               # Brand library home page
+brand/                       # Interactive showcases (this folder)
+├── CLAUDE.md                # Critical design rules (LUXO eyes!)
 ├── brand-book.html          # Print-ready brand guidelines
-├── FERNI-UNIVERSE-BIBLE.md  # Complete brand story
+├── components.html          # UI component showcase
 ├── characters/              # Per-persona expression galleries
 ├── capabilities/            # 19 superhuman capabilities showcase
-├── marketing/               # Marketing pages and assets
-├── motion/                  # Animation system documentation
-├── logos/                   # Logo variants
-└── social/                  # Social media templates
+├── expressions/             # Avatar expression system
+└── favicons/                # Favicon variants
+
+design-system/               # Source of truth
+├── tokens/                  # JSON design tokens (EDIT THESE)
+├── assets/                  # Consolidated logos, icons
+└── docs/brand/              # Brand DOCUMENTATION (canonical)
 ```
 
 ## Quick Reference

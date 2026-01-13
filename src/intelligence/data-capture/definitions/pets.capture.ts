@@ -17,8 +17,11 @@ import { createLogger } from '../../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'PetCapture' });
 
-// Pet type mapping
-const PET_TYPES: Record<string, string> = {
+// Valid pet species for PetEntity
+type ValidPetSpecies = 'dog' | 'cat' | 'bird' | 'fish' | 'reptile' | 'small_mammal' | 'other';
+
+// Pet type mapping to valid species
+const PET_TYPES: Record<string, ValidPetSpecies> = {
   dog: 'dog',
   puppy: 'dog',
   pup: 'dog',
@@ -33,17 +36,17 @@ const PET_TYPES: Record<string, string> = {
   fish: 'fish',
   goldfish: 'fish',
   betta: 'fish',
-  hamster: 'small_animal',
-  guinea: 'small_animal',
-  rabbit: 'small_animal',
-  bunny: 'small_animal',
+  hamster: 'small_mammal',
+  guinea: 'small_mammal',
+  rabbit: 'small_mammal',
+  bunny: 'small_mammal',
   turtle: 'reptile',
   tortoise: 'reptile',
   snake: 'reptile',
   lizard: 'reptile',
   gecko: 'reptile',
-  horse: 'horse',
-  pony: 'horse',
+  horse: 'other',
+  pony: 'other',
 };
 
 // Common dog breeds for detection
@@ -90,7 +93,7 @@ const CAT_BREEDS = [
   'orange tabby',
 ];
 
-function detectPetType(text: string): string | null {
+function detectPetType(text: string): ValidPetSpecies | null {
   const lowerText = text.toLowerCase();
   for (const [keyword, type] of Object.entries(PET_TYPES)) {
     if (lowerText.includes(keyword)) {
@@ -260,7 +263,10 @@ export const petCaptureDefinition: DataCaptureDefinition = {
 
     // Extract or use provided values
     const petName = (args.petName as string) || extractPetName(transcript);
-    const petType = (args.petType as string) || detectPetType(transcript);
+    const petTypeArg = args.petType as string | undefined;
+    const petType: ValidPetSpecies | null = petTypeArg
+      ? (PET_TYPES[petTypeArg.toLowerCase()] || 'other')
+      : detectPetType(transcript);
     const breed = (args.breed as string) || extractBreed(transcript);
 
     if (!petType) {
@@ -273,12 +279,12 @@ export const petCaptureDefinition: DataCaptureDefinition = {
 
     if (isPetLoss && petName) {
       // Store as pet milestone (loss/passing)
+      // Note: 'memorial' is not a valid type, so we use 'other' for pet loss events
       const milestoneData = {
         petName,
         milestone: 'Rainbow Bridge',
-        type: 'memorial' as const,
+        type: 'other' as const,
         date: new Date().toISOString(),
-        notes: transcript.slice(0, 200),
       };
 
       try {
@@ -295,10 +301,8 @@ export const petCaptureDefinition: DataCaptureDefinition = {
       // Store pet information
       const petData = {
         name: petName || 'Unnamed pet',
-        type: petType,
+        species: petType,
         breed: breed || undefined,
-        status: isPetLoss ? 'passed' : 'current',
-        createdAt: new Date(),
       };
 
       try {

@@ -227,36 +227,36 @@ async function fetchCalendarCapacity(
 ): Promise<CalendarCapacity> {
   try {
     // INTEGRATION: Use actual calendar load service
-    const { analyzeCalendarLoad } = await import('../calendar/calendar-load-service.js');
-    
-    const startDate = new Date();
-    const endDate = new Date(eventDate);
-    
-    const calendarLoad = await analyzeCalendarLoad(userId, startDate, endDate);
-    
+    const { getCalendarLoadFactors } = await import('../calendar/calendar-load-service.js');
+
+    const calendarLoad = await getCalendarLoadFactors(userId);
+
     if (calendarLoad) {
-      const density = calendarLoad.loadScore >= 0.8 ? 'overloaded' :
-                      calendarLoad.loadScore >= 0.6 ? 'busy' :
-                      calendarLoad.loadScore >= 0.3 ? 'moderate' : 'light';
-      
-      const capacityScore = Math.round((1 - calendarLoad.loadScore) * 100);
-      
+      // Convert weekly meeting hours to a load score (0-1)
+      // Assume 40h work week, so 30h+ meetings = overloaded
+      const loadScore = Math.min(1, calendarLoad.weeklyMeetingHours / 40);
+
+      const density = loadScore >= 0.8 ? 'overloaded' :
+                      loadScore >= 0.6 ? 'busy' :
+                      loadScore >= 0.3 ? 'moderate' : 'light';
+
+      const capacityScore = Math.round((1 - loadScore) * 100);
+
       return {
         capacityScore,
         calendarDensity: density,
-        conflicts: calendarLoad.conflicts?.map((c) => ({
-          date: c.date,
-          event: c.title,
-          severity: c.priority === 'high' ? 'major' : c.priority === 'medium' ? 'moderate' : 'minor',
-        })) || [],
-        bestPlanningWindows: calendarLoad.freeSlots?.slice(0, 3).map((slot) => ({
-          start: slot.start,
-          end: slot.end,
-          reason: 'Clear window in calendar',
-        })) || [
+        conflicts: calendarLoad.upcomingHeavyDays.map((day: string) => ({
+          date: day,
+          event: 'Heavy meeting day',
+          severity: 'moderate' as const,
+        })),
+        bestPlanningWindows: calendarLoad.lightestDayThisWeek ? [
+          { start: calendarLoad.lightestDayThisWeek, end: '', reason: 'Lightest day this week' },
+          { start: 'Weekends', end: '', reason: 'Usually clearer' },
+        ] : [
           { start: 'Weekends', end: '', reason: 'Usually clearer' },
         ],
-        recommendations: density === 'overloaded' 
+        recommendations: density === 'overloaded'
           ? ['Consider delegating some planning tasks', 'Block dedicated planning time']
           : [],
       };
@@ -312,22 +312,44 @@ async function fetchCalendarCapacity(
 async function fetchEnergyAlignment(userId: string): Promise<EnergyAlignment> {
   try {
     // INTEGRATION: Use actual capacity guardian service
-    const { getCapacityAssessment } = await import('./capacity-guardian.js');
-    
-    const capacity = await getCapacityAssessment(userId);
-    
-    if (capacity) {
-      const currentEnergy = Math.round(capacity.overallCapacity * 100);
-      const trend = capacity.trend === 'declining' ? 'declining' :
-                    capacity.trend === 'improving' ? 'improving' : 'stable';
-      
+    const { assessBurnoutRisk, loadEnergyHistory } = await import('./capacity-guardian.js');
+
+    const [burnoutAssessment, energyReadings] = await Promise.all([
+      assessBurnoutRisk(userId),
+      loadEnergyHistory(userId, 7),
+    ]);
+
+    if (burnoutAssessment) {
+      // Calculate average energy from recent readings
+      const avgEnergy = energyReadings.length > 0
+        ? Math.round(energyReadings.reduce((sum, r) => sum + r.energyScore, 0) / energyReadings.length)
+        : 70; // Default if no readings
+
+      // Determine trend from burnout assessment
+      const trend = burnoutAssessment.trendDirection === 'worsening' ? 'declining' :
+                    burnoutAssessment.trendDirection === 'improving' ? 'improving' : 'stable';
+
+      // Extract supporting and at-risk habits from factors
+      const supportingHabits: string[] = [];
+      const atRiskHabits: string[] = [];
+      for (const factor of burnoutAssessment.factors) {
+        if (factor.factor.includes('Recovery') || factor.factor.includes('Energy')) {
+          atRiskHabits.push(factor.description);
+        }
+      }
+
+      // Map burnout risk to our expected format
+      const burnoutRisk = burnoutAssessment.risk === 'critical' || burnoutAssessment.risk === 'high'
+        ? 'high' : burnoutAssessment.risk === 'elevated' || burnoutAssessment.risk === 'moderate'
+        ? 'moderate' : 'low';
+
       return {
-        currentEnergy,
+        currentEnergy: avgEnergy,
         energyTrend: trend as 'declining' | 'stable' | 'improving',
-        supportingHabits: capacity.protectiveFactors || [],
-        atRiskHabits: capacity.riskFactors || [],
-        burnoutRisk: capacity.burnoutRisk || 'low',
-        recommendations: capacity.recommendations?.slice(0, 2) || [],
+        supportingHabits,
+        atRiskHabits,
+        burnoutRisk,
+        recommendations: burnoutAssessment.recommendations?.slice(0, 2) || [],
       };
     }
   } catch (error) {
@@ -373,57 +395,47 @@ async function fetchEnergyAlignment(userId: string): Promise<EnergyAlignment> {
 
 /**
  * Fetch life stage context from Nayan's domain
- * INTEGRATED: Uses real self-awareness and values services
+ * TODO: Integrate with self-awareness service when available
+ * Currently returns sensible defaults based on event type
  */
 async function fetchLifeStageContext(
   userId: string,
   eventType: string
 ): Promise<LifeStageContext> {
-  try {
-    // INTEGRATION: Use actual values and self-awareness services
-    const { getValuesProfile } = await import('./semantic-intelligence/self-awareness.js');
-    
-    const valuesProfile = await getValuesProfile(userId);
-    
-    if (valuesProfile) {
-      const coreValues = valuesProfile.coreValues?.slice(0, 3).map(v => v.value) || [];
-      const lifeStage = valuesProfile.lifeStage || 'Adult life';
-      
-      // Determine fit based on event type and values
-      const celebrationAligned = coreValues.some(v => 
-        ['family', 'connection', 'joy', 'celebration', 'relationships'].includes(v.toLowerCase())
-      );
-      const careerAligned = coreValues.some(v => 
-        ['achievement', 'growth', 'success', 'career'].includes(v.toLowerCase())
-      );
-      
-      const eventFit = eventType.toLowerCase().includes('wedding') || eventType.toLowerCase().includes('party')
-        ? (celebrationAligned ? 'perfect_fit' : 'good_fit')
-        : eventType.toLowerCase().includes('career') || eventType.toLowerCase().includes('business')
-          ? (careerAligned ? 'perfect_fit' : 'good_fit')
-          : 'good_fit';
-      
-      return {
-        currentStage: lifeStage,
-        fitWithStage: eventFit as 'perfect_fit' | 'good_fit' | 'neutral' | 'potential_stress',
-        valuesAlignment: coreValues,
-        potentialConflicts: valuesProfile.tensions?.slice(0, 2) || [],
-        wisdomNotes: valuesProfile.insights?.slice(0, 2) || [],
-      };
-    }
-  } catch (error) {
-    log.debug({ error: String(error), userId }, 'Self-awareness service not available, using default');
+  // TODO: Integration with self-awareness service
+  // The self-awareness module doesn't exist yet at the expected path.
+  // For now, return sensible defaults based on event type.
+
+  const eventLower = eventType.toLowerCase();
+
+  // Determine fit based on common event types
+  let fitWithStage: 'perfect_fit' | 'good_fit' | 'neutral' | 'potential_stress' = 'good_fit';
+  const valuesAlignment: string[] = [];
+  const wisdomNotes: string[] = [];
+
+  if (eventLower.includes('wedding') || eventLower.includes('party') || eventLower.includes('celebration')) {
+    valuesAlignment.push('connection', 'celebration', 'relationships');
+    wisdomNotes.push('Events are investments in memory and connection');
+    fitWithStage = 'good_fit';
+  } else if (eventLower.includes('career') || eventLower.includes('business') || eventLower.includes('conference')) {
+    valuesAlignment.push('growth', 'achievement', 'career');
+    wisdomNotes.push('Professional growth events can catalyze personal development');
+    fitWithStage = 'good_fit';
+  } else if (eventLower.includes('trip') || eventLower.includes('vacation') || eventLower.includes('travel')) {
+    valuesAlignment.push('adventure', 'experience', 'freedom');
+    wisdomNotes.push('Travel broadens perspective and renews energy');
+    fitWithStage = 'good_fit';
+  } else {
+    valuesAlignment.push('connection', 'growth', 'experience');
+    wisdomNotes.push('The planning is part of the experience');
   }
-  
+
   return {
     currentStage: 'Adult life',
-    fitWithStage: 'good_fit',
-    valuesAlignment: ['connection', 'celebration', 'relationships'],
+    fitWithStage,
+    valuesAlignment,
     potentialConflicts: [],
-    wisdomNotes: [
-      'Events are investments in memory and connection',
-      'The planning is part of the experience',
-    ],
+    wisdomNotes,
   };
 }
 
@@ -569,31 +581,27 @@ export async function checkGoalAlignment(
   
   try {
     // INTEGRATION: Check dreams for alignment
-    const { getDreams } = await import('./dream-keeper.js');
-    const dreams = await getDreams(userId);
-    
+    const { loadUserDreams } = await import('./dream-keeper.js');
+    const dreams = await loadUserDreams(userId);
+
     if (dreams?.length) {
       const eventLower = eventType.toLowerCase();
-      const purposeLower = eventPurpose.toLowerCase();
-      
-      for (const dream of dreams.filter(d => d.status === 'active').slice(0, 5)) {
+
+      for (const dream of dreams.filter((d) => d.status === 'alive').slice(0, 5)) {
         const dreamLower = dream.title?.toLowerCase() || '';
-        const dreamDesc = dream.description?.toLowerCase() || '';
-        
+        const dreamStatement = dream.statement?.toLowerCase() || '';
+
         // Check for positive alignment
         if (
-          dreamLower.includes('family') && (eventLower.includes('wedding') || eventLower.includes('reunion')) ||
-          dreamLower.includes('travel') && eventLower.includes('trip') ||
-          dreamLower.includes('career') && eventLower.includes('business') ||
-          dreamDesc.includes(eventLower) || dreamLower.includes(eventLower)
+          (dreamLower.includes('family') && (eventLower.includes('wedding') || eventLower.includes('reunion'))) ||
+          (dreamLower.includes('travel') && eventLower.includes('trip')) ||
+          (dreamLower.includes('career') && eventLower.includes('business')) ||
+          dreamStatement.includes(eventLower) || dreamLower.includes(eventLower)
         ) {
           supportingGoals.push(dream.title);
         }
-        
-        // Check for potential resource conflict (expensive dreams + expensive events)
-        if (dream.estimatedCost && dream.estimatedCost > 5000 && eventLower.includes('expensive')) {
-          potentialConflicts.push(`May delay: ${dream.title}`);
-        }
+
+        // Dream type doesn't have estimatedCost, skip that check
       }
     }
   } catch (error) {
@@ -602,29 +610,29 @@ export async function checkGoalAlignment(
   
   try {
     // INTEGRATION: Check commitments for conflicts
-    const { getOpenCommitments } = await import('./commitment-keeper.js');
-    const commitments = await getOpenCommitments(userId);
-    
+    const { loadUserCommitments } = await import('./commitment-keeper.js');
+    const commitments = await loadUserCommitments(userId);
+
     if (commitments?.length) {
       const eventLower = eventType.toLowerCase();
-      
-      for (const commitment of commitments.slice(0, 5)) {
-        const commitLower = commitment.description?.toLowerCase() || '';
-        
-        // Time-based conflict detection
-        if (commitment.deadline) {
-          const deadlineDate = new Date(commitment.deadline);
+
+      for (const commitment of commitments.filter((c) => c.status === 'active').slice(0, 5)) {
+        const commitLower = commitment.summary?.toLowerCase() || '';
+
+        // Time-based conflict detection using targetDate
+        if (commitment.targetDate) {
+          const deadlineDate = new Date(commitment.targetDate);
           const now = new Date();
           const weeksUntil = (deadlineDate.getTime() - now.getTime()) / (7 * 24 * 60 * 60 * 1000);
-          
+
           if (weeksUntil < 4 && weeksUntil > 0) {
-            potentialConflicts.push(`Upcoming deadline: ${commitment.description.slice(0, 40)}`);
+            potentialConflicts.push(`Upcoming deadline: ${commitment.summary.slice(0, 40)}`);
           }
         }
-        
+
         // Content alignment
         if (commitLower.includes(eventLower) || eventLower.includes(commitLower.split(' ')[0])) {
-          supportingGoals.push(`Aligns with commitment: ${commitment.description.slice(0, 40)}`);
+          supportingGoals.push(`Aligns with commitment: ${commitment.summary.slice(0, 40)}`);
         }
       }
     }

@@ -668,7 +668,7 @@ async function startGoogleImport(): Promise<void> {
         }
       } else {
         const error = await response.json().catch(() => ({ error: 'Import failed' }));
-        toast.error(error.error || 'Could not start Google import');
+        toast.error(error.error || "Couldn't connect to Google. Try again?");
         state.isImporting = false;
         render();
       }

@@ -13,9 +13,29 @@
 #   gcloud builds submit --config=cloudbuild-speaker.yaml
 
 steps:
-  # Build the UI container image with Kaniko (better caching than docker build)
+  # ============================================================================
+  # Step 1: Pre-build Type Check (FAIL FAST)
+  # ============================================================================
+  # Catches type errors BEFORE expensive Docker build (~5 min saved on failure)
+  - name: 'node:20-slim'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        corepack enable && corepack prepare pnpm@latest --activate
+        pnpm install --prefer-offline --frozen-lockfile
+        echo "=== Running type check ==="
+        pnpm typecheck || (echo "❌ Type check failed! Fix errors before deploying." && exit 1)
+        echo "✅ Type check passed"
+    id: 'typecheck'
+
+  # ============================================================================
+  # Step 2: Build the UI container image with Kaniko
+  # ============================================================================
+  # Better caching than docker build
   # Pushes BOTH :latest AND :$COMMIT_SHA tags for GitHub Actions compatibility
   - name: 'gcr.io/kaniko-project/executor:latest'
+    waitFor: ['typecheck']
     args:
       - '--dockerfile=docker/Dockerfile.ui'
       - '--destination=gcr.io/$PROJECT_ID/john-bogle-ui:latest'

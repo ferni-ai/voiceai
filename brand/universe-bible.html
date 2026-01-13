@@ -28,14 +28,14 @@
       --ease-organic: cubic-bezier(0.25, 0.46, 0.45, 0.94);
       --ease-gentle: cubic-bezier(0.4, 0, 0.2, 1);
 
-      /* Emotional Glow Colors */
-      --glow-sage: rgba(74, 103, 65, 0.4);
-      --glow-golden: rgba(196, 162, 101, 0.5);
-      --glow-teal: rgba(58, 107, 115, 0.45);
-      --glow-coral: rgba(196, 133, 106, 0.5);
-      --glow-warm: rgba(166, 122, 106, 0.45);
-      --glow-indigo: rgba(90, 107, 138, 0.45);
-      --glow-amber: rgba(184, 149, 106, 0.45);
+      /* Emotional Glow Colors - reference persona colors with alpha */
+      --glow-sage: var(--color-ferni-glow, rgba(74, 103, 65, 0.4));
+      --glow-golden: var(--color-nayan-glow, rgba(184, 149, 106, 0.5));
+      --glow-teal: var(--color-peter-glow, rgba(58, 107, 115, 0.45));
+      --glow-coral: var(--color-jordan-glow, rgba(196, 133, 106, 0.5));
+      --glow-warm: var(--color-maya-glow, rgba(166, 122, 106, 0.45));
+      --glow-indigo: var(--color-alex-glow, rgba(90, 107, 138, 0.45));
+      --glow-amber: var(--color-nayan-glow, rgba(184, 149, 106, 0.45));
     }
 
     /* ============================================
@@ -1087,8 +1087,8 @@
                 <svg viewBox="0 0 100 100" class="avatar-svg">
                   <defs>
                     <linearGradient id="ferniGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" style="stop-color:#5a7a51"/>
-                      <stop offset="100%" style="stop-color:#3d5a35"/>
+                      <stop offset="0%" style="stop-color: var(--color-ferni-light)"/>
+                      <stop offset="100%" style="stop-color: var(--color-ferni-dark)"/>
                     </linearGradient>
                   </defs>
                   <circle class="presence-ring" cx="50" cy="50" r="48"/>
@@ -1127,8 +1127,8 @@
                 <svg viewBox="0 0 100 100" class="avatar-svg">
                   <defs>
                     <linearGradient id="mayaGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" style="stop-color:#b88a7a"/>
-                      <stop offset="100%" style="stop-color:#96695a"/>
+                      <stop offset="0%" style="stop-color: var(--color-maya-light)"/>
+                      <stop offset="100%" style="stop-color: var(--color-maya-dark)"/>
                     </linearGradient>
                   </defs>
                   <circle class="presence-ring" cx="50" cy="50" r="48"/>
@@ -1167,8 +1167,8 @@
                 <svg viewBox="0 0 100 100" class="avatar-svg">
                   <defs>
                     <linearGradient id="peterGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" style="stop-color:#4a7b83"/>
-                      <stop offset="100%" style="stop-color:#2a5b63"/>
+                      <stop offset="0%" style="stop-color: var(--color-peter-light)"/>
+                      <stop offset="100%" style="stop-color: var(--color-peter-dark)"/>
                     </linearGradient>
                   </defs>
                   <circle class="presence-ring" cx="50" cy="50" r="48"/>
@@ -1207,8 +1207,8 @@
                 <svg viewBox="0 0 100 100" class="avatar-svg">
                   <defs>
                     <linearGradient id="jordanGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" style="stop-color:#d4957a"/>
-                      <stop offset="100%" style="stop-color:#b4755a"/>
+                      <stop offset="0%" style="stop-color: var(--color-jordan-light)"/>
+                      <stop offset="100%" style="stop-color: var(--color-jordan-dark)"/>
                     </linearGradient>
                   </defs>
                   <circle class="presence-ring" cx="50" cy="50" r="48"/>
@@ -1247,8 +1247,8 @@
                 <svg viewBox="0 0 100 100" class="avatar-svg">
                   <defs>
                     <linearGradient id="alexGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" style="stop-color:#6a7b9a"/>
-                      <stop offset="100%" style="stop-color:#4a5b7a"/>
+                      <stop offset="0%" style="stop-color: var(--color-alex-light)"/>
+                      <stop offset="100%" style="stop-color: var(--color-alex-dark)"/>
                     </linearGradient>
                   </defs>
                   <circle class="presence-ring" cx="50" cy="50" r="48"/>
@@ -1287,8 +1287,8 @@
                 <svg viewBox="0 0 100 100" class="avatar-svg">
                   <defs>
                     <linearGradient id="nayanGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" style="stop-color:#c8a57a"/>
-                      <stop offset="100%" style="stop-color:#a8855a"/>
+                      <stop offset="0%" style="stop-color: var(--color-nayan-light)"/>
+                      <stop offset="100%" style="stop-color: var(--color-nayan-dark)"/>
                     </linearGradient>
                   </defs>
                   <circle class="presence-ring" cx="50" cy="50" r="48"/>
@@ -1439,8 +1439,8 @@
                     <svg viewBox="0 0 100 100" class="avatar-svg">
                       <defs>
                         <linearGradient id="demoFerniGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                          <stop offset="0%" style="stop-color:#5a7a51"/>
-                          <stop offset="100%" style="stop-color:#3d5a35"/>
+                          <stop offset="0%" style="stop-color: var(--color-ferni-light)"/>
+                          <stop offset="100%" style="stop-color: var(--color-ferni-dark)"/>
                         </linearGradient>
                       </defs>
                       <circle class="presence-ring" cx="50" cy="50" r="48"/>

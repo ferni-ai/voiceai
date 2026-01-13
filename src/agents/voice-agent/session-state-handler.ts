@@ -13,7 +13,10 @@
 import { log, voice } from '@livekit/agents';
 // FIX AUDIT: Import from service layer instead of API routes (clean architecture)
 import { checkForAccentChange } from '../../services/session/index.js';
-import { getDJBooth } from '../../audio/index.js';
+import { getDJController } from '../../audio/index.js';
+import { notifyAgentSpeakingStart, notifyAgentSpeakingEnd, notifyUserSpeakingStart, notifyUserSpeakingEnd } from './music-handler.js';
+// Tool execution tracking - prevents dead air check-in during active tool calls
+import { getStateMetrics } from '../../speech/coordination/sanitizer-integration.js';
 import { getSessionFlags } from '../../config/voice-humanization-flags.js';
 import { getActiveListeningEngine } from '../../conversation/active-listening.js';
 import {
@@ -46,6 +49,7 @@ import {
 } from '../integrations/speech-metrics-integration.js';
 import { SILENCE_THRESHOLDS, IDLE_TIMEOUT } from '../shared/constants.js';
 import { safeGenerateReply, generateReplyWithContext } from '../shared/safe-generate-reply.js';
+import { clearPendingLowPriorityResponse } from '../shared/generate-reply-gateway.js';
 import type { UserData } from '../shared/types.js';
 // Speech coordination for adaptive timing and centralized speech management
 import { getSpeechCoordinator, coordinatedSay } from '../../speech/coordination/index.js';
@@ -53,6 +57,10 @@ import { getSpeechCoordinator, coordinatedSay } from '../../speech/coordination/
 import { fireAndForget } from '../../utils/safe-fire-and-forget.js';
 // Better Than Human - Silence Interpreter integration
 import { processSilenceWithInterpreter } from '../integrations/better-than-human-integration.js';
+// Contextual Feedback System - collect feedback during natural conversation pauses
+import { feedbackTriggerEngine } from '../feedback/index.js';
+// Handoff state tracking - prevents operations during/after handoffs
+import { shouldSkipGenerateReply } from '../../handoff/unified-state.js';
 
 // ============================================================================
 // TYPES
@@ -161,6 +169,15 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
   let earlyAckAgentStateHandler: ((event: { newState: string }) => void) | null = null;
   let liveBackchannelInterval: ReturnType<typeof setInterval> | null = null;
   let liveBackchannelFailsafeTimer: ReturnType<typeof setTimeout> | null = null;
+  // 📊 Contextual Feedback timer
+  let feedbackPromptTimer: ReturnType<typeof setTimeout> | null = null;
+
+  // 🚨 EMPTY RESPONSE WATCHDOG (Jan 2026)
+  // Detects when OpenAI Realtime produces no response and triggers recovery
+  // This fixes the issue where user says "play music" and gets no response
+  let emptyResponseWatchdogTimer: ReturnType<typeof setTimeout> | null = null;
+  let lastUserMessageForRecovery: string | null = null;
+  const EMPTY_RESPONSE_WATCHDOG_MS = 5000; // 5 seconds - if no agent speech by then, trigger recovery
 
   // Idle timeout tracking - auto-disconnect after extended silence
   let idleTimeoutTimer: ReturnType<typeof setTimeout> | null = null;
@@ -377,12 +394,20 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
         // FIX: Use safeGenerateReply - don't await, fire and forget for backchannels
         // Backchannels should be quick acknowledgments, not blocking operations
         // FIX: Pass sessionId so safeGenerateReply can skip if session is closing
+        // FIX: Use shorter timeout (3s) for backchannels - they should be quick or not happen
+        // FIX: Bypass circuit breaker + low priority - backchannel failures shouldn't block real requests
         void safeGenerateReply(session, {
           instructions: result.instructions,
           allowInterruptions: true,
           waitForPlayout: false, // Don't wait - backchannels are non-blocking
           context: 'backchannel',
           sessionId,
+          timeoutMs: 3000, // Short timeout - backchannels should be quick or skipped
+          bypassCircuitBreaker: true, // Don't let backchannel failures affect real requests
+          priority: 'low', // Low priority - failures don't affect circuit breaker
+        }).catch(() => {
+          // Silently swallow backchannel failures - they're optional
+          // Don't log errors for backchannels - it's noise
         });
 
         const backchannelFiredAt = Date.now();
@@ -497,8 +522,18 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
     if (event.newState === 'speaking') {
       conversationManager.handleAgentStartedSpeaking('');
 
+      // 📊 Contextual Feedback: Track agent speaking start
+      feedbackTriggerEngine.onAgentStartSpeaking(sessionId);
+
       // Track speech start time for duration calculation (adaptive echo prevention)
       userData.lastAgentSpeechStartTime = Date.now();
+
+      // 🚨 EMPTY RESPONSE WATCHDOG: Clear watchdog - agent did respond!
+      if (emptyResponseWatchdogTimer) {
+        clearTimeout(emptyResponseWatchdogTimer);
+        emptyResponseWatchdogTimer = null;
+        lastUserMessageForRecovery = null;
+      }
 
       // Track response latency: time from user finish to agent start
       if (userFinishedSpeakingAt > 0) {
@@ -512,34 +547,30 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
         diag.warn('Mid-session accent check failed', { error: String(accentErr) });
       });
 
-      // DJ BOOTH: Notify agent speaking - smooth ducking with timing
-      const booth = getDJBooth();
-      if (booth) {
-        booth.onProcessingEnd();
-        diag.state('Agent speaking - DJ Booth managing music');
-      } else {
-        // Fallback to basic ducking if DJ Booth not initialized
-        // GUARD: Don't access music player singleton if session is cleaning up (race condition fix)
-        import('../session/event-cleanup-registry.js')
-          .then(async ({ isSessionCleaningUp }) => {
-            if (isSessionCleaningUp(sessionId)) {
-              diag.debug('Skipping music ducking - session is cleaning up');
-              return null;
-            }
-            const { isMusicEnabled } = await import('../../config/environment.js');
-            if (!isMusicEnabled()) return null;
-            return import('../../audio/index.js');
-          })
-          .then((audioModule) => {
-            if (!audioModule) return;
-            const player = audioModule.getMusicPlayer();
-            if (player.isPlaying()) {
-              player.duck();
-              diag.state('Ducked background music for agent speech (basic)');
-            }
-          })
-          .catch((e) => getLogger().debug({ error: String(e) }, 'Music ducking (non-critical)'));
-      }
+      // DJ CONTROLLER: Notify agent speaking - triggers automatic ducking
+      notifyAgentSpeakingStart();
+      diag.state('Agent speaking - DJ Controller notified');
+
+      // Fallback ducking for music player (in case DJ Controller not wired)
+      import('../session/event-cleanup-registry.js')
+        .then(async ({ isSessionCleaningUp }) => {
+          if (isSessionCleaningUp(sessionId)) {
+            diag.debug('Skipping music ducking - session is cleaning up');
+            return null;
+          }
+          const { isMusicEnabled } = await import('../../config/environment.js');
+          if (!isMusicEnabled()) return null;
+          return import('../../audio/index.js');
+        })
+        .then((audioModule) => {
+          if (!audioModule) return;
+          const player = audioModule.getMusicPlayer();
+          if (player.isPlaying()) {
+            player.duck();
+            diag.state('Ducked background music for agent speech (basic)');
+          }
+        })
+        .catch((e) => getLogger().debug({ error: String(e) }, 'Music ducking (non-critical)'));
     }
 
     if (event.oldState === 'speaking' && event.newState !== 'speaking') {
@@ -561,41 +592,74 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
 
       conversationManager.handleAgentFinishedSpeaking(0);
 
-      // DJ BOOTH: Notify agent stopped speaking
-      const booth = getDJBooth();
-      if (booth) {
-        booth.onAgentFinishedSpeaking();
-        diag.state('Agent stopped - DJ Booth restoring music');
-      } else {
-        // Fallback to basic unducking
-        // GUARD: Don't access music player singleton if session is cleaning up (race condition fix)
-        import('../session/event-cleanup-registry.js')
-          .then(async ({ isSessionCleaningUp }) => {
-            if (isSessionCleaningUp(sessionId)) {
-              diag.debug('Skipping music unducking - session is cleaning up');
-              return null;
-            }
-            const { isMusicEnabled } = await import('../../config/environment.js');
-            if (!isMusicEnabled()) return null;
-            return import('../../audio/index.js');
-          })
-          .then(async (audioModule) => {
-            if (!audioModule) return;
-            // Re-check cleanup state - async imports can take time
-            const { isSessionCleaningUp: recheck } =
-              await import('../session/event-cleanup-registry.js');
-            if (recheck(sessionId)) {
-              diag.debug('Skipping music unducking - session cleanup started during import');
-              return;
-            }
-            const player = audioModule.getMusicPlayer();
-            if (player.getState().isDucked) {
-              player.unduck();
-              diag.state('Unducked background music after agent speech (basic)');
-            }
-          })
-          .catch((e) => getLogger().debug({ error: String(e) }, 'Music unducking (non-critical)'));
+      // 📊 Contextual Feedback: Track agent finished speaking
+      // Get the last agent message for insight detection
+      const lastAgentMessage = (userData.recentTranscripts ?? []).slice(-1)[0] ?? '';
+      feedbackTriggerEngine.onAgentFinishedSpeaking(sessionId, lastAgentMessage);
+
+      // 📊 Contextual Feedback: Schedule feedback check after natural pause
+      // Clear any existing timer
+      if (feedbackPromptTimer) {
+        clearTimeout(feedbackPromptTimer);
+        feedbackPromptTimer = null;
       }
+
+      // Check for feedback opportunity after 1 second pause
+      feedbackPromptTimer = setTimeout(async () => {
+        // Only check if user hasn't started speaking
+        if (!conversationManager.isAgentSpeaking() && userData.userId) {
+          const pauseDurationMs = Date.now() - (userData.lastAgentSpeechEndTime ?? Date.now());
+
+          // Use the FrontendPublisher singleton to send data messages
+          const { getFrontendPublisher } = await import('../realtime/frontend-publisher.js');
+          const publisher = getFrontendPublisher();
+
+          const sendDataMessage = async (type: string, payload: Record<string, unknown>) => {
+            await publisher.sendData(type, payload);
+          };
+
+          await feedbackTriggerEngine.checkAndTrigger(
+            sessionId,
+            userData.userId,
+            sessionPersona.id,
+            pauseDurationMs,
+            sendDataMessage
+          );
+        }
+        feedbackPromptTimer = null;
+      }, 1000);
+
+      // DJ CONTROLLER: Notify agent stopped speaking - triggers automatic unduck
+      notifyAgentSpeakingEnd();
+      diag.state('Agent stopped - DJ Controller notified');
+
+      // Fallback unducking for music player (in case DJ Controller not wired)
+      import('../session/event-cleanup-registry.js')
+        .then(async ({ isSessionCleaningUp }) => {
+          if (isSessionCleaningUp(sessionId)) {
+            diag.debug('Skipping music unducking - session is cleaning up');
+            return null;
+          }
+          const { isMusicEnabled } = await import('../../config/environment.js');
+          if (!isMusicEnabled()) return null;
+          return import('../../audio/index.js');
+        })
+        .then(async (audioModule) => {
+          if (!audioModule) return;
+          // Re-check cleanup state - async imports can take time
+          const { isSessionCleaningUp: recheck } =
+            await import('../session/event-cleanup-registry.js');
+          if (recheck(sessionId)) {
+            diag.debug('Skipping music unducking - session cleanup started during import');
+            return;
+          }
+          const player = audioModule.getMusicPlayer();
+          if (player.getState().isDucked) {
+            player.unduck();
+            diag.state('Unducked background music after agent speech (basic)');
+          }
+        })
+        .catch((e) => getLogger().debug({ error: String(e) }, 'Music unducking (non-critical)'));
     }
   });
 
@@ -668,16 +732,36 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
         earlyAckAgentStateHandler = null;
       }
 
+      // 🚨 EMPTY RESPONSE WATCHDOG: Clear watchdog when user speaks again
+      // User might be continuing their thought or correcting themselves
+      if (emptyResponseWatchdogTimer) {
+        clearTimeout(emptyResponseWatchdogTimer);
+        emptyResponseWatchdogTimer = null;
+        lastUserMessageForRecovery = null;
+      }
+
+      // Clear any pending low-priority responses (backchannels) when user starts speaking
+      // This prevents "conversation_already_has_active_response" errors from OpenAI
+      // when we try to respond to the user's message
+      clearPendingLowPriorityResponse(sessionId);
+
+      // 📊 Contextual Feedback: Cancel pending feedback prompt - user is speaking
+      if (feedbackPromptTimer) {
+        clearTimeout(feedbackPromptTimer);
+        feedbackPromptTimer = null;
+      }
+      // Track user message for feedback context
+      const recentUserTranscripts = userData.recentTranscripts ?? [];
+      const latestUserMessage = recentUserTranscripts[recentUserTranscripts.length - 1] ?? '';
+      feedbackTriggerEngine.onUserMessage(sessionId, latestUserMessage);
+
       // Stop ambient music when user starts speaking
       stopAmbientMusic();
       conversationManager.handleUserStartedSpeaking();
 
-      // DJ BOOTH: User started speaking - duck music
-      const booth = getDJBooth();
-      if (booth) {
-        booth.onUserStartSpeaking();
-        diag.state('User speaking - DJ Booth ducking music');
-      }
+      // DJ CONTROLLER: User started speaking - triggers automatic ducking
+      notifyUserSpeakingStart();
+      diag.state('User speaking - DJ Controller notified');
 
       // GAME DUCKING: Lower music volume when user speaks during a game
       fireAndForget(async () => {
@@ -754,16 +838,86 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
         conversationManager.handleUserFinishedSpeaking(Date.now() - userData.userSpeakingStartTime);
       }
 
-      // DJ BOOTH: User stopped speaking - restore music (unless agent is responding)
-      const userStopBooth = getDJBooth();
-      if (userStopBooth) {
-        userStopBooth.onUserStopSpeaking();
-        diag.state('User stopped - DJ Booth managing volume restore');
+      // DJ CONTROLLER: User stopped speaking - triggers automatic unduck
+      notifyUserSpeakingEnd();
+      diag.state('User stopped - DJ Controller notified');
 
-        // THINKING MUSIC: User stopped speaking, agent is "thinking"
-        userStopBooth.onProcessingStart();
-        diag.state('User stopped speaking - thinking music scheduled');
+      // 🚨 EMPTY RESPONSE WATCHDOG: Start timer to detect if LLM produces no response
+      // This fixes the critical issue where OpenAI Realtime sometimes returns nothing
+      // and the user sits in silence for 15+ seconds
+      if (emptyResponseWatchdogTimer) {
+        clearTimeout(emptyResponseWatchdogTimer);
       }
+
+      // Store the user's last message for recovery (from userData if available)
+      const recentTranscripts = userData.recentTranscripts ?? [];
+      lastUserMessageForRecovery = recentTranscripts[recentTranscripts.length - 1] || userData.lastUserMessage || null;
+
+      emptyResponseWatchdogTimer = setTimeout(async () => {
+        // If we get here, the agent didn't respond within 5 seconds
+        // This is abnormal - try direct tool routing as recovery
+        emptyResponseWatchdogTimer = null;
+
+        // Skip if session is closing
+        const { isSessionClosing } = await import('../shared/session-closing-tracker.js');
+        if (isSessionClosing(sessionId)) {
+          return;
+        }
+
+        // Skip if agent is already speaking (late check)
+        if (conversationManager.isAgentSpeaking()) {
+          return;
+        }
+
+        // Skip if music is playing (user may be listening intentionally)
+        try {
+          const djController = getDJController();
+          if (djController.isMusicActive()) {
+            diag.state('🚨 [EMPTY_RESPONSE_WATCHDOG] Skipped - music is playing');
+            return;
+          }
+        } catch {
+          // DJ Controller not initialized - continue with recovery
+        }
+
+        diag.state('🚨 [EMPTY_RESPONSE_WATCHDOG] No agent response after 5s - triggering recovery', {
+          lastUserMessage: lastUserMessageForRecovery?.slice(0, 50),
+          userFinishedAt: userFinishedSpeakingAt,
+        });
+
+        // Try direct tool routing first (handles music, weather, handoffs)
+        if (lastUserMessageForRecovery) {
+          try {
+            const { routeDirectly, isDirectRoutingEnabled } = await import('./direct-tool-router.js');
+
+            if (isDirectRoutingEnabled()) {
+              const directResult = await routeDirectly(lastUserMessageForRecovery, {
+                userId: userData.userId || 'anonymous',
+                sessionId,
+                personaId: sessionPersona.id,
+                recentTopics: userData.recentTopics,
+                lastAgentMessage: userData.lastAgentResponse,
+                userLocation: userData.userLocation,
+              });
+
+              if (directResult.handled) {
+                diag.state('🚨 [EMPTY_RESPONSE_WATCHDOG] Recovery via direct routing succeeded', {
+                  toolId: directResult.toolId,
+                  intent: directResult.intent,
+                });
+                return; // Recovery successful!
+              }
+            }
+          } catch (routeErr) {
+            diag.warn('Empty response recovery: direct routing failed', { error: String(routeErr) });
+          }
+        }
+
+        // If direct routing didn't handle it, let the silence handler take over
+        // (it will kick in at its normal threshold, but we've at least tried)
+        diag.state('🚨 [EMPTY_RESPONSE_WATCHDOG] Direct routing did not handle - awaiting silence handler');
+      }, EMPTY_RESPONSE_WATCHDOG_MS);
+      // Note: Thinking music is now handled by the ambient-music system automatically
 
       // DEAD AIR FIX: Early silence detection
       const userStoppedAt = Date.now();
@@ -792,6 +946,35 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
             diag.state('Early dead air skipped - session is closing');
             earlyAckTimer = null;
             return;
+          }
+
+          // FIX: Skip dead air check-in if tools are actively executing
+          // This prevents gateway timeouts when LLM is busy processing tool calls (e.g., music)
+          const stateMetrics = getStateMetrics(sessionId);
+          if (stateMetrics && stateMetrics.activeToolCount > 0) {
+            diag.state('🎭 [DEAD AIR] Skipped - tool execution in progress', {
+              activeToolCount: stateMetrics.activeToolCount,
+              state: stateMetrics.state,
+            });
+            earlyAckTimer = null;
+            return;
+          }
+
+          // FIX: Skip dead air check-in if music is playing
+          // User requested music and is listening - don't interrupt with unnecessary speech
+          try {
+            const djController = getDJController();
+            if (djController.isMusicActive()) {
+              const state = djController.getState();
+              diag.state('🎭 [DEAD AIR] Skipped - music is playing', {
+                track: state.currentTrack?.name,
+                state: state.state,
+              });
+              earlyAckTimer = null;
+              return;
+            }
+          } catch {
+            // DJ Controller not initialized - continue with normal check
           }
 
           if (!conversationManager.isAgentSpeaking()) {
@@ -1053,12 +1236,39 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
 
       // LONG SILENCE (10s+) - Meaningful silence responses
       // HUMANIZATION FIX: Add ±20% randomization to prevent predictable timing
-      const baseIntervals = [10, 22, 38];
+      // Intervals are configurable via SILENCE_INTERVALS env var (e.g., "6,15,30" for faster)
+      const baseIntervals = SILENCE_THRESHOLDS.intervals;
       const randomize = (base: number) => Math.round(base * (0.8 + Math.random() * 0.4));
       const intervals = baseIntervals.map(randomize);
       const targetInterval = intervals[silenceResponseCount];
 
+      // FIX: Skip silence response if tools are actively executing (e.g., music search)
+      // This prevents gateway timeouts when LLM is busy processing tool calls
+      const silenceStateMetrics = getStateMetrics(sessionId);
+      const toolsActive = silenceStateMetrics && silenceStateMetrics.activeToolCount > 0;
+
+      // FIX: Skip silence response if a handoff is in progress or session is draining
+      // After handoff, the old agent's session is draining - trying to call generateReply
+      // causes "Cannot call waitForPlayout from inside function tool" errors
+      // shouldSkipGenerateReply checks both: (1) handoff in progress, (2) 3s draining window
+      const handoffOrDraining = shouldSkipGenerateReply(sessionId);
+
+      if (toolsActive) {
+        diag.state('🤫 [SILENCE] Skipped - tool execution in progress', {
+          activeToolCount: silenceStateMetrics?.activeToolCount,
+          silenceSec: Math.round(silenceDurationSec),
+        });
+      }
+
+      if (handoffOrDraining) {
+        diag.state('🤫 [SILENCE] Skipped - handoff in progress or session draining', {
+          silenceSec: Math.round(silenceDurationSec),
+        });
+      }
+
       if (
+        !toolsActive &&
+        !handoffOrDraining &&
         targetInterval &&
         silenceDurationSec >= targetInterval &&
         Date.now() - lastSilenceResponseAt > SILENCE_THRESHOLDS.MIN_RESPONSE_INTERVAL
@@ -1089,6 +1299,17 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
           silenceContext.wasDiscussingTopic = userData.lastTopic;
         }
 
+        // FIX: Update music state before silence response
+        // Bug: isMusicPlaying was always false, causing LLM to call playMusic during silence
+        // when music was already playing (the silence handler didn't know music was on)
+        try {
+          const djController = getDJController();
+          silenceContext.isMusicPlaying = djController.isMusicActive();
+        } catch {
+          // DJ Controller not initialized - default to false
+          silenceContext.isMusicPlaying = false;
+        }
+
         // LLM-DRIVEN: Get instructions for natural, contextual silence response
         const silenceInstructions = getLLMSilenceInstructions(sessionPersona, silenceContext);
 
@@ -1098,6 +1319,7 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
           silenceSec: Math.round(silenceDurationSec),
           responseNum: silenceResponseCount + 1,
           persona: sessionPersona.id,
+          isMusicPlaying: silenceContext.isMusicPlaying,
         });
 
         // Try LLM-driven response using safe wrapper to prevent native crash
@@ -1108,12 +1330,23 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
             // in @livekit/rtc-node when cleanup races with the mutex
             // FIX: Pass sessionId so safeGenerateReply can skip if session is closing
             // (prevents errors after handoff when old session is draining)
+            // FIX (2026-01-12): Use waitForPlayout: false for low-priority silence responses.
+            // This prevents "circular wait" errors when a tool (like playMusic) is executing.
+            // Silence responses are fire-and-forget - they don't need to block.
             const result = await safeGenerateReply(session, {
               instructions: silenceInstructions.instructions,
               allowInterruptions: silenceInstructions.allowInterruptions,
-              fallbackMessage: silenceInstructions.fallback,
+              // FIX: Only use fallback if music is NOT playing
+              // Fallback like "How did that feel?" doesn't make sense during music
+              fallbackMessage: silenceContext.isMusicPlaying ? undefined : silenceInstructions.fallback,
               context: `silence-${silenceInstructions.type}`,
               sessionId,
+              // FIX: Increase timeout for silence responses (users are already in comfortable silence)
+              // Default 6s is too aggressive for low-priority silence responses
+              timeoutMs: 10_000,
+              priority: 'low',
+              // FIX: Don't wait for playout - prevents circular wait when tool is executing
+              waitForPlayout: false,
             });
 
             if (result.success) {
@@ -1124,8 +1357,8 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
                 error: result.error,
               });
             }
-          } else if (silenceInstructions.fallback) {
-            // No LLM instructions (e.g., music playing) - use fallback if present
+          } else if (silenceInstructions.fallback && !silenceContext.isMusicPlaying) {
+            // No LLM instructions - use fallback if present AND music is NOT playing
             void sayWithInterruptAwareness(silenceInstructions.fallback, {
               allowInterruptions: true,
             });
@@ -1174,8 +1407,20 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
       clearTimeout(liveBackchannelFailsafeTimer);
       liveBackchannelFailsafeTimer = null;
     }
+    // 📊 Contextual Feedback: Clear timer and state
+    if (feedbackPromptTimer) {
+      clearTimeout(feedbackPromptTimer);
+      feedbackPromptTimer = null;
+    }
+    feedbackTriggerEngine.clearState(sessionId);
     // Clear idle timeout timers
     clearIdleTimeout();
+    // 🚨 EMPTY RESPONSE WATCHDOG: Clear timer
+    if (emptyResponseWatchdogTimer) {
+      clearTimeout(emptyResponseWatchdogTimer);
+      emptyResponseWatchdogTimer = null;
+    }
+    lastUserMessageForRecovery = null;
   };
 
   return {

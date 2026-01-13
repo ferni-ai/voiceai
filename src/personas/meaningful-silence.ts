@@ -561,12 +561,12 @@ const SMART_FALLBACK_FRAGMENTS = {
   ],
   contextReferences: {
     // These use {topic} interpolation
+    // HUMANIZATION FIX: Removed "{topic}... that landed" - sounds like coaching jargon
     withTopic: [
       'that thing about {topic}...',
       'what you said about {topic}...',
       'I keep thinking about {topic}.',
       "there's something about {topic} that sticks with me.",
-      '{topic}... that landed.',
     ],
     withName: ["{name}, I'm here.", 'still with you, {name}.', '{name}... take your time.'],
     withTime: {
@@ -2199,6 +2199,17 @@ function buildLLMSilenceInstructionsInternal(
 
   if (userName) {
     contextHints.push(`User's name: ${userName}`);
+  }
+
+  // CRITICAL: Tell the LLM when music is playing!
+  // Without this, the LLM doesn't know music was already started and may say
+  // "I can't play music" or offer to play music when it's already playing.
+  if (isMusicPlaying) {
+    contextHints.push(
+      'MUSIC IS CURRENTLY PLAYING - You already started music. Do NOT say you cannot play music. ' +
+        'Do NOT offer to play music. Simply enjoy the musical moment together. ' +
+        'You can comment on the music if appropriate, or just be present.'
+    );
   }
 
   // Time of day awareness

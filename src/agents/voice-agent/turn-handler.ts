@@ -454,25 +454,44 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
 
     // ================================================================
     // EARLY RECEIPT ACKNOWLEDGMENT: "Better than Human" instant presence
-    // Fire an immediate brief acknowledgment (100-200ms) to show we heard.
-    // This is BEFORE the thinking filler (600ms) - just shows presence.
-    // Only on turns 2+ to avoid awkward double-greeting.
+    // Fire an immediate brief acknowledgment (80-100ms) to show we heard.
+    // This is BEFORE the thinking filler (500ms) - just shows presence.
+    // UPDATED Jan 2026: Smarter conditions for human-like conversation
+    // - Only on turns 2+ to avoid awkward double-greeting
+    // - Only for longer messages (>20 chars) - short messages feel instant anyway
+    // - Skip for direct questions (ending with ?) - those need immediate response
     // ================================================================
     const EARLY_RECEIPT_ENABLED = true;
-    const EARLY_RECEIPT_DELAY_MS = 150; // Fire at 150ms after user stops speaking
+    const EARLY_RECEIPT_DELAY_MS = 80; // Fire at 80ms after user stops (was 150ms)
     let spokeEarlyReceipt = false;
 
-    if (EARLY_RECEIPT_ENABLED && turnNumber >= 2 && currentSession) {
+    // Smart conditions for early receipt
+    const isLongEnoughMessage = userText.length > 20;
+    const isNotQuestion = !userText.trim().endsWith('?');
+    const shouldDoEarlyReceipt =
+      EARLY_RECEIPT_ENABLED &&
+      turnNumber >= 2 &&
+      isLongEnoughMessage &&
+      isNotQuestion &&
+      currentSession;
+
+    if (shouldDoEarlyReceipt) {
       setTimeout(() => {
         // Only speak if we haven't already started the full response
         if (!spokeEarlyReceipt && currentSession) {
           spokeEarlyReceipt = true;
-          // Ultra-brief receipt sound - just "Mm" with minimal breaks
-          const receiptSound = '<break time="50ms"/>Mm.<break time="50ms"/>';
+          // Ultra-brief receipt sound - varied for naturalness
+          const receiptSounds = [
+            '<break time="30ms"/>Mm.<break time="30ms"/>',
+            '<break time="30ms"/>Mhm.<break time="30ms"/>',
+            '<break time="30ms"/>Yeah.<break time="30ms"/>',
+          ];
+          const receiptSound = receiptSounds[Math.floor(Math.random() * receiptSounds.length)];
           currentSession.say(receiptSound, { allowInterruptions: true });
           diag.filler('Spoke early receipt acknowledgment', {
             personaId: persona.id,
             elapsedMs: EARLY_RECEIPT_DELAY_MS,
+            receiptSound: receiptSound.replace(/<[^>]+>/g, '').trim(),
           });
         }
       }, EARLY_RECEIPT_DELAY_MS);
@@ -727,11 +746,9 @@ Voice signals detected: ${allSignals.join(', ') || 'subtle vocal cues'}`,
         // Cache emotional state (text + voice combined)
         const emotionalState = {
           primary: result.emotional?.primary || voiceEmotion?.primary || 'neutral',
-          secondary: result.emotional?.secondary,
           intensity: result.emotional?.intensity || voiceEmotion?.confidence || 0.5,
-          valence: result.emotional?.valence ?? (voiceEmotion as { valence?: number })?.valence ?? 0,
-          distressLevel: result.emotional?.distressLevel,
-          source: voiceEmotion ? 'voice+text' : 'text',
+          confidence: voiceEmotion?.confidence || 0.5,
+          timestamp: new Date().toISOString(),
         };
         await redis.setEmotionalState(services.userId!, emotionalState);
 
@@ -755,6 +772,7 @@ Voice signals detected: ${allSignals.join(', ') || 'subtle vocal cues'}`,
                   ? 'slow'
                   : 'normal',
             strain: (prosody.jitter || 0) > 0.02 || (prosody.shimmer || 0) > 0.15,
+            timestamp: new Date().toISOString(),
           });
         }
 
@@ -965,6 +983,38 @@ You are their lifeline right now. Be fully present.`,
     } catch (naturalnessError) {
       // Non-critical - continue without naturalness adjustments
       diag.debug('Naturalness engine error (non-critical)', { error: String(naturalnessError) });
+    }
+
+    // ================================================================
+    // 📊 CONTEXTUAL FEEDBACK INJECTION
+    // Inject recent feedback context so agent can naturally adjust its style
+    // ================================================================
+    try {
+      const { buildFeedbackContext } = await import(
+        '../../intelligence/context-builders/feedback-context.js'
+      );
+
+      const feedbackContext = await buildFeedbackContext(
+        services.userId || '',
+        services.sessionId
+      );
+
+      if (feedbackContext.context && feedbackContext.summary.needsAdjustment) {
+        result.context.injections.push({
+          category: 'feedback',
+          content: feedbackContext.context,
+          priority: 55, // After core context (40-50), before personality (60+)
+        });
+
+        diag.state('📊 Feedback context injected', {
+          lastReaction: feedbackContext.summary.lastReaction,
+          adjustmentType: feedbackContext.summary.adjustmentType,
+          recentCount: feedbackContext.summary.recentCount,
+        });
+      }
+    } catch (feedbackError) {
+      // Non-critical - continue without feedback context
+      diag.debug('Feedback context error (non-critical)', { error: String(feedbackError) });
     }
 
     // ================================================================
@@ -1325,6 +1375,36 @@ Just respond naturally to what the user said.`,
         logger.debug(
           '📅 No calendar awareness available for turn 0 (calendar not connected or still loading)'
         );
+      }
+
+      // ================================================================
+      // BETTER THAN HUMAN: Real-time Ambient Calendar Check
+      // On every turn, check if there's an urgent calendar event
+      // (meeting in next 10 minutes, just ended, etc.)
+      // ================================================================
+      try {
+        if (services.userId) {
+          const { getAmbientCalendarContext, shouldInterruptForCalendar, generateAmbientContextInjection } = 
+            await import('../../services/calendar/ambient-calendar-awareness.js');
+          
+          const ambientContext = await getAmbientCalendarContext(services.userId);
+          
+          if (shouldInterruptForCalendar(ambientContext)) {
+            const urgentContextText = generateAmbientContextInjection(ambientContext);
+            if (urgentContextText) {
+              logger.info(
+                { userId: services.userId, turnCount: userData.turnCount ?? 0 },
+                '📅 URGENT: Calendar interrupt injected (meeting very soon)'
+              );
+              turnCtx.addMessage({
+                role: 'system',
+                content: `[URGENT CALENDAR CONTEXT - MENTION THIS NATURALLY]\n${urgentContextText}\n\nNaturally acknowledge this in your response. For example: "By the way, looks like you have [meeting] coming up in a few minutes - should we wrap up?"`,
+              });
+            }
+          }
+        }
+      } catch (calendarErr) {
+        logger.debug({ error: String(calendarErr) }, '📅 Calendar ambient check failed (non-fatal)');
       }
     } catch (extHookErr) {
       logger.warn({ error: String(extHookErr) }, 'Extensibility hook failed (non-fatal)');

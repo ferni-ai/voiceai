@@ -1123,7 +1123,7 @@ function getGreeting(timeContext: TimeContext): string {
     night: ['Hello, night owl', 'In the stillness', 'Quiet hours'],
   };
   const options = greetings[timeContext];
-  return options[Math.floor(Math.random() * options.length)];
+  return options[Math.floor(Math.random() * options.length)] ?? 'Hello';
 }
 
 async function loadData(): Promise<ChronicleData> {
@@ -1332,7 +1332,7 @@ function render(): void {
     ` : ''}
     
     <!-- Memory Section -->
-    ${memories.length > 0 ? `
+    ${memories.length > 0 && memories[0] ? `
       <section class="chronicle-section">
         <div class="chronicle-section-header">
           <span class="chronicle-section-icon">${ICONS.heart}</span>
@@ -1445,7 +1445,7 @@ function openPanel(panel: 'capture' | 'converse'): void {
   if (panel === 'capture') {
     // Set random prompt
     const prompts = getJournalPrompts();
-    const prompt = prompts[Math.floor(Math.random() * prompts.length)];
+    const prompt = prompts[Math.floor(Math.random() * prompts.length)] ?? '';
     const promptEl = container.querySelector('#capture-prompt');
     if (promptEl) promptEl.textContent = prompt;
 
@@ -1531,7 +1531,7 @@ async function saveTextEntry(): Promise<void> {
   } catch (error) {
     log.error('Failed to save entry:', error);
     const { toast } = await import('./whisper.ui.js');
-    toast.error('Could not save. Try again?');
+    toast.error("Couldn't save. Try again?");
 
     if (saveBtn) {
       saveBtn.disabled = false;
@@ -1591,7 +1591,7 @@ function getConversationWelcome(): string {
   };
 
   const options = welcomes[timeContext];
-  return options[Math.floor(Math.random() * options.length)];
+  return options[Math.floor(Math.random() * options.length)] ?? 'Welcome';
 }
 
 function renderChatMessages(): void {
@@ -1703,7 +1703,7 @@ function getFallbackResponse(userMessage: string): string {
     "That's something I've been thinking about too. What's the question behind the question?",
   ];
 
-  return fallbacks[Math.floor(Math.random() * fallbacks.length)];
+  return fallbacks[Math.floor(Math.random() * fallbacks.length)] ?? "Tell me more.";
 }
 
 // ============================================================================

@@ -342,10 +342,7 @@ export class PredictionsWorker extends LocalWorker {
       patternId?: string;
     };
 
-    this.log.debug(
-      { userId, predictionId, outcome, resonance },
-      'Recording prediction surface'
-    );
+    this.log.debug({ userId, predictionId, outcome, resonance }, 'Recording prediction surface');
 
     // Track prediction accuracy for learning
     try {
@@ -375,13 +372,17 @@ export class PredictionsWorker extends LocalWorker {
       // Also emit an analytics event for tracking
       if (sessionId) {
         const { AsyncEvents } = await import('../services/async-events/index.js');
-        AsyncEvents.emit('analytics:interaction', {
-          interactionType: 'prediction_surface',
-          predictionId,
-          outcome,
-          resonance,
-          patternId,
-        }, { userId, sessionId });
+        AsyncEvents.emit(
+          'analytics:interaction',
+          {
+            interactionType: 'prediction_surface',
+            predictionId,
+            outcome,
+            resonance,
+            patternId,
+          },
+          { userId, sessionId }
+        );
       }
     } catch (error) {
       this.log.warn(

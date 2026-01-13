@@ -816,7 +816,7 @@ class WinterSolsticeMomentUI {
   private getPersonaInitial(id: string): string {
     const initials: Record<string, string> = {
       ferni: 'FE',
-      'peter-lynch': 'PJ',
+      'peter-john': 'PJ',
       'alex-chen': 'AC',
       'maya-santos': 'MS',
       'jordan-taylor': 'JT',

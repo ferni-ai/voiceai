@@ -622,7 +622,8 @@ class TransitionAnalyticsStore {
     const treatment = results[treatmentName];
 
     // Check sample size
-    const sampleSizeAdequate = control.count >= test.minSampleSize && treatment.count >= test.minSampleSize;
+    const sampleSizeAdequate =
+      control.count >= test.minSampleSize && treatment.count >= test.minSampleSize;
 
     // Calculate statistical significance using z-test for proportions
     const significance = calculateProportionSignificance(
@@ -637,9 +638,12 @@ class TransitionAnalyticsStore {
     if (!sampleSizeAdequate) {
       recommendation = `Need more data. Current: control=${control.count}, treatment=${treatment.count}. Required: ${test.minSampleSize} each.`;
     } else if (significance.isSignificant) {
-      const winner = treatment.positiveResponseRate > control.positiveResponseRate ? treatmentName : controlName;
+      const winner =
+        treatment.positiveResponseRate > control.positiveResponseRate ? treatmentName : controlName;
       const lift = Math.abs(
-        ((treatment.positiveResponseRate - control.positiveResponseRate) / control.positiveResponseRate) * 100
+        ((treatment.positiveResponseRate - control.positiveResponseRate) /
+          control.positiveResponseRate) *
+          100
       ).toFixed(1);
       recommendation = `${winner} wins with ${lift}% ${treatment.positiveResponseRate > control.positiveResponseRate ? 'improvement' : 'decline'} (p=${significance.pValue.toFixed(4)})`;
     } else {
@@ -665,7 +669,9 @@ class TransitionAnalyticsStore {
         absoluteDifference: treatment.positiveResponseRate - control.positiveResponseRate,
         relativeLift:
           control.positiveResponseRate > 0
-            ? ((treatment.positiveResponseRate - control.positiveResponseRate) / control.positiveResponseRate) * 100
+            ? ((treatment.positiveResponseRate - control.positiveResponseRate) /
+                control.positiveResponseRate) *
+              100
             : 0,
       },
     };

@@ -80,6 +80,20 @@
       "trailingSlash": false,
       "rewrites": [
         {
+          "source": "/token",
+          "run": {
+            "serviceId": "john-bogle-ui",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/demo-token",
+          "run": {
+            "serviceId": "john-bogle-ui",
+            "region": "us-central1"
+          }
+        },
+        {
           "source": "/api/waitlist",
           "run": {
             "serviceId": "john-bogle-ui",
@@ -199,6 +213,20 @@
       "cleanUrls": true,
       "trailingSlash": false,
       "rewrites": [
+        {
+          "source": "/token",
+          "run": {
+            "serviceId": "john-bogle-ui",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/demo-token",
+          "run": {
+            "serviceId": "john-bogle-ui",
+            "region": "us-central1"
+          }
+        },
         {
           "source": "/api/waitlist",
           "run": {

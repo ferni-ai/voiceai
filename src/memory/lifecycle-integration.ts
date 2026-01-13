@@ -11,7 +11,7 @@
  * @module memory/lifecycle-integration
  */
 
-import { cleanForFirestore, getFirestoreDb } from '../services/superhuman/firestore-utils.js';
+import { cleanForFirestore, getFirestoreDb } from '../utils/firestore-utils.js';
 import { createLogger } from '../utils/safe-logger.js';
 import { getFirestoreVectorStore } from './firestore-vector-store/index.js';
 import type { MemoryItem } from './interfaces/index.js';

@@ -16,7 +16,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import type { Firestore as FirestoreType } from '@google-cloud/firestore';
-import { cleanForFirestore } from '../../utils/firestore-utils.js';
+import { cleanForFirestore, toSafeDate } from '../../utils/firestore-utils.js';
 import { onCommunicationPreferenceChange } from '../data-layer/hooks/contacts-hooks.js';
 
 const log = createLogger({ module: 'optimal-timing' });
@@ -326,7 +326,7 @@ export async function getTimingProfile(
         const data = doc.data()!;
         const profile: ContactTimingProfile = {
           ...data,
-          lastUpdated: data.lastUpdated?.toDate() || new Date(),
+          lastUpdated: toSafeDate(data.lastUpdated),
         } as ContactTimingProfile;
 
         profileCache.set(cacheKey, profile);

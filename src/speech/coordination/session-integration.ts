@@ -255,10 +255,20 @@ export function recordEchoDetected(sessionId: string, delayAfterSpeechMs: number
 
 /**
  * Get the adaptive echo prevention window for the current session.
+ *
+ * CRITICAL FIX: Now accepts userTranscript for content-aware echo detection.
+ * Pass the user's transcript to enable intelligent detection of legitimate
+ * requests vs echoes (e.g., "Could you check the news?" should NOT be blocked).
+ *
+ * @param lastUtteranceDurationMs - Duration of last agent utterance in ms
+ * @param userTranscript - Optional: the user's transcript for content-aware detection
  */
-export function getAdaptiveEchoWindow(lastUtteranceDurationMs?: number): number {
+export function getAdaptiveEchoWindow(
+  lastUtteranceDurationMs?: number,
+  userTranscript?: string
+): number {
   const coordinator = getSpeechCoordinator();
-  return coordinator.getEchoWindow(lastUtteranceDurationMs);
+  return coordinator.getEchoWindow(lastUtteranceDurationMs, userTranscript);
 }
 
 // ============================================================================

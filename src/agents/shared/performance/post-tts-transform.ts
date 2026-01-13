@@ -154,6 +154,38 @@ interface NativePostTtsConfig {
   tempoVariationDepth?: number; // 0-1 (default 0.03 = 3%)
   // Onset softening (micro-fades on hard attacks)
   enableOnsetSoftening?: boolean;
+  // =========================================================================
+  // STATE-OF-THE-ART HUMANIZATION - December 2024
+  // =========================================================================
+  // Jitter: cycle-to-cycle pitch variation (0.5-2% natural speech)
+  enableJitter?: boolean;
+  jitterAmount?: number; // 0-1 (0.015 = 1.5% typical)
+  // Shimmer: cycle-to-cycle amplitude variation (3-10% natural speech)
+  enableShimmer?: boolean;
+  shimmerAmount?: number; // 0-1 (0.05 = 5% typical)
+  // HNR Modulation: harmonic-to-noise ratio / breathiness
+  enableHnrModulation?: boolean;
+  hnrBreathiness?: number; // 0-1 (0.15 = light breathiness)
+  // Subglottal Resonance: chest cavity resonances (600/1400/2200 Hz)
+  enableSubglottalResonance?: boolean;
+  subglottalStrength?: number; // 0-1 (0.2 = subtle presence)
+  // Smile Formant Shifts: emotional brightness via formant shifting
+  enableSmileFormants?: boolean;
+  smileAmount?: number; // 0-1 (0.3 = subtle smile)
+  // Glottalization: glottal stops at vowel onsets (70Hz modulation)
+  enableGlottalization?: boolean;
+  glottalizationStrength?: number; // 0-1 (0.4 = moderate)
+  // Hesitation Phenomena: synthetic "um", "uh" filler sounds
+  enableHesitationSounds?: boolean;
+  hesitationProbability?: number; // 0-1 per phrase (0.1 = 10%)
+  // Lombard Effect: noise-adaptive volume/brightness
+  enableLombardEffect?: boolean;
+  // Register Transitions: modal/falsetto/fry voice registers
+  enableRegisterTransitions?: boolean;
+  targetRegister?: number; // 0=Modal, 1=Falsetto, 2=Fry
+  // Pharyngeal Constriction: throat tension/stress sound
+  enablePharyngealConstriction?: boolean;
+  pharyngealAmount?: number; // 0-1 (0.3 = moderate tightness)
 }
 
 /**
@@ -391,6 +423,59 @@ export interface PostTTSConfig {
 
   /** Enable onset softening (micro-fades on hard glottal attacks) */
   enableOnsetSoftening?: boolean;
+
+  // =========================================================================
+  // STATE-OF-THE-ART HUMANIZATION - December 2024
+  // These features add subtle natural variations found in real human speech
+  // =========================================================================
+
+  /** Enable jitter (cycle-to-cycle pitch variation, 0.5-2% in natural speech) */
+  enableJitter?: boolean;
+  /** Jitter amount (0-1, 0.015 = 1.5% typical) */
+  jitterAmount?: number;
+
+  /** Enable shimmer (cycle-to-cycle amplitude variation, 3-10% in natural speech) */
+  enableShimmer?: boolean;
+  /** Shimmer amount (0-1, 0.05 = 5% typical) */
+  shimmerAmount?: number;
+
+  /** Enable HNR modulation (breathiness/aspiration noise) */
+  enableHnrModulation?: boolean;
+  /** HNR breathiness (0-1, 0.15 = light breathiness) */
+  hnrBreathiness?: number;
+
+  /** Enable subglottal resonance (chest cavity resonances at 600/1400/2200 Hz) */
+  enableSubglottalResonance?: boolean;
+  /** Subglottal resonance strength (0-1, 0.2 = subtle presence) */
+  subglottalStrength?: number;
+
+  /** Enable smile formant shifts (emotional brightness via formant shifting) */
+  enableSmileFormants?: boolean;
+  /** Smile amount (0-1, 0.3 = subtle smile) */
+  smileAmount?: number;
+
+  /** Enable glottalization (glottal stops at vowel onsets) */
+  enableGlottalization?: boolean;
+  /** Glottalization strength (0-1, 0.4 = moderate) */
+  glottalizationStrength?: number;
+
+  /** Enable hesitation phenomena (synthetic "um", "uh" filler sounds) */
+  enableHesitationSounds?: boolean;
+  /** Hesitation probability per phrase (0-1, 0.1 = 10%) */
+  hesitationProbability?: number;
+
+  /** Enable Lombard effect (noise-adaptive volume/brightness) */
+  enableLombardEffect?: boolean;
+
+  /** Enable register transitions (modal/falsetto/fry voice registers) */
+  enableRegisterTransitions?: boolean;
+  /** Target voice register (0=Modal, 1=Falsetto, 2=Fry) */
+  targetRegister?: number;
+
+  /** Enable pharyngeal constriction (throat tension/stress sound) */
+  enablePharyngealConstriction?: boolean;
+  /** Pharyngeal constriction amount (0-1, 0.3 = moderate tightness) */
+  pharyngealAmount?: number;
 }
 
 // ============================================================================
@@ -431,6 +516,17 @@ function envDisabled(key: string): boolean {
 //   POST_TTS_NOISE_FLOOR=false        - Disable noise floor
 //   POST_TTS_SOLA_PITCH=false         - Disable SOLA pitch shifting
 //   POST_TTS_EMOTION_PROSODY=false    - Disable emotion prosody
+// STATE-OF-THE-ART HUMANIZATION (December 2024):
+//   POST_TTS_JITTER=true              - Enable cycle-to-cycle pitch variation
+//   POST_TTS_SHIMMER=true             - Enable cycle-to-cycle amplitude variation
+//   POST_TTS_HNR_MODULATION=true      - Enable breathiness modulation
+//   POST_TTS_SUBGLOTTAL=true          - Enable chest cavity resonances
+//   POST_TTS_SMILE_FORMANTS=true      - Enable emotional brightness
+//   POST_TTS_GLOTTALIZATION=true      - Enable glottal stops
+//   POST_TTS_HESITATION=true          - Enable "um", "uh" sounds
+//   POST_TTS_LOMBARD=true             - Enable noise adaptation
+//   POST_TTS_REGISTER=true            - Enable voice register transitions
+//   POST_TTS_PHARYNGEAL=true          - Enable throat tension
 export const DEFAULT_CONFIG: Required<PostTTSConfig> = {
   sampleRate: 24000, // Cartesia output rate
   // Features ON by default (use POST_TTS_X=false to disable)
@@ -488,6 +584,40 @@ export const DEFAULT_CONFIG: Required<PostTTSConfig> = {
   // Onset softening: micro-fades on hard glottal attacks
   // Reduces harsh vowel-initial sounds for more natural speech
   enableOnsetSoftening: envEnabled('POST_TTS_ONSET_SOFTENING'),
+  // =========================================================================
+  // STATE-OF-THE-ART HUMANIZATION - December 2024
+  // These features add subtle natural variations found in real human speech
+  // Most enabled by default for "Better Than Human" quality
+  // =========================================================================
+  // Jitter: cycle-to-cycle pitch variation (natural speech has 0.5-2%)
+  enableJitter: !envDisabled('POST_TTS_JITTER'),
+  jitterAmount: 0.015, // 1.5% - subtle and natural
+  // Shimmer: cycle-to-cycle amplitude variation (natural speech has 3-10%)
+  enableShimmer: !envDisabled('POST_TTS_SHIMMER'),
+  shimmerAmount: 0.05, // 5% - within natural range
+  // HNR Modulation: adds subtle breathiness/aspiration noise
+  enableHnrModulation: !envDisabled('POST_TTS_HNR_MODULATION'),
+  hnrBreathiness: 0.15, // Light breathiness - not too raspy
+  // Subglottal Resonance: chest cavity resonances at Sg1=600Hz, Sg2=1400Hz, Sg3=2200Hz
+  enableSubglottalResonance: !envDisabled('POST_TTS_SUBGLOTTAL'),
+  subglottalStrength: 0.2, // Subtle presence - adds warmth
+  // Smile Formant Shifts: high-shelf boost for emotional brightness
+  enableSmileFormants: envEnabled('POST_TTS_SMILE_FORMANTS'), // OFF by default (situational)
+  smileAmount: 0.3, // When enabled, subtle smile
+  // Glottalization: 70Hz modulation at vowel onsets
+  enableGlottalization: envEnabled('POST_TTS_GLOTTALIZATION'), // OFF by default (can be harsh)
+  glottalizationStrength: 0.4, // When enabled, moderate intensity
+  // Hesitation Phenomena: synthetic "um" (300ms, 120Hz) and "uh" (200ms, 110Hz)
+  enableHesitationSounds: envEnabled('POST_TTS_HESITATION'), // OFF by default (use sparingly)
+  hesitationProbability: 0.1, // 10% chance per phrase when enabled
+  // Lombard Effect: noise-adaptive volume (+6dB) and brightness
+  enableLombardEffect: envEnabled('POST_TTS_LOMBARD'), // OFF by default (needs noise detection)
+  // Register Transitions: smooth transitions between modal/falsetto/fry
+  enableRegisterTransitions: envEnabled('POST_TTS_REGISTER'), // OFF by default (advanced)
+  targetRegister: 0, // 0=Modal (default), 1=Falsetto, 2=Fry
+  // Pharyngeal Constriction: throat tension for stress/tension sounds
+  enablePharyngealConstriction: envEnabled('POST_TTS_PHARYNGEAL'), // OFF by default (situational)
+  pharyngealAmount: 0.3, // When enabled, moderate tightness
 };
 
 // ============================================================================
@@ -951,6 +1081,38 @@ export function createPostTTSTransform(
             tempoVariationDepth: fullConfig.tempoVariationDepth,
             // Onset softening: micro-fades on hard glottal attacks
             enableOnsetSoftening: fullConfig.enableOnsetSoftening,
+            // =========================================================================
+            // STATE-OF-THE-ART HUMANIZATION - December 2024
+            // =========================================================================
+            // Jitter: cycle-to-cycle pitch variation
+            enableJitter: fullConfig.enableJitter,
+            jitterAmount: fullConfig.jitterAmount,
+            // Shimmer: cycle-to-cycle amplitude variation
+            enableShimmer: fullConfig.enableShimmer,
+            shimmerAmount: fullConfig.shimmerAmount,
+            // HNR Modulation: breathiness/aspiration
+            enableHnrModulation: fullConfig.enableHnrModulation,
+            hnrBreathiness: fullConfig.hnrBreathiness,
+            // Subglottal Resonance: chest cavity resonances
+            enableSubglottalResonance: fullConfig.enableSubglottalResonance,
+            subglottalStrength: fullConfig.subglottalStrength,
+            // Smile Formant Shifts: emotional brightness
+            enableSmileFormants: fullConfig.enableSmileFormants,
+            smileAmount: fullConfig.smileAmount,
+            // Glottalization: glottal stops at vowel onsets
+            enableGlottalization: fullConfig.enableGlottalization,
+            glottalizationStrength: fullConfig.glottalizationStrength,
+            // Hesitation Phenomena: "um", "uh" sounds
+            enableHesitationSounds: fullConfig.enableHesitationSounds,
+            hesitationProbability: fullConfig.hesitationProbability,
+            // Lombard Effect: noise adaptation
+            enableLombardEffect: fullConfig.enableLombardEffect,
+            // Register Transitions: modal/falsetto/fry
+            enableRegisterTransitions: fullConfig.enableRegisterTransitions,
+            targetRegister: fullConfig.targetRegister,
+            // Pharyngeal Constriction: throat tension
+            enablePharyngealConstriction: fullConfig.enablePharyngealConstriction,
+            pharyngealAmount: fullConfig.pharyngealAmount,
           };
 
           statefulProcessor = new rust.NativePostTtsProcessor(processorConfig);
@@ -983,9 +1145,20 @@ export function createPostTTSTransform(
                 lipSmacks: fullConfig.enableLipSmacks,
                 tempoVariation: fullConfig.enableTempoVariation,
                 onsetSoftening: fullConfig.enableOnsetSoftening,
+                // State-of-the-art humanization
+                jitter: fullConfig.enableJitter,
+                shimmer: fullConfig.enableShimmer,
+                hnrModulation: fullConfig.enableHnrModulation,
+                subglottalResonance: fullConfig.enableSubglottalResonance,
+                smileFormants: fullConfig.enableSmileFormants,
+                glottalization: fullConfig.enableGlottalization,
+                hesitationSounds: fullConfig.enableHesitationSounds,
+                lombardEffect: fullConfig.enableLombardEffect,
+                registerTransitions: fullConfig.enableRegisterTransitions,
+                pharyngealConstriction: fullConfig.enablePharyngealConstriction,
               },
             },
-            '🧈 Post-TTS STATEFUL processor initialized (butter smooth + advanced humanization)'
+            '🧈 Post-TTS STATEFUL processor initialized (butter smooth + state-of-the-art humanization)'
           );
         } catch (error) {
           log.warn(
@@ -1338,6 +1511,21 @@ export const PostTTSPresets = {
     enableLipSmacks: false,
     enableTempoVariation: false,
     enableOnsetSoftening: false,
+    // State-of-the-art humanization (on by default for natural speech)
+    enableJitter: true,
+    jitterAmount: 0.015,
+    enableShimmer: true,
+    shimmerAmount: 0.05,
+    enableHnrModulation: true,
+    hnrBreathiness: 0.15,
+    enableSubglottalResonance: true,
+    subglottalStrength: 0.2,
+    enableSmileFormants: false, // Situational
+    enableGlottalization: false, // Can be harsh
+    enableHesitationSounds: false, // Use sparingly
+    enableLombardEffect: false, // Needs noise detection
+    enableRegisterTransitions: false, // Advanced
+    enablePharyngealConstriction: false, // Situational
   } satisfies Partial<PostTTSConfig>,
 
   /** Minimal processing - just soft edges for smooth transitions */
@@ -1356,6 +1544,17 @@ export const PostTTSPresets = {
     enableLipSmacks: false,
     enableTempoVariation: false,
     enableOnsetSoftening: false,
+    // Disable state-of-the-art humanization
+    enableJitter: false,
+    enableShimmer: false,
+    enableHnrModulation: false,
+    enableSubglottalResonance: false,
+    enableSmileFormants: false,
+    enableGlottalization: false,
+    enableHesitationSounds: false,
+    enableLombardEffect: false,
+    enableRegisterTransitions: false,
+    enablePharyngealConstriction: false,
   } satisfies Partial<PostTTSConfig>,
 
   /** Warm and intimate - for emotional/supportive content */
@@ -1385,6 +1584,21 @@ export const PostTTSPresets = {
     enableLipSmacks: false,
     enableTempoVariation: false,
     enableOnsetSoftening: false,
+    // State-of-the-art humanization (enhanced for intimacy)
+    enableJitter: true,
+    jitterAmount: 0.018, // Slightly more for vulnerability
+    enableShimmer: true,
+    shimmerAmount: 0.06, // Slightly more variation
+    enableHnrModulation: true,
+    hnrBreathiness: 0.2, // More breath for intimacy
+    enableSubglottalResonance: true,
+    subglottalStrength: 0.25, // Warmer chest resonance
+    enableSmileFormants: false, // Off for intimate moments
+    enableGlottalization: false,
+    enableHesitationSounds: false,
+    enableLombardEffect: false,
+    enableRegisterTransitions: false,
+    enablePharyngealConstriction: false,
   } satisfies Partial<PostTTSConfig>,
 
   /** Clear and energetic - for action-oriented content */
@@ -1412,6 +1626,22 @@ export const PostTTSPresets = {
     enableLipSmacks: false,
     enableTempoVariation: false,
     enableOnsetSoftening: false,
+    // State-of-the-art humanization (minimal for clarity)
+    enableJitter: true,
+    jitterAmount: 0.012, // Less for stability
+    enableShimmer: true,
+    shimmerAmount: 0.04, // Less variation
+    enableHnrModulation: true,
+    hnrBreathiness: 0.1, // Less breathiness for clarity
+    enableSubglottalResonance: true,
+    subglottalStrength: 0.15, // Subtle
+    enableSmileFormants: true, // ON for energetic brightness
+    smileAmount: 0.25,
+    enableGlottalization: false,
+    enableHesitationSounds: false,
+    enableLombardEffect: false,
+    enableRegisterTransitions: false,
+    enablePharyngealConstriction: false,
   } satisfies Partial<PostTTSConfig>,
 
   /**
@@ -1459,6 +1689,26 @@ export const PostTTSPresets = {
     enableTempoVariation: false, // DISABLED: causes artifacts
     tempoVariationDepth: 0.03,
     enableOnsetSoftening: false,
+    // State-of-the-art humanization (all on for maximum realism)
+    enableJitter: true,
+    jitterAmount: 0.02, // Full natural range
+    enableShimmer: true,
+    shimmerAmount: 0.06, // Full natural range
+    enableHnrModulation: true,
+    hnrBreathiness: 0.2, // More breathiness
+    enableSubglottalResonance: true,
+    subglottalStrength: 0.25, // Stronger chest presence
+    enableSmileFormants: false, // Context-dependent
+    smileAmount: 0.3,
+    enableGlottalization: false, // Can be enabled per-context
+    glottalizationStrength: 0.4,
+    enableHesitationSounds: false, // Can be enabled per-context
+    hesitationProbability: 0.1,
+    enableLombardEffect: false, // Needs noise detection
+    enableRegisterTransitions: false, // Advanced use case
+    targetRegister: 0,
+    enablePharyngealConstriction: false, // Context-dependent
+    pharyngealAmount: 0.3,
   } satisfies Partial<PostTTSConfig>,
 
   /** Bypass - no processing (for debugging) */
@@ -1480,6 +1730,17 @@ export const PostTTSPresets = {
     useSolaPitch: false,
     enableEmotionProsody: false,
     enableAdaptivePacing: false,
+    // Disable state-of-the-art humanization
+    enableJitter: false,
+    enableShimmer: false,
+    enableHnrModulation: false,
+    enableSubglottalResonance: false,
+    enableSmileFormants: false,
+    enableGlottalization: false,
+    enableHesitationSounds: false,
+    enableLombardEffect: false,
+    enableRegisterTransitions: false,
+    enablePharyngealConstriction: false,
   } satisfies Partial<PostTTSConfig>,
 };
 
@@ -1529,6 +1790,26 @@ export interface PersonaHumanizationConfig {
   enableTempoVariation?: boolean;
   tempoVariationDepth?: number;
   enableOnsetSoftening?: boolean;
+  // State-of-the-art humanization
+  enableJitter?: boolean;
+  jitterAmount?: number;
+  enableShimmer?: boolean;
+  shimmerAmount?: number;
+  enableHnrModulation?: boolean;
+  hnrBreathiness?: number;
+  enableSubglottalResonance?: boolean;
+  subglottalStrength?: number;
+  enableSmileFormants?: boolean;
+  smileAmount?: number;
+  enableGlottalization?: boolean;
+  glottalizationStrength?: number;
+  enableHesitationSounds?: boolean;
+  hesitationProbability?: number;
+  enableLombardEffect?: boolean;
+  enableRegisterTransitions?: boolean;
+  targetRegister?: number;
+  enablePharyngealConstriction?: boolean;
+  pharyngealAmount?: number;
 }
 
 /**
@@ -1546,7 +1827,8 @@ export function getRecommendedPreset(personaId: string): keyof typeof PostTTSPre
     'maya-santos': 'warmIntimate',
     maya: 'warmIntimate',
     // Peter (research analyst) - clear and energetic for data presentation
-    'peter-lynch': 'clearEnergetic',
+    'peter-john': 'clearEnergetic',
+    'peter-lynch': 'clearEnergetic', // Legacy alias
     peter: 'clearEnergetic',
     // Jordan (life planning) - clear and celebratory
     'jordan-barnes': 'clearEnergetic',
@@ -1635,6 +1917,45 @@ export function buildPersonaPostTTSConfig(
       personaOverrides.tempoVariationDepth = personaConfig.tempoVariationDepth;
     if (personaConfig.enableOnsetSoftening !== undefined)
       personaOverrides.enableOnsetSoftening = personaConfig.enableOnsetSoftening;
+    // State-of-the-art humanization overrides
+    if (personaConfig.enableJitter !== undefined)
+      personaOverrides.enableJitter = personaConfig.enableJitter;
+    if (personaConfig.jitterAmount !== undefined)
+      personaOverrides.jitterAmount = personaConfig.jitterAmount;
+    if (personaConfig.enableShimmer !== undefined)
+      personaOverrides.enableShimmer = personaConfig.enableShimmer;
+    if (personaConfig.shimmerAmount !== undefined)
+      personaOverrides.shimmerAmount = personaConfig.shimmerAmount;
+    if (personaConfig.enableHnrModulation !== undefined)
+      personaOverrides.enableHnrModulation = personaConfig.enableHnrModulation;
+    if (personaConfig.hnrBreathiness !== undefined)
+      personaOverrides.hnrBreathiness = personaConfig.hnrBreathiness;
+    if (personaConfig.enableSubglottalResonance !== undefined)
+      personaOverrides.enableSubglottalResonance = personaConfig.enableSubglottalResonance;
+    if (personaConfig.subglottalStrength !== undefined)
+      personaOverrides.subglottalStrength = personaConfig.subglottalStrength;
+    if (personaConfig.enableSmileFormants !== undefined)
+      personaOverrides.enableSmileFormants = personaConfig.enableSmileFormants;
+    if (personaConfig.smileAmount !== undefined)
+      personaOverrides.smileAmount = personaConfig.smileAmount;
+    if (personaConfig.enableGlottalization !== undefined)
+      personaOverrides.enableGlottalization = personaConfig.enableGlottalization;
+    if (personaConfig.glottalizationStrength !== undefined)
+      personaOverrides.glottalizationStrength = personaConfig.glottalizationStrength;
+    if (personaConfig.enableHesitationSounds !== undefined)
+      personaOverrides.enableHesitationSounds = personaConfig.enableHesitationSounds;
+    if (personaConfig.hesitationProbability !== undefined)
+      personaOverrides.hesitationProbability = personaConfig.hesitationProbability;
+    if (personaConfig.enableLombardEffect !== undefined)
+      personaOverrides.enableLombardEffect = personaConfig.enableLombardEffect;
+    if (personaConfig.enableRegisterTransitions !== undefined)
+      personaOverrides.enableRegisterTransitions = personaConfig.enableRegisterTransitions;
+    if (personaConfig.targetRegister !== undefined)
+      personaOverrides.targetRegister = personaConfig.targetRegister;
+    if (personaConfig.enablePharyngealConstriction !== undefined)
+      personaOverrides.enablePharyngealConstriction = personaConfig.enablePharyngealConstriction;
+    if (personaConfig.pharyngealAmount !== undefined)
+      personaOverrides.pharyngealAmount = personaConfig.pharyngealAmount;
     Object.assign(merged, personaOverrides);
   }
 

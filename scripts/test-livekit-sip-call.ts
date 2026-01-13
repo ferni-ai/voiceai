@@ -24,7 +24,9 @@ const LIVEKIT_API_KEY = process.env.LIVEKIT_API_KEY || '';
 const LIVEKIT_API_SECRET = process.env.LIVEKIT_API_SECRET || '';
 
 // Your outbound SIP trunk ID from LiveKit
-const SIP_TRUNK_ID = 'ST_FCiQRLuvhYzx';
+// Production: ST_AEE6NnKE84XP (john_outbound)
+// Tollfree: ST_UJKg5kV3jHjR (tollfree_outbound)
+const SIP_TRUNK_ID = process.env.SIP_TRUNK_ID || 'ST_AEE6NnKE84XP';
 
 if (!LIVEKIT_URL || !LIVEKIT_API_KEY || !LIVEKIT_API_SECRET) {
   console.error('❌ Missing LiveKit credentials');

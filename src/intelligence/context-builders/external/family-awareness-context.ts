@@ -158,9 +158,7 @@ DELIVERY GUIDELINES:
 - NEVER reveal specific conversation content unless explicitly shared
 - When in doubt, err on the side of privacy`,
           {
-            priority: 7, // Important but lower than pending messages
             category: 'family',
-            source: 'family-awareness-context',
           }
         )
       );

@@ -15,60 +15,37 @@
   <link rel="stylesheet" href="../master-tokens.css">
   <link rel="stylesheet" href="../brand-components.css">
   <style>
+    /*
+     * TOKENS: All base tokens inherited from master-tokens.css
+     * Only define page-specific semantic aliases here
+     */
     :root {
-      --color-accent: #3D5A45;
-      --color-accent-secondary: #4a6741;
-      --color-background: #fffdfb;
-      --color-background-elevated: #ffffff;
-      --color-background-secondary: rgba(44, 37, 32, 0.03);
-      --color-text-primary: #2C2520;
-      --color-text-secondary: #5c544a;
-      --color-text-muted: #9a8f85;
-      --color-border-subtle: rgba(44, 37, 32, 0.08);
-      --persona-ferni: #4a6741;
-      --persona-maya: #a67a6a;
-      --persona-peter: #3a6b73;
-      --persona-jordan: #c4856a;
-      --persona-alex: #5a6b8a;
-      --persona-nayan: #8a7a6a;
-      --space-1: 4px;
-      --space-2: 8px;
-      --space-3: 12px;
-      --space-4: 16px;
-      --space-5: 20px;
-      --space-6: 24px;
-      --space-8: 32px;
-      --font-display: 'Plus Jakarta Sans', system-ui, sans-serif;
-      --font-body: 'Plus Jakarta Sans', system-ui, sans-serif;
-      --radius-md: 8px;
-      --radius-lg: 12px;
-      --radius-xl: 16px;
-      --radius-full: 9999px;
-      --showcase-bg: #0a0a0c;
+      /* Persona aliases for this visualization */
+      --persona-ferni: var(--color-ferni);
+      --persona-maya: var(--color-maya);
+      --persona-peter: var(--color-peter);
+      --persona-jordan: var(--color-jordan);
+      --persona-alex: var(--color-alex);
+      --persona-nayan: var(--color-nayan);
 
-      /* Energy Rings - Design System Persona Colors (warm, earthy) */
-      --color-energy-emotional: #a67a6a;
-      --color-energy-emotional-end: #c49a8a;
-      --color-energy-emotional-bg: rgba(166, 122, 106, 0.15);
-      --color-energy-mental: #3a6b73;
-      --color-energy-mental-end: #5a8b93;
-      --color-energy-mental-bg: rgba(58, 107, 115, 0.15);
-      --color-energy-physical: #4a6741;
-      --color-energy-physical-end: #6a8761;
-      --color-energy-physical-bg: rgba(74, 103, 65, 0.15);
+      /* Energy Rings - mapped to persona colors */
+      --color-energy-emotional: var(--color-maya);
+      --color-energy-emotional-end: var(--color-maya-light);
+      --color-energy-emotional-bg: var(--color-maya-subtle);
+      --color-energy-mental: var(--color-peter);
+      --color-energy-mental-end: var(--color-peter-light);
+      --color-energy-mental-bg: var(--color-peter-subtle);
+      --color-energy-physical: var(--color-ferni);
+      --color-energy-physical-end: var(--color-ferni-light);
+      --color-energy-physical-bg: var(--color-ferni-subtle);
 
-      /* Projections/Fan Chart - Design System Accent Colors */
-      --color-projection-primary: #3D5A45;
-      --color-projection-secondary: #b8956a;
-      --color-projection-band: rgba(61, 90, 69, 0.25);
-      --color-scenario-conservative: #b5453a;
-      --color-scenario-expected: #3D5A45;
-      --color-scenario-optimistic: #3d7a52;
-      --duration-fast: 150ms;
-      --duration-normal: 200ms;
-      --duration-slow: 300ms;
-      --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
-      --ease-spring: cubic-bezier(0.5, 1.5, 0.5, 1);
+      /* Projections/Fan Chart - semantic mappings */
+      --color-projection-primary: var(--color-accent);
+      --color-projection-secondary: var(--color-nayan);
+      --color-projection-band: var(--color-accent-subtle);
+      --color-scenario-conservative: var(--color-error);
+      --color-scenario-expected: var(--color-accent);
+      --color-scenario-optimistic: var(--color-success);
     }
 
     /* Animations */
@@ -114,8 +91,8 @@
 
     body {
       font-family: var(--font-body);
-      background: var(--showcase-bg);
-      color: #ffffff;
+      background: var(--color-showcase-bg);
+      color: var(--color-text-inverse);
       min-height: 100vh;
       padding: var(--space-6);
     }
@@ -231,7 +208,7 @@
 
     .device-frame {
       position: relative;
-      background: #1a1a1e;
+      background: var(--color-showcase-surface);
       border-radius: 24px;
       padding: 12px;
       box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.1), 0 25px 50px rgba(0, 0, 0, 0.5);
@@ -263,7 +240,7 @@
       transform: translateY(-50%);
       width: 8px;
       height: 40px;
-      background: #2a2a2e;
+      background: var(--color-showcase-elevated);
       border-radius: 4px;
     }
 
@@ -281,7 +258,7 @@
       transform: translateX(-50%);
       width: 80px;
       height: 24px;
-      background: #1a1a1e;
+      background: var(--color-showcase-surface);
       border-radius: 12px;
       z-index: 10;
     }
@@ -300,7 +277,7 @@
       transform: translateX(-50%);
       width: 12px;
       height: 12px;
-      background: #0a0a0c;
+      background: var(--color-showcase-bg);
       border-radius: 50%;
       z-index: 10;
     }
@@ -319,7 +296,7 @@
       left: 0;
       right: 0;
       height: 32px;
-      background: #2a2a2e;
+      background: var(--color-showcase-elevated);
       border-radius: 12px 12px 0 0;
     }
     .device-frame.web::after {
@@ -352,7 +329,7 @@
       transform: translateY(-50%);
       width: 8px;
       height: 8px;
-      background: #0a0a0c;
+      background: var(--color-showcase-bg);
       border-radius: 50%;
       z-index: 10;
     }
@@ -364,7 +341,7 @@
       height: 360px;
       border-radius: 8px;
       padding: var(--space-6);
-      background: linear-gradient(180deg, var(--color-background) 0%, #f5f3f0 100%);
+      background: linear-gradient(180deg, var(--color-bg-primary) 0%, var(--color-bg-secondary) 100%);
     }
     .device-frame.appletv::before {
       content: '';
@@ -374,18 +351,18 @@
       transform: translateX(-50%);
       width: 120px;
       height: 8px;
-      background: #2a2a2e;
+      background: var(--color-showcase-elevated);
       border-radius: 4px;
     }
 
     /* CarPlay - Driver-safe dashboard */
-    .device-frame.carplay { border-radius: 16px; padding: 8px; background: #0d0d0f; }
+    .device-frame.carplay { border-radius: 16px; padding: 8px; background: var(--color-showcase-bg); }
     .device-frame.carplay .device-screen {
       width: 480px;
       height: 200px;
       border-radius: 12px;
       padding: var(--space-4);
-      background: linear-gradient(180deg, #1a1a1e 0%, #0d0d0f 100%);
+      background: linear-gradient(180deg, var(--color-showcase-surface) 0%, var(--color-showcase-bg) 100%);
     }
     .device-frame.carplay::after {
       content: '';
@@ -395,7 +372,7 @@
       transform: translateY(-50%);
       width: 20px;
       height: 60px;
-      background: linear-gradient(90deg, #2a2a2e 0%, #1a1a1e 100%);
+      background: linear-gradient(90deg, var(--color-showcase-elevated) 0%, var(--color-showcase-surface) 100%);
       border-radius: 0 8px 8px 0;
     }
 
@@ -1296,7 +1273,17 @@
       return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
     }
 
-    // Design tokens object for energy rings and projections
+    // Hex to RGBA utility for dynamic alpha values
+    function hexToRgba(hex, alpha = 1) {
+      hex = (hex || '#2C2520').replace('#', '');
+      if (hex.length === 3) hex = hex.split('').map(c => c + c).join('');
+      const r = parseInt(hex.substring(0, 2), 16);
+      const g = parseInt(hex.substring(2, 4), 16);
+      const b = parseInt(hex.substring(4, 6), 16);
+      return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    }
+
+    // Design tokens object - comprehensive color system
     const TOKENS = {
       energy: {
         emotional: {
@@ -1325,11 +1312,55 @@
         expected: () => getToken('--color-scenario-expected'),
         optimistic: () => getToken('--color-scenario-optimistic')
       },
-      accent: () => getToken('--color-accent'),
+      // Core accent
+      accent: () => getToken('--color-accent') || '#3D5A45',
+      accentRgba: (alpha) => hexToRgba(getToken('--color-accent') || '#3D5A45', alpha),
+      // Text colors
       text: {
         primary: () => getToken('--color-text-primary'),
         secondary: () => getToken('--color-text-secondary'),
-        muted: () => getToken('--color-text-muted')
+        muted: () => getToken('--color-text-muted') || '#9a8f85'
+      },
+      // Semantic bright colors (for status indicators)
+      warningBright: () => getToken('--color-warning-bright') || '#F5A623',
+      errorBright: () => getToken('--color-error-bright') || '#E74C3C',
+      successBright: () => getToken('--color-success-bright') || '#10B981',
+      // Persona colors
+      persona: {
+        ferni: () => getToken('--color-ferni') || '#4A6741',
+        maya: () => getToken('--color-maya') || '#A67A6A',
+        peter: () => getToken('--color-peter') || '#3A6B73',
+        jordan: () => getToken('--color-jordan') || '#C4856A',
+        alex: () => getToken('--color-alex') || '#5A6B8A',
+        nayan: () => getToken('--color-nayan') || '#B8956A'
+      },
+      // Natural ink (for subtle backgrounds/strokes)
+      naturalInk: () => getToken('--color-natural-ink') || '#2C2520',
+      naturalInkRgba: (alpha) => hexToRgba(getToken('--color-natural-ink') || '#2C2520', alpha),
+      // Ferni/accent rgba variations
+      ferniRgba: (alpha) => hexToRgba(getToken('--color-ferni') || '#4A6741', alpha),
+      // Mood colors for emotion visualizations
+      mood: {
+        calm: () => getToken('--color-ferni') || '#4A6741',
+        anxious: () => getToken('--color-error-bright') || '#E74C3C',
+        joyful: () => getToken('--color-warning-bright') || '#F5A623',
+        tired: () => getToken('--color-text-muted') || '#9a8f85',
+        focused: () => getToken('--color-peter') || '#3A6B73'
+      },
+      // Get mood colors as an object (for inline use)
+      getMoodColors: function() {
+        return {
+          calm: this.mood.calm(),
+          anxious: this.mood.anxious(),
+          joyful: this.mood.joyful(),
+          tired: this.mood.tired(),
+          focused: this.mood.focused()
+        };
+      },
+      // Border colors
+      border: {
+        subtle: () => getToken('--color-border-subtle') || 'rgba(29, 27, 24, 0.06)',
+        default: () => getToken('--color-border-default') || 'rgba(29, 27, 24, 0.12)'
       }
     };
 
@@ -1350,13 +1381,13 @@
       const bgPath = createSvgElement('path');
       bgPath.setAttribute('d', 'M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831');
       bgPath.setAttribute('fill', 'none');
-      bgPath.setAttribute('stroke', 'rgba(44, 37, 32, 0.1)');
+      bgPath.setAttribute('stroke', TOKENS.naturalInkRgba(0.1));
       bgPath.setAttribute('stroke-width', '3');
 
       const fgPath = createSvgElement('path');
       fgPath.setAttribute('d', 'M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831');
       fgPath.setAttribute('fill', 'none');
-      fgPath.setAttribute('stroke', '#3D5A45');
+      fgPath.setAttribute('stroke', TOKENS.accent());
       fgPath.setAttribute('stroke-width', '3');
       fgPath.setAttribute('stroke-dasharray', '75, 100');
 
@@ -1535,7 +1566,7 @@
         circle.setAttribute('cy', '18');
         circle.setAttribute('r', String(r));
         circle.setAttribute('fill', 'none');
-        circle.setAttribute('stroke', i === 2 ? '#3D5A45' : 'rgba(61, 90, 69, ' + (0.2 + i * 0.1) + ')');
+        circle.setAttribute('stroke', i === 2 ? TOKENS.accent() : 'rgba(61, 90, 69, ' + (0.2 + i * 0.1) + ')');
         circle.setAttribute('stroke-width', '2');
         if (i === 2) circle.setAttribute('stroke-dasharray', '85, 100');
         svg.appendChild(circle);
@@ -1560,7 +1591,7 @@
       const path1 = createSvgElement('path');
       path1.setAttribute('d', 'M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831');
       path1.setAttribute('fill', 'none');
-      path1.setAttribute('stroke', '#3D5A45');
+      path1.setAttribute('stroke', TOKENS.accent());
       path1.setAttribute('stroke-width', '3');
       path1.setAttribute('stroke-dasharray', '48, 50');
       svg.appendChild(path1);
@@ -1568,7 +1599,7 @@
       const path2 = createSvgElement('path');
       path2.setAttribute('d', 'M18 33.9155 a 15.9155 15.9155 0 0 1 0 -31.831');
       path2.setAttribute('fill', 'none');
-      path2.setAttribute('stroke', '#b46e3c');
+      path2.setAttribute('stroke', TOKENS.persona.maya());
       path2.setAttribute('stroke-width', '3');
       path2.setAttribute('stroke-dasharray', '52, 50');
       svg.appendChild(path2);
@@ -1653,10 +1684,10 @@
       const heatmap = createElement('div');
       heatmap.style.cssText = 'display: flex; gap: 3px; justify-content: center; margin: 12px 0;';
       const moods = ['calm', 'anxious', 'calm', 'joyful', 'tired', 'focused', 'calm'];
-      const colors = { calm: '#3D5A45', anxious: '#e74c3c', joyful: '#f5a623', tired: '#9a8f85', focused: '#3a6b73' };
+      const colors = TOKENS.getMoodColors();
       moods.forEach((mood, i) => {
         const cell = createElement('div');
-        cell.style.cssText = `width: 14px; height: 14px; border-radius: 3px; background: ${colors[mood] || '#3D5A45'}; opacity: ${i === 6 ? '1' : '0.6'};`;
+        cell.style.cssText = `width: 14px; height: 14px; border-radius: 3px; background: ${colors[mood] || TOKENS.accent()}; opacity: ${i === 6 ? '1' : '0.6'};`;
         heatmap.appendChild(cell);
       });
       container.appendChild(heatmap);
@@ -1692,14 +1723,14 @@
       const fgPath = createSvgElement('path');
       fgPath.setAttribute('d', 'M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831');
       fgPath.setAttribute('fill', 'none');
-      fgPath.setAttribute('stroke', '#f5a623');
+      fgPath.setAttribute('stroke', TOKENS.warningBright());
       fgPath.setAttribute('stroke-width', '3');
       fgPath.setAttribute('stroke-dasharray', '65, 100');
       svg.appendChild(fgPath);
 
       ring.appendChild(svg);
       const val = createElement('span', 'watch-ring-value', '65%');
-      val.style.color = '#f5a623';
+      val.style.color = TOKENS.warningBright();
       ring.appendChild(val);
       container.appendChild(ring);
 
@@ -1816,7 +1847,7 @@
       conf.style.cssText = 'display: flex; gap: 3px; justify-content: center; margin: 10px 0;';
       for (let i = 0; i < 5; i++) {
         const bar = createElement('div');
-        bar.style.cssText = `width: 8px; height: ${12 + i * 3}px; border-radius: 2px; background: ${i < 4 ? 'var(--color-accent)' : 'rgba(44,37,32,0.2)'};`;
+        bar.style.cssText = `width: 8px; height: ${12 + i * 3}px; border-radius: 2px; background: ${i < 4 ? 'var(--color-accent)' : TOKENS.naturalInkRgba(0.2)};`;
         conf.appendChild(bar);
       }
       container.appendChild(conf);
@@ -1902,7 +1933,7 @@
       const depths = [0.3, 0.5, 0.7, 0.8, 0.9, 1.0];
       depths.forEach((d, i) => {
         const bar = createElement('div');
-        bar.style.cssText = `width: 10px; height: ${d * 50}px; background: rgba(61,90,69,${0.4 + d * 0.6}); border-radius: 5px 5px 0 0;`;
+        bar.style.cssText = `width: 10px; height: ${d * 50}px; background: ${TOKENS.accentRgba(0.4 + d * 0.6)}; border-radius: 5px 5px 0 0;`;
         river.appendChild(bar);
       });
       container.appendChild(river);
@@ -1943,7 +1974,7 @@
       rings.style.cssText = 'position: relative; width: 60px; height: 60px; margin: 8px auto;';
       [60, 45, 30, 15].forEach((size, i) => {
         const ring = createElement('div');
-        ring.style.cssText = `position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: ${size}px; height: ${size}px; border-radius: 50%; border: 2px solid rgba(61,90,69,${0.3 + i * 0.2}); background: ${i === 3 ? '#3D5A45' : 'transparent'};`;
+        ring.style.cssText = `position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: ${size}px; height: ${size}px; border-radius: 50%; border: 2px solid ${TOKENS.accentRgba(0.3 + i * 0.2)}; background: ${i === 3 ? TOKENS.accent() : 'transparent'};`;
         rings.appendChild(ring);
       });
       container.appendChild(rings);
@@ -2112,7 +2143,7 @@
       b1.textContent = 'Jan';
       before.appendChild(b1);
       const b2 = createElement('div');
-      b2.style.cssText = 'width: 20px; height: 30px; background: rgba(61,90,69,0.3); border-radius: 3px; margin: 0 auto;';
+      b2.style.cssText = `width: 20px; height: 30px; background: ${TOKENS.accentRgba(0.3)}; border-radius: 3px; margin: 0 auto;`;
       before.appendChild(b2);
       viz.appendChild(before);
       // Arrow
@@ -2336,7 +2367,7 @@
       ch1.appendChild(createElement('span', 'mobile-card-title', 'Current Season'));
       const badge = createElement('span', 'mobile-card-badge', 'Winter');
       badge.style.background = 'rgba(58,107,115,0.2)';
-      badge.style.color = '#3a6b73';
+      badge.style.color = TOKENS.persona.peter();
       ch1.appendChild(badge);
       card1.appendChild(ch1);
 
@@ -2346,7 +2377,7 @@
       const bar = createElement('div', 'mobile-bar');
       const fill = createElement('div', 'mobile-bar-fill');
       fill.style.width = '85%';
-      fill.style.background = '#3a6b73';
+      fill.style.background = TOKENS.persona.peter();
       bar.appendChild(fill);
       progress.appendChild(bar);
       const label = createElement('div');
@@ -2378,7 +2409,7 @@
       ch3.appendChild(createElement('span', 'mobile-card-title', 'Coming Next'));
       const badge3 = createElement('span', 'mobile-card-badge', 'Spring');
       badge3.style.background = 'rgba(245,166,35,0.2)';
-      badge3.style.color = '#f5a623';
+      badge3.style.color = TOKENS.warningBright();
       ch3.appendChild(badge3);
       card3.appendChild(ch3);
       card3.appendChild(createElement('p', 'mobile-insight', 'New energy, growth, and emergence await in ~6 weeks'));
@@ -2403,7 +2434,7 @@
       const depths = [0.3, 0.5, 0.8, 0.6, 0.9, 0.7, 0.4, 0.6, 0.8, 1.0];
       depths.forEach((d, i) => {
         const segment = createElement('div');
-        segment.style.cssText = `flex: 1; height: ${d * 40}px; background: linear-gradient(to bottom, rgba(61,90,69,${d}), rgba(61,90,69,${d * 0.5})); border-radius: 4px;`;
+        segment.style.cssText = `flex: 1; height: ${d * 40}px; background: linear-gradient(to bottom, ${TOKENS.accentRgba(d)}, ${TOKENS.accentRgba(d * 0.5)}); border-radius: 4px;`;
         river.appendChild(segment);
       });
       card1.appendChild(river);
@@ -2419,9 +2450,9 @@
       if (isAndroid) card2.style.borderLeft = '3px solid #3a6b73';
       card2.appendChild(createElement('span', 'mobile-card-title', 'Session Flow'));
       const metrics = [
-        { label: 'Conversation depth', value: 'Deep', color: '#3D5A45' },
-        { label: 'Turn balance', value: '52/48', color: '#3a6b73' },
-        { label: 'Topics explored', value: '4', color: '#f5a623' }
+        { label: 'Conversation depth', value: 'Deep', color: TOKENS.accent() },
+        { label: 'Turn balance', value: '52/48', color: TOKENS.persona.peter() },
+        { label: 'Topics explored', value: '4', color: TOKENS.warningBright() }
       ];
       metrics.forEach(m => {
         const row = createElement('div');
@@ -2533,7 +2564,7 @@
         const row = createElement('div');
         row.style.cssText = 'display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--color-border-subtle);';
         const levelDot = createElement('div');
-        levelDot.style.cssText = `width: ${16 + e.level * 4}px; height: ${16 + e.level * 4}px; border-radius: 50%; background: rgba(61,90,69,${0.3 + e.level * 0.15}); flex-shrink: 0;`;
+        levelDot.style.cssText = `width: ${16 + e.level * 4}px; height: ${16 + e.level * 4}px; border-radius: 50%; background: ${TOKENS.accentRgba(0.3 + e.level * 0.15)}; flex-shrink: 0;`;
         row.appendChild(levelDot);
         const text = createElement('div');
         text.style.cssText = 'flex: 1;';
@@ -2564,9 +2595,9 @@
 
       // Active stories
       const stories = [
-        { title: 'The Career Pivot', status: 'Rising action', progress: 45, color: '#f5a623' },
-        { title: 'Rebuilding with Dad', status: 'New chapter', progress: 20, color: '#3a6b73' },
-        { title: 'Finding Balance', status: 'Ongoing', progress: 60, color: '#3D5A45' }
+        { title: 'The Career Pivot', status: 'Rising action', progress: 45, color: TOKENS.warningBright() },
+        { title: 'Rebuilding with Dad', status: 'New chapter', progress: 20, color: TOKENS.persona.peter() },
+        { title: 'Finding Balance', status: 'Ongoing', progress: 60, color: TOKENS.accent() }
       ];
 
       stories.forEach(s => {
@@ -2685,7 +2716,7 @@
       const heatmap = createElement('div');
       heatmap.style.cssText = 'display: flex; gap: 4px; margin: 12px 0;';
       const moods = ['calm', 'anxious', 'calm', 'joyful', 'tired', 'focused', 'calm'];
-      const colors = { calm: '#3D5A45', anxious: '#e74c3c', joyful: '#f5a623', tired: '#9a8f85', focused: '#3a6b73' };
+      const colors = TOKENS.getMoodColors();
       const days = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
       moods.forEach((mood, i) => {
         const day = createElement('div');
@@ -2720,7 +2751,7 @@
       if (isAndroid) card1.style.borderLeft = '3px solid #f5a623';
       const ch1 = createElement('div', 'mobile-card-header');
       ch1.appendChild(createElement('span', 'mobile-card-title', 'Current Status'));
-      ch1.appendChild(createElement('span', 'mobile-card-badge', 'Stretched')).style.background = '#f5a623';
+      ch1.appendChild(createElement('span', 'mobile-card-badge', 'Stretched')).style.background = TOKENS.warningBright();
       card1.appendChild(ch1);
 
       const bar = createElement('div', 'mobile-bar');
@@ -2850,7 +2881,7 @@
       const arcs = [
         { name: 'Career uncertainty', phase: 'resolution', duration: '6 months', color: 'var(--color-accent)' },
         { name: 'Family reconnection', phase: 'rising', duration: '3 months', color: 'var(--persona-maya)' },
-        { name: 'Creative block', phase: 'peak', duration: '2 weeks', color: '#f5a623' }
+        { name: 'Creative block', phase: 'peak', duration: '2 weeks', color: TOKENS.warningBright() }
       ];
 
       arcs.forEach(arc => {
@@ -2884,7 +2915,7 @@
 
       const predictions = [
         { text: 'Energy dip Wednesday afternoon', confidence: 'high', timeframe: 'This week', color: 'var(--color-accent)' },
-        { text: 'Creative breakthrough approaching', confidence: 'medium', timeframe: '2-3 weeks', color: '#f5a623' },
+        { text: 'Creative breakthrough approaching', confidence: 'medium', timeframe: '2-3 weeks', color: TOKENS.warningBright() },
         { text: 'Good window for difficult conversations', confidence: 'low', timeframe: 'Friday', color: 'var(--color-text-muted)' }
       ];
 
@@ -2911,7 +2942,7 @@
       container.appendChild(header);
 
       const connections = [
-        { name: 'Mike', status: 'Needs attention', days: '3 weeks', color: '#f5a623' },
+        { name: 'Mike', status: 'Needs attention', days: '3 weeks', color: TOKENS.warningBright() },
         { name: 'Sarah', status: 'Strong', days: 'Yesterday', color: 'var(--color-accent)' },
         { name: 'Mom', status: 'Strong', days: '2 days ago', color: 'var(--color-accent)' }
       ];
@@ -2951,7 +2982,7 @@
         { text: 'Thank you note to mentor', days: 5, urgency: 'ready' }
       ];
 
-      const colors = { nagging: '#e74c3c', simmering: '#f5a623', ready: 'var(--color-accent)' };
+      const colors = { nagging: TOKENS.errorBright(), simmering: TOKENS.warningBright(), ready: 'var(--color-accent)' };
 
       loops.forEach(loop => {
         const card = createElement('div', 'mobile-card');
@@ -3003,7 +3034,7 @@
         const line = createSvgElement('line');
         line.setAttribute('x1', '10'); line.setAttribute('y1', y);
         line.setAttribute('x2', '250'); line.setAttribute('y2', y);
-        line.setAttribute('stroke', 'rgba(44,37,32,0.1)'); line.setAttribute('stroke-width', '1');
+        line.setAttribute('stroke', TOKENS.naturalInkRgba(0.1)); line.setAttribute('stroke-width', '1');
         svg.appendChild(line);
       });
       // Trajectory path - valley then rise
@@ -3045,7 +3076,7 @@
 
       const silences = [
         { type: 'Processing', duration: '3-5 sec', meaning: 'Integrating new insight', color: 'var(--persona-nayan)', icon: '◐' },
-        { type: 'Resistant', duration: '6+ sec', meaning: 'Something needs space', color: '#f5a623', icon: '⊘' },
+        { type: 'Resistant', duration: '6+ sec', meaning: 'Something needs space', color: TOKENS.warningBright(), icon: '⊘' },
         { type: 'Peaceful', duration: '2-4 sec', meaning: 'Content, grounded', color: 'var(--color-accent)', icon: '○' },
         { type: 'Searching', duration: '4-6 sec', meaning: 'Finding words for feelings', color: 'var(--persona-maya)', icon: '◌' }
       ];
@@ -3164,7 +3195,7 @@
         const barWrap = createElement('div');
         barWrap.style.cssText = 'display: flex; gap: 8px; margin: 8px 0;';
         const beforeBar = createElement('div');
-        beforeBar.style.cssText = `height: 8px; width: ${d.before}%; background: rgba(61,90,69,0.3); border-radius: 4px;`;
+        beforeBar.style.cssText = `height: 8px; width: ${d.before}%; background: ${TOKENS.accentRgba(0.3)}; border-radius: 4px;`;
         const afterBar = createElement('div');
         afterBar.style.cssText = `height: 8px; width: ${d.after}%; background: var(--color-accent); border-radius: 4px;`;
         barWrap.appendChild(createElement('span', '', 'Jan')).style.cssText = 'font-size: 0.6rem; color: var(--color-text-muted);';
@@ -3195,7 +3226,7 @@
         { both: 'Independent', and: 'Lonely', context: 'Living alone', status: 'active' }
       ];
 
-      const colors = { active: 'var(--persona-maya)', recurring: '#f5a623', exploring: 'var(--persona-nayan)' };
+      const colors = { active: 'var(--persona-maya)', recurring: TOKENS.warningBright(), exploring: 'var(--persona-nayan)' };
 
       contradictions.forEach(c => {
         const card = createElement('div', 'mobile-card');
@@ -3723,8 +3754,8 @@
       const moods = ['calm', 'anxious', 'joyful', 'tired', 'focused', 'scattered'];
       const colors = {
         calm: 'var(--color-accent)',
-        anxious: '#e74c3c',
-        joyful: '#f5a623',
+        anxious: TOKENS.errorBright(),
+        joyful: TOKENS.warningBright(),
         tired: 'var(--color-text-muted)',
         focused: 'var(--persona-peter)',
         scattered: 'var(--persona-maya)'
@@ -3782,7 +3813,7 @@
       const indicator = createElement('div', 'burnout-indicator');
       const riskLevel = 65; // Mock: 65% risk
       indicator.style.left = `${riskLevel}%`;
-      indicator.style.background = riskLevel > 70 ? '#e74c3c' : riskLevel > 40 ? '#f5a623' : 'var(--color-accent)';
+      indicator.style.background = riskLevel > 70 ? TOKENS.errorBright() : riskLevel > 40 ? TOKENS.warningBright() : 'var(--color-accent)';
       gauge.appendChild(indicator);
       panel1.appendChild(gauge);
 
@@ -3810,7 +3841,7 @@
         const bar = createElement('div', 'mobile-bar');
         const fill = createElement('div', 'mobile-bar-fill');
         fill.style.width = d.impact + '%';
-        fill.style.background = d.impact > 70 ? '#e74c3c' : '#f5a623';
+        fill.style.background = d.impact > 70 ? TOKENS.errorBright() : TOKENS.warningBright();
         bar.appendChild(fill);
         row.appendChild(bar);
         panel2.appendChild(row);
@@ -4023,7 +4054,7 @@
       const arcs = [
         { name: 'Career uncertainty', phase: 'resolution', duration: '6 months', color: 'var(--color-accent)' },
         { name: 'Family reconnection', phase: 'rising', duration: '3 months', color: 'var(--persona-maya)' },
-        { name: 'Creative block', phase: 'peak', duration: '2 weeks', color: '#f5a623' }
+        { name: 'Creative block', phase: 'peak', duration: '2 weeks', color: TOKENS.warningBright() }
       ];
 
       arcs.forEach(arc => {
@@ -4082,7 +4113,7 @@
       predictions.forEach(p => {
         const card = createElement('div', `prediction-card ${p.confidence}`);
         card.style.cssText = 'padding: 12px; margin-top: 8px; background: var(--color-background-secondary); border-radius: var(--radius-md); border-left: 3px solid ' +
-          (p.confidence === 'high' ? 'var(--color-accent)' : p.confidence === 'medium' ? '#f5a623' : 'var(--color-text-muted)');
+          (p.confidence === 'high' ? 'var(--color-accent)' : p.confidence === 'medium' ? TOKENS.warningBright() : 'var(--color-text-muted)');
 
         const top = createElement('div');
         top.style.cssText = 'display: flex; justify-content: space-between; align-items: start;';
@@ -4090,7 +4121,7 @@
 
         const confidenceBadge = createElement('span', `confidence-badge ${p.confidence}`);
         confidenceBadge.style.cssText = 'font-size: 0.65rem; padding: 2px 8px; border-radius: 10px; background: ' +
-          (p.confidence === 'high' ? 'var(--color-accent)' : p.confidence === 'medium' ? '#f5a623' : 'var(--color-text-muted)') + '; color: white;';
+          (p.confidence === 'high' ? 'var(--color-accent)' : p.confidence === 'medium' ? TOKENS.warningBright() : 'var(--color-text-muted)') + '; color: white;';
         confidenceBadge.textContent = p.confidence;
         top.appendChild(confidenceBadge);
         card.appendChild(top);
@@ -4139,7 +4170,7 @@
         line.setAttribute('y1', 100);
         line.setAttribute('x2', p.x);
         line.setAttribute('y2', p.y);
-        line.setAttribute('stroke', p.type === 'tense' ? '#f5a623' : 'var(--color-border-subtle)');
+        line.setAttribute('stroke', p.type === 'tense' ? TOKENS.warningBright() : 'var(--color-border-subtle)');
         line.setAttribute('stroke-width', p.type === 'tense' ? '2' : '1');
         line.setAttribute('stroke-dasharray', p.type === 'tense' ? '4,4' : 'none');
         networkSvg.appendChild(line);
@@ -4155,7 +4186,7 @@
         circle.setAttribute('r', p.size / 2);
         circle.setAttribute('fill', p.type === 'center' ? 'var(--persona-ferni)' :
           p.type === 'positive' ? 'var(--color-accent)' :
-          p.type === 'tense' ? '#f5a623' : 'var(--color-text-muted)');
+          p.type === 'tense' ? TOKENS.warningBright() : 'var(--color-text-muted)');
         g.appendChild(circle);
 
         const text = createSvgElement('text');
@@ -4177,7 +4208,7 @@
       legend.style.cssText = 'display: flex; gap: 16px; justify-content: center; margin-top: 12px;';
       [
         { label: 'Strong', color: 'var(--color-accent)' },
-        { label: 'Needs attention', color: '#f5a623' },
+        { label: 'Needs attention', color: TOKENS.warningBright() },
         { label: 'Neutral', color: 'var(--color-text-muted)' }
       ].forEach(l => {
         const item = createElement('div');
@@ -4306,7 +4337,7 @@
         const line = createSvgElement('line');
         line.setAttribute('x1', '0'); line.setAttribute('y1', y);
         line.setAttribute('x2', '520'); line.setAttribute('y2', y);
-        line.setAttribute('stroke', 'rgba(44,37,32,0.08)');
+        line.setAttribute('stroke', TOKENS.naturalInkRgba(0.08));
         svg.appendChild(line);
       });
       // Trajectory path
@@ -4375,7 +4406,7 @@
       panel1.appendChild(createElement('div', 'desktop-panel-header')).appendChild(createElement('span', 'desktop-panel-title', 'Silence Types'));
       const silences = [
         { type: 'Processing', icon: '◐', color: 'var(--persona-nayan)', desc: 'Integrating new insight' },
-        { type: 'Resistant', icon: '⊘', color: '#f5a623', desc: 'Something needs space' },
+        { type: 'Resistant', icon: '⊘', color: TOKENS.warningBright(), desc: 'Something needs space' },
         { type: 'Peaceful', icon: '○', color: 'var(--color-accent)', desc: 'Content, grounded' },
         { type: 'Searching', icon: '◌', color: 'var(--persona-maya)', desc: 'Finding words' }
       ];
@@ -4596,7 +4627,7 @@
       [0.25, 0.5, 0.75, 1].forEach(r => {
         const circle = createSvgElement('circle');
         circle.setAttribute('cx', cx); circle.setAttribute('cy', cy); circle.setAttribute('r', maxR * r);
-        circle.setAttribute('fill', 'none'); circle.setAttribute('stroke', 'rgba(44,37,32,0.1)');
+        circle.setAttribute('fill', 'none'); circle.setAttribute('stroke', TOKENS.naturalInkRgba(0.1));
         svg.appendChild(circle);
       });
       // Axes and labels
@@ -4617,7 +4648,7 @@
         return `${cx + Math.cos(angle) * (maxR * v / 100)},${cy + Math.sin(angle) * (maxR * v / 100)}`;
       }).join(' ');
       beforePath.setAttribute('points', beforePoints);
-      beforePath.setAttribute('fill', 'rgba(61,90,69,0.2)'); beforePath.setAttribute('stroke', 'rgba(61,90,69,0.5)');
+      beforePath.setAttribute('fill', TOKENS.accentRgba(0.2)); beforePath.setAttribute('stroke', TOKENS.accentRgba(0.5));
       svg.appendChild(beforePath);
       // After polygon
       const afterPath = createSvgElement('polygon');
@@ -4626,13 +4657,13 @@
         return `${cx + Math.cos(angle) * (maxR * v / 100)},${cy + Math.sin(angle) * (maxR * v / 100)}`;
       }).join(' ');
       afterPath.setAttribute('points', afterPoints);
-      afterPath.setAttribute('fill', 'rgba(61,90,69,0.4)'); afterPath.setAttribute('stroke', 'var(--color-accent)'); afterPath.setAttribute('stroke-width', '2');
+      afterPath.setAttribute('fill', TOKENS.accentRgba(0.4)); afterPath.setAttribute('stroke', 'var(--color-accent)'); afterPath.setAttribute('stroke-width', '2');
       svg.appendChild(afterPath);
       panel1.appendChild(svg);
       // Legend
       const legend = createElement('div');
       legend.style.cssText = 'display: flex; justify-content: center; gap: 20px; margin-top: 12px;';
-      legend.innerHTML = '<span style="font-size: 0.75rem; color: rgba(61,90,69,0.6);">● January</span><span style="font-size: 0.75rem; color: var(--color-accent);">● December</span>';
+      legend.innerHTML = '<span style="font-size: 0.75rem; color: ${TOKENS.accentRgba(0.6)};">● January</span><span style="font-size: 0.75rem; color: var(--color-accent);">● December</span>';
       panel1.appendChild(legend);
       grid.appendChild(panel1);
 
@@ -4756,7 +4787,7 @@
         const calendar = createElement('div');
         calendar.style.cssText = 'display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px;';
         const moods = ['calm', 'anxious', 'calm', 'joyful', 'tired', 'focused', 'calm', 'joyful', 'joyful', 'calm', 'tired', 'tired', 'anxious', 'calm', 'focused', 'focused', 'calm', 'joyful', 'calm', 'tired', 'calm', 'anxious', 'joyful', 'focused', 'calm', 'calm', 'joyful', 'calm', 'tired', 'focused', 'calm', '', '', '', ''];
-        const moodColors = { calm: '#3D5A45', anxious: '#e74c3c', joyful: '#f5a623', tired: '#9a8f85', focused: '#3a6b73' };
+        const moodColors = TOKENS.getMoodColors();
         moods.forEach((mood, i) => {
           const cell = createElement('div');
           if (mood) {
@@ -4795,7 +4826,7 @@
         const gauge = createElement('div');
         gauge.style.cssText = 'width: 80px; height: 80px; margin: 12px auto; position: relative;';
         const gaugeBg = createElement('div');
-        gaugeBg.style.cssText = 'position: absolute; inset: 0; border-radius: 50%; background: conic-gradient(from 135deg, #3D5A45 0deg 180deg, rgba(44,37,32,0.1) 180deg 270deg);';
+        gaugeBg.style.cssText = `position: absolute; inset: 0; border-radius: 50%; background: conic-gradient(from 135deg, ${TOKENS.accent()} 0deg 180deg, ${TOKENS.naturalInkRgba(0.1)} 180deg 270deg);`;
         gauge.appendChild(gaugeBg);
         const gaugeCenter = createElement('div');
         gaugeCenter.style.cssText = 'position: absolute; inset: 15px; border-radius: 50%; background: var(--color-background); display: flex; align-items: center; justify-content: center; font-size: 1.2rem; font-weight: 600;';
@@ -4811,7 +4842,7 @@
         trend.style.cssText = 'display: flex; align-items: flex-end; gap: 6px; height: 60px; margin: 12px 0;';
         [45, 52, 48, 62, 58, 65, 68].forEach((val, i) => {
           const bar = createElement('div');
-          bar.style.cssText = `flex: 1; background: ${i === 6 ? '#3D5A45' : 'rgba(61,90,69,0.4)'}; height: ${val}%; border-radius: 2px 2px 0 0;`;
+          bar.style.cssText = `flex: 1; background: ${i === 6 ? TOKENS.accent() : TOKENS.accentRgba(0.4)}; height: ${val}%; border-radius: 2px 2px 0 0;`;
           trend.appendChild(bar);
         });
         card2.appendChild(trend);
@@ -4843,16 +4874,16 @@
         timeline.style.cssText = 'display: flex; gap: 16px; overflow-x: auto; padding: 12px 0;';
 
         const chapters = [
-          { title: 'Foundation', years: '2010-2015', theme: 'Learning', color: '#3a6b73', status: 'complete' },
-          { title: 'Exploration', years: '2015-2019', theme: 'Discovery', color: '#f5a623', status: 'complete' },
-          { title: 'Growth', years: '2019-2023', theme: 'Building', color: '#3D5A45', status: 'complete' },
-          { title: 'Integration', years: '2023-Now', theme: 'Synthesizing', color: '#a67a6a', status: 'active' },
-          { title: 'Next Chapter', years: 'Future', theme: '?', color: '#9a8f85', status: 'future' }
+          { title: 'Foundation', years: '2010-2015', theme: 'Learning', color: TOKENS.persona.peter(), status: 'complete' },
+          { title: 'Exploration', years: '2015-2019', theme: 'Discovery', color: TOKENS.warningBright(), status: 'complete' },
+          { title: 'Growth', years: '2019-2023', theme: 'Building', color: TOKENS.accent(), status: 'complete' },
+          { title: 'Integration', years: '2023-Now', theme: 'Synthesizing', color: TOKENS.persona.maya(), status: 'active' },
+          { title: 'Next Chapter', years: 'Future', theme: '?', color: TOKENS.text.muted(), status: 'future' }
         ];
 
         chapters.forEach(ch => {
           const chapterEl = createElement('div');
-          chapterEl.style.cssText = `flex: 0 0 140px; padding: 16px; border-radius: 8px; background: ${ch.status === 'active' ? 'rgba(61,90,69,0.1)' : 'var(--color-background-secondary)'}; border: ${ch.status === 'active' ? '2px solid var(--color-accent)' : '1px solid var(--color-border-subtle)'};`;
+          chapterEl.style.cssText = `flex: 0 0 140px; padding: 16px; border-radius: 8px; background: ${ch.status === 'active' ? TOKENS.accentRgba(0.1) : 'var(--color-background-secondary)'}; border: ${ch.status === 'active' ? '2px solid var(--color-accent)' : '1px solid var(--color-border-subtle)'};`;
 
           const dot = createElement('div');
           dot.style.cssText = `width: 12px; height: 12px; border-radius: 50%; background: ${ch.color}; margin-bottom: 8px;`;
@@ -4896,7 +4927,7 @@
           circle.setAttribute('cy', center);
           circle.setAttribute('r', r);
           circle.setAttribute('fill', 'none');
-          circle.setAttribute('stroke', 'rgba(44,37,32,0.1)');
+          circle.setAttribute('stroke', TOKENS.naturalInkRgba(0.1));
           circle.setAttribute('stroke-width', '1');
           svg.appendChild(circle);
         });
@@ -4910,8 +4941,8 @@
 
         const polygon = createSvgElement('polygon');
         polygon.setAttribute('points', points);
-        polygon.setAttribute('fill', 'rgba(61,90,69,0.3)');
-        polygon.setAttribute('stroke', '#3D5A45');
+        polygon.setAttribute('fill', TOKENS.accentRgba(0.3));
+        polygon.setAttribute('stroke', TOKENS.accent());
         polygon.setAttribute('stroke-width', '2');
         svg.appendChild(polygon);
 
@@ -4963,17 +4994,17 @@
         const path = createSvgElement('path');
         path.setAttribute('d', 'M 20 100 Q 100 100 150 60 Q 200 20 250 40 Q 300 60 350 50 Q 380 45 380 45');
         path.setAttribute('fill', 'none');
-        path.setAttribute('stroke', '#3D5A45');
+        path.setAttribute('stroke', TOKENS.accent());
         path.setAttribute('stroke-width', '3');
         path.setAttribute('stroke-linecap', 'round');
         svg.appendChild(path);
 
         // Phase markers
         const phases = [
-          { x: 50, y: 95, label: 'Rising', color: '#f5a623' },
-          { x: 150, y: 55, label: 'Conflict', color: '#e74c3c' },
-          { x: 250, y: 38, label: 'Peak', color: '#3D5A45' },
-          { x: 350, y: 48, label: 'Resolution', color: '#3a6b73' }
+          { x: 50, y: 95, label: 'Rising', color: TOKENS.warningBright() },
+          { x: 150, y: 55, label: 'Conflict', color: TOKENS.errorBright() },
+          { x: 250, y: 38, label: 'Peak', color: TOKENS.accent() },
+          { x: 350, y: 48, label: 'Resolution', color: TOKENS.persona.peter() }
         ];
 
         phases.forEach(p => {
@@ -5008,7 +5039,7 @@
 
         predictions.forEach(pred => {
           const card = createElement('div', 'ipad-card');
-          const typeColors = { warning: '#f5a623', positive: '#3D5A45', neutral: '#3a6b73' };
+          const typeColors = { warning: TOKENS.warningBright(), positive: TOKENS.accent(), neutral: TOKENS.persona.peter() };
           card.style.borderLeft = `3px solid ${typeColors[pred.type]}`;
 
           card.appendChild(createElement('div', 'ipad-card-title', pred.title));
@@ -5045,12 +5076,12 @@
 
         // Nodes
         const nodes = [
-          { x: 125, y: 90, r: 20, label: 'You', color: '#3D5A45' },
-          { x: 60, y: 50, r: 12, label: 'Sarah', color: '#a67a6a' },
-          { x: 190, y: 50, r: 14, label: 'Mom', color: '#f5a623' },
-          { x: 40, y: 120, r: 10, label: 'Jake', color: '#3a6b73' },
-          { x: 200, y: 130, r: 11, label: 'Alex', color: '#5a6b8a' },
-          { x: 125, y: 160, r: 9, label: 'Team', color: '#9a8f85' }
+          { x: 125, y: 90, r: 20, label: 'You', color: TOKENS.accent() },
+          { x: 60, y: 50, r: 12, label: 'Sarah', color: TOKENS.persona.maya() },
+          { x: 190, y: 50, r: 14, label: 'Mom', color: TOKENS.warningBright() },
+          { x: 40, y: 120, r: 10, label: 'Jake', color: TOKENS.persona.peter() },
+          { x: 200, y: 130, r: 11, label: 'Alex', color: TOKENS.persona.alex() },
+          { x: 125, y: 160, r: 9, label: 'Team', color: TOKENS.text.muted() }
         ];
 
         // Connections
@@ -5060,7 +5091,7 @@
           line.setAttribute('y1', '90');
           line.setAttribute('x2', node.x);
           line.setAttribute('y2', node.y);
-          line.setAttribute('stroke', 'rgba(44,37,32,0.15)');
+          line.setAttribute('stroke', TOKENS.naturalInkRgba(0.15));
           line.setAttribute('stroke-width', '2');
           svg.appendChild(line);
         });
@@ -5091,9 +5122,9 @@
         const card2 = createElement('div', 'ipad-card');
         card2.appendChild(createElement('div', 'ipad-card-title', 'Health'));
         const health = [
-          { name: 'Sarah', status: 'Thriving', color: '#3D5A45' },
-          { name: 'Mom', status: 'Needs attention', color: '#f5a623' },
-          { name: 'Jake', status: 'Stable', color: '#3a6b73' }
+          { name: 'Sarah', status: 'Thriving', color: TOKENS.accent() },
+          { name: 'Mom', status: 'Needs attention', color: TOKENS.warningBright() },
+          { name: 'Jake', status: 'Stable', color: TOKENS.persona.peter() }
         ];
         health.forEach(h => {
           const row = createElement('div');
@@ -5110,9 +5141,9 @@
       } else if (viz === 'loops') {
         // Kanban-style open loops
         const columns = [
-          { title: 'Active', color: '#3D5A45', items: ['Reply to Sarah', 'Finish report'] },
-          { title: 'Waiting', color: '#f5a623', items: ['Doctor callback', 'Approval'] },
-          { title: 'Someday', color: '#9a8f85', items: ['Learn guitar', 'Plan trip'] }
+          { title: 'Active', color: TOKENS.accent(), items: ['Reply to Sarah', 'Finish report'] },
+          { title: 'Waiting', color: TOKENS.warningBright(), items: ['Doctor callback', 'Approval'] },
+          { title: 'Someday', color: TOKENS.text.muted(), items: ['Learn guitar', 'Plan trip'] }
         ];
 
         columns.forEach(col => {
@@ -5147,7 +5178,7 @@
         const riverBed = createSvgElement('path');
         riverBed.setAttribute('d', 'M 0 40 Q 50 60 100 35 Q 150 10 200 45 Q 250 70 300 30');
         riverBed.setAttribute('fill', 'none');
-        riverBed.setAttribute('stroke', 'rgba(61,90,69,0.2)');
+        riverBed.setAttribute('stroke', TOKENS.accentRgba(0.2));
         riverBed.setAttribute('stroke-width', '30');
         riverBed.setAttribute('stroke-linecap', 'round');
         svg.appendChild(riverBed);
@@ -5156,7 +5187,7 @@
         const riverFlow = createSvgElement('path');
         riverFlow.setAttribute('d', 'M 0 40 Q 50 60 100 35 Q 150 10 200 45 Q 250 70 300 30');
         riverFlow.setAttribute('fill', 'none');
-        riverFlow.setAttribute('stroke', '#3D5A45');
+        riverFlow.setAttribute('stroke', TOKENS.accent());
         riverFlow.setAttribute('stroke-width', '8');
         riverFlow.setAttribute('stroke-linecap', 'round');
         svg.appendChild(riverFlow);
@@ -5214,7 +5245,7 @@
         const beneath = ['3 sleepless nights', 'Avoiding that call', 'Need reassurance'];
         beneath.forEach((b, i) => {
           const item = createElement('div');
-          const colors = ['#e74c3c', '#f5a623', '#3a6b73'];
+          const colors = [TOKENS.errorBright(), TOKENS.warningBright(), TOKENS.persona.peter()];
           item.style.cssText = `padding: 8px 0; border-bottom: 1px solid var(--color-border-subtle); border-left: 3px solid ${colors[i]}; padding-left: 10px;`;
           item.textContent = b;
           card2.appendChild(item);
@@ -5252,7 +5283,7 @@
           circle.setAttribute('cy', '60');
           circle.setAttribute('r', r);
           circle.setAttribute('fill', 'none');
-          circle.setAttribute('stroke', '#3D5A45');
+          circle.setAttribute('stroke', TOKENS.accent());
           circle.setAttribute('stroke-width', '1.5');
           circle.setAttribute('opacity', 1 - i * 0.18);
           svg.appendChild(circle);
@@ -5304,7 +5335,7 @@
           row.style.cssText = 'display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--color-border-subtle);';
           row.appendChild(createElement('span', '', a));
           const impact = createElement('span');
-          impact.style.cssText = `color: ${i < 2 ? '#3D5A45' : '#9a8f85'}; font-weight: 500;`;
+          impact.style.cssText = `color: ${i < 2 ? TOKENS.accent() : TOKENS.text.muted()}; font-weight: 500;`;
           impact.textContent = i < 2 ? 'High' : 'Growing';
           row.appendChild(impact);
           card3.appendChild(row);
@@ -5318,10 +5349,10 @@
         card.appendChild(createElement('div', 'ipad-card-title', 'Unfinished Stories'));
 
         const stories = [
-          { title: 'Career Pivot', phase: 'Rising Action', progress: 65, color: '#3D5A45', status: 'active' },
-          { title: 'Health Journey', phase: 'Midpoint', progress: 50, color: '#3a6b73', status: 'active' },
-          { title: 'Creative Project', phase: 'Beginning', progress: 20, color: '#f5a623', status: 'paused' },
-          { title: 'Family Reconnection', phase: 'Climax', progress: 85, color: '#a67a6a', status: 'active' }
+          { title: 'Career Pivot', phase: 'Rising Action', progress: 65, color: TOKENS.accent(), status: 'active' },
+          { title: 'Health Journey', phase: 'Midpoint', progress: 50, color: TOKENS.persona.peter(), status: 'active' },
+          { title: 'Creative Project', phase: 'Beginning', progress: 20, color: TOKENS.warningBright(), status: 'paused' },
+          { title: 'Family Reconnection', phase: 'Climax', progress: 85, color: TOKENS.persona.maya(), status: 'active' }
         ];
 
         const storyGrid = createElement('div');
@@ -5329,7 +5360,7 @@
 
         stories.forEach(s => {
           const storyEl = createElement('div');
-          storyEl.style.cssText = `padding: 16px; border-radius: 8px; background: ${s.status === 'active' ? 'rgba(61,90,69,0.08)' : 'var(--color-background-secondary)'}; border: 1px solid ${s.status === 'active' ? s.color : 'var(--color-border-subtle)'};`;
+          storyEl.style.cssText = `padding: 16px; border-radius: 8px; background: ${s.status === 'active' ? TOKENS.accentRgba(0.08) : 'var(--color-background-secondary)'}; border: 1px solid ${s.status === 'active' ? s.color : 'var(--color-border-subtle)'};`;
 
           const title = createElement('div');
           title.style.cssText = 'font-weight: 600; margin-bottom: 8px;';
@@ -5349,7 +5380,7 @@
           const bgArc = createSvgElement('path');
           bgArc.setAttribute('d', 'M 5 28 A 25 25 0 0 1 55 28');
           bgArc.setAttribute('fill', 'none');
-          bgArc.setAttribute('stroke', 'rgba(44,37,32,0.1)');
+          bgArc.setAttribute('stroke', TOKENS.naturalInkRgba(0.1));
           bgArc.setAttribute('stroke-width', '4');
           bgArc.setAttribute('stroke-linecap', 'round');
           arcSvg.appendChild(bgArc);
@@ -5370,7 +5401,7 @@
           storyEl.appendChild(arcSvg);
 
           const statusLabel = createElement('div');
-          statusLabel.style.cssText = `font-size: 0.7rem; text-transform: uppercase; color: ${s.status === 'active' ? s.color : '#9a8f85'}; margin-top: 6px; text-align: center;`;
+          statusLabel.style.cssText = `font-size: 0.7rem; text-transform: uppercase; color: ${s.status === 'active' ? s.color : TOKENS.text.muted()}; margin-top: 6px; text-align: center;`;
           statusLabel.textContent = s.status;
           storyEl.appendChild(statusLabel);
 
@@ -5405,7 +5436,7 @@
           circle.setAttribute('cy', center);
           circle.setAttribute('r', ring.r);
           circle.setAttribute('fill', 'none');
-          circle.setAttribute('stroke', '#3D5A45');
+          circle.setAttribute('stroke', TOKENS.accent());
           circle.setAttribute('stroke-width', ring.r === 70 ? '3' : '2');
           circle.setAttribute('opacity', ring.opacity);
           svg.appendChild(circle);
@@ -5416,7 +5447,7 @@
         centerDot.setAttribute('cx', center);
         centerDot.setAttribute('cy', center);
         centerDot.setAttribute('r', '5');
-        centerDot.setAttribute('fill', '#3D5A45');
+        centerDot.setAttribute('fill', TOKENS.accent());
         svg.appendChild(centerDot);
 
         card1.appendChild(svg);
@@ -5458,7 +5489,7 @@
           circle.setAttribute('cy', center);
           circle.setAttribute('r', r);
           circle.setAttribute('fill', 'none');
-          circle.setAttribute('stroke', 'rgba(44,37,32,0.1)');
+          circle.setAttribute('stroke', TOKENS.naturalInkRgba(0.1));
           circle.setAttribute('stroke-width', '1');
           svg.appendChild(circle);
         });
@@ -5472,8 +5503,8 @@
 
         const polygon = createSvgElement('polygon');
         polygon.setAttribute('points', points);
-        polygon.setAttribute('fill', 'rgba(61,90,69,0.25)');
-        polygon.setAttribute('stroke', '#3D5A45');
+        polygon.setAttribute('fill', TOKENS.accentRgba(0.25));
+        polygon.setAttribute('stroke', TOKENS.accent());
         polygon.setAttribute('stroke-width', '2');
         svg.appendChild(polygon);
 
@@ -5524,7 +5555,7 @@
           row.style.cssText = 'display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--color-border-subtle);';
           row.appendChild(createElement('span', '', g.source));
           const impact = createElement('span');
-          impact.style.cssText = 'color: #3D5A45; font-weight: 600;';
+          impact.style.cssText = 'color: ${TOKENS.accent()}; font-weight: 600;';
           impact.textContent = g.impact;
           row.appendChild(impact);
           card1.appendChild(row);
@@ -5562,7 +5593,7 @@
         const arrow = createSvgElement('path');
         arrow.setAttribute('d', 'M 20 30 L 70 30 L 60 20 M 70 30 L 60 40');
         arrow.setAttribute('fill', 'none');
-        arrow.setAttribute('stroke', '#3D5A45');
+        arrow.setAttribute('stroke', TOKENS.accent());
         arrow.setAttribute('stroke-width', '4');
         arrow.setAttribute('stroke-linecap', 'round');
         arrow.setAttribute('stroke-linejoin', 'round');
@@ -5573,7 +5604,7 @@
         flowText.setAttribute('y', '35');
         flowText.setAttribute('font-size', '14');
         flowText.setAttribute('font-weight', '600');
-        flowText.setAttribute('fill', '#3D5A45');
+        flowText.setAttribute('fill', TOKENS.accent());
         flowText.textContent = '+11%';
         flowSvg.appendChild(flowText);
 
@@ -5595,7 +5626,7 @@
           const line = createSvgElement('line');
           line.setAttribute('x1', '0'); line.setAttribute('y1', y);
           line.setAttribute('x2', '450'); line.setAttribute('y2', y);
-          line.setAttribute('stroke', 'rgba(44,37,32,0.08)');
+          line.setAttribute('stroke', TOKENS.naturalInkRgba(0.08));
           svg.appendChild(line);
         });
         // Trajectory arc
@@ -5623,7 +5654,7 @@
         // Silence Interpreter - Types grid
         const silences = [
           { type: 'Processing', icon: '◐', color: 'var(--persona-nayan)', count: 12 },
-          { type: 'Resistant', icon: '⊘', color: '#f5a623', count: 3 },
+          { type: 'Resistant', icon: '⊘', color: TOKENS.warningBright(), count: 3 },
           { type: 'Peaceful', icon: '○', color: 'var(--color-accent)', count: 8 }
         ];
         silences.forEach(s => {
@@ -5694,7 +5725,7 @@
         dims.forEach(d => {
           const row = createElement('div');
           row.style.cssText = 'display: flex; align-items: center; gap: 12px; padding: 8px 0;';
-          row.innerHTML = `<span style="width: 100px; font-size: 0.85rem;">${d.name}</span><div style="flex: 1; display: flex; gap: 8px;"><div style="height: 8px; width: ${d.before}%; background: rgba(61,90,69,0.3); border-radius: 4px;"></div><div style="height: 8px; width: ${d.after}%; background: var(--color-accent); border-radius: 4px;"></div></div><span style="color: var(--color-accent); font-weight: 600;">+${d.after - d.before}%</span>`;
+          row.innerHTML = `<span style="width: 100px; font-size: 0.85rem;">${d.name}</span><div style="flex: 1; display: flex; gap: 8px;"><div style="height: 8px; width: ${d.before}%; background: ${TOKENS.accentRgba(0.3)}; border-radius: 4px;"></div><div style="height: 8px; width: ${d.after}%; background: var(--color-accent); border-radius: 4px;"></div></div><span style="color: var(--color-accent); font-weight: 600;">+${d.after - d.before}%</span>`;
           card1.appendChild(row);
         });
         grid.appendChild(card1);
@@ -5775,7 +5806,7 @@
           { day: 'S', mood: 'focused' },
           { day: 'S', mood: 'calm' }
         ];
-        const moodColors = { calm: '#3D5A45', anxious: '#e74c3c', joyful: '#f5a623', tired: '#9a8f85', focused: '#3a6b73' };
+        const moodColors = TOKENS.getMoodColors();
 
         days.forEach((d, i) => {
           const dayEl = createElement('div');
@@ -5804,7 +5835,7 @@
         gauge.style.cssText = 'width: 120px; height: 120px; margin: 20px auto; position: relative;';
 
         const ring = createElement('div');
-        ring.style.cssText = 'position: absolute; inset: 0; border-radius: 50%; background: conic-gradient(from 135deg, #3D5A45 0deg 180deg, rgba(44,37,32,0.2) 180deg 270deg);';
+        ring.style.cssText = `position: absolute; inset: 0; border-radius: 50%; background: conic-gradient(from 135deg, ${TOKENS.accent()} 0deg 180deg, ${TOKENS.naturalInkRgba(0.2)} 180deg 270deg);`;
         gauge.appendChild(ring);
 
         const center = createElement('div');
@@ -5834,7 +5865,7 @@
         const chapters = ['complete', 'complete', 'complete', 'active', 'future'];
         chapters.forEach(status => {
           const dot = createElement('div');
-          dot.style.cssText = `width: 12px; height: 12px; border-radius: 50%; background: ${status === 'active' ? '#3D5A45' : status === 'complete' ? 'rgba(61,90,69,0.5)' : 'rgba(154,143,133,0.3)'};`;
+          dot.style.cssText = `width: 12px; height: 12px; border-radius: 50%; background: ${status === 'active' ? TOKENS.accent() : status === 'complete' ? TOKENS.accentRgba(0.5) : 'rgba(154,143,133,0.3)'};`;
           progress.appendChild(dot);
         });
         layout.appendChild(progress);
@@ -5876,7 +5907,7 @@
         const phases = ['rising', 'conflict', 'peak', 'resolution'];
         phases.forEach((p, i) => {
           const segment = createElement('div');
-          segment.style.cssText = `width: ${30 + i * 8}px; height: 6px; border-radius: 3px; background: ${p === 'resolution' ? '#3D5A45' : 'rgba(61,90,69,0.3)'};`;
+          segment.style.cssText = `width: ${30 + i * 8}px; height: 6px; border-radius: 3px; background: ${p === 'resolution' ? TOKENS.accent() : TOKENS.accentRgba(0.3)};`;
           arc.appendChild(segment);
         });
         layout.appendChild(arc);
@@ -5895,9 +5926,9 @@
         confidence.style.cssText = 'display: flex; align-items: center; gap: 12px; justify-content: center; margin-top: 16px;';
 
         const bar = createElement('div');
-        bar.style.cssText = 'width: 100px; height: 6px; background: rgba(44,37,32,0.2); border-radius: 3px; overflow: hidden;';
+        bar.style.cssText = `width: 100px; height: 6px; background: ${TOKENS.naturalInkRgba(0.2)}; border-radius: 3px; overflow: hidden;`;
         const fill = createElement('div');
-        fill.style.cssText = 'height: 100%; width: 85%; background: #f5a623; border-radius: 3px;';
+        fill.style.cssText = `height: 100%; width: 85%; background: ${TOKENS.warningBright()}; border-radius: 3px;`;
         bar.appendChild(fill);
         confidence.appendChild(bar);
 
@@ -5931,7 +5962,7 @@
         layout.appendChild(createElement('div', 'tv-title', 'Open Loop'));
 
         const loopItem = createElement('div');
-        loopItem.style.cssText = 'background: rgba(61,90,69,0.1); border-left: 4px solid #3D5A45; padding: 16px 20px; border-radius: 0 8px 8px 0; margin: 20px auto; max-width: 300px;';
+        loopItem.style.cssText = `background: ${TOKENS.accentRgba(0.1)}; border-left: 4px solid ${TOKENS.accent()}; padding: 16px 20px; border-radius: 0 8px 8px 0; margin: 20px auto; max-width: 300px;`;
 
         const loopText = createElement('p');
         loopText.style.cssText = 'font-size: 1.1rem; color: var(--color-text-primary);';
@@ -5957,7 +5988,7 @@
         wave.style.cssText = 'display: flex; align-items: flex-end; gap: 6px; justify-content: center; margin: 24px 0; height: 40px;';
         [0.6, 0.8, 1, 0.7, 0.9, 0.5, 0.8].forEach((h, i) => {
           const bar = createElement('div');
-          bar.style.cssText = `width: 8px; height: ${h * 40}px; background: ${i === 2 ? '#3D5A45' : 'rgba(61,90,69,0.4)'}; border-radius: 4px;`;
+          bar.style.cssText = `width: 8px; height: ${h * 40}px; background: ${i === 2 ? TOKENS.accent() : TOKENS.accentRgba(0.4)}; border-radius: 4px;`;
           wave.appendChild(bar);
         });
         layout.appendChild(wave);
@@ -5997,11 +6028,11 @@
         rings.style.cssText = 'width: 100px; height: 100px; margin: 20px auto; position: relative;';
         [40, 30, 20, 10].forEach((r, i) => {
           const ring = createElement('div');
-          ring.style.cssText = `position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: ${r * 2}px; height: ${r * 2}px; border-radius: 50%; border: 2px solid #3D5A45; opacity: ${1 - i * 0.2};`;
+          ring.style.cssText = `position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: ${r * 2}px; height: ${r * 2}px; border-radius: 50%; border: 2px solid ${TOKENS.accent()}; opacity: ${1 - i * 0.2};`;
           rings.appendChild(ring);
         });
         const centerDot = createElement('div');
-        centerDot.style.cssText = 'position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 8px; height: 8px; border-radius: 50%; background: #3D5A45;';
+        centerDot.style.cssText = 'position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 8px; height: 8px; border-radius: 50%; background: ${TOKENS.accent()};';
         rings.appendChild(centerDot);
         layout.appendChild(rings);
 
@@ -6026,7 +6057,7 @@
         const bgArc = createSvgElement('path');
         bgArc.setAttribute('d', 'M 10 55 A 50 50 0 0 1 110 55');
         bgArc.setAttribute('fill', 'none');
-        bgArc.setAttribute('stroke', 'rgba(61,90,69,0.2)');
+        bgArc.setAttribute('stroke', TOKENS.accentRgba(0.2));
         bgArc.setAttribute('stroke-width', '6');
         bgArc.setAttribute('stroke-linecap', 'round');
         svg.appendChild(bgArc);
@@ -6034,7 +6065,7 @@
         const progressArc = createSvgElement('path');
         progressArc.setAttribute('d', 'M 10 55 A 50 50 0 0 1 110 55');
         progressArc.setAttribute('fill', 'none');
-        progressArc.setAttribute('stroke', '#3D5A45');
+        progressArc.setAttribute('stroke', TOKENS.accent());
         progressArc.setAttribute('stroke-width', '6');
         progressArc.setAttribute('stroke-linecap', 'round');
         progressArc.setAttribute('stroke-dasharray', '157');
@@ -6062,12 +6093,12 @@
 
         [45, 35, 25, 15].forEach((r, i) => {
           const ring = createElement('div');
-          ring.style.cssText = `position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: ${r * 2}px; height: ${r * 2}px; border-radius: 50%; border: ${i === 0 ? '3px' : '2px'} solid #3D5A45; opacity: ${1 - i * 0.2};`;
+          ring.style.cssText = `position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: ${r * 2}px; height: ${r * 2}px; border-radius: 50%; border: ${i === 0 ? '3px' : '2px'} solid ${TOKENS.accent()}; opacity: ${1 - i * 0.2};`;
           ringsContainer.appendChild(ring);
         });
 
         const center = createElement('div');
-        center.style.cssText = 'position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 10px; height: 10px; border-radius: 50%; background: #3D5A45;';
+        center.style.cssText = 'position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 10px; height: 10px; border-radius: 50%; background: ${TOKENS.accent()};';
         ringsContainer.appendChild(center);
         layout.appendChild(ringsContainer);
 
@@ -6087,7 +6118,7 @@
         bars.style.cssText = 'display: flex; gap: 8px; justify-content: center; margin: 20px 0;';
         [0.9, 0.85, 0.8, 0.75, 0.7, 0.65].forEach((v, i) => {
           const bar = createElement('div');
-          bar.style.cssText = `width: 12px; height: ${v * 50}px; background: ${i === 0 ? '#3D5A45' : 'rgba(61,90,69,0.4)'}; border-radius: 6px;`;
+          bar.style.cssText = `width: 12px; height: ${v * 50}px; background: ${i === 0 ? TOKENS.accent() : TOKENS.accentRgba(0.4)}; border-radius: 6px;`;
           bars.appendChild(bar);
         });
         layout.appendChild(bars);
@@ -6110,7 +6141,7 @@
         trajectory.forEach((v, i) => {
           const bar = createElement('div');
           const isNow = i === trajectory.length - 1;
-          bar.style.cssText = `width: 14px; height: ${v * 40}px; background: ${isNow ? '#3D5A45' : 'rgba(61,90,69,0.4)'}; border-radius: 7px; transition: all 0.3s;`;
+          bar.style.cssText = `width: 14px; height: ${v * 40}px; background: ${isNow ? TOKENS.accent() : TOKENS.accentRgba(0.4)}; border-radius: 7px; transition: all 0.3s;`;
           arcContainer.appendChild(bar);
         });
         layout.appendChild(arcContainer);
@@ -6130,7 +6161,7 @@
         const breathContainer = createElement('div');
         breathContainer.style.cssText = 'display: flex; justify-content: center; margin: 20px 0;';
         const breathCircle = createElement('div');
-        breathCircle.style.cssText = 'width: 60px; height: 60px; background: rgba(61,90,69,0.3); border-radius: 50%; animation: breathe 4s ease-in-out infinite;';
+        breathCircle.style.cssText = `width: 60px; height: 60px; background: ${TOKENS.accentRgba(0.3)}; border-radius: 50%; animation: breathe 4s ease-in-out infinite;`;
         breathContainer.appendChild(breathCircle);
         layout.appendChild(breathContainer);
 
@@ -6151,9 +6182,9 @@
         const node1 = createElement('div');
         node1.style.cssText = 'width: 40px; height: 40px; background: #6366f1; border-radius: 50%;';
         const line = createElement('div');
-        line.style.cssText = 'width: 40px; height: 3px; background: linear-gradient(90deg, #6366f1, #3D5A45);';
+        line.style.cssText = `width: 40px; height: 3px; background: linear-gradient(90deg, #6366f1, ${TOKENS.accent()});`;
         const node2 = createElement('div');
-        node2.style.cssText = 'width: 40px; height: 40px; background: #3D5A45; border-radius: 50%;';
+        node2.style.cssText = `width: 40px; height: 40px; background: ${TOKENS.accent()}; border-radius: 50%;`;
         nodes.appendChild(node1);
         nodes.appendChild(line);
         nodes.appendChild(node2);
@@ -6174,13 +6205,13 @@
         const branch = createElement('div');
         branch.style.cssText = 'display: flex; flex-direction: column; align-items: center; margin: 20px 0;';
         const stem = createElement('div');
-        stem.style.cssText = 'width: 3px; height: 20px; background: rgba(61,90,69,0.4);';
+        stem.style.cssText = `width: 3px; height: 20px; background: ${TOKENS.accentRgba(0.4)};`;
         const fork = createElement('div');
         fork.style.cssText = 'display: flex; gap: 30px;';
         const taken = createElement('div');
-        taken.style.cssText = 'width: 20px; height: 20px; background: #3D5A45; border-radius: 50%;';
+        taken.style.cssText = `width: 20px; height: 20px; background: ${TOKENS.accent()}; border-radius: 50%;`;
         const notTaken = createElement('div');
-        notTaken.style.cssText = 'width: 20px; height: 20px; background: rgba(61,90,69,0.3); border-radius: 50%; border: 2px dashed rgba(61,90,69,0.5);';
+        notTaken.style.cssText = `width: 20px; height: 20px; background: ${TOKENS.accentRgba(0.3)}; border-radius: 50%; border: 2px dashed ${TOKENS.accentRgba(0.5)};`;
         fork.appendChild(taken);
         fork.appendChild(notTaken);
         branch.appendChild(stem);
@@ -6201,7 +6232,7 @@
         // Before/after bars
         const comparison = createElement('div');
         comparison.style.cssText = 'display: flex; flex-direction: column; gap: 8px; margin: 20px 40px;';
-        [{ label: 'Before', width: 35, color: 'rgba(61,90,69,0.3)' }, { label: 'After', width: 90, color: '#3D5A45' }].forEach(b => {
+        [{ label: 'Before', width: 35, color: TOKENS.accentRgba(0.3) }, { label: 'After', width: 90, color: TOKENS.accent() }].forEach(b => {
           const row = createElement('div');
           row.style.cssText = 'display: flex; align-items: center; gap: 10px;';
           const lbl = createElement('span');
@@ -6230,7 +6261,7 @@
         const yinYang = createElement('div');
         yinYang.style.cssText = 'display: flex; justify-content: center; margin: 20px 0;';
         const circle = createElement('div');
-        circle.style.cssText = 'width: 60px; height: 60px; background: linear-gradient(90deg, #3D5A45 50%, rgba(61,90,69,0.3) 50%); border-radius: 50%;';
+        circle.style.cssText = 'width: 60px; height: 60px; background: linear-gradient(90deg, ${TOKENS.accent()} 50%, ${TOKENS.accentRgba(0.3)} 50%); border-radius: 50%;';
         yinYang.appendChild(circle);
         layout.appendChild(yinYang);
 
@@ -6278,7 +6309,7 @@
       } else if (viz === 'moodcal') {
         // Single mood indicator with color
         const moodIcon = createElement('div');
-        moodIcon.style.cssText = 'width: 50px; height: 50px; background: #3D5A45; border-radius: 50%;';
+        moodIcon.style.cssText = 'width: 50px; height: 50px; background: ${TOKENS.accent()}; border-radius: 50%;';
         main.appendChild(moodIcon);
         main.appendChild(createElement('div', 'carplay-label', 'Calm'));
         const sub = createElement('div');
@@ -6291,7 +6322,7 @@
         const labels = createElement('div');
         labels.appendChild(createElement('div', 'carplay-label', 'Capacity'));
         const status = createElement('div');
-        status.style.cssText = 'font-size: 0.9rem; color: #3D5A45; font-weight: 500;';
+        status.style.cssText = 'font-size: 0.9rem; color: ${TOKENS.accent()}; font-weight: 500;';
         status.textContent = 'Healthy';
         labels.appendChild(status);
         main.appendChild(labels);
@@ -6310,7 +6341,7 @@
         main.appendChild(createElement('div', 'carplay-metric', '90%'));
         main.appendChild(createElement('div', 'carplay-label', 'Relations'));
         const sub = createElement('div');
-        sub.style.cssText = 'font-size: 0.9rem; color: #3D5A45;';
+        sub.style.cssText = 'font-size: 0.9rem; color: ${TOKENS.accent()};';
         sub.textContent = 'Strong';
         main.appendChild(sub);
       } else if (viz === 'arcs') {
@@ -6319,7 +6350,7 @@
         phases.style.cssText = 'display: flex; gap: 4px;';
         ['rising', 'conflict', 'peak', 'resolution'].forEach((p, i) => {
           const seg = createElement('div');
-          seg.style.cssText = `width: 12px; height: 12px; border-radius: 50%; background: ${p === 'resolution' ? '#3D5A45' : 'rgba(255,255,255,0.2)'};`;
+          seg.style.cssText = `width: 12px; height: 12px; border-radius: 50%; background: ${p === 'resolution' ? TOKENS.accent() : 'rgba(255,255,255,0.2)'};`;
           phases.appendChild(seg);
         });
         main.appendChild(phases);
@@ -6349,7 +6380,7 @@
       } else if (viz === 'loops') {
         // Priority open loop
         const count = createElement('div', 'carplay-metric', '4');
-        count.style.color = '#3D5A45';
+        count.style.color = TOKENS.accent();
         main.appendChild(count);
         main.appendChild(createElement('div', 'carplay-label', 'Open loops'));
         const sub = createElement('div');
@@ -6362,7 +6393,7 @@
         depthBars.style.cssText = 'display: flex; gap: 4px; align-items: flex-end; height: 40px;';
         [0.6, 0.8, 1, 0.7].forEach((h, i) => {
           const bar = createElement('div');
-          bar.style.cssText = `width: 10px; height: ${h * 40}px; background: ${i === 2 ? '#3D5A45' : 'rgba(61,90,69,0.5)'}; border-radius: 3px;`;
+          bar.style.cssText = `width: 10px; height: ${h * 40}px; background: ${i === 2 ? TOKENS.accent() : TOKENS.accentRgba(0.5)}; border-radius: 3px;`;
           depthBars.appendChild(bar);
         });
         main.appendChild(depthBars);
@@ -6388,7 +6419,7 @@
       } else if (viz === 'ripple') {
         // Ripple count
         const count = createElement('div', 'carplay-metric', '4');
-        count.style.color = '#3D5A45';
+        count.style.color = TOKENS.accent();
         main.appendChild(count);
         main.appendChild(createElement('div', 'carplay-label', 'Ripples'));
         const sub = createElement('div');
@@ -6398,7 +6429,7 @@
       } else if (viz === 'stories') {
         // Active story count
         const count = createElement('div', 'carplay-metric', '3');
-        count.style.color = '#3D5A45';
+        count.style.color = TOKENS.accent();
         main.appendChild(count);
         main.appendChild(createElement('div', 'carplay-label', 'Stories'));
         const sub = createElement('div');
@@ -6411,7 +6442,7 @@
         rings.style.cssText = 'width: 50px; height: 50px; position: relative;';
         [20, 15, 10].forEach((r, i) => {
           const ring = createElement('div');
-          ring.style.cssText = `position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: ${r * 2}px; height: ${r * 2}px; border-radius: 50%; border: 2px solid #3D5A45; opacity: ${1 - i * 0.25};`;
+          ring.style.cssText = `position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: ${r * 2}px; height: ${r * 2}px; border-radius: 50%; border: 2px solid ${TOKENS.accent()}; opacity: ${1 - i * 0.25};`;
           rings.appendChild(ring);
         });
         main.appendChild(rings);
@@ -6425,7 +6456,7 @@
         main.appendChild(createElement('div', 'carplay-metric', '90%'));
         main.appendChild(createElement('div', 'carplay-label', 'Connection'));
         const sub = createElement('div');
-        sub.style.cssText = 'font-size: 0.9rem; color: #3D5A45;';
+        sub.style.cssText = 'font-size: 0.9rem; color: ${TOKENS.accent()};';
         sub.textContent = 'Aligned';
         main.appendChild(sub);
       } else if (viz === 'trajectories') {
@@ -6433,15 +6464,15 @@
         main.appendChild(createElement('div', 'carplay-metric', '↗'));
         main.appendChild(createElement('div', 'carplay-label', 'Rising'));
         const sub = createElement('div');
-        sub.style.cssText = 'font-size: 0.9rem; color: #3D5A45;';
+        sub.style.cssText = 'font-size: 0.9rem; color: ${TOKENS.accent()};';
         sub.textContent = '+47%';
         main.appendChild(sub);
       } else if (viz === 'silence') {
         // Silence type indicator
         const icon = createElement('div');
-        icon.style.cssText = 'width: 50px; height: 50px; background: rgba(61,90,69,0.3); border-radius: 50%; display: flex; align-items: center; justify-content: center;';
+        icon.style.cssText = `width: 50px; height: 50px; background: ${TOKENS.accentRgba(0.3)}; border-radius: 50%; display: flex; align-items: center; justify-content: center;`;
         const symbol = createElement('span');
-        symbol.style.cssText = 'font-size: 1.5rem; color: #3D5A45;';
+        symbol.style.cssText = `font-size: 1.5rem; color: ${TOKENS.accent()};`;
         symbol.textContent = '◐';
         icon.appendChild(symbol);
         main.appendChild(icon);
@@ -6459,7 +6490,7 @@
         main.appendChild(createElement('div', 'carplay-metric', '2021'));
         main.appendChild(createElement('div', 'carplay-label', 'Career Pivot'));
         const sub = createElement('div');
-        sub.style.cssText = 'font-size: 0.9rem; color: #3D5A45;';
+        sub.style.cssText = 'font-size: 0.9rem; color: ${TOKENS.accent()};';
         sub.textContent = 'Key choice';
         main.appendChild(sub);
       } else if (viz === 'fingerprint') {
@@ -6467,13 +6498,13 @@
         main.appendChild(createElement('div', 'carplay-metric', '+156%'));
         main.appendChild(createElement('div', 'carplay-label', 'Confidence'));
         const sub = createElement('div');
-        sub.style.cssText = 'font-size: 0.9rem; color: #3D5A45;';
+        sub.style.cssText = 'font-size: 0.9rem; color: ${TOKENS.accent()};';
         sub.textContent = 'Top growth';
         main.appendChild(sub);
       } else if (viz === 'contradictions') {
         // Both/And indicator
         const icon = createElement('div');
-        icon.style.cssText = 'width: 50px; height: 50px; background: linear-gradient(90deg, #3D5A45 50%, rgba(61,90,69,0.3) 50%); border-radius: 50%;';
+        icon.style.cssText = 'width: 50px; height: 50px; background: linear-gradient(90deg, ${TOKENS.accent()} 50%, ${TOKENS.accentRgba(0.3)} 50%); border-radius: 50%;';
         main.appendChild(icon);
         main.appendChild(createElement('div', 'carplay-label', 'Both/And'));
         const sub = createElement('div');
@@ -6543,7 +6574,7 @@
         // Mini mood heatmap - 7 days
         const row = createElement('div');
         row.style.cssText = 'display: flex; gap: 3px; justify-content: center; margin: 8px 0;';
-        const moods = ['#3D5A45', '#e74c3c', '#3D5A45', '#f5a623', '#9a8f85', '#3a6b73', '#3D5A45'];
+        const moods = [TOKENS.accent(), TOKENS.errorBright(), TOKENS.accent(), TOKENS.warningBright(), TOKENS.text.muted(), TOKENS.persona.peter(), TOKENS.accent()];
         moods.forEach((color, i) => {
           const cell = createElement('div');
           cell.style.cssText = `width: 12px; height: 12px; border-radius: 2px; background: ${color}; opacity: ${i === 6 ? '1' : '0.7'};`;
@@ -6563,7 +6594,7 @@
         dots.style.cssText = 'display: flex; gap: 4px; justify-content: center; margin: 8px 0;';
         ['complete', 'complete', 'complete', 'active', 'future'].forEach(s => {
           const dot = createElement('div');
-          dot.style.cssText = `width: 8px; height: 8px; border-radius: 50%; background: ${s === 'active' ? '#3D5A45' : s === 'complete' ? 'rgba(61,90,69,0.4)' : 'rgba(154,143,133,0.3)'};`;
+          dot.style.cssText = `width: 8px; height: 8px; border-radius: 50%; background: ${s === 'active' ? TOKENS.accent() : s === 'complete' ? TOKENS.accentRgba(0.4) : 'rgba(154,143,133,0.3)'};`;
           dots.appendChild(dot);
         });
         smallContent.appendChild(dots);
@@ -6580,7 +6611,7 @@
         phases.style.cssText = 'display: flex; gap: 4px; justify-content: center; margin: 8px 0;';
         ['rising', 'conflict', 'peak', 'resolution'].forEach(p => {
           const seg = createElement('div');
-          seg.style.cssText = `width: 14px; height: 6px; border-radius: 3px; background: ${p === 'resolution' ? '#3D5A45' : 'rgba(61,90,69,0.25)'};`;
+          seg.style.cssText = `width: 14px; height: 6px; border-radius: 3px; background: ${p === 'resolution' ? TOKENS.accent() : TOKENS.accentRgba(0.25)};`;
           phases.appendChild(seg);
         });
         smallContent.appendChild(phases);
@@ -6609,7 +6640,7 @@
         bars.style.cssText = 'display: flex; gap: 3px; align-items: flex-end; justify-content: center; margin: 8px 0; height: 24px;';
         [0.6, 0.8, 1, 0.7].forEach((h, i) => {
           const bar = createElement('div');
-          bar.style.cssText = `width: 8px; height: ${h * 24}px; background: ${i === 2 ? 'var(--color-accent)' : 'rgba(61,90,69,0.4)'}; border-radius: 2px;`;
+          bar.style.cssText = `width: 8px; height: ${h * 24}px; background: ${i === 2 ? 'var(--color-accent)' : TOKENS.accentRgba(0.4)}; border-radius: 2px;`;
           bars.appendChild(bar);
         });
         smallContent.appendChild(bars);
@@ -6655,7 +6686,7 @@
         bars.style.cssText = 'display: flex; gap: 2px; align-items: flex-end; justify-content: center; margin: 8px 0; height: 28px;';
         [0.3, 0.2, 0.4, 0.6, 0.85, 1].forEach((h, i) => {
           const bar = createElement('div');
-          bar.style.cssText = `width: 6px; height: ${h * 28}px; background: ${i === 5 ? 'var(--color-accent)' : 'rgba(61,90,69,0.4)'}; border-radius: 2px;`;
+          bar.style.cssText = `width: 6px; height: ${h * 28}px; background: ${i === 5 ? 'var(--color-accent)' : TOKENS.accentRgba(0.4)}; border-radius: 2px;`;
           bars.appendChild(bar);
         });
         smallContent.appendChild(bars);
@@ -6687,7 +6718,7 @@
       } else if (viz === 'contradictions') {
         // Mini yin-yang
         const circle = createElement('div');
-        circle.style.cssText = 'width: 32px; height: 32px; background: linear-gradient(90deg, var(--color-accent) 50%, rgba(61,90,69,0.3) 50%); border-radius: 50%; margin: 8px auto;';
+        circle.style.cssText = 'width: 32px; height: 32px; background: linear-gradient(90deg, var(--color-accent) 50%, ${TOKENS.accentRgba(0.3)} 50%); border-radius: 50%; margin: 8px auto;';
         smallContent.appendChild(circle);
         smallContent.appendChild(createElement('div', 'widget-footer', 'Both/And'));
       } else {
@@ -6721,13 +6752,13 @@
         const row = createElement('div');
         row.style.cssText = 'display: flex; gap: 6px; justify-content: flex-start; margin: 8px 0;';
         const days = [
-          { day: 'M', color: '#3D5A45' },
-          { day: 'T', color: '#e74c3c' },
-          { day: 'W', color: '#3D5A45' },
-          { day: 'T', color: '#f5a623' },
-          { day: 'F', color: '#9a8f85' },
-          { day: 'S', color: '#3a6b73' },
-          { day: 'S', color: '#3D5A45' }
+          { day: 'M', color: TOKENS.accent() },
+          { day: 'T', color: TOKENS.errorBright() },
+          { day: 'W', color: TOKENS.accent() },
+          { day: 'T', color: TOKENS.warningBright() },
+          { day: 'F', color: TOKENS.text.muted() },
+          { day: 'S', color: TOKENS.persona.peter() },
+          { day: 'S', color: TOKENS.accent() }
         ];
         days.forEach((d, i) => {
           const dayCol = createElement('div');
@@ -6843,7 +6874,7 @@
         row.style.cssText = 'display: flex; align-items: flex-end; gap: 6px; margin: 8px 0; height: 30px;';
         [0.5, 0.7, 0.9, 1, 0.8, 0.6, 0.85].forEach((h, i) => {
           const bar = createElement('div');
-          bar.style.cssText = `width: 12px; height: ${h * 30}px; background: ${i === 3 ? 'var(--color-accent)' : 'rgba(61,90,69,0.4)'}; border-radius: 3px;`;
+          bar.style.cssText = `width: 12px; height: ${h * 30}px; background: ${i === 3 ? 'var(--color-accent)' : TOKENS.accentRgba(0.4)}; border-radius: 3px;`;
           row.appendChild(bar);
         });
         medContent.appendChild(row);
@@ -6925,7 +6956,7 @@
         row.style.cssText = 'display: flex; align-items: flex-end; gap: 4px; margin: 8px 0; height: 32px;';
         [0.3, 0.2, 0.35, 0.5, 0.7, 0.85, 0.95].forEach((h, i) => {
           const bar = createElement('div');
-          bar.style.cssText = `width: 14px; height: ${h * 32}px; background: ${i === 6 ? 'var(--color-accent)' : 'rgba(61,90,69,0.4)'}; border-radius: 3px;`;
+          bar.style.cssText = `width: 14px; height: ${h * 32}px; background: ${i === 6 ? 'var(--color-accent)' : TOKENS.accentRgba(0.4)}; border-radius: 3px;`;
           row.appendChild(bar);
         });
         medContent.appendChild(row);
@@ -6934,7 +6965,7 @@
         const row = createElement('div');
         row.style.cssText = 'display: flex; align-items: center; gap: 12px;';
         const icon = createElement('div');
-        icon.style.cssText = 'width: 40px; height: 40px; background: rgba(61,90,69,0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; color: var(--color-accent);';
+        icon.style.cssText = `width: 40px; height: 40px; background: ${TOKENS.accentRgba(0.2)}; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; color: var(--color-accent);`;
         icon.textContent = '◐';
         row.appendChild(icon);
         const text = createElement('div');
@@ -6995,7 +7026,7 @@
         const row = createElement('div');
         row.style.cssText = 'display: flex; align-items: center; gap: 12px;';
         const circle = createElement('div');
-        circle.style.cssText = 'width: 36px; height: 36px; background: linear-gradient(90deg, var(--color-accent) 50%, rgba(61,90,69,0.3) 50%); border-radius: 50%;';
+        circle.style.cssText = 'width: 36px; height: 36px; background: linear-gradient(90deg, var(--color-accent) 50%, ${TOKENS.accentRgba(0.3)} 50%); border-radius: 50%;';
         row.appendChild(circle);
         const text = createElement('div');
         const paradox = createElement('div');
@@ -7062,7 +7093,7 @@
         trajArc.style.cssText = 'display: flex; align-items: flex-end; gap: 4px; height: 60px; margin-bottom: 8px;';
         [0.4, 0.25, 0.3, 0.5, 0.45, 0.6, 0.75, 0.7, 0.85, 0.9, 0.95, 1].forEach((h, i) => {
           const bar = createElement('div');
-          bar.style.cssText = `flex: 1; height: ${h * 60}px; background: ${i === 11 ? 'var(--color-accent)' : 'rgba(61,90,69,0.3)'}; border-radius: 4px;`;
+          bar.style.cssText = `flex: 1; height: ${h * 60}px; background: ${i === 11 ? 'var(--color-accent)' : TOKENS.accentRgba(0.3)}; border-radius: 4px;`;
           trajArc.appendChild(bar);
         });
         trajCard.appendChild(trajArc);
@@ -7087,9 +7118,9 @@
           label.innerHTML = `<span>${t.trait}</span><span style="color: var(--color-accent);">+${Math.round((t.after - t.before) / t.before * 100)}%</span>`;
           row.appendChild(label);
           const bars = createElement('div');
-          bars.style.cssText = 'position: relative; height: 8px; background: rgba(61,90,69,0.2); border-radius: 4px;';
+          bars.style.cssText = 'position: relative; height: 8px; background: ${TOKENS.accentRgba(0.2)}; border-radius: 4px;';
           const beforeBar = createElement('div');
-          beforeBar.style.cssText = `position: absolute; height: 100%; width: ${t.before}%; background: rgba(61,90,69,0.4); border-radius: 4px;`;
+          beforeBar.style.cssText = `position: absolute; height: 100%; width: ${t.before}%; background: ${TOKENS.accentRgba(0.4)}; border-radius: 4px;`;
           bars.appendChild(beforeBar);
           const afterBar = createElement('div');
           afterBar.style.cssText = `position: absolute; height: 100%; width: ${t.after}%; background: var(--color-accent); border-radius: 4px; opacity: 0.8;`;
@@ -7163,7 +7194,7 @@
           const item = createElement('div');
           item.style.cssText = 'display: flex; align-items: center; gap: 10px; padding: 8px 0;';
           const circle = createElement('div');
-          circle.style.cssText = 'width: 24px; height: 24px; background: linear-gradient(90deg, var(--color-accent) 50%, rgba(61,90,69,0.3) 50%); border-radius: 50%;';
+          circle.style.cssText = 'width: 24px; height: 24px; background: linear-gradient(90deg, var(--color-accent) 50%, ${TOKENS.accentRgba(0.3)} 50%); border-radius: 50%;';
           item.appendChild(circle);
           const label = createElement('span');
           label.style.cssText = 'font-size: 0.9rem;';
@@ -7280,7 +7311,7 @@
       ['Scared & Ready', 'Tired & Determined', 'Uncertain & Trusting'].forEach(p => {
         const item = createElement('div');
         item.style.cssText = 'display: flex; align-items: center; gap: 12px; padding: 8px 0;';
-        item.innerHTML = `<div style="width: 28px; height: 28px; background: linear-gradient(90deg, var(--color-accent) 50%, rgba(61,90,69,0.3) 50%); border-radius: 50%;"></div><span>${p}</span>`;
+        item.innerHTML = `<div style="width: 28px; height: 28px; background: linear-gradient(90deg, var(--color-accent) 50%, ${TOKENS.accentRgba(0.3)} 50%); border-radius: 50%;"></div><span>${p}</span>`;
         paradoxCard.appendChild(item);
       });
       rightCol.appendChild(paradoxCard);
@@ -7313,7 +7344,7 @@
       trajBars.style.cssText = 'display: flex; align-items: flex-end; gap: 6px; height: 80px;';
       [0.4, 0.25, 0.3, 0.5, 0.45, 0.6, 0.75, 0.7, 0.85, 0.9, 0.95, 1].forEach((h, i) => {
         const bar = createElement('div');
-        bar.style.cssText = `flex: 1; height: ${h * 80}px; background: ${i === 11 ? 'var(--color-accent)' : 'rgba(61,90,69,0.3)'}; border-radius: 4px;`;
+        bar.style.cssText = `flex: 1; height: ${h * 80}px; background: ${i === 11 ? 'var(--color-accent)' : TOKENS.accentRgba(0.3)}; border-radius: 4px;`;
         trajBars.appendChild(bar);
       });
       trajCard.appendChild(trajBars);
@@ -7327,7 +7358,7 @@
       ['Scared & Ready', 'Tired & Determined', 'Uncertain & Trusting'].forEach(p => {
         const item = createElement('div');
         item.style.cssText = 'display: flex; align-items: center; gap: 8px; padding: 6px 0; font-size: 0.85rem;';
-        item.innerHTML = `<div style="width: 20px; height: 20px; background: linear-gradient(90deg, var(--color-accent) 50%, rgba(61,90,69,0.3) 50%); border-radius: 50%;"></div>${p}`;
+        item.innerHTML = `<div style="width: 20px; height: 20px; background: linear-gradient(90deg, var(--color-accent) 50%, ${TOKENS.accentRgba(0.3)} 50%); border-radius: 50%;"></div>${p}`;
         paradoxCard.appendChild(item);
       });
       grid.appendChild(paradoxCard);
@@ -7447,7 +7478,7 @@
         const item = createElement('div');
         item.style.cssText = 'display: flex; align-items: center; gap: 12px; padding: 10px 0;';
         item.innerHTML = `
-          <div style="width: 28px; height: 28px; background: linear-gradient(90deg, var(--color-accent) 50%, rgba(61,90,69,0.3) 50%); border-radius: 50%;"></div>
+          <div style="width: 28px; height: 28px; background: linear-gradient(90deg, var(--color-accent) 50%, ${TOKENS.accentRgba(0.3)} 50%); border-radius: 50%;"></div>
           <span style="font-size: 0.9rem;">${p}</span>
         `;
         contradictCard.appendChild(item);
@@ -7487,8 +7518,8 @@
             <span>${t.trait}</span>
             <span style="color: var(--color-accent); font-weight: 600;">+${Math.round((t.after - t.before) / t.before * 100)}%</span>
           </div>
-          <div style="position: relative; height: 12px; background: rgba(61,90,69,0.15); border-radius: 6px;">
-            <div style="position: absolute; height: 100%; width: ${t.before}%; background: rgba(61,90,69,0.3); border-radius: 6px;"></div>
+          <div style="position: relative; height: 12px; background: ${TOKENS.accentRgba(0.15)}; border-radius: 6px;">
+            <div style="position: absolute; height: 100%; width: ${t.before}%; background: ${TOKENS.accentRgba(0.3)}; border-radius: 6px;"></div>
             <div style="position: absolute; height: 100%; width: ${t.after}%; background: var(--color-accent); border-radius: 6px; opacity: 0.85;"></div>
           </div>
         `;
@@ -7553,7 +7584,7 @@
         const item = createElement('div');
         item.style.cssText = 'display: flex; align-items: center; gap: 12px; padding: 8px 0;';
         item.innerHTML = `
-          <div style="width: 24px; height: 24px; background: linear-gradient(90deg, var(--color-accent) 50%, rgba(61,90,69,0.3) 50%); border-radius: 50%;"></div>
+          <div style="width: 24px; height: 24px; background: linear-gradient(90deg, var(--color-accent) 50%, ${TOKENS.accentRgba(0.3)} 50%); border-radius: 50%;"></div>
           <span style="font-size: 0.9rem;">${p}</span>
         `;
         holdCard.appendChild(item);
@@ -7583,7 +7614,7 @@
       arcViz.style.cssText = 'position: relative; height: 80px; margin-bottom: 12px;';
       // Path
       const pathDiv = createElement('div');
-      pathDiv.style.cssText = 'position: absolute; bottom: 20px; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, rgba(61,90,69,0.3), var(--color-accent));';
+      pathDiv.style.cssText = 'position: absolute; bottom: 20px; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, ${TOKENS.accentRgba(0.3)}, var(--color-accent));';
       arcViz.appendChild(pathDiv);
       // Key moments
       [
@@ -7685,7 +7716,7 @@
       [
         { from: 'Sleep Quality', to: 'Next-Day Mood', strength: 0.87, color: '#6366f1' },
         { from: 'Morning Routine', to: 'Productivity', strength: 0.75, color: '#10b981' },
-        { from: 'Exercise', to: 'Creativity', strength: 0.72, color: '#f5a623' },
+        { from: 'Exercise', to: 'Creativity', strength: 0.72, color: TOKENS.warningBright() },
         { from: 'Social Time', to: 'Energy Drain', strength: 0.68, color: '#ec4899' },
         { from: 'Journaling', to: 'Clarity', strength: 0.65, color: '#8b5cf6' }
       ].forEach(c => {
@@ -7699,7 +7730,7 @@
             </div>
             <span style="color: var(--color-accent); font-weight: 600;">${c.strength}</span>
           </div>
-          <div style="height: 6px; background: rgba(61,90,69,0.1); border-radius: 3px;">
+          <div style="height: 6px; background: ${TOKENS.accentRgba(0.1)}; border-radius: 3px;">
             <div style="height: 100%; width: ${c.strength * 100}%; background: ${c.color}; border-radius: 3px; opacity: 0.7;"></div>
           </div>
         `;
@@ -7784,7 +7815,7 @@
         branchViz.style.cssText = 'display: flex; gap: 12px; margin-bottom: 12px;';
         // Chosen path
         const chosenPath = createElement('div');
-        chosenPath.style.cssText = 'flex: 1; background: rgba(61,90,69,0.1); border: 2px solid var(--color-accent); border-radius: 12px; padding: 12px;';
+        chosenPath.style.cssText = 'flex: 1; background: ${TOKENS.accentRgba(0.1)}; border: 2px solid var(--color-accent); border-radius: 12px; padding: 12px;';
         const chosenLabel = createElement('div');
         chosenLabel.style.cssText = 'font-size: 0.7rem; color: var(--color-accent); font-weight: 600; margin-bottom: 4px; display: flex; align-items: center; gap: 4px;';
         chosenLabel.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px;"><polyline points="20 6 9 17 4 12"/></svg> CHOSE';
@@ -7838,7 +7869,7 @@
         <div style="display: flex; justify-content: center; gap: 40px; margin-bottom: 16px;">
           <div>
             <div style="font-size: 0.75rem; color: var(--color-text-muted); margin-bottom: 4px;">2020</div>
-            <div style="width: 60px; height: 60px; background: rgba(61,90,69,0.2); border-radius: 50%; margin: 0 auto;"></div>
+            <div style="width: 60px; height: 60px; background: ${TOKENS.accentRgba(0.2)}; border-radius: 50%; margin: 0 auto;"></div>
           </div>
           <div style="display: flex; align-items: center; color: var(--color-accent);">→</div>
           <div>
@@ -7869,9 +7900,9 @@
             <span style="color: var(--color-accent); font-weight: 600;">+${Math.round((t.after - t.before) / t.before * 100)}%</span>
           </div>
           <div style="position: relative; height: 20px; margin-bottom: 4px;">
-            <div style="position: absolute; top: 0; left: 0; right: 0; height: 8px; background: rgba(61,90,69,0.1); border-radius: 4px;"></div>
-            <div style="position: absolute; top: 0; left: 0; height: 8px; width: ${t.before}%; background: rgba(61,90,69,0.3); border-radius: 4px;"></div>
-            <div style="position: absolute; top: 10px; left: 0; right: 0; height: 8px; background: rgba(61,90,69,0.1); border-radius: 4px;"></div>
+            <div style="position: absolute; top: 0; left: 0; right: 0; height: 8px; background: ${TOKENS.accentRgba(0.1)}; border-radius: 4px;"></div>
+            <div style="position: absolute; top: 0; left: 0; height: 8px; width: ${t.before}%; background: ${TOKENS.accentRgba(0.3)}; border-radius: 4px;"></div>
+            <div style="position: absolute; top: 10px; left: 0; right: 0; height: 8px; background: ${TOKENS.accentRgba(0.1)}; border-radius: 4px;"></div>
             <div style="position: absolute; top: 10px; left: 0; height: 8px; width: ${t.after}%; background: var(--color-accent); border-radius: 4px;"></div>
           </div>
           <div style="font-size: 0.75rem; color: var(--color-text-muted); font-style: italic;">${t.story}</div>
@@ -9144,5 +9175,11 @@
 
   <!-- Shared Navigation Component -->
   <script src="../shared/nav.js" defer></script>
+
+  <!-- Ferni Visualization System -->
+  <script type="module">
+    import FerniViz from './viz-system.js';
+    FerniViz.init({ enableAnimations: true, enableTooltips: true });
+  </script>
 </body>
 </html>

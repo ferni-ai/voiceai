@@ -15,14 +15,14 @@
 |---------|------|
 | LiveKit Agents Monorepo | [github.com/sethdford/agents-js](https://github.com/sethdford/agents-js) |
 
-**Branch:** `ferni-v1.0.31`
-**Tag:** `@livekit/agents@1.0.31-ferni.1`
+**Branch:** `ferni-v1.0.32`
+**Tag:** `@livekit/agents@1.0.32-ferni.1`
 
 The fork includes all plugins. We reference specific packages via `file:` protocol in package.json.
 
 ## Our Changes
 
-### @livekit/agents (v1.0.31-ferni.1)
+### @livekit/agents (v1.0.32-ferni.1)
 
 #### 1. Duration Calculation Fix
 **File:** `src/telemetry/traces.ts`
@@ -66,7 +66,7 @@ task.addDoneCallback(() => {
 });
 ```
 
-### @livekit/agents-plugin-google (v1.0.31-ferni.1)
+### @livekit/agents-plugin-google (v1.0.32-ferni.1)
 
 #### 1. generateReply Timeout Increase
 **File:** `src/beta/realtime/realtime_api.ts`
@@ -207,4 +207,4 @@ pnpm dev
 
 ---
 
-*Last updated: December 2024*
+*Last updated: January 2026*

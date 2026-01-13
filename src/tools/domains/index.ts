@@ -382,6 +382,9 @@ export { getToolDefinitions as getSettingsToolDefinitions } from './settings/ind
 // Insights domain - analytics summaries, progress tracking, weekly reviews
 export { getToolDefinitions as getInsightsToolDefinitions } from './insights/index.js';
 
+// CEO Coaching domain - briefings, wins, energy, priorities, decisions
+export { getToolDefinitions as getCEOCoachingToolDefinitions } from './ceo-coaching/index.js';
+
 // ============================================================================
 // LEGACY DOMAIN EXPORTS (for backwards compatibility)
 // These will be deprecated once all consumers migrate to registry-based system
@@ -537,6 +540,10 @@ export async function getAllDomainToolDefinitions(): Promise<ToolDefinition[]> {
     import('./settings/index.js').then(async (m) => m.getToolDefinitions()),
     // Insights domain - analytics summaries, progress tracking
     import('./insights/index.js').then(async (m) => m.getToolDefinitions()),
+    // Routines domain - Ferni's care routines ("What I Do For You")
+    import('./routines/index.js').then(async (m) => m.getToolDefinitions()),
+    // CEO Coaching domain - briefings, wins, energy, priorities, decisions
+    import('./ceo-coaching/index.js').then(async (m) => m.getToolDefinitions()),
   ]);
 
   // Collect successful results
@@ -1074,6 +1081,12 @@ export const DOMAIN_METADATA = {
     name: 'Insights',
     description: 'Analytics summaries, progress tracking, and weekly reviews',
     icon: '📊',
+    status: 'active',
+  },
+  'ceo-coaching': {
+    name: 'CEO Coaching',
+    description: 'Voice-based executive coaching: briefings, wins, energy, priorities, decisions, focus sessions',
+    icon: '🎯',
     status: 'active',
   },
 } as const;

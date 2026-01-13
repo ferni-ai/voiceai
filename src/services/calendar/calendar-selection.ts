@@ -92,12 +92,18 @@ export async function getAvailableCalendars(
 
     const calendars = await adapter.getCalendars(userId);
 
-    // Convert to SelectedCalendar format
+    // Convert to SelectedCalendar format with all new fields
     return calendars.map((cal) => ({
       id: cal.id,
       name: cal.name,
       enabled: true, // Default all to enabled
       primary: cal.primary,
+      color: cal.color,
+      // New fields for multi-provider support
+      provider,
+      owner: cal.owner,
+      canEdit: cal.canEdit ?? true,
+      description: cal.description,
     }));
   } catch (error) {
     log.error({ error: String(error), userId, provider }, 'Error fetching available calendars');

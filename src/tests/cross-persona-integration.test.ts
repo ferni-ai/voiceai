@@ -359,7 +359,7 @@ describe('Context Builder Integration with Superhuman', () => {
   describe('Peter Research Insights', () => {
     it('should include superhuman context in briefing', async () => {
       const { buildPeterResearchInsightsContext } =
-        await import('../intelligence/context-builders/personas/peter-research-insights.js');
+        await import('../intelligence/context-builders/personas/peter-research-insights/index.js');
 
       const input = createMockInput('peter-john', `peter-test-${Date.now()}`);
       const result = await buildPeterResearchInsightsContext(input as never);
@@ -375,7 +375,7 @@ describe('Context Builder Integration with Superhuman', () => {
   describe('Maya Coaching Insights', () => {
     it('should include superhuman context in briefing', async () => {
       const { buildMayaCoachingInsightsContext } =
-        await import('../intelligence/context-builders/personas/maya-coaching-insights.js');
+        await import('../intelligence/context-builders/personas/maya-coaching-insights/index.js');
 
       const input = createMockInput('maya-santos', `maya-test-${Date.now()}`);
       const result = await buildMayaCoachingInsightsContext(input as never);
@@ -390,7 +390,7 @@ describe('Context Builder Integration with Superhuman', () => {
   describe('Jordan Milestone Insights', () => {
     it('should include superhuman context in briefing', async () => {
       const { buildJordanMilestoneInsightsContext } =
-        await import('../intelligence/context-builders/personas/jordan-milestone-insights.js');
+        await import('../intelligence/context-builders/personas/jordan-milestone-insights/index.js');
 
       const input = createMockInput('jordan-taylor', `jordan-test-${Date.now()}`);
       const result = await buildJordanMilestoneInsightsContext(input as never);
@@ -405,7 +405,7 @@ describe('Context Builder Integration with Superhuman', () => {
   describe('Alex Communication Insights', () => {
     it('should include superhuman context in briefing', async () => {
       const { buildAlexCommunicationInsightsContext } =
-        await import('../intelligence/context-builders/personas/alex-communication-insights.js');
+        await import('../intelligence/context-builders/personas/alex-communication-insights/index.js');
 
       const input = createMockInput('alex-chen', `alex-test-${Date.now()}`);
       const result = await buildAlexCommunicationInsightsContext(input as never);
@@ -442,7 +442,7 @@ describe('Performance Benchmarks', () => {
 
   it('should build Peter context within time limit', async () => {
     const { buildPeterResearchInsightsContext } =
-      await import('../intelligence/context-builders/personas/peter-research-insights.js');
+      await import('../intelligence/context-builders/personas/peter-research-insights/index.js');
 
     const input = {
       services: { personaId: 'peter-john', userId: 'perf-test', sessionId: 'perf-session' },
@@ -461,7 +461,7 @@ describe('Performance Benchmarks', () => {
 
   it('should build Maya context within time limit', async () => {
     const { buildMayaCoachingInsightsContext } =
-      await import('../intelligence/context-builders/personas/maya-coaching-insights.js');
+      await import('../intelligence/context-builders/personas/maya-coaching-insights/index.js');
 
     const input = {
       services: { personaId: 'maya-santos', userId: 'perf-test', sessionId: 'perf-session' },

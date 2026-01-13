@@ -393,6 +393,31 @@ export function logHabit(params: {
   habitLogsCache.set(log.id, log);
   persistHabitLog(params.userId, log);
 
+  // Trigger workflow event for habit logging
+  void (async () => {
+    try {
+      const { getWorkflowEngine } = await import('../../../services/workflows/workflow-engine.js');
+      const engine = getWorkflowEngine(params.userId);
+      const streak = calculateStreak(params.habitId);
+      await engine.handleHabitTrigger('habit_logged', {
+        habitId: params.habitId,
+        habitName: habit.name,
+        streak,
+      });
+      
+      // Check for streak achievement
+      if (streak > 0 && streak % 7 === 0) {
+        await engine.handleHabitTrigger('streak_achieved', {
+          habitId: params.habitId,
+          habitName: habit.name,
+          streak,
+        });
+      }
+    } catch (error) {
+      getLogger().debug({ error: String(error) }, 'Failed to trigger workflow for habit log');
+    }
+  })();
+
   return log;
 }
 

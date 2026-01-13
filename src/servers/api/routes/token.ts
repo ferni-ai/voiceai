@@ -21,6 +21,9 @@ import {
   stopRateLimitCleanup as stopSharedRateLimitCleanup,
 } from '../../token/demo-rate-limit.js';
 
+// Developer Platform: marketplace registry for persona→publisher lookup
+import { getAgentAsync } from '../../../marketplace/registry.js';
+
 const log = createLogger({ module: 'TokenRoutes' });
 
 /**
@@ -47,6 +50,34 @@ function prewarmLLMContentForPersona(personaId: string, userId?: string): void {
   prewarmContent(contexts)
     .then(() => log.debug({ personaId, types: contentTypes.length }, '🔥 LLM cache pre-warmed'))
     .catch((err) => log.warn({ error: String(err) }, 'LLM pre-warm failed (non-fatal)'));
+}
+
+/**
+ * 🔗 Developer Platform: Look up publisher ID for a persona
+ *
+ * For marketplace/custom personas, returns the publisher.id from AgentManifest.
+ * For built-in personas (ferni, maya, etc.), returns undefined.
+ *
+ * This enables the Developer Platform to:
+ * - Load publisher-registered MCP servers
+ * - Dispatch webhooks to the correct publisher
+ * - Track activities by publisher
+ */
+async function getPublisherIdForPersona(personaId: string): Promise<string | undefined> {
+  try {
+    // Check if this is a marketplace/custom persona
+    const agent = await getAgentAsync(personaId);
+    if (agent?.publisher?.id) {
+      log.debug({ personaId, publisherId: agent.publisher.id }, '🔗 Publisher ID resolved');
+      return agent.publisher.id;
+    }
+    // Built-in personas don't have a publisher
+    return undefined;
+  } catch (err) {
+    // Non-fatal - fall back to no publisher
+    log.debug({ personaId, error: String(err) }, 'Publisher lookup failed (non-fatal)');
+    return undefined;
+  }
 }
 
 /**
@@ -117,8 +148,9 @@ function prefetchUserData(userId: string, personaId: string): void {
     // 5. Pre-warm persona bundle
     (async () => {
       try {
-        const { loadBundle } = await import('../../../personas/bundles/loader.js');
-        await loadBundle(personaId);
+        // FIX: Use loadBundleById which searches standard paths, not loadBundle which expects full path
+        const { loadBundleById } = await import('../../../personas/bundles/loader.js');
+        await loadBundleById(personaId);
         log.debug({ personaId }, '⚡ Persona bundle pre-loaded');
       } catch (e) {
         log.debug({ error: String(e) }, 'Persona bundle pre-load failed (non-fatal)');
@@ -346,6 +378,9 @@ export async function handleTokenRoutes(
       // Generate token
       const token = await createToken(roomName, username);
 
+      // 🔗 Developer Platform: Look up publisher for marketplace personas (including demos)
+      const publisherId = await getPublisherIdForPersona(personaId);
+
       // Dispatch agent with requested persona
       try {
         const agentMetadata = {
@@ -353,6 +388,8 @@ export async function handleTokenRoutes(
           demo_id: demoId,
           session_duration_minutes: DEMO_CONFIG.sessionDurationMinutes,
           persona_id: personaId,
+          // 🔗 Developer Platform: publisher ID for custom/marketplace personas
+          publisher_id: publisherId,
           // 🌍 Include geo data for weather and local content (TikTok-style)
           locale: demoGeoData.locale,
           preferredAccent: demoGeoData.detectedAccent,
@@ -704,6 +741,10 @@ export async function handleTokenRoutes(
         prefetchUserData(firebaseUid, selectedPersona);
       }
 
+      // 🔗 Developer Platform: Look up publisher for marketplace personas
+      // This enables MCP server loading and webhook dispatch for custom personas
+      const publisherId = await getPublisherIdForPersona(selectedPersona);
+
       // Dispatch agent
       try {
         const agentMetadata = {
@@ -713,6 +754,8 @@ export async function handleTokenRoutes(
           user_email: user_email_param || undefined,
           device_id: device_id || undefined,
           persona_id: selectedPersona,
+          // 🔗 Developer Platform: publisher ID for custom/marketplace personas
+          publisher_id: publisherId,
           source: 'web',
           locale: geoData.locale,
           locales: geoData.locales,

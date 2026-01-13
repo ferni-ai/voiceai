@@ -13,6 +13,7 @@
 
 import { getLogger } from '../../../utils/safe-logger.js';
 import type { ToolDefinition, ToolContext, Tool } from '../../registry/types.js';
+import type { SponsoredIdentity } from '../../../services/identity/sponsored-identity.js';
 
 const log = getLogger().child({ module: 'family-sharing-tool' });
 
@@ -68,10 +69,10 @@ Parameters:
 
       try {
         // Look up the family member's sponsored identity
-        const { getIdentitiesForSponsor } = await import(
+        const { getSponsoredIdentities } = await import(
           '../../../services/identity/sponsored-identity.js'
         );
-        const identities = await getIdentitiesForSponsor(userId);
+        const identities = await getSponsoredIdentities(userId);
 
         if (identities.length === 0) {
           return {
@@ -84,7 +85,7 @@ Parameters:
         // Try to find the matching family member
         const normalizedSearch = familyMember.toLowerCase();
         const matchingIdentity = identities.find(
-          (id) =>
+          (id: SponsoredIdentity) =>
             id.displayName.toLowerCase().includes(normalizedSearch) ||
             id.relationship.toLowerCase().includes(normalizedSearch) ||
             (id.preferredName &&
@@ -93,7 +94,7 @@ Parameters:
 
         if (!matchingIdentity) {
           const availableNames = identities
-            .map((id) => id.displayName)
+            .map((id: SponsoredIdentity) => id.displayName)
             .join(', ');
           return {
             success: false,
@@ -112,7 +113,7 @@ Parameters:
           fromRelationship: 'sponsor',
           toUserId: matchingIdentity.familyUserId,
           message,
-          sourceSessionId: ctx.services?.sessionId,
+          sourceSessionId: ctx.sessionId,
         });
 
         if (!context) {
@@ -199,10 +200,10 @@ Parameters:
 
       try {
         // Look up the family member's sponsored identity
-        const { getIdentitiesForSponsor } = await import(
+        const { getSponsoredIdentities } = await import(
           '../../../services/identity/sponsored-identity.js'
         );
-        const identities = await getIdentitiesForSponsor(userId);
+        const identities = await getSponsoredIdentities(userId);
 
         if (identities.length === 0) {
           return {
@@ -215,7 +216,7 @@ Parameters:
         // Try to find the matching family member
         const normalizedSearch = familyMember.toLowerCase();
         const matchingIdentity = identities.find(
-          (id) =>
+          (id: SponsoredIdentity) =>
             id.displayName.toLowerCase().includes(normalizedSearch) ||
             id.relationship.toLowerCase().includes(normalizedSearch) ||
             (id.preferredName &&
@@ -224,7 +225,7 @@ Parameters:
 
         if (!matchingIdentity) {
           const availableNames = identities
-            .map((id) => id.displayName)
+            .map((id: SponsoredIdentity) => id.displayName)
             .join(', ');
           return {
             success: false,
@@ -243,7 +244,7 @@ Parameters:
           fromRelationship: 'sponsor',
           toUserId: matchingIdentity.familyUserId,
           reason,
-          sourceSessionId: ctx.services?.sessionId,
+          sourceSessionId: ctx.sessionId,
         });
 
         if (!context) {

@@ -17,7 +17,41 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 // Mock Firestore
 vi.mock('../services/superhuman/firestore-utils.js', () => ({
   getFirestoreDb: vi.fn(() => null),
-  cleanForFirestore: vi.fn((obj) => obj),
+  cleanForFirestore: vi.fn((obj) => {
+    if (obj === null || obj === undefined) return obj;
+    if (obj instanceof Date) return obj.toISOString();
+    if (typeof obj === 'object') {
+      const result: Record<string, unknown> = {};
+      for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
+        if (value !== undefined) {
+          result[key] = value;
+        }
+      }
+      return result;
+    }
+    return obj;
+  }),
+  removeUndefined: vi.fn((obj) => {
+    if (!obj) return obj;
+    const result: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(obj)) {
+      if (value !== undefined) {
+        result[key] = value;
+      }
+    }
+    return result;
+  }),
+  deepRemoveUndefined: vi.fn((obj) => obj),
+  recordDegradation: vi.fn(),
+  getFirestoreHealth: vi.fn(() => ({
+    dbAvailable: true,
+    initialized: true,
+    initializationError: null,
+    degradationCount: 0,
+    recentDegradations: [],
+    lastDegradationAt: null,
+  })),
+  resetFirestoreInstance: vi.fn(),
 }));
 
 // Mock vector store
@@ -185,7 +219,7 @@ describe('Phase 4: Proactive Memory Surfacing', () => {
         await import('../intelligence/context-builders/memory/better-than-human-memory.js');
 
       expect(betterThanHumanMemoryBuilder).toBeDefined();
-      expect(betterThanHumanMemoryBuilder.id).toBe('better_than_human_memory');
+      expect(betterThanHumanMemoryBuilder.name).toBe('better_than_human_memory');
       expect(buildBetterThanHumanMemoryContext).toBeDefined();
     });
 

@@ -28,11 +28,11 @@
     "dev": "node --max-old-space-size=3072 --import tsx src/agent.ts dev",
     "dev:jack": "PERSONA_ID=jack-bogle node --max-old-space-size=3072 --import tsx src/agent.ts dev",
     "dev:jack-b": "PERSONA_ID=jack-b node --max-old-space-size=3072 --import tsx src/agent.ts dev",
-    "dev:peter": "PERSONA_ID=peter-lynch node --max-old-space-size=3072 --import tsx src/agent.ts dev",
+    "dev:peter": "PERSONA_ID=peter-john node --max-old-space-size=3072 --import tsx src/agent.ts dev",
     "start": "node --max-old-space-size=3072 dist/agent.js start",
     "start:jack": "PERSONA_ID=jack-bogle node --max-old-space-size=3072 dist/agent.js start",
     "start:jack-b": "PERSONA_ID=jack-b node --max-old-space-size=3072 dist/agent.js start",
-    "start:peter": "PERSONA_ID=peter-lynch node --max-old-space-size=3072 dist/agent.js start",
+    "start:peter": "PERSONA_ID=peter-john node --max-old-space-size=3072 dist/agent.js start",
     "test": "vitest run",
     "test:unit": "vitest run --config vitest.config.unit.ts",
     "test:integration": "vitest run --config vitest.config.integration.ts",
@@ -369,6 +369,14 @@
     "landing:generate": "npx tsx src/scripts/generate-landing-content.ts",
     "landing:generate:heroes": "npx tsx src/scripts/generate-landing-content.ts heroes",
     "landing:generate:social": "npx tsx src/scripts/generate-landing-content.ts social",
+    "devblog:changelog": "node scripts/generate-changelog-post.js",
+    "devblog:changelog:dry": "node scripts/generate-changelog-post.js --dry-run",
+    "devblog:image": "node scripts/generate-dev-blog-image.js",
+    "devblog:images:batch": "node scripts/generate-dev-blog-image.js --batch",
+    "devblog:newsletter": "node scripts/generate-weekly-digest.js",
+    "devblog:newsletter:preview": "node scripts/generate-weekly-digest.js --preview",
+    "devblog:social": "node scripts/generate-social-snippets.js --recent",
+    "devblog:social:batch": "node scripts/generate-social-snippets.js --batch",
     "backup": "pnpm ferni backup",
     "backup:create": "pnpm ferni backup create",
     "backup:list": "pnpm ferni backup list",
@@ -452,7 +460,6 @@
     "pg": "^8.16.3",
     "pino": "10.1.0",
     "semver": "7.7.3",
-    "sharp": "^0.34.5",
     "stripe": "^20.0.0",
     "twilio": "^5.10.7",
     "uuid": "13.0.0",
@@ -471,8 +478,6 @@
     "@types/node": "^20.19.25",
     "@types/pg": "^8.15.6",
     "@types/semver": "7.7.1",
-    "@types/sharp": "0.32.0",
-    "@types/uuid": "11.0.0",
     "@types/ws": "8.18.1",
     "@typescript-eslint/eslint-plugin": "^8.48.0",
     "@typescript-eslint/parser": "^8.48.0",
@@ -483,10 +488,12 @@
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.4",
     "fast-check": "4.5.2",
+    "gray-matter": "4.0.3",
     "husky": "^9.1.7",
     "patch-package": "8.0.1",
     "postject": "1.0.0-alpha.6",
     "prettier": "^3.7.2",
+    "sharp": "^0.34.5",
     "tsx": "4.21.0",
     "turbo": "2.6.3",
     "typescript": "^5.3.0",
@@ -504,7 +511,8 @@
   "pnpm": {
     "overrides": {
       "@livekit/agents": "file:../agents-js/agents",
-      "@livekit/agents-plugin-google": "file:../agents-js/plugins/google"
+      "@livekit/agents-plugin-google": "file:../agents-js/plugins/google",
+      "sharp": "^0.34.5"
     }
   }
 }

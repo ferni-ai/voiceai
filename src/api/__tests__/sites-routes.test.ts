@@ -37,6 +37,7 @@ const mockFirestoreDelete = vi.fn();
 const mockFirestoreWhere = vi.fn();
 const mockFirestoreOrderBy = vi.fn();
 const mockFirestoreCollection = vi.fn();
+const mockFirestoreLimit = vi.fn();
 
 vi.mock('firebase-admin/firestore', () => ({
   getFirestore: () => ({
@@ -135,6 +136,12 @@ function setupFirestoreMocks() {
   mockFirestoreDelete.mockReset();
   mockFirestoreWhere.mockReset();
   mockFirestoreOrderBy.mockReset();
+  mockFirestoreLimit.mockReset();
+
+  // Setup limit chain (for static site serving)
+  mockFirestoreLimit.mockReturnValue({
+    get: mockFirestoreGet,
+  });
 
   // Setup chain
   mockFirestoreCollection.mockReturnValue({
@@ -149,8 +156,11 @@ function setupFirestoreMocks() {
     delete: mockFirestoreDelete,
   });
 
+  // where() returns chainable object with where(), limit(), orderBy(), get()
   mockFirestoreWhere.mockReturnValue({
     get: mockFirestoreGet,
+    where: mockFirestoreWhere,
+    limit: mockFirestoreLimit,
     orderBy: mockFirestoreOrderBy,
   });
 
@@ -574,8 +584,12 @@ describe('Sites API Routes', () => {
         analytics: { views: 5, conversations: 2 },
       };
 
-      mockFirestoreGet.mockResolvedValue({
+      // First call: subdomain query returns empty
+      mockFirestoreGet.mockResolvedValueOnce({ empty: true, docs: [] });
+      // Second call: direct doc lookup returns the site
+      mockFirestoreGet.mockResolvedValueOnce({
         exists: true,
+        id: 'site_123',
         data: () => mockSite,
       });
       mockFirestoreUpdate.mockResolvedValue(undefined);
@@ -600,8 +614,12 @@ describe('Sites API Routes', () => {
         analytics: { views: 0 },
       };
 
-      mockFirestoreGet.mockResolvedValue({
+      // First call: subdomain query returns empty
+      mockFirestoreGet.mockResolvedValueOnce({ empty: true, docs: [] });
+      // Second call: direct doc lookup returns the site
+      mockFirestoreGet.mockResolvedValueOnce({
         exists: true,
+        id: 'site_123',
         data: () => mockSite,
       });
       mockFirestoreUpdate.mockResolvedValue(undefined);
@@ -616,7 +634,10 @@ describe('Sites API Routes', () => {
     });
 
     it('should return 404 for nonexistent site', async () => {
-      mockFirestoreGet.mockResolvedValue({ exists: false });
+      // First call: subdomain query returns empty
+      mockFirestoreGet.mockResolvedValueOnce({ empty: true, docs: [] });
+      // Second call: direct doc lookup returns not found
+      mockFirestoreGet.mockResolvedValueOnce({ exists: false });
 
       const req = createMockRequest('GET', '/sites/nonexistent');
       const res = createMockResponse();
@@ -636,8 +657,12 @@ describe('Sites API Routes', () => {
         analytics: { views: 0 },
       };
 
-      mockFirestoreGet.mockResolvedValue({
+      // First call: subdomain query returns empty
+      mockFirestoreGet.mockResolvedValueOnce({ empty: true, docs: [] });
+      // Second call: direct doc lookup returns the site
+      mockFirestoreGet.mockResolvedValueOnce({
         exists: true,
+        id: 'site_123',
         data: () => mockSite,
       });
       mockFirestoreUpdate.mockResolvedValue(undefined);

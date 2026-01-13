@@ -283,10 +283,10 @@ function addStyles(): void {
       max-height: 300px;
       overflow-y: auto;
       padding: 0.5rem 0;
-      background: var(--bg-elevated, #1a1a2e);
-      border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.1));
+      background: var(--color-bg-elevated);
+      border: 1px solid var(--color-border-subtle);
       border-radius: 0.75rem;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+      box-shadow: var(--shadow-lg);
       list-style: none;
       opacity: 0;
       visibility: hidden;

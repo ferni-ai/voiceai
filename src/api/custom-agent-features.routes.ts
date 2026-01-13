@@ -176,9 +176,8 @@ async function sendShareInviteEmail(
 
   try {
     const accessLink = `https://app.ferni.ai/shared/${invite.accessToken}`;
-    const roleDescription = invite.role === 'contributor'
-      ? 'add memories and contribute to'
-      : 'view and interact with';
+    const roleDescription =
+      invite.role === 'contributor' ? 'add memories and contribute to' : 'view and interact with';
 
     let emailBody = `${ownerName} has invited you to ${roleDescription} their custom Ferni agent "${agentName}".`;
 
@@ -206,7 +205,10 @@ async function sendShareInviteEmail(
     });
 
     if (result.success) {
-      log.info({ inviteId: invite.id, email: invite.email, messageId: result.messageId }, 'Share invite email sent');
+      log.info(
+        { inviteId: invite.id, email: invite.email, messageId: result.messageId },
+        'Share invite email sent'
+      );
     } else {
       log.error({ inviteId: invite.id, error: result.error }, 'Failed to send share invite email');
     }
@@ -303,11 +305,14 @@ export async function handleCustomAgentFeaturesRoutes(
       const ownerName = body.ownerName || 'Someone special';
       const emailSent = await sendShareInviteEmail(invite, agentName, ownerName, body.message);
 
-      log.info({
-        inviteId: invite.id,
-        email: body.email,
-        emailSent,
-      }, 'Share invite created');
+      log.info(
+        {
+          inviteId: invite.id,
+          email: body.email,
+          emailSent,
+        },
+        'Share invite created'
+      );
 
       sendJSON(res, {
         success: true,

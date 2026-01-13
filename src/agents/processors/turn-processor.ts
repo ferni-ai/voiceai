@@ -80,6 +80,7 @@ import {
   buildBoundaryCheckInjections,
   buildConversationDynamicsInjections,
   buildCrossPersonaInsightsInjection,
+  buildFunctionCallingReinforcement,
   buildHealthAwarenessInjections,
   buildHumanLevelInjections,
   buildLifeCoachingInjections,
@@ -361,6 +362,20 @@ async function buildContextInjections(
       category: 'honesty',
       content: honestyInjection,
       priority: 99, // Critical - right after identity
+    });
+  }
+
+  // 2b-2. 🔧 FUNCTION CALLING REINFORCEMENT: Fix Gemini forgetting JSON format
+  // When user makes a tool request (play music, check weather, etc.), remind Gemini
+  // to OUTPUT JSON not text. This fixes long session tool execution failures.
+  // Priority 90 = very high, just below honesty/safety
+  const currentTurnCount = userData.turnCount || 1;
+  const functionCallingReinforcement = buildFunctionCallingReinforcement(userText, currentTurnCount);
+  if (functionCallingReinforcement) {
+    injections.push(functionCallingReinforcement);
+    diag.debug('🔧 Function calling reinforcement added', {
+      turnCount: currentTurnCount,
+      userTextPreview: userText.slice(0, 50),
     });
   }
 

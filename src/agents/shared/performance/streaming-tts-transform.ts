@@ -19,6 +19,8 @@ import {
   type TransformStreamDefaultController,
 } from 'node:stream/web';
 import { createLogger } from '../../../utils/safe-logger.js';
+// E2E Latency tracking - mark when TTS sends first audio
+import { markTTSFirstAudio } from '../e2e-latency-tracker.js';
 
 const log = createLogger({ module: 'StreamingTTS' });
 
@@ -205,6 +207,12 @@ export function createStreamingTTSTransform(
     if (!hasSentFirstChunk) {
       firstChunkTime = now;
       hasSentFirstChunk = true;
+
+      // 📊 E2E LATENCY: Mark TTS first audio chunk
+      if (sessionId) {
+        markTTSFirstAudio(sessionId);
+      }
+
       log.debug(
         { sessionId, firstChunkLatencyMs: now - startTime, chunkLength: trimmed.length },
         '🚀 First TTS chunk sent'

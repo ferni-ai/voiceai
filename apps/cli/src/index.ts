@@ -22,7 +22,8 @@
 
 import { execSync, spawn, spawnSync } from 'child_process';
 import { config as dotenvConfig } from 'dotenv';
-import { existsSync, readFileSync } from 'fs';
+import { existsSync, readFileSync, promises as fs } from 'fs';
+import { homedir } from 'os';
 import { dirname, join } from 'path';
 import * as readline from 'readline';
 import { fileURLToPath } from 'url';
@@ -332,11 +333,11 @@ const COMMANDS: Record<string, CliCommand> = {
   },
   audit: {
     name: 'Audit',
-    description: 'Run code quality audits',
+    description: 'Run code quality & architecture audits',
     icon: '🔍',
-    script: 'apps/cli/src/commands/quality/audit.ts',
-    subcommands: ['quality', 'architecture', 'legacy', 'a11y', 'all'],
-    examples: ['ferni audit quality', 'ferni audit all'],
+    handler: handleAudit,
+    subcommands: ['quality', 'architecture', 'bth', 'tools', 'data-layer', 'intelligence', 'legacy', 'a11y', 'all'],
+    examples: ['ferni audit quality', 'ferni audit bth', 'ferni audit all'],
   },
   build: {
     name: 'Build',
@@ -508,6 +509,107 @@ const COMMANDS: Record<string, CliCommand> = {
     handler: handleRelease,
     subcommands: ['create', 'changelog', 'tag', 'notes', 'status', 'history'],
     examples: ['ferni release create v1.2.0', 'ferni release changelog', 'ferni release notes'],
+  },
+  devblog: {
+    name: 'DevBlog',
+    description: 'Developer blog content management',
+    icon: '📝',
+    handler: handleDevBlog,
+    subcommands: ['new', 'changelog', 'images', 'newsletter', 'social', 'preview', 'publish', 'validate', 'status'],
+    examples: [
+      'ferni devblog new "My Post Title"',
+      'ferni devblog changelog v1.2.3',
+      'ferni devblog images',
+      'ferni devblog preview',
+      'ferni devblog publish',
+    ],
+  },
+  ops: {
+    name: 'Ops',
+    description: 'Operational tasks (zombies, health, semantic, cleanup)',
+    icon: '🔧',
+    handler: handleOps,
+    subcommands: ['zombies', 'diagnose', 'health', 'ttl-cleanup', 'semantic', 'scheduler', 'logs'],
+    examples: [
+      'ferni ops zombies',
+      'ferni ops diagnose',
+      'ferni ops health',
+      'ferni ops semantic deploy',
+    ],
+  },
+  waitlist: {
+    name: 'Waitlist',
+    description: 'Manage user waitlist',
+    icon: '📋',
+    handler: handleWaitlist,
+    subcommands: ['list', 'approve', 'stats', 'export'],
+    examples: [
+      'ferni waitlist list',
+      'ferni waitlist approve user@example.com',
+      'ferni waitlist stats',
+    ],
+  },
+  users: {
+    name: 'Users',
+    description: 'User data management & debugging',
+    icon: '👤',
+    handler: handleUsers,
+    subcommands: ['list', 'show', 'dump', 'cleanup', 'grant', 'find-rich', 'delete-stale'],
+    examples: [
+      'ferni users list',
+      'ferni users show user@example.com',
+      'ferni users dump <userId>',
+      'ferni users cleanup --dry-run',
+    ],
+  },
+  calls: {
+    name: 'Calls',
+    description: 'Test outbound phone calls',
+    icon: '📞',
+    handler: handleCalls,
+    subcommands: ['test', 'status', 'family', 'invite'],
+    examples: [
+      'ferni calls test +1234567890',
+      'ferni calls status <callId>',
+      'ferni calls family mom',
+      'ferni calls invite user@example.com',
+    ],
+  },
+  icons: {
+    name: 'Icons',
+    description: 'Generate favicons & app icons',
+    icon: '🎨',
+    handler: handleIcons,
+    subcommands: ['favicons', 'smile-gif', 'app-icons', 'all'],
+    examples: [
+      'ferni icons favicons',
+      'ferni icons smile-gif',
+      'ferni icons all',
+    ],
+  },
+  smoke: {
+    name: 'Smoke',
+    description: 'Run smoke tests against APIs',
+    icon: '💨',
+    handler: handleSmoke,
+    subcommands: ['api', 'livekit', 'gemini', 'tools', 'all'],
+    examples: [
+      'ferni smoke api',
+      'ferni smoke livekit',
+      'ferni smoke all',
+    ],
+  },
+  data: {
+    name: 'Data',
+    description: 'Data analysis & debugging',
+    icon: '📊',
+    handler: handleData,
+    subcommands: ['profiles', 'behaviors', 'tools', 'contacts', 'firestore-check'],
+    examples: [
+      'ferni data profiles',
+      'ferni data behaviors',
+      'ferni data tools --usage',
+    ],
   },
   migrate: {
     name: 'Migrate',
@@ -835,14 +937,6 @@ const COMMANDS: Record<string, CliCommand> = {
     subcommands: ['status', 'clean', 'clean:aggressive', 'setup-cron'],
     examples: ['ferni disk', 'ferni disk status', 'ferni disk clean', 'ferni disk setup-cron'],
   },
-  backup: {
-    name: 'Backup',
-    description: 'Firestore backup management',
-    icon: '💾',
-    handler: handleBackup,
-    subcommands: ['create', 'list', 'restore', 'status', 'cleanup'],
-    examples: ['ferni backup create', 'ferni backup list', 'ferni backup restore <path>'],
-  },
   canary: {
     name: 'Canary',
     description: 'Canary deployment management',
@@ -903,13 +997,13 @@ const COMMANDS: Record<string, CliCommand> = {
     subcommands: ['list', 'add', 'complete', 'progress'],
     examples: ['ferni goals', 'ferni goals add "Morning routine"', 'ferni goals progress'],
   },
-  context: {
-    name: 'Context',
+  brain: {
+    name: 'Brain',
     description: 'What Ferni knows about you (CEO feature)',
     icon: '🧠',
     handler: handleCEOContext,
     subcommands: ['show', 'summary', 'delete'],
-    examples: ['ferni context', 'ferni context --summary'],
+    examples: ['ferni brain', 'ferni brain --summary'],
   },
   remember: {
     name: 'Remember',
@@ -930,19 +1024,137 @@ const COMMANDS: Record<string, CliCommand> = {
     subcommands: ['show', 'maya', 'alex', 'jordan', 'peter', 'nayan', 'ferni'],
     examples: ['ferni roster', 'ferni roster maya', 'ferni roster alex'],
   },
-  // Operations & Infrastructure
-  disk: {
-    name: 'Disk',
-    description: 'GCE disk management & cleanup',
-    icon: '💽',
-    handler: handleDisk,
-    subcommands: ['status', 'clean', 'clean:aggressive', 'setup-cron'],
-    examples: [
-      'ferni disk',
-      'ferni disk clean',
-      'ferni disk clean:aggressive',
-      'ferni disk setup-cron',
-    ],
+  // Daily Workflow
+  briefing: {
+    name: 'Briefing',
+    description: 'Morning briefing - calendar, priorities, reminders (CEO feature)',
+    icon: '☀️',
+    handler: handleCEOBriefing,
+    subcommands: ['today', 'tomorrow', 'week'],
+    examples: ['ferni briefing', 'ferni briefing today', 'ferni briefing week'],
+  },
+  focus: {
+    name: 'Focus',
+    description: 'Start a focus session with timer (CEO feature)',
+    icon: '🎯',
+    handler: handleCEOFocus,
+    subcommands: ['start', 'stop', 'status', 'stats'],
+    examples: ['ferni focus start 25', 'ferni focus start "Deep work"', 'ferni focus stats'],
+  },
+  reflect: {
+    name: 'Reflect',
+    description: 'End-of-day reflection prompts (CEO feature)',
+    icon: '🌙',
+    handler: handleCEOReflect,
+    subcommands: ['today', 'prompt', 'history'],
+    examples: ['ferni reflect', 'ferni reflect today', 'ferni reflect history'],
+  },
+  weekly: {
+    name: 'Weekly',
+    description: 'Weekly review & planning (CEO feature)',
+    icon: '📅',
+    handler: handleCEOWeekly,
+    subcommands: ['review', 'plan', 'summary'],
+    examples: ['ferni weekly', 'ferni weekly review', 'ferni weekly plan'],
+  },
+  // Personal Tracking
+  wins: {
+    name: 'Wins',
+    description: 'Log achievements to celebrate (CEO feature)',
+    icon: '🏆',
+    handler: handleCEOWins,
+    subcommands: ['add', 'list', 'today', 'week', 'celebrate'],
+    examples: ['ferni wins add "Shipped the feature!"', 'ferni wins today', 'ferni wins celebrate'],
+  },
+  habits: {
+    name: 'Habits',
+    description: 'Track habits and streaks (CEO feature)',
+    icon: '✅',
+    handler: handleCEOHabits,
+    subcommands: ['list', 'check', 'add', 'streaks', 'stats'],
+    examples: ['ferni habits', 'ferni habits check "Exercise"', 'ferni habits streaks'],
+  },
+  energy: {
+    name: 'Energy',
+    description: 'Log energy levels through the day (CEO feature)',
+    icon: '⚡',
+    handler: handleCEOEnergy,
+    subcommands: ['log', 'today', 'week', 'patterns'],
+    examples: ['ferni energy log 8', 'ferni energy log 6 "After lunch slump"', 'ferni energy patterns'],
+  },
+  journal: {
+    name: 'Journal',
+    description: 'Quick journal entries (CEO feature)',
+    icon: '📓',
+    handler: handleCEOJournal,
+    subcommands: ['add', 'today', 'search', 'prompts'],
+    examples: ['ferni journal "Great meeting with the team"', 'ferni journal today', 'ferni journal search "project"'],
+  },
+  gratitude: {
+    name: 'Gratitude',
+    description: 'Quick gratitude logging (CEO feature)',
+    icon: '🙏',
+    handler: handleCEOGratitude,
+    subcommands: ['add', 'today', 'week', 'random'],
+    examples: ['ferni gratitude "Sunny morning walk"', 'ferni gratitude today', 'ferni gratitude random'],
+  },
+  // Decision Support
+  decisions: {
+    name: 'Decisions',
+    description: 'Track important decisions & outcomes (CEO feature)',
+    icon: '⚖️',
+    handler: handleCEODecisions,
+    subcommands: ['add', 'list', 'pending', 'review', 'outcome'],
+    examples: ['ferni decisions add "Accept the offer?"', 'ferni decisions pending', 'ferni decisions outcome <id> "Worked out great"'],
+  },
+  priorities: {
+    name: 'Priorities',
+    description: 'Manage daily/weekly priorities (CEO feature)',
+    icon: '📌',
+    handler: handleCEOPriorities,
+    subcommands: ['list', 'add', 'done', 'reorder', 'clear'],
+    examples: ['ferni priorities', 'ferni priorities add "Finish proposal"', 'ferni priorities done 1'],
+  },
+  blockers: {
+    name: 'Blockers',
+    description: 'Track what\'s blocking progress (CEO feature)',
+    icon: '🚧',
+    handler: handleCEOBlockers,
+    subcommands: ['add', 'list', 'resolve', 'escalate'],
+    examples: ['ferni blockers add "Waiting on API access"', 'ferni blockers list', 'ferni blockers resolve 1'],
+  },
+  ideas: {
+    name: 'Ideas',
+    description: 'Capture quick ideas (CEO feature)',
+    icon: '💡',
+    handler: handleCEOIdeas,
+    subcommands: ['add', 'list', 'random', 'tag', 'search'],
+    examples: ['ferni ideas "Build a CLI for everything"', 'ferni ideas list', 'ferni ideas random'],
+  },
+  // Direct Interaction
+  ask: {
+    name: 'Ask',
+    description: 'Ask Ferni anything (CEO feature)',
+    icon: '💬',
+    handler: handleCEOAsk,
+    subcommands: [],
+    examples: ['ferni ask "What should I focus on today?"', 'ferni ask "Summarize my week"'],
+  },
+  coach: {
+    name: 'Coach',
+    description: 'Get AI coaching on a topic (CEO feature)',
+    icon: '🎓',
+    handler: handleCEOCoach,
+    subcommands: ['career', 'productivity', 'relationships', 'health', 'custom'],
+    examples: ['ferni coach career', 'ferni coach productivity', 'ferni coach "How to have difficult conversations"'],
+  },
+  meetings: {
+    name: 'Meetings',
+    description: 'Quick meeting notes (CEO feature)',
+    icon: '🗓️',
+    handler: handleCEOMeetings,
+    subcommands: ['add', 'list', 'today', 'search', 'action-items'],
+    examples: ['ferni meetings add "1:1 with Sarah"', 'ferni meetings today', 'ferni meetings action-items'],
   },
   // ============================================================================
   // CUSTOM AGENT & SITE COMMANDS - Build and deploy custom agents
@@ -3532,6 +3744,915 @@ async function handleCEORoster(args: string[]): Promise<void> {
   await handleTeam(args);
 }
 
+// Daily Workflow Handlers
+async function handleCEOBriefing(args: string[]): Promise<void> {
+  const subcommand = args[0] || 'today';
+  log.header(`☀️ Daily Briefing`);
+
+  if (subcommand === 'today' || !args[0]) {
+    const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+    console.log(`\n${colors.bold}Good morning! Here's your briefing for ${today}${colors.reset}\n`);
+    console.log(`${colors.cyan}📅 Calendar${colors.reset}`);
+    console.log(`   Run ${colors.dim}ferni briefing${colors.reset} with calendar integration for full view\n`);
+    console.log(`${colors.cyan}📌 Top Priorities${colors.reset}`);
+    console.log(`   Run ${colors.dim}ferni priorities${colors.reset} to see your priorities\n`);
+    console.log(`${colors.cyan}🎯 Active Goals${colors.reset}`);
+    console.log(`   Run ${colors.dim}ferni goals${colors.reset} to see your goals\n`);
+    console.log(`${colors.dim}Tip: Set up your priorities with 'ferni priorities add "..."'${colors.reset}`);
+  } else if (subcommand === 'tomorrow') {
+    console.log(`\n${colors.bold}Tomorrow's Preview${colors.reset}`);
+    console.log(`${colors.dim}Calendar integration coming soon...${colors.reset}`);
+  } else if (subcommand === 'week') {
+    console.log(`\n${colors.bold}Week at a Glance${colors.reset}`);
+    console.log(`${colors.dim}Weekly overview coming soon...${colors.reset}`);
+  }
+}
+
+async function handleCEOFocus(args: string[]): Promise<void> {
+  const subcommand = args[0] || 'status';
+  log.header(`🎯 Focus Session`);
+
+  const dataDir = join(homedir(), '.ferni');
+  const focusFile = join(dataDir, 'focus-session.json');
+
+  if (subcommand === 'start') {
+    const duration = parseInt(args[1]) || 25;
+    const label = args.slice(2).join(' ') || 'Focus session';
+    const session = {
+      startedAt: new Date().toISOString(),
+      duration,
+      label,
+      endAt: new Date(Date.now() + duration * 60 * 1000).toISOString(),
+    };
+    await fs.mkdir(dataDir, { recursive: true });
+    await fs.writeFile(focusFile, JSON.stringify(session, null, 2));
+    console.log(`\n${colors.green}✓ Focus session started!${colors.reset}`);
+    console.log(`  ${colors.bold}${label}${colors.reset} - ${duration} minutes`);
+    console.log(`  Ends at: ${new Date(session.endAt).toLocaleTimeString()}`);
+    console.log(`\n${colors.dim}Run 'ferni focus status' to check progress${colors.reset}`);
+  } else if (subcommand === 'stop') {
+    try {
+      await fs.unlink(focusFile);
+      console.log(`\n${colors.green}✓ Focus session ended${colors.reset}`);
+    } catch {
+      console.log(`\n${colors.yellow}No active focus session${colors.reset}`);
+    }
+  } else if (subcommand === 'status') {
+    try {
+      const data = await fs.readFile(focusFile, 'utf-8');
+      const session = JSON.parse(data);
+      const remaining = Math.max(0, (new Date(session.endAt).getTime() - Date.now()) / 1000 / 60);
+      if (remaining > 0) {
+        console.log(`\n${colors.green}🎯 Active Focus Session${colors.reset}`);
+        console.log(`  ${colors.bold}${session.label}${colors.reset}`);
+        console.log(`  ${Math.ceil(remaining)} minutes remaining`);
+      } else {
+        console.log(`\n${colors.green}✓ Focus session completed!${colors.reset}`);
+        console.log(`  ${session.label} - Great work!`);
+        await fs.unlink(focusFile);
+      }
+    } catch {
+      console.log(`\n${colors.dim}No active focus session${colors.reset}`);
+      console.log(`Start one with: ${colors.cyan}ferni focus start 25${colors.reset}`);
+    }
+  } else if (subcommand === 'stats') {
+    console.log(`\n${colors.bold}Focus Statistics${colors.reset}`);
+    console.log(`${colors.dim}Stats tracking coming soon...${colors.reset}`);
+  }
+}
+
+async function handleCEOReflect(args: string[]): Promise<void> {
+  const subcommand = args[0] || 'prompt';
+  log.header(`🌙 Daily Reflection`);
+
+  const prompts = [
+    "What went well today?",
+    "What could have gone better?",
+    "What did you learn?",
+    "What are you grateful for?",
+    "What will you do differently tomorrow?",
+  ];
+
+  if (subcommand === 'prompt' || !args[0]) {
+    const randomPrompt = prompts[Math.floor(Math.random() * prompts.length)];
+    console.log(`\n${colors.bold}Reflection Prompt:${colors.reset}`);
+    console.log(`\n  ${colors.cyan}"${randomPrompt}"${colors.reset}\n`);
+    console.log(`${colors.dim}Record your reflection with: ferni journal "your thoughts..."${colors.reset}`);
+  } else if (subcommand === 'today') {
+    console.log(`\n${colors.bold}Today's Reflections${colors.reset}`);
+    console.log(`${colors.dim}Run 'ferni journal today' to see today's entries${colors.reset}`);
+  } else if (subcommand === 'history') {
+    console.log(`\n${colors.bold}Reflection History${colors.reset}`);
+    console.log(`${colors.dim}Run 'ferni journal search' to browse past reflections${colors.reset}`);
+  }
+}
+
+async function handleCEOWeekly(args: string[]): Promise<void> {
+  const subcommand = args[0] || 'review';
+  log.header(`📅 Weekly Review`);
+
+  if (subcommand === 'review') {
+    console.log(`\n${colors.bold}Weekly Review Checklist${colors.reset}\n`);
+    console.log(`  ${colors.cyan}1.${colors.reset} Review wins from the week (${colors.dim}ferni wins week${colors.reset})`);
+    console.log(`  ${colors.cyan}2.${colors.reset} Check goal progress (${colors.dim}ferni goals progress${colors.reset})`);
+    console.log(`  ${colors.cyan}3.${colors.reset} Clear completed priorities (${colors.dim}ferni priorities${colors.reset})`);
+    console.log(`  ${colors.cyan}4.${colors.reset} Review decisions made (${colors.dim}ferni decisions review${colors.reset})`);
+    console.log(`  ${colors.cyan}5.${colors.reset} Check habit streaks (${colors.dim}ferni habits streaks${colors.reset})`);
+    console.log(`  ${colors.cyan}6.${colors.reset} Resolve blockers (${colors.dim}ferni blockers list${colors.reset})`);
+    console.log(`  ${colors.cyan}7.${colors.reset} Plan next week (${colors.dim}ferni weekly plan${colors.reset})`);
+  } else if (subcommand === 'plan') {
+    console.log(`\n${colors.bold}Plan Next Week${colors.reset}\n`);
+    console.log(`  ${colors.cyan}•${colors.reset} Set 3 priorities: ${colors.dim}ferni priorities add "..."${colors.reset}`);
+    console.log(`  ${colors.cyan}•${colors.reset} Schedule focus time: ${colors.dim}ferni focus start${colors.reset}`);
+    console.log(`  ${colors.cyan}•${colors.reset} Review upcoming calendar events`);
+  } else if (subcommand === 'summary') {
+    console.log(`\n${colors.bold}Week Summary${colors.reset}`);
+    console.log(`${colors.dim}Summary generation coming soon...${colors.reset}`);
+  }
+}
+
+// Personal Tracking Handlers
+async function handleCEOWins(args: string[]): Promise<void> {
+  const subcommand = args[0] || 'list';
+  log.header(`🏆 Wins & Achievements`);
+
+  const dataDir = join(homedir(), '.ferni');
+  const winsFile = join(dataDir, 'wins.json');
+
+  async function loadWins(): Promise<Array<{ text: string; date: string }>> {
+    try {
+      const data = await fs.readFile(winsFile, 'utf-8');
+      return JSON.parse(data);
+    } catch {
+      return [];
+    }
+  }
+
+  async function saveWins(wins: Array<{ text: string; date: string }>): Promise<void> {
+    await fs.mkdir(dataDir, { recursive: true });
+    await fs.writeFile(winsFile, JSON.stringify(wins, null, 2));
+  }
+
+  if (subcommand === 'add') {
+    const text = args.slice(1).join(' ');
+    if (!text) {
+      console.log(`\n${colors.yellow}Usage: ferni wins add "Your achievement"${colors.reset}`);
+      return;
+    }
+    const wins = await loadWins();
+    wins.push({ text, date: new Date().toISOString() });
+    await saveWins(wins);
+    console.log(`\n${colors.green}🏆 Win recorded!${colors.reset} "${text}"`);
+  } else if (subcommand === 'list' || subcommand === 'today' || subcommand === 'week') {
+    const wins = await loadWins();
+    const now = new Date();
+    const filtered = wins.filter((w) => {
+      const date = new Date(w.date);
+      if (subcommand === 'today') {
+        return date.toDateString() === now.toDateString();
+      } else if (subcommand === 'week') {
+        const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        return date >= weekAgo;
+      }
+      return true;
+    });
+    if (filtered.length === 0) {
+      console.log(`\n${colors.dim}No wins recorded yet. Add one with: ferni wins add "..."${colors.reset}`);
+    } else {
+      console.log(`\n${colors.bold}Your Wins:${colors.reset}\n`);
+      filtered.slice(-10).forEach((w, i) => {
+        const date = new Date(w.date).toLocaleDateString();
+        console.log(`  ${colors.green}🏆${colors.reset} ${w.text} ${colors.dim}(${date})${colors.reset}`);
+      });
+    }
+  } else if (subcommand === 'celebrate') {
+    console.log(`\n${colors.bold}🎉 Celebration Time! 🎉${colors.reset}\n`);
+    const wins = await loadWins();
+    if (wins.length > 0) {
+      const recent = wins.slice(-3);
+      console.log(`  Recent wins to celebrate:\n`);
+      recent.forEach((w) => console.log(`  ${colors.green}🏆${colors.reset} ${w.text}`));
+      console.log(`\n  ${colors.cyan}You're doing amazing!${colors.reset}`);
+    } else {
+      console.log(`  ${colors.dim}Add some wins first with: ferni wins add "..."${colors.reset}`);
+    }
+  }
+}
+
+async function handleCEOHabits(args: string[]): Promise<void> {
+  const subcommand = args[0] || 'list';
+  log.header(`✅ Habit Tracker`);
+
+  const dataDir = join(homedir(), '.ferni');
+  const habitsFile = join(dataDir, 'habits.json');
+
+  interface Habit {
+    name: string;
+    checks: string[]; // Array of ISO date strings
+  }
+
+  async function loadHabits(): Promise<Habit[]> {
+    try {
+      const data = await fs.readFile(habitsFile, 'utf-8');
+      return JSON.parse(data);
+    } catch {
+      return [];
+    }
+  }
+
+  async function saveHabits(habits: Habit[]): Promise<void> {
+    await fs.mkdir(dataDir, { recursive: true });
+    await fs.writeFile(habitsFile, JSON.stringify(habits, null, 2));
+  }
+
+  if (subcommand === 'add') {
+    const name = args.slice(1).join(' ');
+    if (!name) {
+      console.log(`\n${colors.yellow}Usage: ferni habits add "Habit name"${colors.reset}`);
+      return;
+    }
+    const habits = await loadHabits();
+    habits.push({ name, checks: [] });
+    await saveHabits(habits);
+    console.log(`\n${colors.green}✓ Habit added:${colors.reset} "${name}"`);
+  } else if (subcommand === 'check') {
+    const name = args.slice(1).join(' ');
+    const habits = await loadHabits();
+    const habit = habits.find((h) => h.name.toLowerCase().includes(name.toLowerCase()));
+    if (habit) {
+      const today = new Date().toISOString().split('T')[0];
+      if (!habit.checks.includes(today)) {
+        habit.checks.push(today);
+        await saveHabits(habits);
+      }
+      console.log(`\n${colors.green}✓ Checked off:${colors.reset} "${habit.name}"`);
+      console.log(`  Streak: ${habit.checks.length} day(s)`);
+    } else {
+      console.log(`\n${colors.yellow}Habit not found. Add it first: ferni habits add "..."${colors.reset}`);
+    }
+  } else if (subcommand === 'list') {
+    const habits = await loadHabits();
+    if (habits.length === 0) {
+      console.log(`\n${colors.dim}No habits tracked yet. Add one with: ferni habits add "..."${colors.reset}`);
+    } else {
+      const today = new Date().toISOString().split('T')[0];
+      console.log(`\n${colors.bold}Your Habits:${colors.reset}\n`);
+      habits.forEach((h) => {
+        const checked = h.checks.includes(today);
+        const icon = checked ? colors.green + '✓' + colors.reset : '○';
+        console.log(`  ${icon} ${h.name} ${colors.dim}(${h.checks.length} day streak)${colors.reset}`);
+      });
+    }
+  } else if (subcommand === 'streaks') {
+    const habits = await loadHabits();
+    console.log(`\n${colors.bold}Habit Streaks:${colors.reset}\n`);
+    habits.sort((a, b) => b.checks.length - a.checks.length);
+    habits.forEach((h) => {
+      const bar = '█'.repeat(Math.min(h.checks.length, 20));
+      console.log(`  ${h.name}: ${colors.green}${bar}${colors.reset} ${h.checks.length} days`);
+    });
+  } else if (subcommand === 'stats') {
+    console.log(`\n${colors.bold}Habit Statistics${colors.reset}`);
+    console.log(`${colors.dim}Detailed stats coming soon...${colors.reset}`);
+  }
+}
+
+async function handleCEOEnergy(args: string[]): Promise<void> {
+  const subcommand = args[0] || 'today';
+  log.header(`⚡ Energy Tracker`);
+
+  const dataDir = join(homedir(), '.ferni');
+  const energyFile = join(dataDir, 'energy.json');
+
+  interface EnergyLog {
+    level: number;
+    note: string;
+    timestamp: string;
+  }
+
+  async function loadEnergy(): Promise<EnergyLog[]> {
+    try {
+      const data = await fs.readFile(energyFile, 'utf-8');
+      return JSON.parse(data);
+    } catch {
+      return [];
+    }
+  }
+
+  async function saveEnergy(logs: EnergyLog[]): Promise<void> {
+    await fs.mkdir(dataDir, { recursive: true });
+    await fs.writeFile(energyFile, JSON.stringify(logs, null, 2));
+  }
+
+  if (subcommand === 'log') {
+    const level = parseInt(args[1]);
+    if (isNaN(level) || level < 1 || level > 10) {
+      console.log(`\n${colors.yellow}Usage: ferni energy log <1-10> ["optional note"]${colors.reset}`);
+      return;
+    }
+    const note = args.slice(2).join(' ') || '';
+    const logs = await loadEnergy();
+    logs.push({ level, note, timestamp: new Date().toISOString() });
+    await saveEnergy(logs);
+    const emoji = level >= 7 ? '🔥' : level >= 4 ? '⚡' : '🔋';
+    console.log(`\n${colors.green}${emoji} Energy logged:${colors.reset} ${level}/10${note ? ` - "${note}"` : ''}`);
+  } else if (subcommand === 'today') {
+    const logs = await loadEnergy();
+    const today = new Date().toDateString();
+    const todayLogs = logs.filter((l) => new Date(l.timestamp).toDateString() === today);
+    if (todayLogs.length === 0) {
+      console.log(`\n${colors.dim}No energy logged today. Log with: ferni energy log 7${colors.reset}`);
+    } else {
+      console.log(`\n${colors.bold}Today's Energy:${colors.reset}\n`);
+      todayLogs.forEach((l) => {
+        const time = new Date(l.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const bar = '█'.repeat(l.level) + '░'.repeat(10 - l.level);
+        console.log(`  ${time}: ${colors.cyan}${bar}${colors.reset} ${l.level}/10 ${l.note ? colors.dim + l.note + colors.reset : ''}`);
+      });
+    }
+  } else if (subcommand === 'patterns') {
+    console.log(`\n${colors.bold}Energy Patterns${colors.reset}`);
+    console.log(`${colors.dim}Pattern analysis coming soon...${colors.reset}`);
+  }
+}
+
+async function handleCEOJournal(args: string[]): Promise<void> {
+  const subcommand = args[0] || 'today';
+  log.header(`📓 Journal`);
+
+  const dataDir = join(homedir(), '.ferni');
+  const journalFile = join(dataDir, 'journal.json');
+
+  interface JournalEntry {
+    text: string;
+    timestamp: string;
+  }
+
+  async function loadJournal(): Promise<JournalEntry[]> {
+    try {
+      const data = await fs.readFile(journalFile, 'utf-8');
+      return JSON.parse(data);
+    } catch {
+      return [];
+    }
+  }
+
+  async function saveJournal(entries: JournalEntry[]): Promise<void> {
+    await fs.mkdir(dataDir, { recursive: true });
+    await fs.writeFile(journalFile, JSON.stringify(entries, null, 2));
+  }
+
+  // If no subcommand and has text, treat as 'add'
+  if (args[0] && !['add', 'today', 'search', 'prompts'].includes(args[0])) {
+    const text = args.join(' ');
+    const entries = await loadJournal();
+    entries.push({ text, timestamp: new Date().toISOString() });
+    await saveJournal(entries);
+    console.log(`\n${colors.green}✓ Journal entry saved${colors.reset}`);
+    return;
+  }
+
+  if (subcommand === 'add') {
+    const text = args.slice(1).join(' ');
+    if (!text) {
+      console.log(`\n${colors.yellow}Usage: ferni journal "Your entry..."${colors.reset}`);
+      return;
+    }
+    const entries = await loadJournal();
+    entries.push({ text, timestamp: new Date().toISOString() });
+    await saveJournal(entries);
+    console.log(`\n${colors.green}✓ Journal entry saved${colors.reset}`);
+  } else if (subcommand === 'today') {
+    const entries = await loadJournal();
+    const today = new Date().toDateString();
+    const todayEntries = entries.filter((e) => new Date(e.timestamp).toDateString() === today);
+    if (todayEntries.length === 0) {
+      console.log(`\n${colors.dim}No entries today. Write with: ferni journal "..."${colors.reset}`);
+    } else {
+      console.log(`\n${colors.bold}Today's Journal:${colors.reset}\n`);
+      todayEntries.forEach((e) => {
+        const time = new Date(e.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        console.log(`  ${colors.dim}${time}${colors.reset} ${e.text}`);
+      });
+    }
+  } else if (subcommand === 'search') {
+    const query = args.slice(1).join(' ').toLowerCase();
+    const entries = await loadJournal();
+    const matches = entries.filter((e) => e.text.toLowerCase().includes(query));
+    console.log(`\n${colors.bold}Search Results:${colors.reset} (${matches.length} found)\n`);
+    matches.slice(-10).forEach((e) => {
+      const date = new Date(e.timestamp).toLocaleDateString();
+      console.log(`  ${colors.dim}${date}${colors.reset} ${e.text}`);
+    });
+  } else if (subcommand === 'prompts') {
+    const prompts = [
+      "What's on your mind right now?",
+      "What are you looking forward to?",
+      "What challenged you today?",
+      "What made you smile?",
+      "What would make today great?",
+    ];
+    console.log(`\n${colors.bold}Journal Prompts:${colors.reset}\n`);
+    prompts.forEach((p, i) => console.log(`  ${colors.cyan}${i + 1}.${colors.reset} ${p}`));
+  }
+}
+
+async function handleCEOGratitude(args: string[]): Promise<void> {
+  const subcommand = args[0] || 'today';
+  log.header(`🙏 Gratitude`);
+
+  const dataDir = join(homedir(), '.ferni');
+  const gratitudeFile = join(dataDir, 'gratitude.json');
+
+  async function loadGratitude(): Promise<Array<{ text: string; date: string }>> {
+    try {
+      const data = await fs.readFile(gratitudeFile, 'utf-8');
+      return JSON.parse(data);
+    } catch {
+      return [];
+    }
+  }
+
+  async function saveGratitude(items: Array<{ text: string; date: string }>): Promise<void> {
+    await fs.mkdir(dataDir, { recursive: true });
+    await fs.writeFile(gratitudeFile, JSON.stringify(items, null, 2));
+  }
+
+  // If has text (not a subcommand), treat as 'add'
+  if (args[0] && !['add', 'today', 'week', 'random'].includes(args[0])) {
+    const text = args.join(' ');
+    const items = await loadGratitude();
+    items.push({ text, date: new Date().toISOString() });
+    await saveGratitude(items);
+    console.log(`\n${colors.green}🙏 Gratitude recorded:${colors.reset} "${text}"`);
+    return;
+  }
+
+  if (subcommand === 'add') {
+    const text = args.slice(1).join(' ');
+    if (!text) {
+      console.log(`\n${colors.yellow}Usage: ferni gratitude "What you're grateful for"${colors.reset}`);
+      return;
+    }
+    const items = await loadGratitude();
+    items.push({ text, date: new Date().toISOString() });
+    await saveGratitude(items);
+    console.log(`\n${colors.green}🙏 Gratitude recorded:${colors.reset} "${text}"`);
+  } else if (subcommand === 'today') {
+    const items = await loadGratitude();
+    const today = new Date().toDateString();
+    const todayItems = items.filter((i) => new Date(i.date).toDateString() === today);
+    if (todayItems.length === 0) {
+      console.log(`\n${colors.dim}No gratitude logged today. Add with: ferni gratitude "..."${colors.reset}`);
+    } else {
+      console.log(`\n${colors.bold}Today's Gratitude:${colors.reset}\n`);
+      todayItems.forEach((i) => console.log(`  ${colors.green}🙏${colors.reset} ${i.text}`));
+    }
+  } else if (subcommand === 'week') {
+    const items = await loadGratitude();
+    const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const weekItems = items.filter((i) => new Date(i.date) >= weekAgo);
+    console.log(`\n${colors.bold}This Week's Gratitude:${colors.reset} (${weekItems.length})\n`);
+    weekItems.forEach((i) => {
+      const date = new Date(i.date).toLocaleDateString([], { weekday: 'short' });
+      console.log(`  ${colors.dim}${date}${colors.reset} ${i.text}`);
+    });
+  } else if (subcommand === 'random') {
+    const items = await loadGratitude();
+    if (items.length === 0) {
+      console.log(`\n${colors.dim}No gratitude recorded yet. Add with: ferni gratitude "..."${colors.reset}`);
+    } else {
+      const random = items[Math.floor(Math.random() * items.length)];
+      console.log(`\n${colors.bold}Remember when you were grateful for:${colors.reset}`);
+      console.log(`\n  ${colors.green}🙏${colors.reset} "${random.text}"`);
+      console.log(`  ${colors.dim}(${new Date(random.date).toLocaleDateString()})${colors.reset}`);
+    }
+  }
+}
+
+// Decision Support Handlers
+async function handleCEODecisions(args: string[]): Promise<void> {
+  const subcommand = args[0] || 'list';
+  log.header(`⚖️ Decision Tracker`);
+
+  const dataDir = join(homedir(), '.ferni');
+  const decisionsFile = join(dataDir, 'decisions.json');
+
+  interface Decision {
+    id: string;
+    question: string;
+    outcome?: string;
+    status: 'pending' | 'decided' | 'reviewed';
+    createdAt: string;
+    decidedAt?: string;
+  }
+
+  async function loadDecisions(): Promise<Decision[]> {
+    try {
+      const data = await fs.readFile(decisionsFile, 'utf-8');
+      return JSON.parse(data);
+    } catch {
+      return [];
+    }
+  }
+
+  async function saveDecisions(decisions: Decision[]): Promise<void> {
+    await fs.mkdir(dataDir, { recursive: true });
+    await fs.writeFile(decisionsFile, JSON.stringify(decisions, null, 2));
+  }
+
+  if (subcommand === 'add') {
+    const question = args.slice(1).join(' ');
+    if (!question) {
+      console.log(`\n${colors.yellow}Usage: ferni decisions add "What decision?"${colors.reset}`);
+      return;
+    }
+    const decisions = await loadDecisions();
+    const id = (decisions.length + 1).toString();
+    decisions.push({ id, question, status: 'pending', createdAt: new Date().toISOString() });
+    await saveDecisions(decisions);
+    console.log(`\n${colors.green}✓ Decision tracked:${colors.reset} [#${id}] "${question}"`);
+  } else if (subcommand === 'pending') {
+    const decisions = await loadDecisions();
+    const pending = decisions.filter((d) => d.status === 'pending');
+    if (pending.length === 0) {
+      console.log(`\n${colors.green}✓ No pending decisions${colors.reset}`);
+    } else {
+      console.log(`\n${colors.bold}Pending Decisions:${colors.reset}\n`);
+      pending.forEach((d) => {
+        const age = Math.floor((Date.now() - new Date(d.createdAt).getTime()) / (1000 * 60 * 60 * 24));
+        console.log(`  ${colors.yellow}#${d.id}${colors.reset} ${d.question} ${colors.dim}(${age}d ago)${colors.reset}`);
+      });
+    }
+  } else if (subcommand === 'outcome') {
+    const id = args[1];
+    const outcome = args.slice(2).join(' ');
+    const decisions = await loadDecisions();
+    const decision = decisions.find((d) => d.id === id);
+    if (decision) {
+      decision.outcome = outcome;
+      decision.status = 'reviewed';
+      decision.decidedAt = new Date().toISOString();
+      await saveDecisions(decisions);
+      console.log(`\n${colors.green}✓ Outcome recorded for decision #${id}${colors.reset}`);
+    } else {
+      console.log(`\n${colors.yellow}Decision #${id} not found${colors.reset}`);
+    }
+  } else if (subcommand === 'list' || subcommand === 'review') {
+    const decisions = await loadDecisions();
+    console.log(`\n${colors.bold}All Decisions:${colors.reset}\n`);
+    decisions.slice(-10).forEach((d) => {
+      const icon = d.status === 'reviewed' ? colors.green + '✓' : d.status === 'decided' ? '◉' : colors.yellow + '○';
+      console.log(`  ${icon}${colors.reset} #${d.id} ${d.question}`);
+      if (d.outcome) console.log(`    ${colors.dim}→ ${d.outcome}${colors.reset}`);
+    });
+  }
+}
+
+async function handleCEOPriorities(args: string[]): Promise<void> {
+  const subcommand = args[0] || 'list';
+  log.header(`📌 Priorities`);
+
+  const dataDir = join(homedir(), '.ferni');
+  const prioritiesFile = join(dataDir, 'priorities.json');
+
+  interface Priority {
+    text: string;
+    done: boolean;
+    createdAt: string;
+  }
+
+  async function loadPriorities(): Promise<Priority[]> {
+    try {
+      const data = await fs.readFile(prioritiesFile, 'utf-8');
+      return JSON.parse(data);
+    } catch {
+      return [];
+    }
+  }
+
+  async function savePriorities(priorities: Priority[]): Promise<void> {
+    await fs.mkdir(dataDir, { recursive: true });
+    await fs.writeFile(prioritiesFile, JSON.stringify(priorities, null, 2));
+  }
+
+  if (subcommand === 'add') {
+    const text = args.slice(1).join(' ');
+    if (!text) {
+      console.log(`\n${colors.yellow}Usage: ferni priorities add "Priority"${colors.reset}`);
+      return;
+    }
+    const priorities = await loadPriorities();
+    priorities.push({ text, done: false, createdAt: new Date().toISOString() });
+    await savePriorities(priorities);
+    console.log(`\n${colors.green}✓ Priority added:${colors.reset} "${text}"`);
+  } else if (subcommand === 'done') {
+    const index = parseInt(args[1]) - 1;
+    const priorities = await loadPriorities();
+    if (priorities[index]) {
+      priorities[index].done = true;
+      await savePriorities(priorities);
+      console.log(`\n${colors.green}✓ Marked done:${colors.reset} "${priorities[index].text}"`);
+    } else {
+      console.log(`\n${colors.yellow}Priority not found${colors.reset}`);
+    }
+  } else if (subcommand === 'clear') {
+    const priorities = await loadPriorities();
+    const remaining = priorities.filter((p) => !p.done);
+    await savePriorities(remaining);
+    console.log(`\n${colors.green}✓ Cleared completed priorities${colors.reset}`);
+  } else if (subcommand === 'list') {
+    const priorities = await loadPriorities();
+    const active = priorities.filter((p) => !p.done);
+    if (active.length === 0) {
+      console.log(`\n${colors.dim}No priorities set. Add with: ferni priorities add "..."${colors.reset}`);
+    } else {
+      console.log(`\n${colors.bold}Your Priorities:${colors.reset}\n`);
+      active.forEach((p, i) => {
+        console.log(`  ${colors.cyan}${i + 1}.${colors.reset} ${p.text}`);
+      });
+    }
+  }
+}
+
+async function handleCEOBlockers(args: string[]): Promise<void> {
+  const subcommand = args[0] || 'list';
+  log.header(`🚧 Blockers`);
+
+  const dataDir = join(homedir(), '.ferni');
+  const blockersFile = join(dataDir, 'blockers.json');
+
+  interface Blocker {
+    id: string;
+    text: string;
+    resolved: boolean;
+    createdAt: string;
+  }
+
+  async function loadBlockers(): Promise<Blocker[]> {
+    try {
+      const data = await fs.readFile(blockersFile, 'utf-8');
+      return JSON.parse(data);
+    } catch {
+      return [];
+    }
+  }
+
+  async function saveBlockers(blockers: Blocker[]): Promise<void> {
+    await fs.mkdir(dataDir, { recursive: true });
+    await fs.writeFile(blockersFile, JSON.stringify(blockers, null, 2));
+  }
+
+  if (subcommand === 'add') {
+    const text = args.slice(1).join(' ');
+    if (!text) {
+      console.log(`\n${colors.yellow}Usage: ferni blockers add "What's blocking you?"${colors.reset}`);
+      return;
+    }
+    const blockers = await loadBlockers();
+    const id = (blockers.length + 1).toString();
+    blockers.push({ id, text, resolved: false, createdAt: new Date().toISOString() });
+    await saveBlockers(blockers);
+    console.log(`\n${colors.green}✓ Blocker tracked:${colors.reset} [#${id}] "${text}"`);
+  } else if (subcommand === 'resolve') {
+    const id = args[1];
+    const blockers = await loadBlockers();
+    const blocker = blockers.find((b) => b.id === id);
+    if (blocker) {
+      blocker.resolved = true;
+      await saveBlockers(blockers);
+      console.log(`\n${colors.green}✓ Blocker resolved:${colors.reset} "${blocker.text}"`);
+    } else {
+      console.log(`\n${colors.yellow}Blocker #${id} not found${colors.reset}`);
+    }
+  } else if (subcommand === 'list') {
+    const blockers = await loadBlockers();
+    const active = blockers.filter((b) => !b.resolved);
+    if (active.length === 0) {
+      console.log(`\n${colors.green}✓ No active blockers!${colors.reset}`);
+    } else {
+      console.log(`\n${colors.bold}Active Blockers:${colors.reset}\n`);
+      active.forEach((b) => {
+        const age = Math.floor((Date.now() - new Date(b.createdAt).getTime()) / (1000 * 60 * 60 * 24));
+        console.log(`  ${colors.red}🚧${colors.reset} #${b.id} ${b.text} ${colors.dim}(${age}d)${colors.reset}`);
+      });
+    }
+  } else if (subcommand === 'escalate') {
+    console.log(`\n${colors.bold}Escalation${colors.reset}`);
+    console.log(`${colors.dim}Escalation workflow coming soon...${colors.reset}`);
+  }
+}
+
+async function handleCEOIdeas(args: string[]): Promise<void> {
+  const subcommand = args[0] || 'list';
+  log.header(`💡 Ideas`);
+
+  const dataDir = join(homedir(), '.ferni');
+  const ideasFile = join(dataDir, 'ideas.json');
+
+  interface Idea {
+    text: string;
+    tags: string[];
+    createdAt: string;
+  }
+
+  async function loadIdeas(): Promise<Idea[]> {
+    try {
+      const data = await fs.readFile(ideasFile, 'utf-8');
+      return JSON.parse(data);
+    } catch {
+      return [];
+    }
+  }
+
+  async function saveIdeas(ideas: Idea[]): Promise<void> {
+    await fs.mkdir(dataDir, { recursive: true });
+    await fs.writeFile(ideasFile, JSON.stringify(ideas, null, 2));
+  }
+
+  // If has text (not a subcommand), treat as 'add'
+  if (args[0] && !['add', 'list', 'random', 'tag', 'search'].includes(args[0])) {
+    const text = args.join(' ');
+    const ideas = await loadIdeas();
+    ideas.push({ text, tags: [], createdAt: new Date().toISOString() });
+    await saveIdeas(ideas);
+    console.log(`\n${colors.green}💡 Idea captured:${colors.reset} "${text}"`);
+    return;
+  }
+
+  if (subcommand === 'add') {
+    const text = args.slice(1).join(' ');
+    if (!text) {
+      console.log(`\n${colors.yellow}Usage: ferni ideas "Your idea"${colors.reset}`);
+      return;
+    }
+    const ideas = await loadIdeas();
+    ideas.push({ text, tags: [], createdAt: new Date().toISOString() });
+    await saveIdeas(ideas);
+    console.log(`\n${colors.green}💡 Idea captured:${colors.reset} "${text}"`);
+  } else if (subcommand === 'list') {
+    const ideas = await loadIdeas();
+    if (ideas.length === 0) {
+      console.log(`\n${colors.dim}No ideas yet. Capture one with: ferni ideas "..."${colors.reset}`);
+    } else {
+      console.log(`\n${colors.bold}Your Ideas:${colors.reset} (${ideas.length})\n`);
+      ideas.slice(-10).forEach((i) => {
+        const date = new Date(i.createdAt).toLocaleDateString();
+        console.log(`  ${colors.yellow}💡${colors.reset} ${i.text} ${colors.dim}(${date})${colors.reset}`);
+      });
+    }
+  } else if (subcommand === 'random') {
+    const ideas = await loadIdeas();
+    if (ideas.length === 0) {
+      console.log(`\n${colors.dim}No ideas yet${colors.reset}`);
+    } else {
+      const random = ideas[Math.floor(Math.random() * ideas.length)];
+      console.log(`\n${colors.bold}Random Idea:${colors.reset}`);
+      console.log(`\n  ${colors.yellow}💡${colors.reset} "${random.text}"`);
+    }
+  } else if (subcommand === 'search') {
+    const query = args.slice(1).join(' ').toLowerCase();
+    const ideas = await loadIdeas();
+    const matches = ideas.filter((i) => i.text.toLowerCase().includes(query));
+    console.log(`\n${colors.bold}Search Results:${colors.reset} (${matches.length})\n`);
+    matches.forEach((i) => console.log(`  ${colors.yellow}💡${colors.reset} ${i.text}`));
+  }
+}
+
+// Direct Interaction Handlers
+async function handleCEOAsk(args: string[]): Promise<void> {
+  const question = args.join(' ');
+  log.header(`💬 Ask Ferni`);
+
+  if (!question) {
+    console.log(`\n${colors.bold}Ask Ferni Anything:${colors.reset}`);
+    console.log(`\n${colors.cyan}Usage:${colors.reset} ferni ask "Your question here"`);
+    console.log(`\n${colors.bold}Example questions:${colors.reset}`);
+    console.log(`  • "What should I focus on today?"`);
+    console.log(`  • "Summarize my wins this week"`);
+    console.log(`  • "What habits am I building?"`);
+    console.log(`  • "Help me think through this decision..."`);
+    return;
+  }
+
+  console.log(`\n${colors.cyan}Question:${colors.reset} "${question}"`);
+  console.log(`\n${colors.bold}Ferni says:${colors.reset}`);
+  console.log(`\n  ${colors.dim}(AI response integration coming soon... For now, use the voice app!)${colors.reset}`);
+  console.log(`\n  Try: ${colors.cyan}ferni briefing${colors.reset} for your daily summary`);
+  console.log(`       ${colors.cyan}ferni priorities${colors.reset} to see your focus areas`);
+  console.log(`       ${colors.cyan}ferni wins${colors.reset} to review achievements`);
+}
+
+async function handleCEOCoach(args: string[]): Promise<void> {
+  const topic = args[0] || 'menu';
+  log.header(`🎓 AI Coaching`);
+
+  const coachingTopics: Record<string, string[]> = {
+    career: [
+      "What's one skill you'd like to develop this quarter?",
+      "Describe your ideal workday. What's different from today?",
+      "What accomplishment would make you proud this year?",
+    ],
+    productivity: [
+      "What's your biggest time sink right now?",
+      "When do you do your best work?",
+      "What's one thing you keep procrastinating on?",
+    ],
+    relationships: [
+      "Who haven't you connected with lately that you miss?",
+      "What conversation have you been avoiding?",
+      "How can you show appreciation to someone this week?",
+    ],
+    health: [
+      "How would you rate your sleep this week?",
+      "What's one healthy habit you'd like to start?",
+      "When did you last take a proper break?",
+    ],
+  };
+
+  if (topic === 'menu' || !coachingTopics[topic]) {
+    console.log(`\n${colors.bold}Coaching Topics:${colors.reset}\n`);
+    console.log(`  ${colors.cyan}ferni coach career${colors.reset}        - Career development`);
+    console.log(`  ${colors.cyan}ferni coach productivity${colors.reset}  - Time & focus`);
+    console.log(`  ${colors.cyan}ferni coach relationships${colors.reset} - Connections`);
+    console.log(`  ${colors.cyan}ferni coach health${colors.reset}        - Wellbeing`);
+    console.log(`\n  ${colors.dim}Or: ferni coach "custom topic"${colors.reset}`);
+    return;
+  }
+
+  const questions = coachingTopics[topic];
+  const randomQ = questions[Math.floor(Math.random() * questions.length)];
+  console.log(`\n${colors.bold}${topic.charAt(0).toUpperCase() + topic.slice(1)} Coaching:${colors.reset}`);
+  console.log(`\n  ${colors.cyan}"${randomQ}"${colors.reset}`);
+  console.log(`\n${colors.dim}Reflect and journal: ferni journal "your thoughts..."${colors.reset}`);
+}
+
+async function handleCEOMeetings(args: string[]): Promise<void> {
+  const subcommand = args[0] || 'today';
+  log.header(`🗓️ Meeting Notes`);
+
+  const dataDir = join(homedir(), '.ferni');
+  const meetingsFile = join(dataDir, 'meetings.json');
+
+  interface Meeting {
+    title: string;
+    notes: string;
+    actionItems: string[];
+    timestamp: string;
+  }
+
+  async function loadMeetings(): Promise<Meeting[]> {
+    try {
+      const data = await fs.readFile(meetingsFile, 'utf-8');
+      return JSON.parse(data);
+    } catch {
+      return [];
+    }
+  }
+
+  async function saveMeetings(meetings: Meeting[]): Promise<void> {
+    await fs.mkdir(dataDir, { recursive: true });
+    await fs.writeFile(meetingsFile, JSON.stringify(meetings, null, 2));
+  }
+
+  if (subcommand === 'add') {
+    const title = args.slice(1).join(' ');
+    if (!title) {
+      console.log(`\n${colors.yellow}Usage: ferni meetings add "Meeting title"${colors.reset}`);
+      return;
+    }
+    const meetings = await loadMeetings();
+    meetings.push({ title, notes: '', actionItems: [], timestamp: new Date().toISOString() });
+    await saveMeetings(meetings);
+    console.log(`\n${colors.green}✓ Meeting recorded:${colors.reset} "${title}"`);
+    console.log(`${colors.dim}Add notes with: ferni journal "Meeting notes..."${colors.reset}`);
+  } else if (subcommand === 'today') {
+    const meetings = await loadMeetings();
+    const today = new Date().toDateString();
+    const todayMeetings = meetings.filter((m) => new Date(m.timestamp).toDateString() === today);
+    if (todayMeetings.length === 0) {
+      console.log(`\n${colors.dim}No meetings logged today. Add with: ferni meetings add "..."${colors.reset}`);
+    } else {
+      console.log(`\n${colors.bold}Today's Meetings:${colors.reset}\n`);
+      todayMeetings.forEach((m) => {
+        const time = new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        console.log(`  ${colors.cyan}${time}${colors.reset} ${m.title}`);
+      });
+    }
+  } else if (subcommand === 'list') {
+    const meetings = await loadMeetings();
+    console.log(`\n${colors.bold}Recent Meetings:${colors.reset}\n`);
+    meetings.slice(-10).forEach((m) => {
+      const date = new Date(m.timestamp).toLocaleDateString();
+      console.log(`  ${colors.dim}${date}${colors.reset} ${m.title}`);
+    });
+  } else if (subcommand === 'action-items') {
+    console.log(`\n${colors.bold}Action Items from Meetings${colors.reset}`);
+    console.log(`${colors.dim}Action item extraction coming soon...${colors.reset}`);
+    console.log(`\nFor now, check your priorities: ${colors.cyan}ferni priorities${colors.reset}`);
+  }
+}
+
 // ============================================================================
 // VOICE + CLAUDE CODE COMMAND
 // ============================================================================
@@ -4284,6 +5405,787 @@ async function handleRelease(args: string[]): Promise<void> {
       console.log(
         `  ${colors.cyan}${tag.padEnd(12)}${colors.reset} ${colors.dim}${date}${colors.reset}  (${commitCount} commits total)`
       );
+    }
+  }
+}
+
+// ============================================================================
+// DEVBLOG COMMAND
+// ============================================================================
+
+async function handleDevBlog(args: string[]): Promise<void> {
+  const subcommand = args[0] || 'status';
+
+  log.header(`📝 Developer Blog`);
+
+  const devBlogDir = join(PROJECT_ROOT, 'apps/website/ferni-website/src/dev-blog');
+  const imagesDir = join(PROJECT_ROOT, 'apps/website/ferni-website/images/dev-blog');
+  const scriptsDir = join(PROJECT_ROOT, 'scripts');
+
+  if (subcommand === 'status') {
+    console.log(`${colors.bold}Developer Blog Status:${colors.reset}\n`);
+
+    // Count posts
+    try {
+      const posts = execCommand(`ls -1 ${devBlogDir}/*.md 2>/dev/null | wc -l`).trim();
+      const images = execCommand(`ls -1 ${imagesDir}/*.png 2>/dev/null | wc -l`).trim();
+
+      console.log(`  ${colors.cyan}Posts:${colors.reset} ${posts} markdown files`);
+      console.log(`  ${colors.cyan}Images:${colors.reset} ${images} OG images`);
+
+      // Recent posts
+      console.log(`\n  ${colors.bold}Recent Posts:${colors.reset}`);
+      const recentPosts = execCommand(
+        `ls -t ${devBlogDir}/*.md 2>/dev/null | head -5 | xargs -I {} basename {}`
+      );
+      if (recentPosts) {
+        recentPosts.split('\n').forEach((post) => {
+          if (post) console.log(`    ${icons.bullet} ${post}`);
+        });
+      }
+    } catch {
+      console.log(`  ${colors.yellow}No posts found yet${colors.reset}`);
+    }
+
+    console.log(`\n  ${colors.bold}Available Commands:${colors.reset}`);
+    console.log(`    ferni devblog new "Title"          - Create a new blog post`);
+    console.log(`    ferni devblog changelog <version>  - Generate changelog post`);
+    console.log(`    ferni devblog images               - Generate OG images`);
+    console.log(`    ferni devblog newsletter           - Generate weekly newsletter`);
+    console.log(`    ferni devblog social               - Generate social snippets`);
+    console.log(`    ferni devblog preview              - Start local preview server`);
+    console.log(`    ferni devblog publish              - Deploy to Firebase`);
+    console.log(`    ferni devblog validate             - Validate all posts`);
+  }
+
+  if (subcommand === 'changelog') {
+    const version = args[1];
+    if (!version) {
+      log.error('Version required. Usage: ferni devblog changelog v1.2.3');
+      return;
+    }
+
+    console.log(`${colors.cyan}Generating changelog for ${version}...${colors.reset}\n`);
+
+    const dryRun = args.includes('--dry-run');
+    const cmd = dryRun
+      ? `node ${scriptsDir}/generate-changelog-post.js --version ${version} --dry-run`
+      : `node ${scriptsDir}/generate-changelog-post.js --version ${version}`;
+
+    spawnSync('sh', ['-c', cmd], { stdio: 'inherit' });
+  }
+
+  if (subcommand === 'images') {
+    const batch = !args.includes('--single');
+
+    if (batch) {
+      console.log(`${colors.cyan}Generating OG images for all posts...${colors.reset}\n`);
+      spawnSync('sh', ['-c', `node ${scriptsDir}/generate-dev-blog-image.js --batch`], { stdio: 'inherit' });
+    } else {
+      const title = args.find((a) => a.startsWith('--title='))?.split('=')[1];
+      const category = args.find((a) => a.startsWith('--category='))?.split('=')[1];
+
+      if (!title) {
+        log.error('Title required for single image. Usage: ferni devblog images --single --title="Your Title" --category=tutorial');
+        return;
+      }
+
+      const imgCmd = `node ${scriptsDir}/generate-dev-blog-image.js --title "${title}" ${category ? `--category ${category}` : ''}`;
+      spawnSync('sh', ['-c', imgCmd], { stdio: 'inherit' });
+    }
+  }
+
+  if (subcommand === 'newsletter') {
+    const preview = args.includes('--preview');
+
+    console.log(`${colors.cyan}Generating weekly newsletter...${colors.reset}\n`);
+    const digestCmd = `node ${scriptsDir}/generate-weekly-digest.js ${preview ? '--preview' : ''}`;
+    spawnSync('sh', ['-c', digestCmd], { stdio: 'inherit' });
+  }
+
+  if (subcommand === 'social') {
+    const batch = !args.includes('--recent');
+
+    console.log(`${colors.cyan}Generating social media snippets...${colors.reset}\n`);
+    const socialCmd = `node ${scriptsDir}/generate-social-snippets.js ${batch ? '--batch' : '--recent'}`;
+    spawnSync('sh', ['-c', socialCmd], { stdio: 'inherit' });
+  }
+
+  if (subcommand === 'new') {
+    const title = args[1];
+    if (!title) {
+      log.error('Title required. Usage: ferni devblog new "My Post Title" --category=tutorial');
+      return;
+    }
+
+    const category = args.find((a) => a.startsWith('--category='))?.split('=')[1] || 'tutorial';
+    const date = new Date().toISOString().split('T')[0];
+    const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+    const filename = `${date}-${slug}.md`;
+    const filepath = join(devBlogDir, filename);
+
+    const frontmatter = `---
+title: "${title}"
+excerpt: "Add a compelling excerpt here..."
+author: "Ferni Dev Team"
+authorInitials: "FD"
+authorColor: "#38bdf8"
+date: ${date}
+category: "${category}"
+image: "${slug}.png"
+readTime: 5
+---
+
+# ${title}
+
+Start writing your post here...
+
+## Section 1
+
+Content goes here.
+
+## Section 2
+
+More content.
+
+---
+
+*Have questions? Join our [Discord community](https://discord.gg/ferni) or reach out on [Twitter](https://twitter.com/ferni_ai).*
+`;
+
+    const fs = await import('fs/promises');
+    await fs.writeFile(filepath, frontmatter);
+    console.log(`${colors.green}${icons.success}${colors.reset} Created: ${filename}`);
+    console.log(`\n  ${colors.dim}Edit: ${filepath}${colors.reset}`);
+    console.log(`  ${colors.dim}Preview: ferni devblog preview${colors.reset}`);
+  }
+
+  if (subcommand === 'preview') {
+    console.log(`${colors.cyan}Starting dev blog preview server...${colors.reset}\n`);
+    const websiteDir = join(PROJECT_ROOT, 'apps/website/ferni-website');
+    spawnSync('sh', ['-c', `cd ${websiteDir} && pnpm serve`], { stdio: 'inherit' });
+  }
+
+  if (subcommand === 'publish') {
+    const dryRun = args.includes('--dry-run');
+    console.log(`${colors.cyan}Publishing dev blog to Firebase...${colors.reset}\n`);
+
+    const websiteDir = join(PROJECT_ROOT, 'apps/website/ferni-website');
+
+    // Build first
+    console.log(`  ${colors.dim}Building...${colors.reset}`);
+    spawnSync('sh', ['-c', `cd ${websiteDir} && pnpm build`], { stdio: 'inherit' });
+
+    if (dryRun) {
+      console.log(`\n${colors.yellow}Dry run - skipping deploy${colors.reset}`);
+    } else {
+      // Deploy
+      console.log(`\n  ${colors.dim}Deploying...${colors.reset}`);
+      spawnSync('sh', ['-c', `cd ${websiteDir} && firebase deploy --only hosting`], { stdio: 'inherit' });
+      console.log(`\n${colors.green}${icons.success}${colors.reset} Published to https://developers.ferni.ai`);
+    }
+  }
+
+  if (subcommand === 'validate') {
+    console.log(`${colors.bold}Validating blog posts...${colors.reset}\n`);
+
+    try {
+      const posts = execCommand(`ls -1 ${devBlogDir}/*.md 2>/dev/null`).trim().split('\n');
+      let errors = 0;
+      let warnings = 0;
+
+      for (const postPath of posts) {
+        if (!postPath) continue;
+        const filename = postPath.split('/').pop();
+        const fs = await import('fs/promises');
+        const content = await fs.readFile(postPath, 'utf-8');
+
+        // Check frontmatter
+        const hasFrontmatter = content.startsWith('---');
+        const hasTitle = content.includes('title:');
+        const hasExcerpt = content.includes('excerpt:');
+        const hasDate = content.includes('date:');
+        const hasCategory = content.includes('category:');
+        const hasImage = content.includes('image:');
+
+        const issues: string[] = [];
+        if (!hasFrontmatter) issues.push('Missing frontmatter');
+        if (!hasTitle) issues.push('Missing title');
+        if (!hasExcerpt) issues.push('Missing excerpt');
+        if (!hasDate) issues.push('Missing date');
+        if (!hasCategory) issues.push('Missing category');
+        if (!hasImage) issues.push('Missing image reference');
+
+        if (issues.length > 0) {
+          console.log(`  ${colors.red}${icons.error}${colors.reset} ${filename}`);
+          issues.forEach((issue) => console.log(`      ${colors.dim}${issue}${colors.reset}`));
+          errors++;
+        } else {
+          console.log(`  ${colors.green}${icons.success}${colors.reset} ${filename}`);
+        }
+
+        // Check for image file
+        const imageMatch = content.match(/image:\s*["']?([^"'\n]+)["']?/);
+        if (imageMatch) {
+          const imageName = imageMatch[1];
+          const imagePath = join(imagesDir, imageName);
+          if (!existsSync(imagePath)) {
+            console.log(`      ${colors.yellow}${icons.warning} Missing OG image: ${imageName}${colors.reset}`);
+            warnings++;
+          }
+        }
+      }
+
+      console.log(`\n${colors.bold}Summary:${colors.reset} ${posts.length} posts, ${errors} errors, ${warnings} warnings`);
+    } catch (error) {
+      log.error('Failed to validate posts');
+    }
+  }
+}
+
+// ============================================================================
+// OPS COMMAND
+// ============================================================================
+
+async function handleOps(args: string[]): Promise<void> {
+  const subcommand = args[0] || 'status';
+
+  log.header(`🔧 Operations`);
+
+  const cliCommandsDir = join(PROJECT_ROOT, 'apps/cli/src/commands/ops');
+  const scriptsDir = join(PROJECT_ROOT, 'scripts');
+
+  if (!subcommand || subcommand === 'status') {
+    console.log(`${colors.bold}Operations Commands:${colors.reset}\n`);
+    console.log(`  ${colors.cyan}ferni ops zombies${colors.reset}      - Cleanup zombie Cloud Run revisions`);
+    console.log(`  ${colors.cyan}ferni ops diagnose${colors.reset}     - Diagnose disconnect issues`);
+    console.log(`  ${colors.cyan}ferni ops health${colors.reset}       - Run health checks with alerts`);
+    console.log(`  ${colors.cyan}ferni ops ttl-cleanup${colors.reset}  - Run TTL data cleanup`);
+    console.log(`  ${colors.cyan}ferni ops semantic${colors.reset}     - Semantic store management`);
+    console.log(`  ${colors.cyan}ferni ops scheduler${colors.reset}    - Setup GCP Cloud Scheduler`);
+    console.log(`  ${colors.cyan}ferni ops logs${colors.reset}         - View GCE container logs`);
+    return;
+  }
+
+  if (subcommand === 'zombies') {
+    const fix = args.includes('--fix');
+    console.log(`${colors.cyan}Checking for zombie revisions...${colors.reset}\n`);
+    const cmd = fix
+      ? `npx tsx ${cliCommandsDir}/cleanup-zombies.ts --fix`
+      : `npx tsx ${cliCommandsDir}/cleanup-zombies.ts`;
+    spawnSync('sh', ['-c', cmd], { stdio: 'inherit' });
+  }
+
+  if (subcommand === 'diagnose') {
+    console.log(`${colors.cyan}Diagnosing disconnect issues...${colors.reset}\n`);
+    spawnSync('sh', ['-c', `npx tsx ${cliCommandsDir}/diagnose-disconnects.ts`], { stdio: 'inherit' });
+  }
+
+  if (subcommand === 'health') {
+    const alert = args.includes('--alert');
+    console.log(`${colors.cyan}Running health checks...${colors.reset}\n`);
+    const cmd = alert
+      ? `npx tsx ${cliCommandsDir}/health-check.ts --alert`
+      : `npx tsx ${cliCommandsDir}/health-check.ts`;
+    spawnSync('sh', ['-c', cmd], { stdio: 'inherit' });
+  }
+
+  if (subcommand === 'ttl-cleanup') {
+    const dryRun = args.includes('--dry-run');
+    console.log(`${colors.cyan}Running TTL cleanup...${colors.reset}\n`);
+    const cmd = dryRun
+      ? `DRY_RUN=true npx tsx ${PROJECT_ROOT}/src/services/data-layer/ttl-cleanup.ts`
+      : `npx tsx ${PROJECT_ROOT}/src/services/data-layer/ttl-cleanup.ts`;
+    spawnSync('sh', ['-c', cmd], { stdio: 'inherit' });
+  }
+
+  if (subcommand === 'semantic') {
+    const action = args[1] || 'status';
+    const dryRun = args.includes('--dry-run');
+
+    if (action === 'deploy') {
+      console.log(`${colors.cyan}Deploying semantic store...${colors.reset}\n`);
+      const cmd = dryRun
+        ? `npx tsx ${scriptsDir}/deploy-semantic-store.ts --dry-run`
+        : `npx tsx ${scriptsDir}/deploy-semantic-store.ts`;
+      spawnSync('sh', ['-c', cmd], { stdio: 'inherit' });
+    } else if (action === 'backfill') {
+      console.log(`${colors.cyan}Running semantic backfill...${colors.reset}\n`);
+      const cmd = dryRun
+        ? `npx tsx ${scriptsDir}/backfill-semantic-index.ts --dry-run`
+        : `npx tsx ${scriptsDir}/backfill-semantic-index.ts`;
+      spawnSync('sh', ['-c', cmd], { stdio: 'inherit' });
+    } else {
+      console.log(`${colors.bold}Semantic Store Commands:${colors.reset}\n`);
+      console.log(`  ${colors.cyan}ferni ops semantic deploy${colors.reset}    - Deploy semantic store`);
+      console.log(`  ${colors.cyan}ferni ops semantic backfill${colors.reset}  - Run semantic backfill`);
+    }
+  }
+
+  if (subcommand === 'scheduler') {
+    const dryRun = args.includes('--dry-run');
+    console.log(`${colors.cyan}Setting up GCP Cloud Scheduler...${colors.reset}\n`);
+    const cmd = dryRun
+      ? `npx tsx ${cliCommandsDir}/setup-health-scheduler.ts --dry-run`
+      : `npx tsx ${cliCommandsDir}/setup-health-scheduler.ts`;
+    spawnSync('sh', ['-c', cmd], { stdio: 'inherit' });
+  }
+
+  if (subcommand === 'logs') {
+    const errors = args.includes('--errors');
+    console.log(`${colors.cyan}Fetching GCE container logs...${colors.reset}\n`);
+
+    const logCmd = errors
+      ? `gcloud compute ssh sethford@voiceai-agent-gce --zone=us-central1-a -- 'docker logs $(docker ps -q | head -1) 2>&1 | grep -iE error | tail -30'`
+      : `gcloud compute ssh sethford@voiceai-agent-gce --zone=us-central1-a -- 'docker logs $(docker ps -q | head -1) 2>&1 | tail -50'`;
+
+    spawnSync('sh', ['-c', logCmd], { stdio: 'inherit' });
+  }
+}
+
+// ============================================================================
+// WAITLIST COMMAND
+// ============================================================================
+
+async function handleWaitlist(args: string[]): Promise<void> {
+  const subcommand = args[0] || 'status';
+
+  log.header(`📋 Waitlist Management`);
+
+  const scriptsDir = join(PROJECT_ROOT, 'scripts');
+
+  if (!subcommand || subcommand === 'status') {
+    console.log(`${colors.bold}Waitlist Commands:${colors.reset}\n`);
+    console.log(`  ${colors.cyan}ferni waitlist list${colors.reset}           - List pending waitlist users`);
+    console.log(`  ${colors.cyan}ferni waitlist approve <email>${colors.reset} - Approve a user`);
+    console.log(`  ${colors.cyan}ferni waitlist stats${colors.reset}          - Show waitlist statistics`);
+    console.log(`  ${colors.cyan}ferni waitlist export${colors.reset}         - Export waitlist to CSV`);
+    return;
+  }
+
+  if (subcommand === 'list') {
+    const limit = args.find((a) => a.startsWith('--limit='))?.split('=')[1] || '20';
+    console.log(`${colors.cyan}Fetching waitlist...${colors.reset}\n`);
+    spawnSync('sh', ['-c', `npx tsx ${scriptsDir}/approve-waitlist-user.ts --list --limit=${limit}`], { stdio: 'inherit' });
+  }
+
+  if (subcommand === 'approve') {
+    const email = args[1];
+    if (!email) {
+      log.error('Email required. Usage: ferni waitlist approve user@example.com');
+      return;
+    }
+
+    console.log(`${colors.cyan}Approving ${email}...${colors.reset}\n`);
+    spawnSync('sh', ['-c', `npx tsx ${scriptsDir}/approve-waitlist-user.ts --email=${email}`], { stdio: 'inherit' });
+  }
+
+  if (subcommand === 'stats') {
+    console.log(`${colors.cyan}Fetching waitlist stats...${colors.reset}\n`);
+    spawnSync('sh', ['-c', `npx tsx ${scriptsDir}/approve-waitlist-user.ts --stats`], { stdio: 'inherit' });
+  }
+
+  if (subcommand === 'export') {
+    const output = args.find((a) => a.startsWith('--output='))?.split('=')[1] || 'waitlist-export.csv';
+    console.log(`${colors.cyan}Exporting waitlist to ${output}...${colors.reset}\n`);
+    spawnSync('sh', ['-c', `npx tsx ${scriptsDir}/approve-waitlist-user.ts --export --output=${output}`], { stdio: 'inherit' });
+  }
+}
+
+// ============================================================================
+// USERS COMMAND
+// ============================================================================
+
+async function handleUsers(args: string[]): Promise<void> {
+  const subcommand = args[0] || 'status';
+
+  log.header(`👤 User Management`);
+
+  const scriptsDir = join(PROJECT_ROOT, 'scripts');
+
+  if (!subcommand || subcommand === 'status') {
+    console.log(`${colors.bold}User Management Commands:${colors.reset}\n`);
+    console.log(`  ${colors.cyan}ferni users list${colors.reset}              - List all users`);
+    console.log(`  ${colors.cyan}ferni users show <email>${colors.reset}      - Show user details`);
+    console.log(`  ${colors.cyan}ferni users dump <userId>${colors.reset}     - Full user data dump`);
+    console.log(`  ${colors.cyan}ferni users cleanup${colors.reset}           - Clean up anonymous users`);
+    console.log(`  ${colors.cyan}ferni users grant <email>${colors.reset}     - Grant access to user`);
+    console.log(`  ${colors.cyan}ferni users find-rich${colors.reset}         - Find users with rich data`);
+    console.log(`  ${colors.cyan}ferni users delete-stale${colors.reset}      - Delete stale profiles`);
+    return;
+  }
+
+  if (subcommand === 'list') {
+    const limit = args.find((a) => a.startsWith('--limit='))?.split('=')[1] || '50';
+    console.log(`${colors.cyan}Listing users...${colors.reset}\n`);
+    spawnSync('sh', ['-c', `npx tsx ${scriptsDir}/list-all-users.ts --limit=${limit}`], { stdio: 'inherit' });
+  }
+
+  if (subcommand === 'show') {
+    const email = args[1];
+    if (!email) {
+      log.error('Email required. Usage: ferni users show user@example.com');
+      return;
+    }
+    console.log(`${colors.cyan}Fetching user data...${colors.reset}\n`);
+    spawnSync('sh', ['-c', `npx tsx ${scriptsDir}/check-my-data.ts --email=${email}`], { stdio: 'inherit' });
+  }
+
+  if (subcommand === 'dump') {
+    const userId = args[1];
+    if (!userId) {
+      log.error('User ID required. Usage: ferni users dump <userId>');
+      return;
+    }
+    console.log(`${colors.cyan}Dumping full user data...${colors.reset}\n`);
+    spawnSync('sh', ['-c', `npx tsx ${scriptsDir}/full-user-dump.ts --user=${userId}`], { stdio: 'inherit' });
+  }
+
+  if (subcommand === 'cleanup') {
+    const dryRun = args.includes('--dry-run');
+    console.log(`${colors.cyan}Cleaning up anonymous users...${colors.reset}\n`);
+    const cmd = dryRun
+      ? `npx tsx ${scriptsDir}/cleanup-anonymous-users.ts --dry-run`
+      : `npx tsx ${scriptsDir}/cleanup-anonymous-users.ts`;
+    spawnSync('sh', ['-c', cmd], { stdio: 'inherit' });
+  }
+
+  if (subcommand === 'grant') {
+    const email = args[1];
+    if (!email) {
+      log.error('Email required. Usage: ferni users grant user@example.com');
+      return;
+    }
+    console.log(`${colors.cyan}Granting access...${colors.reset}\n`);
+    spawnSync('sh', ['-c', `npx tsx ${scriptsDir}/grant-access.ts --email=${email}`], { stdio: 'inherit' });
+  }
+
+  if (subcommand === 'find-rich') {
+    console.log(`${colors.cyan}Finding users with rich data...${colors.reset}\n`);
+    spawnSync('sh', ['-c', `npx tsx ${scriptsDir}/find-rich-users.ts`], { stdio: 'inherit' });
+  }
+
+  if (subcommand === 'delete-stale') {
+    const dryRun = args.includes('--dry-run');
+    console.log(`${colors.cyan}Deleting stale profiles...${colors.reset}\n`);
+    const cmd = dryRun
+      ? `npx tsx ${scriptsDir}/delete-stale-profiles.ts --dry-run`
+      : `npx tsx ${scriptsDir}/delete-stale-profiles.ts`;
+    spawnSync('sh', ['-c', cmd], { stdio: 'inherit' });
+  }
+}
+
+// ============================================================================
+// CALLS COMMAND
+// ============================================================================
+
+async function handleCalls(args: string[]): Promise<void> {
+  const subcommand = args[0] || 'status';
+
+  log.header(`📞 Phone Calls`);
+
+  const scriptsDir = join(PROJECT_ROOT, 'scripts');
+
+  if (!subcommand || subcommand === 'status') {
+    console.log(`${colors.bold}Phone Call Commands:${colors.reset}\n`);
+    console.log(`  ${colors.cyan}ferni calls test <phone>${colors.reset}     - Test outbound call`);
+    console.log(`  ${colors.cyan}ferni calls status <id>${colors.reset}      - Check call status`);
+    console.log(`  ${colors.cyan}ferni calls family <name>${colors.reset}    - Call family member (mom, edison, annette)`);
+    console.log(`  ${colors.cyan}ferni calls invite <email>${colors.reset}   - Send Ferni invite call`);
+    console.log(`  ${colors.cyan}ferni calls goodnight${colors.reset}        - Goodnight call test`);
+    return;
+  }
+
+  if (subcommand === 'test') {
+    const phone = args[1];
+    if (!phone) {
+      log.error('Phone number required. Usage: ferni calls test +1234567890');
+      return;
+    }
+    console.log(`${colors.cyan}Initiating test call to ${phone}...${colors.reset}\n`);
+    spawnSync('sh', ['-c', `npx tsx ${scriptsDir}/test-outbound-call.ts --phone=${phone}`], { stdio: 'inherit' });
+  }
+
+  if (subcommand === 'status') {
+    const callId = args[1];
+    if (!callId) {
+      log.error('Call ID required. Usage: ferni calls status <callId>');
+      return;
+    }
+    console.log(`${colors.cyan}Checking call status...${colors.reset}\n`);
+    spawnSync('sh', ['-c', `npx tsx ${scriptsDir}/check-call-status.ts --call=${callId}`], { stdio: 'inherit' });
+  }
+
+  if (subcommand === 'family') {
+    const member = args[1]?.toLowerCase();
+    if (!member) {
+      log.error('Family member required. Usage: ferni calls family mom');
+      return;
+    }
+
+    const familyScripts: Record<string, string> = {
+      mom: 'call-mom-betty.ts',
+      betty: 'call-mom-betty.ts',
+      edison: 'call-edison.ts',
+      annette: 'call-annette.ts',
+    };
+
+    const script = familyScripts[member];
+    if (!script) {
+      log.error(`Unknown family member: ${member}. Available: mom, edison, annette`);
+      return;
+    }
+
+    console.log(`${colors.cyan}Calling ${member}...${colors.reset}\n`);
+    spawnSync('sh', ['-c', `npx tsx ${scriptsDir}/${script}`], { stdio: 'inherit' });
+  }
+
+  if (subcommand === 'invite') {
+    const email = args[1];
+    if (!email) {
+      log.error('Email required. Usage: ferni calls invite user@example.com');
+      return;
+    }
+    console.log(`${colors.cyan}Sending Ferni invite call...${colors.reset}\n`);
+    spawnSync('sh', ['-c', `npx tsx ${scriptsDir}/ferni-invite-call.ts --email=${email}`], { stdio: 'inherit' });
+  }
+
+  if (subcommand === 'goodnight') {
+    console.log(`${colors.cyan}Initiating goodnight call...${colors.reset}\n`);
+    spawnSync('sh', ['-c', `npx tsx ${scriptsDir}/call-goodnight.ts`], { stdio: 'inherit' });
+  }
+}
+
+// ============================================================================
+// ICONS COMMAND
+// ============================================================================
+
+async function handleIcons(args: string[]): Promise<void> {
+  const subcommand = args[0] || 'status';
+
+  log.header(`🎨 Icon Generation`);
+
+  const scriptsDir = join(PROJECT_ROOT, 'scripts');
+
+  if (!subcommand || subcommand === 'status') {
+    console.log(`${colors.bold}Icon Commands:${colors.reset}\n`);
+    console.log(`  ${colors.cyan}ferni icons favicons${colors.reset}     - Generate all favicon variants`);
+    console.log(`  ${colors.cyan}ferni icons smile-gif${colors.reset}    - Generate animated smile GIF`);
+    console.log(`  ${colors.cyan}ferni icons app-icons${colors.reset}    - Regenerate app icons`);
+    console.log(`  ${colors.cyan}ferni icons all${colors.reset}          - Generate all icons`);
+    return;
+  }
+
+  if (subcommand === 'favicons') {
+    console.log(`${colors.cyan}Generating favicons...${colors.reset}\n`);
+    spawnSync('sh', ['-c', `npx tsx ${scriptsDir}/generate-favicons.ts`], { stdio: 'inherit' });
+  }
+
+  if (subcommand === 'smile-gif') {
+    console.log(`${colors.cyan}Generating smile GIF...${colors.reset}\n`);
+    spawnSync('sh', ['-c', `npx tsx ${scriptsDir}/generate-smile-gif.ts`], { stdio: 'inherit' });
+  }
+
+  if (subcommand === 'app-icons') {
+    console.log(`${colors.cyan}Regenerating app icons...${colors.reset}\n`);
+    spawnSync('sh', ['-c', `npx tsx ${scriptsDir}/regenerate-icons.ts`], { stdio: 'inherit' });
+  }
+
+  if (subcommand === 'all') {
+    console.log(`${colors.cyan}Generating all icons...${colors.reset}\n`);
+    spawnSync('sh', ['-c', `npx tsx ${scriptsDir}/generate-favicons.ts`], { stdio: 'inherit' });
+    spawnSync('sh', ['-c', `npx tsx ${scriptsDir}/generate-smile-gif.ts`], { stdio: 'inherit' });
+    spawnSync('sh', ['-c', `npx tsx ${scriptsDir}/regenerate-icons.ts`], { stdio: 'inherit' });
+    console.log(`\n${colors.green}${icons.success}${colors.reset} All icons generated!`);
+  }
+}
+
+// ============================================================================
+// SMOKE COMMAND
+// ============================================================================
+
+async function handleSmoke(args: string[]): Promise<void> {
+  const subcommand = args[0] || 'status';
+
+  log.header(`💨 Smoke Tests`);
+
+  const scriptsDir = join(PROJECT_ROOT, 'scripts');
+
+  if (!subcommand || subcommand === 'status') {
+    console.log(`${colors.bold}Smoke Test Commands:${colors.reset}\n`);
+    console.log(`  ${colors.cyan}ferni smoke api${colors.reset}       - Test API endpoints`);
+    console.log(`  ${colors.cyan}ferni smoke livekit${colors.reset}   - Test LiveKit connection`);
+    console.log(`  ${colors.cyan}ferni smoke gemini${colors.reset}    - Test Gemini API`);
+    console.log(`  ${colors.cyan}ferni smoke tools${colors.reset}     - Test tool orchestrator`);
+    console.log(`  ${colors.cyan}ferni smoke all${colors.reset}       - Run all smoke tests`);
+    return;
+  }
+
+  if (subcommand === 'api') {
+    console.log(`${colors.cyan}Testing API endpoints...${colors.reset}\n`);
+    spawnSync('sh', ['-c', `npx tsx ${scriptsDir}/smoke-test-api.ts`], { stdio: 'inherit' });
+  }
+
+  if (subcommand === 'livekit') {
+    console.log(`${colors.cyan}Testing LiveKit connection...${colors.reset}\n`);
+    spawnSync('sh', ['-c', `npx tsx ${scriptsDir}/test-livekit-session.ts`], { stdio: 'inherit' });
+  }
+
+  if (subcommand === 'gemini') {
+    console.log(`${colors.cyan}Testing Gemini API...${colors.reset}\n`);
+    spawnSync('sh', ['-c', `npx tsx ${scriptsDir}/diagnose-gemini.ts`], { stdio: 'inherit' });
+  }
+
+  if (subcommand === 'tools') {
+    console.log(`${colors.cyan}Testing tool orchestrator...${colors.reset}\n`);
+    spawnSync('sh', ['-c', `npx tsx ${scriptsDir}/test-tool-orchestrator.ts`], { stdio: 'inherit' });
+  }
+
+  if (subcommand === 'all') {
+    console.log(`${colors.cyan}Running all smoke tests...${colors.reset}\n`);
+
+    const tests = [
+      { name: 'API', cmd: `npx tsx ${scriptsDir}/smoke-test-api.ts` },
+      { name: 'LiveKit', cmd: `npx tsx ${scriptsDir}/test-livekit-session.ts` },
+      { name: 'Gemini', cmd: `npx tsx ${scriptsDir}/diagnose-gemini.ts` },
+    ];
+
+    for (const test of tests) {
+      console.log(`\n${colors.bold}Running ${test.name} tests...${colors.reset}`);
+      spawnSync('sh', ['-c', test.cmd], { stdio: 'inherit' });
+    }
+  }
+}
+
+// ============================================================================
+// DATA COMMAND
+// ============================================================================
+
+async function handleData(args: string[]): Promise<void> {
+  const subcommand = args[0] || 'status';
+
+  log.header(`📊 Data Analysis`);
+
+  const scriptsDir = join(PROJECT_ROOT, 'scripts');
+
+  if (!subcommand || subcommand === 'status') {
+    console.log(`${colors.bold}Data Analysis Commands:${colors.reset}\n`);
+    console.log(`  ${colors.cyan}ferni data profiles${colors.reset}         - Analyze user profiles`);
+    console.log(`  ${colors.cyan}ferni data behaviors${colors.reset}        - Run behavior inventory`);
+    console.log(`  ${colors.cyan}ferni data tools${colors.reset}            - Analyze tool usage`);
+    console.log(`  ${colors.cyan}ferni data contacts${colors.reset}         - Check contacts data`);
+    console.log(`  ${colors.cyan}ferni data firestore-check${colors.reset}  - Check unsafe Firestore queries`);
+    return;
+  }
+
+  if (subcommand === 'profiles') {
+    console.log(`${colors.cyan}Analyzing profiles...${colors.reset}\n`);
+    spawnSync('sh', ['-c', `npx tsx ${scriptsDir}/analyze-profiles.ts`], { stdio: 'inherit' });
+  }
+
+  if (subcommand === 'behaviors') {
+    console.log(`${colors.cyan}Running behavior inventory...${colors.reset}\n`);
+    spawnSync('sh', ['-c', `npx tsx ${scriptsDir}/behavior-inventory.ts`], { stdio: 'inherit' });
+  }
+
+  if (subcommand === 'tools') {
+    const usage = args.includes('--usage');
+    console.log(`${colors.cyan}Analyzing tool data...${colors.reset}\n`);
+    const cmd = usage
+      ? `npx tsx ${scriptsDir}/analyze-tool-usage.ts`
+      : `npx tsx ${scriptsDir}/build-tool-manifest.ts`;
+    spawnSync('sh', ['-c', cmd], { stdio: 'inherit' });
+  }
+
+  if (subcommand === 'contacts') {
+    console.log(`${colors.cyan}Checking contacts...${colors.reset}\n`);
+    spawnSync('sh', ['-c', `npx tsx ${scriptsDir}/check-contacts.ts`], { stdio: 'inherit' });
+  }
+
+  if (subcommand === 'firestore-check') {
+    console.log(`${colors.cyan}Checking for unsafe Firestore queries...${colors.reset}\n`);
+    spawnSync('sh', ['-c', `npx tsx ${scriptsDir}/check-unsafe-firestore.ts`], { stdio: 'inherit' });
+  }
+}
+
+// ============================================================================
+// AUDIT COMMAND
+// ============================================================================
+
+async function handleAudit(args: string[]): Promise<void> {
+  const subcommand = args[0] || 'status';
+
+  log.header(`🔍 Code & Architecture Audit`);
+
+  const scriptsDir = join(PROJECT_ROOT, 'scripts');
+
+  if (!subcommand || subcommand === 'status') {
+    console.log(`${colors.bold}Audit Commands:${colors.reset}\n`);
+    console.log(`  ${colors.cyan}ferni audit quality${colors.reset}       - Run code quality checks`);
+    console.log(`  ${colors.cyan}ferni audit architecture${colors.reset}  - Validate architecture layers`);
+    console.log(`  ${colors.cyan}ferni audit bth${colors.reset}           - Audit Better Than Human capabilities`);
+    console.log(`  ${colors.cyan}ferni audit tools${colors.reset}         - Validate tool definitions`);
+    console.log(`  ${colors.cyan}ferni audit data-layer${colors.reset}    - Validate data layer`);
+    console.log(`  ${colors.cyan}ferni audit intelligence${colors.reset}  - Validate intelligence system`);
+    console.log(`  ${colors.cyan}ferni audit legacy${colors.reset}        - Find legacy code`);
+    console.log(`  ${colors.cyan}ferni audit a11y${colors.reset}          - Run accessibility audit`);
+    console.log(`  ${colors.cyan}ferni audit all${colors.reset}           - Run all audits`);
+    return;
+  }
+
+  if (subcommand === 'quality') {
+    console.log(`${colors.cyan}Running code quality checks...${colors.reset}\n`);
+    spawnSync('sh', ['-c', 'pnpm quality:check'], { stdio: 'inherit' });
+  }
+
+  if (subcommand === 'architecture') {
+    console.log(`${colors.cyan}Validating architecture layers...${colors.reset}\n`);
+    spawnSync('sh', ['-c', `npx tsx ${scriptsDir}/validate-architecture.ts`], { stdio: 'inherit' });
+  }
+
+  if (subcommand === 'bth') {
+    console.log(`${colors.cyan}Auditing Better Than Human capabilities...${colors.reset}\n`);
+    spawnSync('sh', ['-c', `npx tsx ${scriptsDir}/audit-better-than-human.ts`], { stdio: 'inherit' });
+  }
+
+  if (subcommand === 'tools') {
+    console.log(`${colors.cyan}Validating tool definitions...${colors.reset}\n`);
+    spawnSync('sh', ['-c', `npx tsx ${scriptsDir}/validate-tools.ts`], { stdio: 'inherit' });
+  }
+
+  if (subcommand === 'data-layer') {
+    console.log(`${colors.cyan}Validating data layer...${colors.reset}\n`);
+    spawnSync('sh', ['-c', `npx tsx ${scriptsDir}/validate-data-layer.ts`], { stdio: 'inherit' });
+  }
+
+  if (subcommand === 'intelligence') {
+    console.log(`${colors.cyan}Validating intelligence system...${colors.reset}\n`);
+    spawnSync('sh', ['-c', `npx tsx ${scriptsDir}/validate-intelligence-system.ts`], { stdio: 'inherit' });
+  }
+
+  if (subcommand === 'legacy') {
+    console.log(`${colors.cyan}Finding legacy code patterns...${colors.reset}\n`);
+    spawnSync('sh', ['-c', `npx tsx ${scriptsDir}/find-legacy-code.ts`], { stdio: 'inherit' });
+  }
+
+  if (subcommand === 'a11y') {
+    console.log(`${colors.cyan}Running accessibility audit...${colors.reset}\n`);
+    spawnSync('sh', ['-c', `${scriptsDir}/a11y-audit.sh`], { stdio: 'inherit' });
+  }
+
+  if (subcommand === 'all') {
+    console.log(`${colors.cyan}Running all audits...${colors.reset}\n`);
+
+    const audits = [
+      { name: 'Quality', cmd: 'pnpm quality:check' },
+      { name: 'Architecture', cmd: `npx tsx ${scriptsDir}/validate-architecture.ts` },
+      { name: 'Better Than Human', cmd: `npx tsx ${scriptsDir}/audit-better-than-human.ts` },
+      { name: 'Tools', cmd: `npx tsx ${scriptsDir}/validate-tools.ts` },
+    ];
+
+    for (const audit of audits) {
+      console.log(`\n${colors.bold}Running ${audit.name} audit...${colors.reset}`);
+      spawnSync('sh', ['-c', audit.cmd], { stdio: 'inherit' });
     }
   }
 }
@@ -8460,6 +10362,8 @@ ${colors.bold}Commands:${colors.reset}
       'migrate',
       'deps',
       'auth',
+      'devblog',
+      'icons',
     ],
     Operations: [
       'status',
@@ -8472,6 +10376,10 @@ ${colors.bold}Commands:${colors.reset}
       'debug',
       'integrations',
       'secrets',
+      'ops',
+      'users',
+      'data',
+      'waitlist',
     ],
     'Self-Healing': ['self-heal', 'circuits', 'restart', 'diagnose', 'anomalies'],
     'Agents & Quality': [
@@ -8489,6 +10397,7 @@ ${colors.bold}Commands:${colors.reset}
       'audit',
       'tokens',
       'design',
+      'smoke',
     ],
     'AI Automation': ['ai', 'review', 'copy', 'test-gen', 'docs', 'perf', 'security', 'onboard'],
     'Platform Oversight': [
@@ -8502,6 +10411,7 @@ ${colors.bold}Commands:${colors.reset}
       'runbook',
       'backup',
       'runtime',
+      'calls',
     ],
     'Chaos & Testing': ['chaos', 'experiments'],
     'Developer Experience': ['init', 'context', 'tunnel', 'replay', 'cache', 'notify'],
@@ -8515,7 +10425,28 @@ ${colors.bold}Commands:${colors.reset}
       'costs-ai',
       'api',
     ],
-    'CEO Features': ['goals', 'roster', 'remember'],
+    'CEO Features': [
+      'goals',
+      'roster',
+      'remember',
+      'brain',
+      'briefing',
+      'focus',
+      'reflect',
+      'weekly',
+      'wins',
+      'habits',
+      'energy',
+      'journal',
+      'gratitude',
+      'decisions',
+      'priorities',
+      'blockers',
+      'ideas',
+      'ask',
+      'coach',
+      'meetings',
+    ],
   };
 
   for (const [category, keys] of Object.entries(categories)) {

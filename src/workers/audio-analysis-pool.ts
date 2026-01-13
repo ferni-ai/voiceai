@@ -215,7 +215,7 @@ class AudioAnalysisWorkerPool {
 
     // Find available worker
     const availableWorker = this.workers[this.currentWorkerIndex];
-    if (availableWorker == null) return;
+    if (availableWorker === null) return;
     this.currentWorkerIndex = (this.currentWorkerIndex + 1) % this.workers.length;
 
     // Remove from queue (prevents memory leak)

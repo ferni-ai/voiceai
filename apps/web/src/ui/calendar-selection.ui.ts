@@ -4,6 +4,13 @@
  * Modal for selecting which calendars to sync from external providers.
  * Users can choose specific calendars to sync rather than all of them.
  *
+ * ENHANCED FOR MULTI-PROVIDER SUPPORT:
+ * - Shows all calendars from all connected providers
+ * - Allows per-calendar enable/disable for sync
+ * - Color-codes by provider (Google blue, Apple gray, Outlook blue)
+ * - Shows calendar owner for shared calendars
+ * - Allows setting calendar nicknames
+ *
  * @module ui/calendar-selection
  */
 
@@ -24,9 +31,33 @@ export interface CalendarItem {
   primary: boolean;
   selected: boolean;
   color?: string;
+  /** Provider this calendar belongs to */
+  provider?: CalendarProvider;
+  /** Owner email for shared calendars */
+  owner?: string;
+  /** User-defined nickname for the calendar */
+  nickname?: string;
+  /** Whether this calendar can be edited (vs read-only) */
+  canEdit?: boolean;
+  /** Calendar description */
+  description?: string;
 }
 
 export type CalendarProvider = 'google' | 'apple' | 'outlook';
+
+/** Provider display names */
+const PROVIDER_NAMES: Record<CalendarProvider, string> = {
+  google: 'Google',
+  apple: 'Apple',
+  outlook: 'Outlook',
+};
+
+/** Provider colors for visual grouping */
+const PROVIDER_COLORS: Record<CalendarProvider, string> = {
+  google: '#4285F4',
+  apple: '#555555',
+  outlook: '#0078d4',
+};
 
 // ============================================================================
 // ICONS
@@ -238,7 +269,27 @@ class CalendarSelectionUI {
   }
 
   private renderCalendarItem(calendar: CalendarItem): string {
-    const colorStyle = calendar.color ? `background-color: ${calendar.color}` : '';
+    // Use calendar color if available, otherwise fall back to provider color
+    const color = calendar.color || (calendar.provider ? PROVIDER_COLORS[calendar.provider] : '');
+    const colorStyle = color ? `background-color: ${color}` : '';
+    
+    // Display name (use nickname if set)
+    const displayName = calendar.nickname || calendar.name;
+    
+    // Owner badge for shared calendars
+    const ownerBadge = calendar.owner 
+      ? `<span class="calendar-selection__owner-badge" title="Shared by ${this.escapeHtml(calendar.owner)}">${this.escapeHtml(calendar.owner.split('@')[0])}</span>` 
+      : '';
+    
+    // Provider badge
+    const providerBadge = calendar.provider 
+      ? `<span class="calendar-selection__provider-badge" style="background-color: ${PROVIDER_COLORS[calendar.provider]}20; color: ${PROVIDER_COLORS[calendar.provider]}">${PROVIDER_NAMES[calendar.provider]}</span>`
+      : '';
+    
+    // Read-only indicator
+    const readOnlyBadge = calendar.canEdit === false 
+      ? '<span class="calendar-selection__readonly-badge">Read-only</span>' 
+      : '';
 
     return `
       <label class="calendar-selection__item" data-calendar-id="${calendar.id}">
@@ -250,8 +301,15 @@ class CalendarSelectionUI {
         />
         <span class="calendar-selection__checkmark">${ICONS.check}</span>
         <span class="calendar-selection__color-dot" style="${colorStyle}"></span>
-        <span class="calendar-selection__item-name">${this.escapeHtml(calendar.name)}</span>
-        ${calendar.primary ? '<span class="calendar-selection__primary-badge">Primary</span>' : ''}
+        <div class="calendar-selection__item-content">
+          <span class="calendar-selection__item-name">${this.escapeHtml(displayName)}</span>
+          <div class="calendar-selection__item-badges">
+            ${calendar.primary ? '<span class="calendar-selection__primary-badge">Primary</span>' : ''}
+            ${providerBadge}
+            ${ownerBadge}
+            ${readOnlyBadge}
+          </div>
+        </div>
       </label>
     `;
   }
@@ -627,6 +685,56 @@ class CalendarSelectionUI {
         padding: 2px 8px;
         background: var(--color-accent-primary, #2d5a3d);
         color: white;
+        border-radius: var(--radius-full, 9999px);
+      }
+
+      /* Item content container for multi-line layout */
+      .calendar-selection__item-content {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        min-width: 0;
+      }
+
+      .calendar-selection__item-badges {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+      }
+
+      /* Provider badge styles */
+      .calendar-selection__provider-badge {
+        font-family: var(--font-body);
+        font-size: 10px;
+        font-weight: var(--font-weight-medium, 500);
+        padding: 1px 6px;
+        border-radius: var(--radius-full, 9999px);
+      }
+
+      /* Owner badge for shared calendars */
+      .calendar-selection__owner-badge {
+        font-family: var(--font-body);
+        font-size: 10px;
+        font-weight: var(--font-weight-normal, 400);
+        padding: 1px 6px;
+        background: var(--color-background-tertiary, #ebe6df);
+        color: var(--color-text-muted, #756a5e);
+        border-radius: var(--radius-full, 9999px);
+        max-width: 100px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      /* Read-only badge */
+      .calendar-selection__readonly-badge {
+        font-family: var(--font-body);
+        font-size: 10px;
+        font-weight: var(--font-weight-normal, 400);
+        padding: 1px 6px;
+        background: var(--color-background-secondary, #f5f2ed);
+        color: var(--color-text-muted, #756a5e);
         border-radius: var(--radius-full, 9999px);
       }
 

@@ -277,7 +277,7 @@ export class VoiceTremorDetector {
     // Extract pitch for each frame using YIN algorithm (SIMD-accelerated)
     // ~40x faster than JavaScript autocorrelation (O(n) vs O(n²))
     const pitchResults = detectPitchBatch(samples, sampleRate, frameSize, hopSize, 50, 500);
-    const pitches: number[] = pitchResults.map(r => r.pitchHz);
+    const pitches: number[] = pitchResults.map((r) => r.pitchHz);
     const energies: number[] = [];
 
     // Calculate energy for each frame using native RMS (SIMD-accelerated)

@@ -12,7 +12,7 @@
 import { log } from '@livekit/agents';
 import type { AudioFrame } from '@livekit/rtc-node';
 import type { ReadableStream } from 'node:stream/web';
-import { getDJBooth } from '../../audio/index.js';
+import { getDJController } from '../../audio/index.js';
 import { isExperimentalEnabled } from '../../config/feature-flags.js';
 import { getSessionFlags } from '../../config/voice-humanization-flags.js';
 import { getEmotionalArcTracker } from '../../conversation/index.js';
@@ -927,34 +927,17 @@ async function sendEmotionUpdates(
     // Music player not available
   }
 
-  // DJ booth emotion tracking
-  const booth = getDJBooth();
-  if (booth) {
-    booth.trackEmotion(voiceEmotion.primary);
-
-    // Offer music for strong emotions
-    const strongEmotions = ['sad', 'anxious', 'frustrated', 'excited', 'stressed'];
-    if (
-      strongEmotions.includes(voiceEmotion.primary) &&
-      voiceEmotion.confidence > 0.6 &&
-      Math.random() < 0.1 &&
-      !booth.isPlayingMusic()
-    ) {
-      const musicOffer = booth.getEmotionMusicOffer(voiceEmotion.primary);
-      if (musicOffer) {
-        setTimeout(() => {
-          const currentBooth = getDJBooth();
-          if (
-            currentBooth &&
-            !currentBooth.isPlayingMusic() &&
-            !getConversationManager().isAgentSpeaking()
-          ) {
-            currentBooth.speakOverMusic(musicOffer.offer);
-          }
-        }, 3000);
-      }
-    }
+  // DJ Controller - emotion-based music offers are now handled by the music humanization system
+  // The new architecture separates concerns: emotion tracking goes to emotional-arc.ts,
+  // music offers go through the DJ decision engine when appropriate
+  const djController = getDJController();
+  if (djController.isMusicActive()) {
+    // Don't interrupt music with emotion-based offers
+    return;
   }
+
+  // Strong emotion music offers are now handled by the proactive music system
+  // See: src/audio/music-humanization.ts → getEmotionalMirrorOffer()
 }
 
 // ============================================================================

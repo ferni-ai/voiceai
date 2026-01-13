@@ -27,6 +27,7 @@ import {
   formatLocationName,
   type GeocodingResult,
 } from './utils/geocoding.js';
+import { getCurrentSessionLocation, isValidLocation } from './location-preference.js';
 
 // ============================================================================
 // GOOGLE WEATHER API
@@ -506,17 +507,55 @@ export async function getWeatherForecast(location: string, days = 5): Promise<st
 export function createWeatherTools() {
   const logger = getLogger();
 
+  /**
+   * Resolve location from args or session context.
+   * Native tools don't receive userId/userLocation in their execute function,
+   * so we fall back to the current active session's location.
+   */
+  function resolveLocation(argLocation?: string): string | null {
+    // If a valid location was provided, use it
+    if (isValidLocation(argLocation)) {
+      return argLocation!;
+    }
+
+    // Fall back to current active session location
+    const sessionLocation = getCurrentSessionLocation();
+    if (sessionLocation) {
+      logger.info(
+        { argLocation, sessionLocation, source: 'session-fallback' },
+        '🌤️ Using session location as fallback'
+      );
+      return sessionLocation;
+    }
+
+    // No location available
+    logger.warn(
+      { argLocation },
+      '🌤️ No location available - neither from args nor session'
+    );
+    return null;
+  }
+
   return {
     getWeather: llm.tool({
       description: getToolDescription('getWeather'),
       parameters: z.object({
         location: z
           .string()
-          .describe('City name (e.g., "Philadelphia", "New York", "Denver", "London")'),
+          .optional()
+          .describe(
+            'City name (e.g., "Philadelphia", "New York"). Optional - defaults to user\'s detected location.'
+          ),
       }),
-      execute: async ({ location }) => {
+      execute: async ({ location: argLocation }) => {
         const startTime = Date.now();
-        logger.info({ location }, '🌤️ Weather tool called');
+        const location = resolveLocation(argLocation);
+
+        if (!location) {
+          return "I don't know your location. Which city would you like weather for?";
+        }
+
+        logger.info({ argLocation, resolvedLocation: location }, '🌤️ Weather tool called');
 
         try {
           const result = await getCurrentWeather(location);
@@ -536,12 +575,21 @@ export function createWeatherTools() {
     getWeatherForecast: llm.tool({
       description: getToolDescription('getWeatherForecast'),
       parameters: z.object({
-        location: z.string().describe('City name'),
+        location: z
+          .string()
+          .optional()
+          .describe('City name. Optional - defaults to user\'s detected location.'),
         days: z.number().optional().describe('Number of days to forecast (1-7), defaults to 5'),
       }),
-      execute: async ({ location, days = 5 }) => {
+      execute: async ({ location: argLocation, days = 5 }) => {
         const startTime = Date.now();
-        logger.info({ location, days }, '📅 Weather forecast tool called');
+        const location = resolveLocation(argLocation);
+
+        if (!location) {
+          return "I don't know your location. Which city would you like the forecast for?";
+        }
+
+        logger.info({ argLocation, resolvedLocation: location, days }, '📅 Weather forecast tool called');
 
         try {
           const result = await getWeatherForecast(location, Math.min(days, 7));

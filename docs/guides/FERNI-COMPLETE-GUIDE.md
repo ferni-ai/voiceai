@@ -337,7 +337,7 @@ src/
 │   ├── bundles/          # Persona definitions (JSON + MD)
 │   │   ├── ferni/
 │   │   ├── jack-bogle/
-│   │   ├── peter-lynch/
+│   │   ├── peter-john/
 │   │   ├── alex-chen/
 │   │   ├── maya-santos/
 │   │   └── jordan-taylor/

@@ -361,17 +361,263 @@ function buildTablet(
 }
 
 // ============================================================================
+// SMALL MULTIPLES (TUFTE-INSPIRED COMPARISON)
+// ============================================================================
+
+/**
+ * Configuration for small multiples comparison view.
+ * Enables side-by-side period comparison following Tufte's principles.
+ */
+export interface SmallMultiplesConfig {
+  /** Array of datasets to compare (e.g., this week vs last week) */
+  datasets: MoodCalendarData[];
+  /** Labels for each dataset (e.g., ['This Week', 'Last Week']) */
+  labels: string[];
+  /** Use shared scale across all panels (Tufte: ALWAYS true for honest comparison) */
+  sharedScale?: boolean;
+  /** Show difference highlights between panels */
+  showDifferences?: boolean;
+  /** Layout: 'row' for horizontal, 'grid' for responsive */
+  layout?: 'row' | 'grid';
+  /** Annotations level: 'minimal' (Tufte-preferred) or 'none' */
+  annotations?: 'minimal' | 'none';
+}
+
+/**
+ * Build small multiples comparison view (Tufte-inspired).
+ *
+ * Tufte's Principle: "Small multiples are economical: once viewers understand
+ * the design of one slice, they have immediate access to the data in all the
+ * other slices. Thus as the eye moves from one slice to the next, the
+ * constancy of the design allows the viewer to focus on changes in the data."
+ */
+function buildSmallMultiples(
+  container: HTMLElement,
+  config: SmallMultiplesConfig,
+  context: DeviceContext
+): VisualizationResult {
+  container.replaceChildren();
+
+  const { datasets, labels, sharedScale = true, showDifferences = false, layout = 'row', annotations = 'minimal' } = config;
+
+  // Validate we have matching datasets and labels
+  if (datasets.length !== labels.length || datasets.length < 2) {
+    throw new Error('SmallMultiples requires at least 2 datasets with matching labels');
+  }
+
+  // Header
+  const header = createElement('div', 'viz-header');
+  const title = createElement('h3', 'viz-header__title', t('visualizations.moodCalendar.compare', 'Compare Periods'));
+  const subtitle = createElement('p', 'viz-header__subtitle',
+    t('visualizations.moodCalendar.compareSubtitle', 'Side-by-side mood comparison'));
+  header.appendChild(title);
+  header.appendChild(subtitle);
+  container.appendChild(header);
+
+  // Grid container for multiples
+  const multiplesGrid = createElement('div', 'viz-small-multiples');
+  const columns = context.type === 'mobile' ? 1 : Math.min(datasets.length, 4);
+
+  setStyles(multiplesGrid, {
+    display: 'grid',
+    gridTemplateColumns: layout === 'row' ? `repeat(${columns}, 1fr)` : 'repeat(auto-fit, minmax(200px, 1fr))',
+    gap: 'var(--viz-space-pause)',
+    padding: 'var(--viz-space-breath)',
+  });
+
+  // Calculate shared scale if needed (Tufte: essential for honest comparison)
+  let globalMoodCounts: Record<MoodType, number> | undefined;
+  if (sharedScale) {
+    // Initialize all MoodType values to 0
+    globalMoodCounts = {
+      calm: 0,
+      joyful: 0,
+      anxious: 0,
+      tired: 0,
+      focused: 0,
+      reflective: 0,
+      stressed: 0,
+      energized: 0,
+      peaceful: 0,
+      uncertain: 0,
+    };
+    datasets.forEach(dataset => {
+      dataset.entries.forEach(entry => {
+        globalMoodCounts![entry.mood]++;
+      });
+    });
+  }
+
+  // Render each panel
+  datasets.forEach((dataset, index) => {
+    const panel = createElement('div', 'viz-small-multiple-panel viz-card viz-animate-slide');
+    // Use data attribute for stagger animation instead of CSS custom property
+    panel.dataset.staggerIndex = String(index);
+    panel.style.setProperty('--stagger-delay', `${index * 50}ms`);
+
+    // Panel label (Tufte: minimal, direct labeling)
+    if (annotations === 'minimal') {
+      const labelEl = createElement('div', 'viz-small-multiple-label');
+      setStyles(labelEl, {
+        fontSize: 'var(--viz-text-sm)',
+        fontWeight: '500',
+        color: CSS_COLOR_VARS.textPrimary,
+        marginBottom: 'var(--viz-space-2xs)',
+        textAlign: 'center',
+      });
+      labelEl.textContent = labels[index] ?? `Period ${index + 1}`;
+      panel.appendChild(labelEl);
+    }
+
+    // Mini calendar grid (7 columns for week view)
+    const miniGrid = createElement('div', 'viz-mini-calendar');
+    const entries = getLastNEntries(dataset.entries, 7);
+
+    setStyles(miniGrid, {
+      display: 'grid',
+      gridTemplateColumns: 'repeat(7, 1fr)',
+      gap: '2px',
+      aspectRatio: '7/1',
+    });
+
+    // Day abbreviations (Tufte: minimal, only if first panel or annotations enabled)
+    if (index === 0 && annotations === 'minimal') {
+      const dayRow = createElement('div', 'viz-day-row');
+      setStyles(dayRow, {
+        display: 'grid',
+        gridTemplateColumns: 'repeat(7, 1fr)',
+        gap: '2px',
+        marginBottom: '4px',
+      });
+
+      DAYS_SHORT.forEach(day => {
+        const dayLabel = createElement('span', 'viz-day-abbr');
+        setStyles(dayLabel, {
+          fontSize: '9px',
+          textAlign: 'center',
+          color: CSS_COLOR_VARS.textMuted,
+          opacity: '0.7',
+        });
+        dayLabel.textContent = day;
+        dayRow.appendChild(dayLabel);
+      });
+      panel.appendChild(dayRow);
+    }
+
+    // Mood cells
+    entries.forEach((entry, dayIndex) => {
+      const cell = createElement('div', 'viz-mood-cell-mini');
+
+      setStyles(cell, {
+        aspectRatio: '1',
+        borderRadius: 'var(--viz-radius-xs)',
+        background: entry ? MOOD_CSS_VARS[entry.mood] : 'var(--viz-border-subtle)',
+        opacity: entry ? '0.85' : '0.2',
+        transition: 'transform var(--viz-duration-fast) var(--viz-ease-spring)',
+      });
+
+      // Show difference indicator if enabled
+      if (showDifferences && index > 0 && datasets[0]) {
+        const firstDataset = datasets[0];
+        const compareEntry = getLastNEntries(firstDataset.entries, 7)[dayIndex];
+        if (entry && compareEntry && entry.mood !== compareEntry.mood) {
+          // Different mood - add subtle indicator
+          setStyles(cell, {
+            boxShadow: '0 0 0 2px var(--viz-color-accent)',
+          });
+        }
+      }
+
+      if (entry) {
+        cell.title = `${entry.date}: ${capitalize(entry.mood)}`;
+      }
+
+      miniGrid.appendChild(cell);
+    });
+
+    panel.appendChild(miniGrid);
+
+    // Summary stat (Tufte: one key metric, directly labeled)
+    if (annotations === 'minimal') {
+      const stat = createElement('div', 'viz-mini-stat');
+      setStyles(stat, {
+        fontSize: 'var(--viz-text-xs)',
+        color: CSS_COLOR_VARS.textMuted,
+        textAlign: 'center',
+        marginTop: 'var(--viz-space-2xs)',
+      });
+      stat.textContent = `${dataset.summary.calmDays} calm`;
+      panel.appendChild(stat);
+    }
+
+    multiplesGrid.appendChild(panel);
+  });
+
+  container.appendChild(multiplesGrid);
+
+  // Comparison insight (Tufte: let data speak, but one guiding sentence)
+  if (datasets.length >= 2 && datasets[0] && datasets[1]) {
+    const firstCalmDays = datasets[0].summary.calmDays;
+    const secondCalmDays = datasets[1].summary.calmDays;
+    const diff = firstCalmDays - secondCalmDays;
+
+    if (Math.abs(diff) >= 1) {
+      const insight = createElement('p', 'viz-insight viz-animate-fade');
+      setStyles(insight, {
+        fontSize: 'var(--viz-text-sm)',
+        color: CSS_COLOR_VARS.textSecondary,
+        textAlign: 'center',
+        marginTop: 'var(--viz-space-breath)',
+        fontStyle: 'italic',
+      });
+
+      const betterPeriod = diff > 0 ? labels[0] : labels[1];
+      insight.textContent = t(
+        'visualizations.moodCalendar.comparisonInsight',
+        `${betterPeriod} had ${Math.abs(diff)} more calm ${Math.abs(diff) === 1 ? 'day' : 'days'}.`
+      );
+      container.appendChild(insight);
+    }
+  }
+
+  // Screen reader summary
+  const allCalmDays = datasets.map((d, i) => `${labels[i]}: ${d.summary.calmDays} calm days`).join(', ');
+  container.appendChild(
+    createScreenReaderLabel(`Mood comparison: ${allCalmDays}`)
+  );
+
+  return {
+    element: container,
+    type: 'mood-calendar',
+    device: context.type,
+    ariaLabel: `Mood calendar comparison with ${datasets.length} periods`,
+  };
+}
+
+// ============================================================================
 // MAIN BUILDER
 // ============================================================================
 
 /**
  * Build mood calendar visualization for the given device context.
+ *
+ * @param container - HTML element to render into
+ * @param data - Single period mood data
+ * @param context - Device context for responsive rendering
+ * @param comparison - Optional: compare multiple periods (Tufte small multiples)
  */
 export function buildMoodCalendar(
   container: HTMLElement,
   data: MoodCalendarData,
-  context: DeviceContext
+  context: DeviceContext,
+  comparison?: SmallMultiplesConfig
 ): VisualizationResult {
+  // If comparison config provided, use small multiples view
+  if (comparison) {
+    return buildSmallMultiples(container, comparison, context);
+  }
+
+  // Standard single-period view
   switch (context.type) {
     case 'watch':
       return buildWatch(container, data);

@@ -506,6 +506,39 @@ class CalendarSettingsUI {
         </div>
 
         ${this.hasAnyProviderConnected() ? `
+        <div class="calendar-settings__notifications-section">
+          <h3 class="calendar-settings__section-title">Notifications</h3>
+          <div class="calendar-settings__notification-toggles">
+            <label class="calendar-settings__toggle">
+              <input type="checkbox" data-setting="preMeetingReminder" checked>
+              <span class="calendar-settings__toggle-label">
+                <span class="calendar-settings__toggle-title">Meeting reminders</span>
+                <span class="calendar-settings__toggle-desc">Get notified 15 minutes before meetings</span>
+              </span>
+            </label>
+            <label class="calendar-settings__toggle">
+              <input type="checkbox" data-setting="meetingBriefing" checked>
+              <span class="calendar-settings__toggle-label">
+                <span class="calendar-settings__toggle-title">Meeting briefings</span>
+                <span class="calendar-settings__toggle-desc">Enriched context about attendees and past discussions</span>
+              </span>
+            </label>
+            <label class="calendar-settings__toggle">
+              <input type="checkbox" data-setting="postMeetingFollowup">
+              <span class="calendar-settings__toggle-label">
+                <span class="calendar-settings__toggle-title">Post-meeting follow-up</span>
+                <span class="calendar-settings__toggle-desc">Prompt to capture action items after meetings</span>
+              </span>
+            </label>
+            <label class="calendar-settings__toggle">
+              <input type="checkbox" data-setting="weeklyDigest" checked>
+              <span class="calendar-settings__toggle-label">
+                <span class="calendar-settings__toggle-title">Weekly digest</span>
+                <span class="calendar-settings__toggle-desc">Sunday evening preview of your week ahead</span>
+              </span>
+            </label>
+          </div>
+        </div>
         <div class="calendar-settings__conflicts-section">
           <button aria-label="${t('accessibility.viewSyncConflicts')}" class="calendar-settings__btn calendar-settings__btn--small calendar-settings__btn--ghost calendar-settings__btn--full" data-action="show-conflicts">
             ${ICONS.alert}
@@ -621,6 +654,61 @@ class CalendarSettingsUI {
     this.wrapper?.querySelector('[data-action="show-conflicts"]')?.addEventListener('click', () => {
       showCalendarConflicts();
     });
+
+    // Notification toggle listeners
+    this.wrapper?.querySelectorAll('.calendar-settings__toggle input[type="checkbox"]').forEach(input => {
+      input.addEventListener('change', async (e) => {
+        const checkbox = e.target as HTMLInputElement;
+        const setting = checkbox.dataset.setting;
+        if (setting) {
+          await this.saveNotificationPreference(setting, checkbox.checked);
+        }
+      });
+    });
+
+    // Load notification preferences
+    void this.loadNotificationPreferences();
+  }
+
+  // ============================================================================
+  // NOTIFICATION PREFERENCES
+  // ============================================================================
+
+  private async loadNotificationPreferences(): Promise<void> {
+    try {
+      const userId = this.getUserId();
+      const res = await apiGet<{ preferences: Record<string, boolean> }>(
+        `/api/calendar/notification-preferences?userId=${encodeURIComponent(userId)}`
+      );
+      
+      if (res.ok && res.data?.preferences) {
+        const prefs = res.data.preferences;
+        // Apply saved preferences to toggles
+        Object.entries(prefs).forEach(([key, value]) => {
+          const checkbox = this.wrapper?.querySelector(
+            `input[data-setting="${key}"]`
+          ) as HTMLInputElement | null;
+          if (checkbox) {
+            checkbox.checked = value;
+          }
+        });
+      }
+    } catch {
+      // Silently fail - defaults are fine
+    }
+  }
+
+  private async saveNotificationPreference(setting: string, enabled: boolean): Promise<void> {
+    try {
+      const userId = this.getUserId();
+      await apiPost('/api/calendar/notification-preferences', {
+        userId,
+        setting,
+        enabled,
+      });
+    } catch {
+      // Silently fail - will try again on next toggle
+    }
   }
 
   // ============================================================================
@@ -1533,6 +1621,68 @@ class CalendarSettingsUI {
 
       @keyframes calendar-spin {
         to { transform: rotate(360deg); }
+      }
+
+      /* ========================================================================
+         NOTIFICATIONS SECTION
+         ======================================================================== */
+      .calendar-settings__notifications-section {
+        margin-top: var(--ma-rest, 21px);
+        padding-top: var(--ma-breath, 13px);
+        border-top: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
+      }
+
+      .calendar-settings__section-title {
+        font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
+        font-size: var(--text-sm, 0.875rem);
+        font-weight: var(--font-weight-semibold, 600);
+        color: var(--color-text-secondary, #5c544a);
+        margin: 0 0 var(--ma-breath, 13px) 0;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+
+      .calendar-settings__notification-toggles {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-2, 8px);
+      }
+
+      .calendar-settings__toggle {
+        display: flex;
+        align-items: flex-start;
+        gap: var(--space-3, 12px);
+        padding: var(--space-2, 8px) 0;
+        cursor: pointer;
+      }
+
+      .calendar-settings__toggle input[type="checkbox"] {
+        width: 18px;
+        height: 18px;
+        margin: 2px 0 0 0;
+        accent-color: var(--color-accent-primary, #2d5a3d);
+        cursor: pointer;
+        flex-shrink: 0;
+      }
+
+      .calendar-settings__toggle-label {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+
+      .calendar-settings__toggle-title {
+        font-family: var(--font-body);
+        font-size: var(--text-sm, 0.875rem);
+        font-weight: var(--font-weight-medium, 500);
+        color: var(--color-text-primary, #2c2520);
+      }
+
+      .calendar-settings__toggle-desc {
+        font-family: var(--font-body);
+        font-size: var(--text-xs, 0.75rem);
+        color: var(--color-text-muted, #756a5e);
+        line-height: 1.4;
       }
 
       /* ========================================================================

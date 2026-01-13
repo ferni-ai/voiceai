@@ -6,20 +6,61 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-// Mock logger
-vi.mock('../../../utils/safe-logger.js', () => ({
-  createLogger: () => ({
+// Mock logger - must include both createLogger and getLogger
+vi.mock('../../../utils/safe-logger.js', () => {
+  const mockLogger = {
     debug: vi.fn(),
     info: vi.fn(),
     warn: vi.fn(),
     error: vi.fn(),
-    child: vi.fn(() => ({ debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() })),
-  }),
-}));
+    child: () => mockLogger,
+  };
+  return {
+    createLogger: () => mockLogger,
+    getLogger: () => mockLogger,
+  };
+});
 
 // Mock Firestore
 vi.mock('../../../memory/firestore/firestore-utils.js', () => ({
   getFirestoreDb: vi.fn(() => null),
+
+  cleanForFirestore: vi.fn((obj) => {
+    if (obj === null || obj === undefined) return obj;
+    if (obj instanceof Date) return obj.toISOString();
+    if (Array.isArray(obj)) return obj.map((item) => item);
+    if (typeof obj === 'object') {
+      const result: Record<string, unknown> = {};
+      for (const [key, value] of Object.entries(obj)) {
+        if (value !== undefined) {
+          result[key] = value;
+        }
+      }
+      return result;
+    }
+    return obj;
+  }),
+  removeUndefined: vi.fn((obj) => {
+    if (!obj) return obj;
+    const result: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(obj)) {
+      if (value !== undefined) {
+        result[key] = value;
+      }
+    }
+    return result;
+  }),
+  deepRemoveUndefined: vi.fn((obj) => obj),
+  recordDegradation: vi.fn(),
+  getFirestoreHealth: vi.fn(() => ({
+    dbAvailable: true,
+    initialized: true,
+    initializationError: null,
+    degradationCount: 0,
+    recentDegradations: [],
+    lastDegradationAt: null,
+  })),
+  resetFirestoreInstance: vi.fn(),
 }));
 
 // Mock Google Cloud Vision

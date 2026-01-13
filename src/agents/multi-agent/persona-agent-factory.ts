@@ -22,7 +22,9 @@ import type { AgentCreationContext, PersonaAgent } from './orchestrator.js';
 // Speech coordination for centralized speech management
 import { initializeSpeechCoordination } from '../../speech/coordination/index.js';
 // Centralized generateReply gateway - handles session readiness
-import { prewarmSession } from '../shared/generate-reply-gateway.js';
+import { markSessionReady, prewarmSession } from '../shared/generate-reply-gateway.js';
+// Model provider abstraction
+import { getModelProvider } from '../model-provider/index.js';
 
 const log = getLogger();
 
@@ -196,37 +198,66 @@ export function createPersonaAgentFactory(factoryConfig: PersonaAgentFactoryConf
       log.info({ personaId, agentInstanceId }, '🎭 Agent session started successfully');
 
       // =========================================================================
-      // GEMINI PREWARM: SYNCHRONOUS to prevent double connection
+      // PREWARM: SYNCHRONOUS to prevent double connection (provider-dependent)
       // =========================================================================
       // FIX: The SDK was creating 2 WebSocket connections because we were
       // firing prewarm async and the greeting raced ahead. By waiting for
       // prewarm to complete (with timeout), we establish ONE stable connection.
       // =========================================================================
-      const useOpenAI = process.env.USE_OPENAI_REALTIME === 'true';
+      const provider = getModelProvider();
       const SKIP_PREWARM = process.env.SKIP_GEMINI_PREWARM === 'true';
 
-      if (!useOpenAI && !context.isHandoff && !SKIP_PREWARM) {
+      if (provider.needsPrewarm() && !context.isHandoff && !SKIP_PREWARM) {
         mark('prewarm_start');
-        // SYNCHRONOUS prewarm with 3s timeout - establishes stable Gemini connection
+        // SYNCHRONOUS prewarm - establishes stable Gemini connection
         // This prevents the double connection issue where SDK created 2 WebSockets
+        //
+        // NOTE: prewarmSession() has its own internal 5s timeout (in generate-reply-gateway.ts)
+        // We don't add another timeout here to avoid race conditions and duplicate logs.
+        // If prewarm fails or times out, it returns false and we mark session ready anyway.
         try {
           const prewarmStart = Date.now();
-          const prewarmResult = await Promise.race([
-            prewarmSession(agentSetup.session, sessionId),
-            new Promise<boolean>((resolve) => setTimeout(() => resolve(false), 3000)),
-          ]);
+          const prewarmResult = await prewarmSession(agentSetup.session, sessionId);
           const prewarmMs = Date.now() - prewarmStart;
           if (prewarmResult) {
             log.info({ personaId, prewarmMs }, '🔥 Prewarm complete (sync)');
           } else {
-            log.warn({ personaId, prewarmMs }, '⚠️ Prewarm timeout (3s) - proceeding anyway');
+            // prewarmSession() already logged the timeout/failure reason
+            // We just need to mark the session ready for lazy connection
+            log.info(
+              { personaId, prewarmMs },
+              '⚠️ Prewarm incomplete - session marked ready for lazy connection'
+            );
+            markSessionReady(sessionId);
           }
         } catch (prewarmErr) {
-          log.warn({ personaId, error: String(prewarmErr) }, '⚠️ Prewarm failed - proceeding anyway');
+          // FIX: Even on error, mark session ready so it can proceed with lazy connection
+          log.warn(
+            { personaId, error: String(prewarmErr) },
+            '⚠️ Prewarm failed - marking session ready anyway'
+          );
+          markSessionReady(sessionId);
         }
         mark('prewarm_done');
       } else if (SKIP_PREWARM) {
-        log.info({ personaId }, '⏭️ Prewarm skipped (SKIP_GEMINI_PREWARM=true)');
+        // FIX: When skipping prewarm, we still need to mark the session ready!
+        log.info(
+          { personaId },
+          '⏭️ Prewarm skipped (SKIP_GEMINI_PREWARM=true) - marking session ready'
+        );
+        markSessionReady(sessionId);
+      } else if (!provider.needsPrewarm()) {
+        // Provider doesn't need prewarm - mark session ready immediately
+        log.info(
+          { personaId, providerId: provider.id },
+          `${provider.getLogPrefix()} No prewarm needed - marking session ready`
+        );
+        markSessionReady(sessionId);
+      } else if (context.isHandoff) {
+        // Handoff sessions inherit readiness from the original session
+        // but we should still mark them ready to be safe
+        log.info({ personaId }, '🔄 Handoff session - marking session ready');
+        markSessionReady(sessionId);
       }
 
       // Initialize speech coordination for this agent's session

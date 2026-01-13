@@ -268,6 +268,20 @@ async function saveMilestone(milestone: RelationshipMilestone): Promise<void> {
   const milestones = milestoneCache.get(milestone.userId) || [];
   milestones.unshift(milestone);
   milestoneCache.set(milestone.userId, milestones);
+
+  // Memory Lane: Capture milestone as potential memory
+  try {
+    const { captureMilestone } = await import('../memory-lane/real-time-collector.js');
+    void captureMilestone({
+      userId: milestone.userId,
+      milestoneId: milestone.id,
+      title: milestone.title,
+      description: milestone.description,
+      type: milestone.type,
+    });
+  } catch {
+    // Memory capture is optional
+  }
 }
 
 export async function acknowledgeMilestone(userId: string, milestoneId: string): Promise<void> {

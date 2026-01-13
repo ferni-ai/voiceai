@@ -25,7 +25,7 @@
 import { createLogger } from '../../utils/safe-logger.js';
 import { getEntityResolver } from '../entity-store/entity-resolver.js';
 import { getCorrelationEngine } from '../entity-store/correlation-engine.js';
-import { getFirestoreDb, cleanForFirestore } from '../../services/superhuman/firestore-utils.js';
+import { getFirestoreDb, cleanForFirestore } from '../../utils/firestore-utils.js';
 import type {
   Entity,
   Fact,

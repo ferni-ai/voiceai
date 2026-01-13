@@ -875,7 +875,7 @@ async function handleSave(): Promise<void> {
       closeLogMoment();
     } else {
       const error = await response.json().catch(() => ({ error: 'Unknown error' }));
-      toast.error(error.error || 'Could not save moment');
+      toast.error(error.error || "Couldn't save that. Try again?");
       state.isSubmitting = false;
       render();
     }

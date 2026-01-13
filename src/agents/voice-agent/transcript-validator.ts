@@ -117,6 +117,19 @@ const NOISE_PATTERNS = [
   /^\s*ah+\s*$/i, // Just "ah"
 ];
 
+/**
+ * Patterns that indicate likely echo of agent speech - questions the agent would ask
+ * These are grammatically broken phrases that occur when echo gets garbled by STT
+ */
+const LIKELY_ECHO_PATTERNS = [
+  /^do you want to\s+\w+\??$/i, // "Do you want to phone number?" (missing article)
+  /^would you like to\s+\w+\??$/i, // Similar pattern
+  /^can you\s+\w+\??$/i, // "Can you something?" (incomplete)
+  /^should i\s+\w+\??$/i, // Agent asking "Should I..."
+  /^let me\s+\w+$/i, // Agent saying "Let me..."
+  /^i('ll| will)\s+\w+$/i, // Agent saying "I'll..." (incomplete)
+];
+
 // ============================================================================
 // MAIN VALIDATOR
 // ============================================================================
@@ -261,6 +274,29 @@ export function validateTranscript(
         confidence: similarity,
         transcript,
       };
+    }
+  }
+
+  // =========================================================================
+  // CHECK 5b: Likely echo patterns (garbled agent speech)
+  // Within echo window, check for patterns that look like mangled agent questions
+  // e.g., "Do you want to phone number?" - grammatically broken, likely echo
+  // =========================================================================
+  if (inEchoWindow) {
+    for (const pattern of LIKELY_ECHO_PATTERNS) {
+      if (pattern.test(trimmed)) {
+        log.debug('Transcript rejected: likely garbled echo pattern', {
+          transcript: trimmed.slice(0, 50),
+          pattern: pattern.source,
+          timeSinceAgentSpoke: context.timeSinceAgentSpoke,
+        });
+        return {
+          isValid: false,
+          reason: 'echo_detected',
+          confidence: 0.85,
+          transcript,
+        };
+      }
     }
   }
 

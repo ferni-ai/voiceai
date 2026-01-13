@@ -1,15 +1,16 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    // Relax type checking for build to pass while systems are being refactored
-    "noImplicitAny": false,
-    "strict": false,
-    "strictNullChecks": false,
-    "strictPropertyInitialization": false,
-    "noImplicitReturns": false,
+    // PRODUCTION BUILD CONFIG
+    // Inherit strict settings from base tsconfig - DO NOT RELAX!
+    // skipLibCheck handles library .d.ts issues (LiveKit, Google Cloud)
     "skipLibCheck": true,
-    // Ignore errors - allow build to succeed
-    "noEmitOnError": false,
+
+    // CRITICAL: Stop build on type errors
+    // If this causes build failures, FIX THE CODE - don't disable this
+    "noEmitOnError": true,
+
+    // Remove comments in production for smaller bundle
     "removeComments": true
   },
   "exclude": [
@@ -19,12 +20,6 @@
     "src/services/trust-systems/__tests__/**/*",
     "**/*.test.ts",
     "**/*.spec.ts",
-    "**/__tests__/**/*",
-    "src/conversation/humanization/persistence.ts",
-    "src/conversation/humanization/prosody-bridge.ts",
-    "src/marketplace/**/*",
-    "src/tasks/scheduled/marketplace-billing-jobs.ts",
-    "src/api/scheduled-jobs-handler.ts",
-    "src/api/marketplace-routes.ts"
+    "**/__tests__/**/*"
   ]
 }

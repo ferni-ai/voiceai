@@ -22,6 +22,7 @@ import type { Room, RemoteParticipant } from '@livekit/rtc-node';
 import { getLogger } from '../../utils/safe-logger.js';
 import { diag } from '../../services/diagnostic-logger.js';
 import type { UserData } from '../shared/types.js';
+import { getPersonaDisplayName } from '../../personas/voice-registry.js';
 
 const log = getLogger();
 
@@ -661,40 +662,60 @@ export class AgentOrchestrator {
 
   /**
    * Make the current agent say goodbye naturally.
+   *
+   * HANDOFF FIX: Added retry and direct session fallback to ensure goodbye plays
+   * even if the coordinated speech system has issues (matching agentGreets pattern).
    */
   private async agentSaysGoodbye(agent: PersonaAgent, targetPersonaId: string): Promise<void> {
     const goodbye = this.getGoodbyePhrase(agent.personaId, targetPersonaId);
+    const displayName = getPersonaDisplayName(targetPersonaId);
+    const textToSpeak = goodbye || `Let me get ${displayName} for you.`;
 
     log.info(
       {
         from: agent.personaId,
         to: targetPersonaId,
         hasGoodbye: !!goodbye,
-        goodbyePreview: goodbye?.slice(0, 60),
+        goodbyePreview: textToSpeak?.slice(0, 60),
       },
       '🎭 [GOODBYE] Preparing goodbye speech...'
     );
 
-    if (goodbye) {
-      const duration = this.estimateSpeechDuration(goodbye);
-      diag.entry(`🎭 ${agent.personaId} goodbye: "${goodbye.slice(0, 50)}..."`);
-      log.info(
-        { personaId: agent.personaId, estimatedDurationMs: duration },
-        '🎭 [GOODBYE] Speaking...'
+    const duration = this.estimateSpeechDuration(textToSpeak);
+    diag.entry(`🎭 ${agent.personaId} goodbye: "${textToSpeak.slice(0, 50)}..."`);
+    log.info(
+      { personaId: agent.personaId, estimatedDurationMs: duration },
+      '🎭 [GOODBYE] Speaking...'
+    );
+
+    // HANDOFF FIX: Try coordinated speech first, fall back to direct session.say
+    // This ensures the goodbye plays even if speech coordination has issues.
+    try {
+      agent.say(textToSpeak, { allowInterruptions: false });
+    } catch (sayError) {
+      log.warn(
+        { personaId: agent.personaId, error: String(sayError) },
+        '🎭 [GOODBYE] Coordinated say failed, trying direct session speak...'
       );
 
-      // Say goodbye naturally - no muting, let it flow
-      agent.say(goodbye, { allowInterruptions: false });
-      await this.waitForSpeechComplete(duration);
-
-      log.info({ personaId: agent.personaId }, '🎭 [GOODBYE] Wait complete');
-    } else {
-      // Even without banter, say a minimal goodbye
-      const fallback = `Let me get ${targetPersonaId.split('-')[0]} for you.`;
-      log.info({ personaId: agent.personaId, fallback }, '🎭 [GOODBYE] Using fallback');
-      agent.say(fallback, { allowInterruptions: false });
-      await this.waitForSpeechComplete(1500);
+      // Fallback: Try direct session.say if coordinated speech fails
+      try {
+        const session = agent.session as { say?: (text: string, opts?: unknown) => void };
+        if (session?.say) {
+          session.say(textToSpeak, { allowInterruptions: false });
+          log.info({ personaId: agent.personaId }, '🎭 [GOODBYE] Direct session speak succeeded');
+        }
+      } catch (directError) {
+        log.error(
+          { personaId: agent.personaId, error: String(directError) },
+          '🎭 [GOODBYE] ❌ Both coordinated and direct speech failed!'
+        );
+        // Don't throw - handoff should still complete even without goodbye
+      }
     }
+
+    await this.waitForSpeechComplete(duration);
+    log.info({ personaId: agent.personaId }, '🎭 [GOODBYE] Wait complete');
   }
 
   /**
@@ -754,6 +775,23 @@ export class AgentOrchestrator {
       }
     }
 
+    // ⚡ FAST-AGENT-JOIN: Wire deferred handlers in background after greeting starts
+    // Handlers run in parallel with speech - user hears greeting while handlers wire
+    // BUG FIX: This was missing for handoff agents! Without it, transcript/tools don't work.
+    if (agent.wireHandlers) {
+      agent
+        .wireHandlers()
+        .then(() => {
+          log.info({ personaId: agent.personaId }, '⚡ Deferred handlers wired after handoff greeting');
+        })
+        .catch((err) => {
+          log.error(
+            { error: String(err), personaId: agent.personaId },
+            '🚨 CRITICAL: Deferred handler wiring FAILED after handoff! Tools may not work.'
+          );
+        });
+    }
+
     await this.waitForSpeechComplete(duration);
     log.info({ personaId: agent.personaId }, '🎭 [GREETING] Wait complete');
   }
@@ -803,7 +841,9 @@ export class AgentOrchestrator {
       return getHandoffBanter(fromPersonaId, toPersonaId);
     } catch {
       // Fallback if module not available (e.g., in tests)
-      return `Let me hand you off to ${toPersonaId}.`;
+      // BUG FIX: Use display name instead of persona ID for natural speech
+      const displayName = getPersonaDisplayName(toPersonaId);
+      return `Let me hand you off to ${displayName}.`;
     }
   }
 

@@ -43,7 +43,8 @@ vi.mock('@google-cloud/firestore', () => ({
   Firestore: class MockFirestore {
     collection(name: string) {
       return {
-        doc: (id: string) => ({
+        doc: (docId: string) => ({
+          id: docId,
           collection: mockCollection,
           get: mockGet,
           update: mockUpdate,
@@ -54,14 +55,28 @@ vi.mock('@google-cloud/firestore', () => ({
   },
 }));
 
-// Mock logger
-vi.mock('../../../utils/safe-logger.js', () => ({
-  createLogger: () => ({
+// Mock logger - must include both createLogger and getLogger
+vi.mock('../../../utils/safe-logger.js', () => {
+  const mockLogger = {
     debug: vi.fn(),
     info: vi.fn(),
     warn: vi.fn(),
     error: vi.fn(),
-  }),
+    child: () => mockLogger,
+  };
+  return {
+    createLogger: () => mockLogger,
+    getLogger: () => mockLogger,
+  };
+});
+
+// Mock data-layer hooks to prevent errors from missing fields
+vi.mock('../../data-layer/hooks/index.js', () => ({
+  onReadingListChange: vi.fn(),
+}));
+
+vi.mock('../../data-layer/store-hooks.js', () => ({
+  onStoreChange: vi.fn(),
 }));
 
 // Import after mocks
@@ -82,7 +97,8 @@ describe('Reading List Store', () => {
 
     // Set up mock collection chain
     mockCollection.mockReturnValue({
-      doc: vi.fn(() => ({
+      doc: vi.fn((docId: string) => ({
+        id: docId,
         get: mockGet,
         update: mockUpdate,
         delete: mockDelete,

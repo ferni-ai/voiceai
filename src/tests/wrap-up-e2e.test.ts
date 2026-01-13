@@ -62,11 +62,15 @@ vi.mock('@livekit/agents', () => ({
   },
 }));
 
-// Mock DJ integration
-vi.mock('../agents/dj-integration.js', () => ({
-  getDJIntegration: () => ({
-    wrapShow: async () => ({ playedSound: true }),
+// Mock DJ Controller (replaced dj-integration)
+vi.mock('../audio/dj-controller.js', () => ({
+  getDJController: () => ({
+    getState: () => ({ state: 'idle', currentTrack: null }),
+    isMusicActive: () => false,
+    dispatch: () => {},
+    on: () => {},
   }),
+  resetDJController: () => {},
 }));
 
 // ============================================================================

@@ -79,7 +79,7 @@
 
     /* Hero */
     .hero {
-      background: linear-gradient(135deg, #2C2520 0%, #1a1512 100%);
+      background: linear-gradient(135deg, var(--color-natural-ink) 0%, var(--color-charcoal, #1a1512) 100%);
       color: white;
       padding: 4rem 2rem;
       text-align: center;
@@ -115,8 +115,8 @@
     }
 
     .wcag-badge.aa {
-      background: rgba(74, 103, 65, 0.3);
-      border-color: rgba(74, 103, 65, 0.5);
+      background: var(--color-ferni-subtle, rgba(74, 103, 65, 0.3));
+      border-color: var(--color-ferni-tint, rgba(74, 103, 65, 0.5));
     }
 
     /* Main Content */
@@ -327,7 +327,7 @@
     }
 
     .demo-button.primary:focus {
-      outline: 3px solid rgba(74, 103, 65, 0.5);
+      outline: 3px solid var(--color-ferni-tint, rgba(74, 103, 65, 0.5));
       outline-offset: 2px;
     }
 
@@ -338,7 +338,7 @@
     }
 
     .demo-button.secondary:focus {
-      outline: 3px solid rgba(74, 103, 65, 0.5);
+      outline: 3px solid var(--color-ferni-tint, rgba(74, 103, 65, 0.5));
       outline-offset: 2px;
     }
 
@@ -354,7 +354,7 @@
 
     .demo-input:focus {
       border-color: var(--color-ferni);
-      outline: 3px solid rgba(74, 103, 65, 0.2);
+      outline: 3px solid var(--color-ferni-subtle, rgba(74, 103, 65, 0.2));
       outline-offset: 0;
     }
 
@@ -365,7 +365,7 @@
     }
 
     .demo-link:focus {
-      outline: 3px solid rgba(74, 103, 65, 0.5);
+      outline: 3px solid var(--color-ferni-tint, rgba(74, 103, 65, 0.5));
       outline-offset: 2px;
       border-radius: 2px;
     }
@@ -682,7 +682,7 @@
       <div class="contrast-grid">
         <!-- Primary on White -->
         <div class="contrast-card">
-          <div class="contrast-preview" style="background: white; color: #2C2520;">
+          <div class="contrast-preview" style="background: white; color: var(--color-natural-ink);">
             <div class="sample-text">Natural Ink on White</div>
             <div class="sample-small">Regular paragraph text sample</div>
           </div>
@@ -697,7 +697,7 @@
 
         <!-- Ferni on White -->
         <div class="contrast-card">
-          <div class="contrast-preview" style="background: white; color: #4a6741;">
+          <div class="contrast-preview" style="background: white; color: var(--color-ferni);">
             <div class="sample-text">Ferni Green on White</div>
             <div class="sample-small">Accent text and links</div>
           </div>
@@ -712,7 +712,7 @@
 
         <!-- White on Ferni -->
         <div class="contrast-card">
-          <div class="contrast-preview" style="background: #4a6741; color: white;">
+          <div class="contrast-preview" style="background: var(--color-ferni); color: white;">
             <div class="sample-text">White on Ferni Green</div>
             <div class="sample-small">Buttons and CTAs</div>
           </div>
@@ -727,7 +727,7 @@
 
         <!-- White on Dark -->
         <div class="contrast-card">
-          <div class="contrast-preview" style="background: #2C2520; color: white;">
+          <div class="contrast-preview" style="background: var(--color-natural-ink); color: white;">
             <div class="sample-text">White on Natural Ink</div>
             <div class="sample-small">Dark mode and footers</div>
           </div>
@@ -757,7 +757,7 @@
 
         <!-- Warning -->
         <div class="contrast-card">
-          <div class="contrast-preview" style="background: #FAF8F5; color: #b43c3c;">
+          <div class="contrast-preview" style="background: var(--color-warm-white); color: var(--color-error);">
             <div class="sample-text">Error Red on Warm White</div>
             <div class="sample-small">Error messages</div>
           </div>

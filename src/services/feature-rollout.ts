@@ -31,6 +31,9 @@ import { notifyRollout } from './slack-notifications.js';
 
 const log = createLogger({ module: 'FeatureRollout' });
 
+/** Interval name for the rollout checker */
+const FEATURE_ROLLOUT_INTERVAL = 'feature-rollout-check';
+
 // ============================================================================
 // TYPES
 // ============================================================================

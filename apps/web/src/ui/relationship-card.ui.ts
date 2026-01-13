@@ -1585,7 +1585,7 @@ function bindEvents(): void {
   const avatarInput = cardContainer.querySelector('#rc-avatar-input') as HTMLInputElement;
   if (avatarInput) {
     avatarInput.addEventListener('change', async () => {
-      if (avatarInput.files && avatarInput.files[0] && state.person) {
+      if (avatarInput.files?.[0] && state.person) {
         await handlePhotoUpload(avatarInput.files[0]);
       }
     });
