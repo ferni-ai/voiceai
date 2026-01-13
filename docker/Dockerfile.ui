@@ -193,7 +193,8 @@ RUN mkdir -p apps/web/dist
 COPY --from=frontend-builder /app/apps/web/dist ./apps/web/dist/
 
 # Copy pre-built ferni-speaker (from the pre-built image)
-RUN mkdir -p node_modules/ferni-speaker/models
+# Remove existing symlink/directory from pnpm install, then copy the pre-built version
+RUN rm -rf node_modules/ferni-speaker && mkdir -p node_modules/ferni-speaker/models
 COPY --from=speaker-prebuilt /speaker/ ./node_modules/ferni-speaker/
 
 # Verify what we have
