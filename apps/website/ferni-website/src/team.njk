@@ -65,19 +65,21 @@ description: Six specialists, one relationship. Each brings what the others can'
      Six specialists. One relationship.
      ============================================ */
 
+  /* Team page uses global design tokens from design-tokens.css */
+  /* Local aliases for compatibility with existing styles */
   :root {
-    --ferni: #4a6741;
-    --maya: #a67a6a;
-    --peter: #3a6b73;
-    --jordan: #c4856a;
-    --alex: #5a6b8a;
-    --nayan: #b8956a;
-    --paper-cream: #FAF8F5;
-    --natural-ink: #2C2520;
-    --forest-green: #3D5A45;
-    --warm-amber: #C4A265;
-    --text-muted: #5C544A;
-    --text-light: #756A5E;
+    --ferni: var(--color-ferni, #4a6741);
+    --maya: var(--color-maya, #a67a6a);
+    --peter: var(--color-peter, #3a6b73);
+    --jordan: var(--color-jordan, #c4856a);
+    --alex: var(--color-alex, #5a6b8a);
+    --nayan: var(--color-nayan, #b8956a);
+    --paper-cream: var(--color-bg-primary, #FAF8F5);
+    --natural-ink: var(--color-text-primary, #2C2520);
+    --forest-green: var(--color-accent, #3D5A45);
+    --warm-amber: var(--color-warm-amber, #C4A265);
+    --text-muted: var(--color-text-secondary, #5C544A);
+    --text-light: var(--color-text-dimmed, #756A5E);
   }
 
   #main-content {
@@ -151,7 +153,7 @@ description: Six specialists, one relationship. Each brings what the others can'
   }
 
   .hero-overline {
-    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-family: var(--font-display);
     font-size: 12px;
     font-weight: 600;
     letter-spacing: 0.15em;
@@ -161,7 +163,7 @@ description: Six specialists, one relationship. Each brings what the others can'
   }
 
   .hero-title {
-    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-family: var(--font-display);
     font-size: clamp(42px, 8vw, 72px);
     font-weight: 800;
     line-height: 1.05;
@@ -238,7 +240,7 @@ description: Six specialists, one relationship. Each brings what the others can'
   }
 
   .kintsugi-quote p {
-    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-family: var(--font-display);
     font-size: clamp(24px, 4vw, 32px);
     font-weight: 500;
     line-height: 1.5;
@@ -284,7 +286,7 @@ description: Six specialists, one relationship. Each brings what the others can'
   }
 
   .why-content h2 {
-    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-family: var(--font-display);
     font-size: clamp(32px, 5vw, 48px);
     font-weight: 700;
     line-height: 1.1;
@@ -381,7 +383,7 @@ description: Six specialists, one relationship. Each brings what the others can'
   }
 
   .specialists-header .section-overline {
-    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-family: var(--font-display);
     font-size: 12px;
     font-weight: 600;
     letter-spacing: 0.15em;
@@ -391,7 +393,7 @@ description: Six specialists, one relationship. Each brings what the others can'
   }
 
   .specialists-header h2 {
-    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-family: var(--font-display);
     font-size: clamp(32px, 5vw, 48px);
     font-weight: 700;
     line-height: 1.1;
@@ -513,7 +515,7 @@ description: Six specialists, one relationship. Each brings what the others can'
   }
 
   .persona-role-tag {
-    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-family: var(--font-display);
     font-size: 12px;
     font-weight: 600;
     letter-spacing: 0.1em;
@@ -531,7 +533,7 @@ description: Six specialists, one relationship. Each brings what the others can'
   }
 
   .persona-content h3 {
-    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-family: var(--font-display);
     font-size: clamp(28px, 4vw, 36px);
     font-weight: 700;
     color: var(--natural-ink);
@@ -568,7 +570,7 @@ description: Six specialists, one relationship. Each brings what the others can'
   }
 
   .persona-quote p {
-    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-family: var(--font-display);
     font-size: 20px;
     font-weight: 500;
     color: var(--natural-ink);
@@ -618,7 +620,7 @@ description: Six specialists, one relationship. Each brings what the others can'
   }
 
   .bth-header span {
-    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-family: var(--font-display);
     font-size: 12px;
     font-weight: 600;
     letter-spacing: 0.1em;
@@ -681,6 +683,61 @@ description: Six specialists, one relationship. Each brings what the others can'
   }
 
   /* ============================================
+     CAPABILITIES LINK SECTION
+     ============================================ */
+  .capabilities-link-section {
+    padding: 60px 24px;
+    background: linear-gradient(135deg, var(--color-accent-subtle, rgba(74, 103, 65, 0.05)), rgba(58, 107, 115, 0.04));
+  }
+  
+  .capabilities-link-container {
+    max-width: 800px;
+    margin: 0 auto;
+    text-align: center;
+  }
+  
+  .capabilities-link-overline {
+    font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--ferni);
+    margin-bottom: 16px;
+  }
+  
+  .capabilities-link-title {
+    font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
+    font-size: clamp(28px, 4vw, 36px);
+    font-weight: 700;
+    color: var(--natural-ink);
+    margin-bottom: 16px;
+  }
+  
+  .capabilities-link-desc {
+    font-size: 17px;
+    color: var(--text-muted);
+    margin-bottom: 24px;
+    line-height: 1.6;
+  }
+  
+  .capabilities-link-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--ferni);
+    text-decoration: none;
+    transition: gap 0.3s ease;
+  }
+  
+  .capabilities-link-cta:hover {
+    gap: 12px;
+  }
+
+  /* ============================================
      CTA SECTION
      ============================================ */
   .cta-section {
@@ -710,7 +767,7 @@ description: Six specialists, one relationship. Each brings what the others can'
   }
 
   .cta-overline {
-    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-family: var(--font-display);
     font-size: 12px;
     font-weight: 600;
     letter-spacing: 0.15em;
@@ -745,7 +802,7 @@ description: Six specialists, one relationship. Each brings what the others can'
     align-items: center;
     gap: 10px;
     padding: 16px 32px;
-    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-family: var(--font-display);
     font-size: 16px;
     font-weight: 600;
     text-decoration: none;
@@ -1310,6 +1367,19 @@ description: Six specialists, one relationship. Each brings what the others can'
         </div>
       </div>
     </div>
+  </div>
+</section>
+
+<!-- CAPABILITIES LINK SECTION -->
+<section class="capabilities-link-section reveal">
+  <div class="capabilities-link-container">
+    <p class="capabilities-link-overline">Beyond Human Limitations</p>
+    <h2 class="capabilities-link-title">45+ Superhuman Capabilities</h2>
+    <p class="capabilities-link-desc">Every team member brings capabilities that no human friend, coach, or confidant can consistently provide.</p>
+    <a href="/capabilities/" class="capabilities-link-cta">
+      Explore all capabilities
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+    </a>
   </div>
 </section>
 

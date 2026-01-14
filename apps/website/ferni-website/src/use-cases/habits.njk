@@ -5,11 +5,11 @@ description: "Forget willpower. Maya helps you start embarrassingly small and bu
 permalink: /use-cases/habits/
 ---
 
-<section class="use-case-hero" style="--use-case-color: #a67a6a">
+<section class="use-case-hero" style="--use-case-color: var(--color-maya)">
   <div class="container container-narrow">
     <a href="/use-cases/" class="use-case-hero__back">← All Use Cases</a>
     <span class="eyebrow">Use Case</span>
-    <h1 class="headline-xl">Building Better<br><span class="text-gradient" style="--gradient-start: #a67a6a; --gradient-end: #8a635a">Habits</span></h1>
+    <h1 class="headline-xl">Building Better<br><span class="text-gradient" style="--gradient-start: var(--color-maya); --gradient-end: var(--color-maya-dark, #8a635a)">Habits</span></h1>
     <p class="body-lg">Forget willpower. Maya helps you start embarrassingly small and build consistency that actually lasts.</p>
   </div>
 </section>
@@ -38,8 +38,8 @@ permalink: /use-cases/habits/
       
       <div class="use-case-features">
         <div class="use-case-feature">
-          <div class="use-case-feature__icon" style="background: linear-gradient(135deg, #a67a6a, #8a635a)">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+          <div class="use-case-feature__icon use-case-feature__icon--maya">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M12 20V10"/>
               <path d="M18 20V4"/>
               <path d="M6 20v-4"/>
@@ -52,8 +52,8 @@ permalink: /use-cases/habits/
         </div>
         
         <div class="use-case-feature">
-          <div class="use-case-feature__icon" style="background: linear-gradient(135deg, #a67a6a, #8a635a)">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+          <div class="use-case-feature__icon use-case-feature__icon--maya">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>
             </svg>
           </div>
@@ -64,8 +64,8 @@ permalink: /use-cases/habits/
         </div>
         
         <div class="use-case-feature">
-          <div class="use-case-feature__icon" style="background: linear-gradient(135deg, #a67a6a, #8a635a)">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+          <div class="use-case-feature__icon use-case-feature__icon--maya">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/>
               <path d="M22 4L12 14.01l-3-3"/>
             </svg>
@@ -77,8 +77,8 @@ permalink: /use-cases/habits/
         </div>
         
         <div class="use-case-feature">
-          <div class="use-case-feature__icon" style="background: linear-gradient(135deg, #a67a6a, #8a635a)">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+          <div class="use-case-feature__icon use-case-feature__icon--maya">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/>
               <line x1="4" y1="22" x2="4" y2="15"/>
             </svg>
@@ -131,6 +131,91 @@ permalink: /use-cases/habits/
     </div>
   </div>
 </section>
+
+{# Related Capabilities #}
+<section class="use-case-capabilities">
+  <div class="container container-narrow">
+    <div class="use-case-content reveal">
+      <h2>Superhuman Capabilities for Habit Building</h2>
+      <p>These <a href="/capabilities/">unique capabilities</a> make Maya better than any human support for building habits:</p>
+      <div class="capability-list">
+        <div class="capability-item">
+          <strong>Momentum Tracking</strong>
+          <span>Maya sees habit patterns across months—correlating sleep, mood, exercise, and more.</span>
+        </div>
+        <div class="capability-item">
+          <strong>Commitment Keeper</strong>
+          <span>Every intention and promise is tracked. Your best friend forgets—Maya never does.</span>
+        </div>
+        <div class="capability-item">
+          <strong>Infinite Patience</strong>
+          <span>The tenth restart gets the same warmth as the first. No judgment, ever.</span>
+        </div>
+        <div class="capability-item">
+          <strong>Glidepath System</strong>
+          <span>5 levels from tiny (2 minutes) to full lifestyle—you build at your own pace.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  /* Use Case Capabilities - Design Token Compliant (Maya/Habits) */
+  .use-case-capabilities {
+    padding: 60px 24px;
+    background: linear-gradient(135deg, rgba(166, 122, 106, 0.06), rgba(138, 99, 90, 0.04));
+  }
+  
+  .use-case-capabilities h2 {
+    font-family: var(--font-display);
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--color-text-primary);
+    margin-bottom: 12px;
+  }
+  
+  .use-case-capabilities > .use-case-content > p {
+    color: var(--color-text-secondary);
+    margin-bottom: 24px;
+  }
+  
+  .use-case-capabilities a {
+    color: var(--color-maya);
+    font-weight: 600;
+  }
+  
+  .capability-list {
+    display: grid;
+    gap: 16px;
+  }
+  
+  .capability-item {
+    background: var(--color-elevated);
+    border-radius: 12px;
+    padding: 20px 24px;
+    border: 1px solid var(--color-border-subtle);
+  }
+  
+  .capability-item strong {
+    display: block;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--color-maya);
+    margin-bottom: 4px;
+  }
+  
+  .capability-item span {
+    font-size: 15px;
+    color: var(--color-text-secondary);
+    line-height: 1.5;
+  }
+  
+  /* Persona Icon (Maya) */
+  .use-case-feature__icon--maya {
+    background: linear-gradient(135deg, var(--color-maya) 0%, var(--color-maya-dark, #8a635a) 100%);
+  }
+</style>
 
 <section class="use-case-cta">
   <div class="container container-narrow">

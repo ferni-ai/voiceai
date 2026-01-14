@@ -5,7 +5,7 @@ description: "When you're overwhelmed and need someone to talk to—any time, wi
 permalink: /use-cases/stress/
 ---
 
-<section class="use-case-hero" style="--use-case-color: #4a6741">
+<section class="use-case-hero" style="--use-case-color: var(--color-ferni)">
   <div class="container container-narrow">
     <a href="/use-cases/" class="use-case-hero__back">← All Use Cases</a>
     <span class="eyebrow">Use Case</span>
@@ -38,7 +38,7 @@ permalink: /use-cases/stress/
       <div class="use-case-features">
         <div class="use-case-feature">
           <div class="use-case-feature__icon">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <circle cx="12" cy="12" r="10"/>
               <polyline points="12 6 12 12 16 14"/>
             </svg>
@@ -51,7 +51,7 @@ permalink: /use-cases/stress/
         
         <div class="use-case-feature">
           <div class="use-case-feature__icon">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
             </svg>
           </div>
@@ -63,7 +63,7 @@ permalink: /use-cases/stress/
         
         <div class="use-case-feature">
           <div class="use-case-feature__icon">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
             </svg>
           </div>
@@ -75,7 +75,7 @@ permalink: /use-cases/stress/
         
         <div class="use-case-feature">
           <div class="use-case-feature__icon">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <circle cx="12" cy="12" r="3"/>
               <path d="M12 1v6M12 17v6M4.22 4.22l4.24 4.24M15.54 15.54l4.24 4.24M1 12h6M17 12h6M4.22 19.78l4.24-4.24M15.54 8.46l4.24-4.24"/>
             </svg>
@@ -122,6 +122,86 @@ permalink: /use-cases/stress/
     </div>
   </div>
 </section>
+
+{# Related Capabilities #}
+<section class="use-case-capabilities">
+  <div class="container container-narrow">
+    <div class="use-case-content reveal">
+      <h2>Superhuman Capabilities for Stress</h2>
+      <p>These <a href="/capabilities/">unique capabilities</a> make Ferni better than any human support for managing stress:</p>
+      <div class="capability-list">
+        <div class="capability-item">
+          <strong>2am Presence</strong>
+          <span>Same warmth at midnight as noon. Stress doesn't follow business hours—neither do we.</span>
+        </div>
+        <div class="capability-item">
+          <strong>Emotional First Aid</strong>
+          <span>Instant crisis de-escalation with grounding techniques personalized to what works for you.</span>
+        </div>
+        <div class="capability-item">
+          <strong>Capacity Guardian</strong>
+          <span>We watch for burnout patterns and warn you before you hit the wall.</span>
+        </div>
+        <div class="capability-item">
+          <strong>Breath Synchronization</strong>
+          <span>Ferni subtly syncs with your breathing to help you calm down—you won't even notice.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  /* Use Case Capabilities - Design Token Compliant */
+  .use-case-capabilities {
+    padding: 60px 24px;
+    background: linear-gradient(135deg, var(--color-accent-subtle), rgba(58, 107, 115, 0.04));
+  }
+  
+  .use-case-capabilities h2 {
+    font-family: var(--font-display);
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--color-text-primary);
+    margin-bottom: 12px;
+  }
+  
+  .use-case-capabilities > .use-case-content > p {
+    color: var(--color-text-secondary);
+    margin-bottom: 24px;
+  }
+  
+  .use-case-capabilities a {
+    color: var(--color-accent);
+    font-weight: 600;
+  }
+  
+  .capability-list {
+    display: grid;
+    gap: 16px;
+  }
+  
+  .capability-item {
+    background: var(--color-elevated);
+    border-radius: 12px;
+    padding: 20px 24px;
+    border: 1px solid var(--color-border-subtle);
+  }
+  
+  .capability-item strong {
+    display: block;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--color-accent);
+    margin-bottom: 4px;
+  }
+  
+  .capability-item span {
+    font-size: 15px;
+    color: var(--color-text-secondary);
+    line-height: 1.5;
+  }
+</style>
 
 <section class="use-case-cta">
   <div class="container container-narrow">
