@@ -14,6 +14,31 @@
  * Philosophy: Instead of multiple memory builders each injecting their own context,
  * this single builder coordinates all memory to provide coherent, deduplicated context.
  *
+ * MEMORY ARCHITECTURE (January 2026):
+ * ===================================
+ *
+ * Three-Layer Memory System:
+ * - L1: STM Buffer (in-memory, current session) - src/memory/dynamic/stm-buffer.ts
+ * - L2: Working Memory (Firestore + Embeddings) - 7 day lookback
+ * - L3: Long-Term Memory (Spanner Graph) - relationship traversal
+ *
+ * Memory Context Builders (all contribute to context):
+ * - unified-memory-orchestrator.ts (this file) - Coordinates via MemoryOrchestrator
+ * - dynamic-memory-context.ts - LLM-extracted entities, facts, relationships
+ * - memory.ts - Traditional callbacks, time-since, key moments
+ * - advanced-memory.ts - Semantic retrieval with temporal decay
+ * - proactive-memory.ts - Spontaneous memories
+ * - human-memory.ts - Human-centric: dates, comfort patterns
+ *
+ * Data Flow:
+ * 1. fastCapture() extracts signals in < 50ms (regex-based)
+ * 2. DeepExtractionWorker processes LLM extraction in background
+ * 3. Extracted data stored in Firestore (dynamic_entities, dynamic_facts, dynamic_relationships)
+ * 4. Context builders retrieve and format for LLM context
+ *
+ * @see src/memory/dynamic/CLAUDE.md for extraction architecture
+ * @see docs/architecture/DYNAMIC-MEMORY-ARCHITECTURE.md for full details
+ *
  * @module intelligence/context-builders/unified-memory-orchestrator
  */
 
@@ -22,6 +47,10 @@ import { createLogger } from '../../../utils/safe-logger.js';
 import { BuilderCategory } from '../core/categories.js';
 import { createHintInjection, createStandardInjection, registerContextBuilder } from '../index.js';
 import type { ContextBuilder, ContextBuilderInput, ContextInjection } from '../core/types.js';
+
+// Side-effect import: Register the dynamic memory context builder
+// This builder retrieves LLM-extracted entities, facts, and relationships
+import './dynamic-memory-context.js';
 
 const log = createLogger({ module: 'context:unified-memory-orchestrator' });
 

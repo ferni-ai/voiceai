@@ -244,10 +244,10 @@ import { getBetterThanHuman } from '../../conversation/superhuman/index.js';
 // 🚨 SAFETY: Crisis detection - HARD safety rails that CANNOT be bypassed
 import { detectCrisis, guardPreResponse } from '../safety/crisis-guard.js';
 
-// 🧠 REAL-TIME LEARNING: Relationship network, data capture, and persistence
+// 🧠 REAL-TIME LEARNING: Relationship network, dynamic memory, and persistence
 // "Better than Human" - We learn and remember as the conversation unfolds
 import { recordMention, extractNames } from '../../services/superhuman/relationship-network.js';
-import { processDataCapture } from '../../intelligence/data-capture/index.js';
+import { fastCapture } from '../../memory/dynamic/index.js';
 import { triggerAutoSave } from '../../services/realtime-persistence.js';
 
 // NOTE: Cached module getters moved to cached-modules.ts
@@ -1759,23 +1759,33 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
       { context: 'relationship-network-extraction' }
     );
 
-    // 2. DATA CAPTURE ROUTER: Extract contacts, commitments, etc.
+    // 2. DYNAMIC MEMORY: Fast capture (< 50ms) + async deep extraction
     safeFireAndForget(
       async () => {
-        const captureResult = await processDataCapture({
+        const captureResult = await fastCapture({
           transcript: userText,
           userId: services.userId!,
           sessionId: services.sessionId,
+          turnNumber: turnCount,
+          voiceEmotion: analysisResult.analysis.emotion.primary,
+          personaId: ctx.persona?.id,
         });
 
-        if (captureResult.captured.length > 0) {
-          diag.state('🎯 Data captured in real-time', {
-            count: captureResult.captured.length,
-            types: captureResult.captured.map((c) => c.entity.type),
+        // 🧠 CRITICAL: Record to STM buffer for session context
+        // This enables wasEntityMentioned(), buildSTMContext(), and session-end promotion
+        const { recordTurn } = await import('../../memory/dynamic/index.js');
+        recordTurn(services.sessionId, services.userId!, captureResult, userText, turnCount);
+
+        if (captureResult.mentionedEntities.length > 0 || captureResult.asyncJobId) {
+          diag.state('🧠 Dynamic memory capture', {
+            entityCount: captureResult.mentionedEntities.length,
+            topicCount: captureResult.topicHints.length,
+            asyncJobId: captureResult.asyncJobId,
+            captureTimeMs: captureResult.captureTimeMs,
           });
         }
       },
-      { context: 'data-capture-routing' }
+      { context: 'dynamic-memory-capture' }
     );
 
     // 2b. KNOWLEDGE GRAPH CAPTURE: Extract entities, facts, relationships via LLM

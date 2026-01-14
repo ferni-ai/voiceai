@@ -25,7 +25,6 @@ import type {
   CapturedItem,
   ContactEntity,
   DataIntent,
-  DataCaptureDefinition,
 } from './types.js';
 
 const log = createLogger({ module: 'DataCapture' });
@@ -492,292 +491,32 @@ export async function processDataCapture(context: DataCaptureContext): Promise<D
 }
 
 // ============================================================================
-// DEFINITION-BASED DATA CAPTURE ROUTER
+// LEGACY DEFINITION-BASED DATA CAPTURE (DEPRECATED)
+// ============================================================================
+//
+// The definition-based data capture system has been replaced by the new
+// dynamic memory extraction system in src/memory/dynamic/
+//
+// The new system uses:
+// - Fast capture (< 50ms) for immediate entity detection
+// - Deep extraction (async LLM-powered) for comprehensive extraction
+// - Temporal decoupling to avoid conversation latency
+//
+// The legacy definitions have been moved to ./_deprecated/
+//
+// @deprecated Use src/memory/dynamic/fastCapture instead
 // ============================================================================
 
-// ============================================================================
-// DATA CAPTURE CONFIG
-// ============================================================================
-
-interface DataCaptureConfig {
-  enabled: boolean;
-  enabledCaptures: string[];
-  disabledCaptures: string[];
-}
-
-let dataCaptureConfig: DataCaptureConfig | null = null;
-
-async function loadDataCaptureConfig(): Promise<DataCaptureConfig> {
-  if (dataCaptureConfig) return dataCaptureConfig;
-
-  try {
-    const fs = await import('fs/promises');
-    const path = await import('path');
-    const configPath = path.resolve(process.cwd(), 'data/model-config.json');
-    const configText = await fs.readFile(configPath, 'utf-8');
-    const config = JSON.parse(configText);
-
-    dataCaptureConfig = {
-      enabled: config.dataCaptureDefaults?.enabled ?? true,
-      enabledCaptures: config.dataCaptureDefaults?.enabledCaptures ?? [],
-      disabledCaptures: config.dataCaptureDefaults?.disabledCaptures ?? [],
-    };
-
-    log.debug(
-      {
-        enabled: dataCaptureConfig.enabled,
-        enabledCount: dataCaptureConfig.enabledCaptures.length,
-        disabledCount: dataCaptureConfig.disabledCaptures.length,
-      },
-      '📋 Data capture config loaded'
-    );
-  } catch (error) {
-    log.debug({ error: String(error) }, 'Using default data capture config');
-    dataCaptureConfig = {
-      enabled: true,
-      enabledCaptures: [],
-      disabledCaptures: [],
-    };
-  }
-
-  return dataCaptureConfig;
-}
-
 /**
- * Check if a specific capture definition is enabled
- */
-function isCaptureEnabled(captureId: string, config: DataCaptureConfig): boolean {
-  // If data capture is globally disabled, nothing is enabled
-  if (!config.enabled) return false;
-
-  // If enabledCaptures is specified, only those are enabled
-  if (config.enabledCaptures.length > 0) {
-    return config.enabledCaptures.includes(captureId);
-  }
-
-  // Otherwise, check if it's in the disabled list
-  return !config.disabledCaptures.includes(captureId);
-}
-
-/**
- * Definition-based data capture router.
- * Uses DataCaptureDefinitions to detect and extract data patterns.
- * This extends the hardcoded approach above with configurable definitions.
- * Respects dataCaptureDefaults config for enabling/disabling specific captures.
- */
-class DefinitionBasedRouter {
-  private definitions: DataCaptureDefinition[] = [];
-  private initialized = false;
-  private config: DataCaptureConfig | null = null;
-
-  async initialize(): Promise<void> {
-    if (this.initialized) return;
-
-    try {
-      // Load config first
-      this.config = await loadDataCaptureConfig();
-
-      // Load all definitions
-      const { allDataCaptureDefinitions } = await import('./definitions/index.js');
-
-      // Filter based on config
-      this.definitions = allDataCaptureDefinitions.filter((def) => {
-        // Extract capture category from definition ID (e.g., "capture_contacts" -> "contacts")
-        const captureId = def.category || def.id.replace('capture_', '');
-        const enabled = isCaptureEnabled(captureId, this.config!);
-
-        if (!enabled) {
-          log.debug({ captureId, defId: def.id }, '⏭️ Data capture disabled by config');
-        }
-
-        return enabled;
-      });
-
-      this.initialized = true;
-      log.info(
-        {
-          total: allDataCaptureDefinitions.length,
-          enabled: this.definitions.length,
-          disabled: allDataCaptureDefinitions.length - this.definitions.length,
-        },
-        '🧠 Definition-based data capture initialized'
-      );
-    } catch (error) {
-      log.warn({ error: String(error) }, 'Failed to load data capture definitions');
-    }
-  }
-
-  async captureFromDefinitions(context: DataCaptureContext): Promise<string | null> {
-    if (!this.initialized) {
-      await this.initialize();
-    }
-
-    for (const def of this.definitions) {
-      const matchScore = this.calculateMatchScore(context.transcript, def);
-
-      if (matchScore > def.confidence.baseScore) {
-        const extractedArgs = this.extractArguments(context.transcript, def);
-
-        // Check required arguments
-        const missingRequired = def.arguments.some(
-          (arg) => arg.required && extractedArgs[arg.name] === undefined
-        );
-        if (missingRequired) {
-          log.debug(
-            { defId: def.id, transcript: context.transcript.slice(0, 50), extractedArgs },
-            'Skipping definition: missing required args'
-          );
-          continue;
-        }
-
-        try {
-          const acknowledgment = await def.handler(extractedArgs, context);
-          if (acknowledgment) {
-            log.info(
-              { defId: def.id, extractedArgs, userId: context.userId },
-              '🧠 Definition-based data captured'
-            );
-            return acknowledgment;
-          }
-        } catch (error) {
-          log.error({ defId: def.id, error: String(error) }, 'Error in definition handler');
-        }
-      }
-    }
-
-    return null;
-  }
-
-  private calculateMatchScore(transcript: string, def: DataCaptureDefinition): number {
-    let score = 0;
-    const lowerTranscript = transcript.toLowerCase();
-
-    // Phrase matching (strongest signal)
-    if (def.triggers.phrases) {
-      for (const phrase of def.triggers.phrases) {
-        if (lowerTranscript.includes(phrase.toLowerCase())) {
-          score += def.confidence.baseScore;
-          break;
-        }
-      }
-    }
-
-    // Pattern matching
-    if (def.triggers.patterns) {
-      for (const pattern of def.triggers.patterns) {
-        if (pattern.test(transcript)) {
-          score += def.confidence.patternMatchBonus || 0;
-          break;
-        }
-      }
-    }
-
-    // Keyword matching
-    if (def.triggers.keywords) {
-      let keywordCount = 0;
-      for (const keyword of def.triggers.keywords) {
-        if (lowerTranscript.includes(keyword.word.toLowerCase())) {
-          keywordCount++;
-          score += keyword.weight;
-        }
-      }
-      if (keywordCount > 0) {
-        score *= def.confidence.keywordDensityMultiplier || 1;
-      }
-    }
-
-    // Anti-keyword penalty
-    if (def.triggers.antiKeywords) {
-      for (const antiKeyword of def.triggers.antiKeywords) {
-        if (lowerTranscript.includes(antiKeyword.toLowerCase())) {
-          score *= def.confidence.negativeKeywordPenalty || 1;
-          break;
-        }
-      }
-    }
-
-    return score;
-  }
-
-  private extractArguments(
-    transcript: string,
-    def: DataCaptureDefinition
-  ): Record<string, unknown> {
-    const extracted: Record<string, unknown> = {};
-    for (const arg of def.arguments) {
-      if (arg.extractionPatterns) {
-        for (const pattern of arg.extractionPatterns) {
-          const match = transcript.match(pattern);
-          if (match && match[1]) {
-            extracted[arg.name] = match[1];
-            break;
-          }
-        }
-      }
-    }
-    return extracted;
-  }
-}
-
-// Singleton instance
-let definitionRouter: DefinitionBasedRouter | null = null;
-
-function getDefinitionRouter(): DefinitionBasedRouter {
-  if (!definitionRouter) {
-    definitionRouter = new DefinitionBasedRouter();
-  }
-  return definitionRouter;
-}
-
-/**
- * Enhanced data capture that combines hardcoded + definition-based capture.
- *
- * This is the main entry point for "Better than Human" passive learning.
- *
- * @param context - Capture context with transcript and user info
- * @returns Capture result with acknowledgment for LLM injection
+ * @deprecated Use fastCapture from src/memory/dynamic/index.js instead.
+ * This function is kept for backwards compatibility only.
  */
 export async function captureDataBetterThanHuman(
   context: DataCaptureContext
 ): Promise<DataCaptureResult> {
-  // First, try the fast hardcoded path for contacts
-  const hardcodedResult = await processDataCapture(context);
-
-  // If hardcoded captured something that should be saved, use that result
-  // Note: relationship-only saves may not have an acknowledgment (silent save)
-  // but we still want to return the captured data for tracking
-  if (
-    hardcodedResult.captured.length > 0 &&
-    hardcodedResult.captured.some((c) => c.storage.action !== 'skip')
-  ) {
-    return hardcodedResult;
-  }
-
-  // Try definition-based capture for commitments, dreams, relationships
-  const router = getDefinitionRouter();
-  const definitionAck = await router.captureFromDefinitions(context);
-
-  if (definitionAck) {
-    log.info(
-      {
-        userId: context.userId.slice(0, 12) + '...',
-        acknowledgment: definitionAck.slice(0, 50),
-      },
-      '🎯 Better-than-Human data captured via definition'
-    );
-    return {
-      captured: [],
-      suggestedAcknowledgment: definitionAck,
-      contextForLLM: `[DATA CAPTURED: ${definitionAck}]`,
-    };
-  }
-
-  // Nothing captured
-  return {
-    captured: [],
-    suggestedAcknowledgment: undefined,
-    contextForLLM: undefined,
-  };
+  // Forward to processDataCapture for basic contact extraction only
+  // The new dynamic memory system handles everything else
+  return processDataCapture(context);
 }
 
 // Re-export types

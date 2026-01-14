@@ -9,6 +9,7 @@
  * - GET /api/observability/connection - Connection health metrics
  * - GET /api/observability/ux - User experience metrics
  * - GET /api/observability/memory - Memory/RAG metrics
+ * - GET /api/observability/dynamic-memory - Dynamic memory system (L1/L2/L3) metrics
  * - GET /api/observability/cost - Cost tracking metrics
  * - GET /api/observability/errors - Error & recovery metrics
  * - GET /api/observability/personas - Persona health metrics
@@ -498,6 +499,37 @@ export async function handleObservabilityRoutes(
     if (pathname === '/api/observability/memory' && req.method === 'GET') {
       const snapshot = memoryMetrics.getSnapshot();
       sendJSON(res, snapshot);
+      return true;
+    }
+
+    // GET /api/observability/dynamic-memory - Dynamic memory system metrics
+    if (pathname === '/api/observability/dynamic-memory' && req.method === 'GET') {
+      try {
+        const { getDynamicMemoryMetrics, getSTMStats } = await import(
+          '../memory/dynamic/index.js'
+        );
+        const { getSyncStats } = await import('../memory/dynamic/firestore-spanner-sync.js');
+        const { getDeepExtractionWorker } = await import('../memory/dynamic/deep-extraction-worker.js');
+
+        const dynamicMetrics = getDynamicMemoryMetrics();
+        const stmStats = getSTMStats();
+        const syncStats = getSyncStats();
+        const worker = getDeepExtractionWorker();
+        const workerStats = worker?.getStats() ?? null;
+
+        sendJSON(res, {
+          dynamicMemory: dynamicMetrics,
+          stmBuffer: stmStats,
+          syncService: syncStats,
+          deepExtractionWorker: workerStats,
+          collectedAt: new Date().toISOString(),
+        });
+      } catch (error) {
+        sendJSON(res, {
+          error: 'Dynamic memory metrics not available',
+          message: String(error),
+        });
+      }
       return true;
     }
 

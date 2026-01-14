@@ -182,6 +182,23 @@ import { initCrashAnalytics, getCrashSummary } from './shared/crash-analytics.js
 initCrashAnalytics();
 log('✅ Crash analytics initialized');
 
+// ============================================================================
+// PHASE 2.5: START ASYNC BACKGROUND WORKERS
+// ============================================================================
+
+log('Phase 2.5: Starting async background workers');
+
+// Start Deep Extraction Worker for LLM-powered memory extraction
+// This processes memory jobs queued by fastCapture() in background
+import { startDeepExtractionWorker, startSyncService } from '../memory/dynamic/index.js';
+startDeepExtractionWorker();
+log('✅ Deep extraction worker started');
+
+// Start Firestore → Spanner background sync service
+// This promotes L2 data to L3 for long-term graph storage
+startSyncService();
+log('✅ Firestore → Spanner sync service started');
+
 const moduleLoadTime = Date.now() - moduleLoadStart;
 log('Modules loaded', { moduleLoadTimeMs: moduleLoadTime });
 

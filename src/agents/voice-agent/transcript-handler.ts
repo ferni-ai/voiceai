@@ -941,10 +941,15 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
         try {
           coordinatedSay(sessionId, cached.ssml || cached.response, { allowInterruptions: true });
 
-          // Track that we used a cached response
-          if (services && typeof services.addTurn === 'function') {
-            services.addTurn('assistant', cached.response);
-          }
+          // Track that we used a cached response (+ on-behalf call capture)
+          import('./agent-turn-recorder.js')
+            .then(({ recordAgentTurn }) => recordAgentTurn(sessionId, services, cached.response))
+            .catch(() => {
+              // Fallback
+              if (services && typeof services.addTurn === 'function') {
+                services.addTurn('assistant', cached.response);
+              }
+            });
           if (userData) {
             userData.lastAgentResponse = cached.response;
             userData.lastAgentResponseTime = Date.now();
@@ -1133,39 +1138,40 @@ async function processFinalTranscript(
   } = ctx;
 
   // ===============================================
-  // 🧠 DATA CAPTURE: "Better Than Human" passive learning
-  // ALWAYS captures data regardless of routing path!
-  // Captures contacts, commitments, dreams, relationships, mood, etc.
-  // "My mom's number is X" → auto-save to contacts
-  // "I've always wanted to visit Japan" → dream keeper
-  // "I promised Sarah I'd call" → commitment keeper
-  // "I'm feeling overwhelmed" → mood capture
+  // 🧠 DYNAMIC MEMORY CAPTURE: LLM-powered extraction
+  // Uses temporal decoupling: fast capture (< 50ms) + async deep extraction
+  // Extracts entities, relationships, emotions, dates, topics
+  // Deep LLM extraction runs in background worker
   // ===============================================
   try {
     if (!userId) {
-      diag.debug('Skipping data capture - no userId');
+      diag.debug('Skipping memory capture - no userId');
     } else {
-      const { captureDataBetterThanHuman } =
-        await import('../../intelligence/data-capture/index.js');
-      const captureResult = await captureDataBetterThanHuman({
+      const { fastCapture, recordTurn } = await import('../../memory/dynamic/index.js');
+      const captureResult = await fastCapture({
         userId,
         sessionId,
+        turnNumber: 0, // Transcript handler doesn't track turn numbers
         transcript: event.transcript,
-        recentTopics: userData.recentTopics,
+        personaId: userData.personaId,
       });
 
-      // Store acknowledgment for LLM context injection
-      if (captureResult.suggestedAcknowledgment) {
-        userData.dataCaptureAcknowledgment = captureResult.suggestedAcknowledgment;
-        diag.state('🧠 Better Than Human: Data captured passively', {
-          acknowledgment: captureResult.suggestedAcknowledgment,
-          count: captureResult.captured.length,
+      // 🧠 CRITICAL: Record to STM buffer for session context
+      recordTurn(sessionId, userId, captureResult, event.transcript, 0);
+
+      // Log capture results for debugging
+      if (captureResult.mentionedEntities.length > 0 || captureResult.asyncJobId) {
+        diag.state('🧠 Dynamic memory: Fast capture complete', {
+          entityCount: captureResult.mentionedEntities.length,
+          topicHints: captureResult.topicHints,
+          asyncJobId: captureResult.asyncJobId,
+          captureTimeMs: captureResult.captureTimeMs,
         });
       }
     }
   } catch (captureError) {
-    // Non-fatal - data capture is enhancement, not critical
-    diag.warn('Data capture error', { error: String(captureError) });
+    // Non-fatal - memory capture is enhancement, not critical
+    diag.warn('Memory capture error', { error: String(captureError) });
   }
 
   // ===============================================
@@ -1202,8 +1208,16 @@ async function processFinalTranscript(
   // Without this, learning engine gets no data, summaries are empty,
   // and Ferni never remembers what users say.
   // ===============================================
-  if (services && typeof services.addTurn === 'function' && event.transcript) {
-    services.addTurn('user', event.transcript);
+  // For on-behalf calls, also captures for superhuman analysis
+  if (event.transcript) {
+    import('./agent-turn-recorder.js')
+      .then(({ recordUserTurn }) => recordUserTurn(sessionId, services, event.transcript))
+      .catch(() => {
+        // Fallback
+        if (services && typeof services.addTurn === 'function') {
+          services.addTurn('user', event.transcript);
+        }
+      });
     diag.debug('📝 User turn recorded for memory', {
       preview: event.transcript.slice(0, 50),
       sessionId,

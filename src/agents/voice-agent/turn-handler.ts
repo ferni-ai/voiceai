@@ -92,8 +92,8 @@ import {
   markProactiveInsightSurfaced,
 } from '../integrations/unified-intelligence-integration.js';
 
-// "Better Than Human" data capture - passive learning from conversation
-import { captureDataBetterThanHuman } from '../../intelligence/data-capture/index.js';
+// "Better Than Human" dynamic memory capture - LLM-powered extraction
+import { fastCapture } from '../../memory/dynamic/index.js';
 
 // Redis cache for real-time state (emotional state, voice biomarkers)
 import { getRedisCache } from '../../memory/redis-cache.js';
@@ -1534,30 +1534,39 @@ IMPORTANT:
       }
 
       // ================================================================
-      // "BETTER THAN HUMAN" DATA CAPTURE: Passive learning from conversation
-      // Captures commitments, dreams, boundaries, moods, relationships, etc.
+      // DYNAMIC MEMORY CAPTURE: LLM-powered extraction with temporal decoupling
+      // Fast capture (< 50ms) runs inline, deep extraction runs async in background
       // Fire-and-forget to not block turn completion
       // ================================================================
       if (services.userId) {
         const captureUserId = services.userId; // Capture for closure
         fireAndForget(
           async () => {
-            const captureResult = await captureDataBetterThanHuman({
+            const captureResult = await fastCapture({
               userId: captureUserId,
               sessionId: services.sessionId,
+              turnNumber,
               transcript: userText,
-              recentTopics: result.analysis.analysis.topics?.detected,
+              voiceEmotion: result.analysis.analysis.emotion?.primary,
               personaId: persona.id, // For multi-persona data attribution
             });
 
-            if (captureResult.captured.length > 0 || captureResult.suggestedAcknowledgment) {
-              diag.debug('Data capture completed', {
-                capturedCount: captureResult.captured.length,
-                hasAcknowledgment: !!captureResult.suggestedAcknowledgment,
+            // 🧠 CRITICAL: Record to STM buffer for session context
+            // This enables wasEntityMentioned(), buildSTMContext(), and session-end promotion
+            const { recordTurn } = await import('../../memory/dynamic/index.js');
+            recordTurn(services.sessionId, captureUserId, captureResult, userText, turnNumber);
+
+            if (captureResult.mentionedEntities.length > 0 || captureResult.asyncJobId) {
+              diag.debug('Dynamic memory capture completed', {
+                entityCount: captureResult.mentionedEntities.length,
+                topicCount: captureResult.topicHints.length,
+                emotionCount: captureResult.emotionSignals.length,
+                asyncJobId: captureResult.asyncJobId,
+                captureTimeMs: captureResult.captureTimeMs,
               });
             }
           },
-          'data-capture-better-than-human'
+          'dynamic-memory-capture'
         );
       }
     }

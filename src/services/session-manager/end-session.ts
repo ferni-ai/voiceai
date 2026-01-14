@@ -147,6 +147,18 @@ export async function handleEndSession(options: EndSessionOptions): Promise<void
     await captureGrowthSnapshot(validatedUserId, services);
   }
 
+  // 🧠 DYNAMIC MEMORY: Promote STM to Firestore at session end
+  // This ensures important entities and emotional arcs persist to L2
+  if (validatedUserId) {
+    try {
+      const { onSessionEnd } = await import('../../memory/dynamic/stm-promotion.js');
+      await onSessionEnd(sessionId, validatedUserId);
+      log.debug({ sessionId, userId: validatedUserId }, '📤 STM promoted to Firestore');
+    } catch (stmError) {
+      log.warn({ error: String(stmError), sessionId }, 'STM promotion failed (non-fatal)');
+    }
+  }
+
   // Remove from active sessions
   activeSessions.delete(sessionId);
 

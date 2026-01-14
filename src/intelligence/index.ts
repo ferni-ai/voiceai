@@ -1080,16 +1080,32 @@ export default {
 // ============================================================================
 // SEMANTIC DATA CAPTURE ROUTER ("Better than Human" - passive learning)
 // ============================================================================
+//
+// ⚠️ DEPRECATED: The static definition-based data capture has been replaced by
+// the new dynamic memory extraction system in src/memory/dynamic/
+//
+// NEW SYSTEM:
+//   import { fastCapture } from '../memory/dynamic/index.js';
+//   const result = await fastCapture({ userId, sessionId, transcript, ... });
+//
+// The new system provides:
+// - L1: STM Buffer (in-memory, current session)
+// - L2: Firestore (LLM-extracted entities, facts, relationships)
+// - L3: Spanner Graph (long-term relationship storage)
+//
+// These exports are kept for backwards compatibility ONLY.
+// ============================================================================
 
+/**
+ * @deprecated Use fastCapture from src/memory/dynamic/index.js instead.
+ * Contact extraction only - for full entity extraction use fastCapture.
+ */
 export { processDataCapture, captureDataBetterThanHuman } from './data-capture/index.js';
 
-export {
-  allDataCaptureDefinitions,
-  contactCaptureDefinition,
-  commitmentCaptureDefinition,
-  dreamCaptureDefinition,
-  relationshipCaptureDefinition,
-} from './data-capture/definitions/index.js';
+/**
+ * @deprecated Static definitions removed. Dynamic LLM extraction handles all patterns.
+ */
+export { allDataCaptureDefinitions } from './data-capture/definitions/index.js';
 
 export type {
   DataCaptureDefinition,

@@ -760,6 +760,7 @@ toast.success('Operation completed successfully');
 - **Architecture**: `docs/architecture/CLEAN-ARCHITECTURE.md`
 - **Tool Loading**: `docs/architecture/TOOL-LOADING-SYSTEM.md` (how tools get to Gemini, config files, debugging)
 - **Memory Management**: `docs/architecture/MEMORY-MANAGEMENT.md` (stateless Node, caching, cleanup)
+- **Dynamic Memory**: `src/memory/dynamic/CLAUDE.md` (L1/L2/L3 memory, fast capture, deep extraction)
 - **Pre-STT Audio Enhancement**: `docs/architecture/PRE-STT-AUDIO-ENHANCEMENT.md` (Rust DSP, AGC, noise suppression, bandwidth extension)
 - **DJ/Music System**: `src/audio/CLAUDE.md` (DJController state machine, decision/speech/timing engines)
 - **Tool/Persona patterns**: `docs/architecture/AGENT-AGNOSTIC-ARCHITECTURE.md`
@@ -771,6 +772,71 @@ toast.success('Operation completed successfully');
 - **Design System**: `design-system/README.md` (tokens, animations, colors)
 - **Design System Audit**: `docs/audits/DESIGN-SYSTEM-AUDIT.md` (consolidation status)
 - **Emotional Intelligence**: `design-system/docs/brand/BETTER-THAN-HUMAN.md`
+
+## 🧠 Dynamic Memory System (January 2026)
+
+Three-layer memory architecture for "Better than Human" memory:
+
+```
+User Speech → fastCapture() → STM Buffer (L1) → onSessionEnd() → Firestore (L2)
+                    │                                                    │
+                    └→ AsyncEvents → DeepExtractionWorker → Firestore ───┤
+                                                                         │
+                                                              Background Sync
+                                                                         │
+                                                              Spanner Graph (L3)
+```
+
+| Layer | Storage | Latency | Purpose |
+|-------|---------|---------|---------|
+| **L1: STM** | In-memory | < 1ms | Current session context, entity frequency |
+| **L2: Working** | Firestore | 50-150ms | Recent entities, facts, relationships |
+| **L3: Long-Term** | Spanner | 100-200ms | Relationship graph, cross-session patterns |
+
+### Quick Commands
+
+```bash
+# View dynamic memory metrics
+curl http://localhost:8080/api/observability/dynamic-memory
+
+# Run dynamic memory tests
+pnpm vitest run src/memory/dynamic/__tests__/ src/tests/synthetic/dynamic-memory-e2e.test.ts
+
+# Run with Firestore emulator
+firebase emulators:start --only firestore &
+FIRESTORE_EMULATOR_HOST=localhost:8080 pnpm vitest run src/tests/integration/
+```
+
+### Key Files
+
+| File | Purpose |
+|------|---------|
+| `src/memory/dynamic/fast-capture.ts` | Real-time extraction (< 50ms) |
+| `src/memory/dynamic/stm-buffer.ts` | In-memory session context |
+| `src/memory/dynamic/deep-extraction-worker.ts` | Async LLM extraction (Gemini 1.5 Flash) |
+| `src/memory/dynamic/stm-promotion.ts` | Session-end promotion to Firestore |
+| `src/memory/dynamic/firestore-spanner-sync.ts` | Background sync to Spanner |
+| `src/memory/dynamic/metrics.ts` | Observability metrics |
+
+### Integration Points
+
+| Component | How It Uses Dynamic Memory |
+|-----------|---------------------------|
+| `turn-handler.ts` | Calls `fastCapture()` + `recordTurn()` |
+| `turn-processor.ts` | Calls `fastCapture()` + `recordTurn()` |
+| `transcript-handler.ts` | Calls `fastCapture()` + `recordTurn()` |
+| `end-session.ts` | Calls `onSessionEnd()` for STM promotion |
+| `gce-voice-worker.ts` | Starts deep extraction worker + sync service |
+| `dynamic-memory-context.ts` | Context builder retrieves from Firestore |
+
+### Test Coverage
+
+| Suite | Tests |
+|-------|-------|
+| Unit tests | 35 |
+| E2E tests | 76 |
+| Integration tests | 11 |
+| **Total** | **122** |
 
 ## 🚀 Ferni EQ - Superhuman Emotional Intelligence
 
