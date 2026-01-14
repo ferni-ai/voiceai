@@ -50,7 +50,7 @@ Alex (communication/organization), Jordan (milestones/planning), Nayan (wisdom/p
           .min(1)
           .max(5)
           .describe(
-            'Array of persona IDs to invite. Options: peter-john, maya-habits, alex-chen, jordan-taylor, nayan-sharma'
+            'Array of persona IDs to invite. Options: peter-john, maya-santos, alex-chen, jordan-taylor, nayan-patel'
           ),
         topic: z.string().optional().describe('The topic or question to discuss'),
         collaborationMode: z
@@ -67,10 +67,10 @@ Alex (communication/organization), Jordan (milestones/planning), Nayan (wisdom/p
           // Validate personas
           const validPersonas = [
             'peter-john',
-            'maya-habits',
+            'maya-santos',
             'alex-chen',
             'jordan-taylor',
-            'nayan-sharma',
+            'nayan-patel',
           ];
           const invalidPersonas = params.personas.filter((p) => !validPersonas.includes(p));
 
@@ -92,10 +92,10 @@ Alex (communication/organization), Jordan (milestones/planning), Nayan (wisdom/p
             .map((p) => {
               const nameMap: Record<string, string> = {
                 'peter-john': 'Peter',
-                'maya-habits': 'Maya',
+                'maya-santos': 'Maya',
                 'alex-chen': 'Alex',
                 'jordan-taylor': 'Jordan',
-                'nayan-sharma': 'Nayan',
+                'nayan-patel': 'Nayan',
               };
               return nameMap[p] || p;
             })

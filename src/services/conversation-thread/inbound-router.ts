@@ -77,7 +77,7 @@ const INTENT_ROUTING: Array<{
       /\b(meaning|purpose|life|death|legacy|wisdom)\b/i,
       /\b(values|principles|philosophy|spiritual)\b/i,
     ],
-    agentId: 'nayan-sharma',
+    agentId: 'nayan-patel',
     confidence: 0.85,
   },
 ];

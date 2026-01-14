@@ -687,7 +687,7 @@ export async function onNeedsTeamRoundtable(
 ): Promise<void> {
   try {
     // Default to a well-rounded team if not specified
-    const personas = roundtable.suggestedPersonas || ['ferni', 'peter-john', 'maya-habits'];
+    const personas = roundtable.suggestedPersonas || ['ferni', 'peter-john', 'maya-santos'];
 
     const result = await initiateGroupOutreach({
       userId,

@@ -297,7 +297,7 @@ const backgroundFollowUpDef: ToolDefinition = {
   description:
     'Send a follow-up message in the background, even when the user disconnects. Perfect for: "Send a thank you note to Sarah", "Follow up with the recruiter", "Send that email while I\'m busy".',
   domain: 'communication',
-  tags: ['background', 'async', 'email', 'follow-up', 'while-you-were-away', 'alex-specialty'],
+  tags: ['background', 'async', 'email', 'follow-up', 'while-you-were-away', 'superhuman-communication'],
 
   create: (ctx: ToolContext) => {
     return llm.tool({

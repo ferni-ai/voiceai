@@ -302,7 +302,7 @@ export async function nayanWisdomOutreach(
 ): Promise<OutreachResult> {
   return initiateOutreach({
     userId,
-    agentId: 'nayan-sharma',
+    agentId: 'nayan-patel',
     preferredChannel: 'push',
     triggerType: 'thinking_of_you',
     reason: 'Wisdom check-in',

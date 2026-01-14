@@ -996,6 +996,13 @@ import {
   requestCheckInToolDef,
 } from './family-sharing-tool.js';
 
+// Import family network status tool
+import {
+  familyNetworkStatusTool,
+  getFamilyNetworkStatus,
+  familyNetworkStatusSchema,
+} from './family-network-status.js';
+
 const familyTools: ToolDefinition[] = [
   // Parenting
   coachParentingChallengeDef,
@@ -1020,6 +1027,25 @@ const familyTools: ToolDefinition[] = [
   // Family Sharing (sponsor to family)
   shareWithFamilyToolDef,
   requestCheckInToolDef,
+  // Family Network Status ("How's everyone doing?")
+  {
+    id: 'getFamilyNetworkStatus',
+    name: 'Get Family Network Status',
+    description:
+      'Get an overview of family connections - who you\'ve talked to, who needs attention. Ask "How is everyone in my family?"',
+    domain: 'family',
+    tags: ['family', 'network', 'status', 'overview', 'superhuman'],
+    create: (ctx: ToolContext) => ({
+      name: 'getFamilyNetworkStatus',
+      description: familyNetworkStatusTool.description,
+      schema: familyNetworkStatusSchema,
+      execute: async (params: unknown) =>
+        getFamilyNetworkStatus(
+          params as Parameters<typeof getFamilyNetworkStatus>[0],
+          { userId: ctx.userId }
+        ),
+    }),
+  },
 ];
 
 // ============================================================================

@@ -303,6 +303,12 @@ async function injectToActiveSession(
 
 /**
  * Create follow-up actions based on call outcome
+ *
+ * SUPERHUMAN SMART REMINDERS:
+ * - Analyzes action items to infer appropriate timing
+ * - "Visit mom" → 1 week reminder
+ * - "Call back" → next day reminder
+ * - "Check on health" → 3 day reminder
  */
 async function createFollowUpActions(
   userId: string,
@@ -311,6 +317,7 @@ async function createFollowUpActions(
   request: OnBehalfCallRequest
 ): Promise<void> {
   const actions: FollowUpAction[] = [];
+  const contactName = request.resolvedContact?.name || request.contactQuery;
 
   // If callback is required, schedule it
   if (outcome.callbackRequired) {
@@ -319,7 +326,7 @@ async function createFollowUpActions(
       callId,
       userId,
       type: 'callback',
-      description: `Follow up on call to ${request.resolvedContact?.name || request.contactQuery}`,
+      description: `Follow up on call to ${contactName}`,
       scheduledFor: outcome.callbackTime || undefined,
       createdAt: new Date().toISOString(),
     });
@@ -337,6 +344,17 @@ async function createFollowUpActions(
         createdAt: new Date().toISOString(),
       });
     }
+
+    // =========================================================================
+    // SUPERHUMAN: Create actual scheduled reminders from action items
+    // =========================================================================
+    await createSmartRemindersFromActionItems(
+      userId,
+      callId,
+      outcome.actionItems,
+      contactName,
+      request.resolvedContact?.phone
+    );
   }
 
   // Store follow-up actions
@@ -738,6 +756,153 @@ async function createCallbackCalendarEvent(
     // Don't fail the whole capture if calendar fails
     log.warn({ error: String(error), callId }, 'Failed to create callback calendar event');
   }
+}
+
+/**
+ * Create smart reminders from call action items
+ *
+ * SUPERHUMAN INTELLIGENCE:
+ * Analyzes the content of each action item to determine appropriate timing:
+ * - "Visit" or "come see" → 1 week (gives time to plan)
+ * - "Call back" or "reach out" → 1 day (time-sensitive)
+ * - "Check on" or "follow up" → 3 days (moderate urgency)
+ * - Default → 2 days
+ */
+async function createSmartRemindersFromActionItems(
+  userId: string,
+  callId: string,
+  actionItems: string[],
+  contactName: string,
+  contactPhone?: string
+): Promise<void> {
+  try {
+    const { createReminder } = await import('../scheduling/reminder-scheduler.js');
+
+    // Get user's phone/email for delivery
+    const { getUserContactInfo } = await import('./user-contact.js');
+
+    let deliveryAddress: string | undefined;
+    let deliveryMethod: 'sms' | 'email' = 'sms';
+
+    try {
+      const contactInfo = await getUserContactInfo(userId);
+      deliveryAddress = contactInfo?.phone || contactInfo?.email;
+      deliveryMethod = contactInfo?.phone ? 'sms' : 'email';
+    } catch {
+      // Contact lookup failed, will skip reminder creation
+    }
+
+    if (!deliveryAddress) {
+      log.debug({ userId, callId }, 'No delivery address for smart reminders, skipping');
+      return;
+    }
+
+    for (let i = 0; i < actionItems.length; i++) {
+      const item = actionItems[i];
+      const lowerItem = item.toLowerCase();
+
+      // Infer timing based on action item content
+      const scheduledFor = inferReminderTiming(lowerItem);
+
+      // Build contextual message
+      const message = buildReminderMessage(item, contactName);
+
+      await createReminder({
+        userId,
+        message,
+        context: `From call with ${contactName} (${callId})`,
+        scheduledFor,
+        deliveryMethod,
+        deliveryAddress,
+        createdBy: 'ferni',
+        contactName,
+      });
+
+      log.info(
+        {
+          userId,
+          callId,
+          actionItem: item.slice(0, 50),
+          scheduledFor: scheduledFor.toISOString(),
+        },
+        '⏰ Smart reminder created from action item'
+      );
+    }
+  } catch (error) {
+    // Don't fail the whole flow if reminder creation fails
+    log.warn({ error: String(error), callId }, 'Failed to create smart reminders');
+  }
+}
+
+/**
+ * Infer appropriate reminder timing from action item text
+ */
+function inferReminderTiming(actionItem: string): Date {
+  const now = new Date();
+  const result = new Date(now);
+
+  // Visit/see patterns → 1 week (needs planning)
+  if (/\b(visit|come see|come over|stop by|drop by)\b/.test(actionItem)) {
+    result.setDate(result.getDate() + 7);
+    result.setHours(10, 0, 0, 0);
+    return result;
+  }
+
+  // Call back patterns → 1 day (time-sensitive)
+  if (/\b(call (back|her|him|them)|reach out|get in touch|phone)\b/.test(actionItem)) {
+    result.setDate(result.getDate() + 1);
+    result.setHours(10, 0, 0, 0);
+    return result;
+  }
+
+  // Health/check patterns → 3 days (moderate urgency)
+  if (/\b(check on|follow up|how.*feeling|health|doctor|appointment)\b/.test(actionItem)) {
+    result.setDate(result.getDate() + 3);
+    result.setHours(10, 0, 0, 0);
+    return result;
+  }
+
+  // Next month patterns
+  if (/\b(next month|monthly|month)\b/.test(actionItem)) {
+    result.setMonth(result.getMonth() + 1);
+    result.setHours(10, 0, 0, 0);
+    return result;
+  }
+
+  // Soon patterns → 2 days
+  if (/\b(soon|when you can|when possible)\b/.test(actionItem)) {
+    result.setDate(result.getDate() + 2);
+    result.setHours(10, 0, 0, 0);
+    return result;
+  }
+
+  // Default: 2 days
+  result.setDate(result.getDate() + 2);
+  result.setHours(10, 0, 0, 0);
+  return result;
+}
+
+/**
+ * Build a warm, human reminder message
+ */
+function buildReminderMessage(actionItem: string, contactName: string): string {
+  // Make the reminder feel personal, not robotic
+  const lowerItem = actionItem.toLowerCase();
+
+  if (/\b(visit|come see)\b/.test(lowerItem)) {
+    return `Remember: ${contactName} would love a visit! ${actionItem}`;
+  }
+
+  if (/\b(call)\b/.test(lowerItem)) {
+    return `Hey! ${contactName} is hoping to hear from you. ${actionItem}`;
+  }
+
+  if (/\b(check on|health)\b/.test(lowerItem)) {
+    return `Thinking of ${contactName} - ${actionItem}`;
+  }
+
+  // Default: Include the contact name for context
+  return `From your call with ${contactName}: ${actionItem}`;
 }
 
 /**

@@ -648,7 +648,7 @@ const backgroundCallDef: ToolDefinition = {
   description:
     'Make a phone call on the user\'s behalf in the background. Perfect for: "Call my mom while I\'m away", "Check on that appointment", "Make a call for me".',
   domain: 'proactive',
-  tags: ['background', 'async', 'calls', 'while-you-were-away', 'ferni-specialty'],
+  tags: ['background', 'async', 'calls', 'while-you-were-away', 'superhuman-coaching'],
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({

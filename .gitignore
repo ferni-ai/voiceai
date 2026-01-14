@@ -94,6 +94,16 @@ test-results/
 coverage/
 src/agents/processors/turn-processor/
 Receipt-*.pdf
+test-reports/
+.nyc_output/
+
+# Debug captures & MCP artifacts
+.debug-captures/
+.playwright-mcp/
+.audit-reports/
+
+# Vendor dependencies (cloned separately, not submodules)
+vendor/
 
 # Promo website build output (Eleventy)
 promo/ferni-website/_site/

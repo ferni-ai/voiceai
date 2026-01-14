@@ -282,7 +282,7 @@ const OUTREACH_RULES: OutreachRule[] = [
     },
     action: {
       type: 'team_roundtable',
-      personas: ['ferni', 'peter-john', 'jordan-milestones'],
+      personas: ['ferni', 'peter-john', 'jordan-taylor'],
       topic: 'a big life transition',
       reason: "We've been thinking about what you're going through",
     },
@@ -416,7 +416,7 @@ const OUTREACH_RULES: OutreachRule[] = [
     },
     action: {
       type: 'team_roundtable',
-      personas: ['ferni', 'nayan-wisdom', 'jordan-milestones'],
+      personas: ['ferni', 'nayan-patel', 'jordan-taylor'],
       topic: 'this new chapter in your life',
       reason: 'Big transitions deserve big support',
     },
@@ -855,7 +855,7 @@ const OUTREACH_RULES: OutreachRule[] = [
     },
     action: {
       type: 'team_roundtable',
-      personas: ['ferni', 'peter-john', 'maya-habits'],
+      personas: ['ferni', 'peter-john', 'maya-santos'],
       topic: 'something that keeps coming up',
       reason: "Let's finally work through this together",
     },
@@ -1206,7 +1206,7 @@ async function executeOutreachAction(
           threadId: mayaResult.threadId,
           channel: mayaResult.channel,
           message: mayaResult.message,
-          personas: ['maya-habits'],
+          personas: ['maya-santos'],
           error: mayaResult.error,
         };
 

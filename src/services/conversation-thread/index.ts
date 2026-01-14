@@ -102,7 +102,7 @@
  *
  * // Initiate a team roundtable voice call
  * await groupOutreach.initiateTeamRoundtableCall(userId, {
- *   personas: ['ferni', 'peter-john', 'maya-habits'],
+ *   personas: ['ferni', 'peter-john', 'maya-santos'],
  *   topic: 'Career planning brainstorm',
  *   reason: 'User expressed interest in career change',
  * });

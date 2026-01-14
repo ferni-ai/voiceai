@@ -109,9 +109,12 @@ export interface CallOutcome {
   callbackTime?: string;
   actionItems?: string[];
 
+  // Superhuman insights
+  messagesForUser?: string[]; // Things the recipient wanted to relay
+  transcriptSummary?: string; // Detailed conversation summary
+
   // Recording (if consented)
   recordingUrl?: string;
-  transcriptSummary?: string;
 }
 
 // ============================================================================
@@ -119,89 +122,59 @@ export interface CallOutcome {
 // ============================================================================
 
 /**
+ * Error indicating the contact store is not available
+ */
+class ContactStoreUnavailableError extends Error {
+  constructor() {
+    super('Contact store unavailable');
+    this.name = 'ContactStoreUnavailableError';
+  }
+}
+
+/**
  * Resolve a contact query to a phone number
  *
- * Resolution priority:
- * 1. Unified Entity Store (primary) - "Better Than Human" memory
- * 2. Legacy contact_relationships (fallback) - for backwards compatibility
+ * Uses ONLY the unified Entity Store - single source of truth for contacts.
  *
  * The entity store handles:
  * - "my brother" → finds entity with specificRelation="brother"
  * - "Mike" → finds entity with canonicalName/alias="Mike"
- * - Deduplication across all legacy collections
+ * - "mom" → finds entity with alias containing "mom"
+ *
+ * @throws ContactStoreUnavailableError if entity store is not initialized
  */
 async function resolveContact(
   contactQuery: string,
   userId: string
 ): Promise<ResolvedContact | null> {
+  const { findContactForTelephony, EntityStoreNotReadyError } = await import(
+    '../../../memory/entity-store/integration.js'
+  );
+
   try {
-    // =========================================================================
-    // PRIMARY: Try unified entity store first
-    // =========================================================================
-    try {
-      const { findContactForTelephony, isEntityStoreReady } =
-        await import('../../../memory/entity-store/integration.js');
+    const entityResult = await findContactForTelephony(userId, contactQuery);
 
-      if (isEntityStoreReady()) {
-        const entityResult = await findContactForTelephony(userId, contactQuery);
-
-        if (entityResult) {
-          log.info(
-            { contactQuery, name: entityResult.name, source: 'entity_store' },
-            '📇 Contact resolved from unified entity store'
-          );
-
-          return {
-            name: entityResult.name,
-            phone: entityResult.phone,
-            relationship: entityResult.relationship,
-          };
-        }
-      }
-    } catch (entityError) {
-      log.debug(
-        { error: String(entityError), contactQuery },
-        'Entity store lookup failed, falling back to legacy'
+    if (entityResult) {
+      log.info(
+        { contactQuery, name: entityResult.name, source: 'entity_store' },
+        '📇 Contact resolved from entity store'
       );
+
+      return {
+        name: entityResult.name,
+        phone: entityResult.phone,
+        relationship: entityResult.relationship,
+      };
     }
 
-    // =========================================================================
-    // FALLBACK: Legacy contact_relationships collection
-    // =========================================================================
-    const { searchContacts } =
-      await import('../../../services/contacts/contact-relationship-service.js');
-
-    const results = await searchContacts(userId, contactQuery);
-
-    if (results.length === 0) {
-      log.debug({ contactQuery, userId }, 'No contact found in any store');
-      return null;
-    }
-
-    // Take the first (best) match
-    const contact = results[0];
-
-    // ContactRelationship has phone as optional string
-    if (!contact.phone) {
-      log.debug({ contactQuery, contactName: contact.name }, 'Contact has no phone number');
-      return null;
-    }
-
-    log.info(
-      { contactQuery, name: contact.name, source: 'legacy_contact_relationships' },
-      '📇 Contact resolved from legacy collection'
-    );
-
-    return {
-      id: contact.id,
-      name: contact.name || contactQuery,
-      phone: contact.phone,
-      relationship: contact.relationship,
-      notes: contact.notes,
-    };
-  } catch (error) {
-    log.error({ error: String(error), contactQuery }, 'Contact resolution failed');
+    log.debug({ contactQuery, userId }, 'No contact found in entity store');
     return null;
+  } catch (error) {
+    if (error instanceof EntityStoreNotReadyError) {
+      log.warn({ userId }, 'Entity store not ready for contact resolution');
+      throw new ContactStoreUnavailableError();
+    }
+    throw error;
   }
 }
 
@@ -350,6 +323,7 @@ function inferRelationshipFromQuery(query: string): string | undefined {
 /**
  * Save a contact for future use
  * This enables "remembering" phone numbers across sessions
+ * Saves directly to the unified entity store using capturePersonEntity
  */
 async function saveContactForFuture(
   userId: string,
@@ -357,8 +331,9 @@ async function saveContactForFuture(
   phone: string
 ): Promise<void> {
   try {
-    const { upsertContact } =
-      await import('../../../services/contacts/contact-relationship-service.js');
+    const { capturePersonEntity } = await import(
+      '../../../memory/entity-store/integration.js'
+    );
 
     // Extract a clean name from the query
     const cleanName = contactQuery
@@ -367,18 +342,29 @@ async function saveContactForFuture(
       .trim();
 
     const relationship = inferRelationshipFromQuery(contactQuery);
+    const capitalizedName = cleanName.charAt(0).toUpperCase() + cleanName.slice(1);
 
-    await upsertContact(userId, {
-      name: cleanName.charAt(0).toUpperCase() + cleanName.slice(1), // Capitalize
-      contactId: `phone_${phone}`,
-      phone,
-      relationship: relationship ? 'family' : 'other',
-      notes: relationship ? `User's ${relationship}` : undefined,
-    });
+    // Normalize phone number
+    const normalizedPhone = phone.startsWith('+') ? phone : `+1${phone.replace(/\D/g, '')}`;
 
-    log.info({ userId, name: cleanName, relationship }, '📇 Contact saved for future calls');
+    await capturePersonEntity(
+      userId,
+      {
+        name: capitalizedName,
+        relationship: relationship,
+        phone: normalizedPhone,
+      },
+      {
+        conversationId: 'telephony-save',
+        sessionId: 'telephony-save',
+        personaId: 'ferni',
+        transcript: `User provided phone number for ${contactQuery}: ${phone}`,
+      }
+    );
+
+    log.info({ userId, name: capitalizedName, relationship }, '📇 Contact saved to entity store');
   } catch (error) {
-    log.warn({ error: String(error) }, 'Failed to save contact');
+    log.warn({ error: String(error) }, 'Failed to save contact to entity store');
     // Non-critical - don't throw
   }
 }
@@ -478,15 +464,15 @@ export function createCallOnBehalfTool(ctx: ToolContext): Tool {
 
         if (!contact) {
           return (
-            `I couldn't find a contact matching "${contactQuery}". ` +
-            `Could you tell me their phone number? For example, "call my mom at 555-123-4567"`
+            `I don't have ${contactQuery} saved yet. ` +
+            `What's their phone number? You can say something like "their number is 555-123-4567"`
           );
         }
 
         if (!contact.phone) {
           return (
-            `I found ${contact.name}, but I don't have a phone number for them. ` +
-            `Could you provide their number?`
+            `I found ${contact.name}, but I don't have their phone number. ` +
+            `What is it?`
           );
         }
 
@@ -559,6 +545,16 @@ export function createCallOnBehalfTool(ctx: ToolContext): Tool {
           `I'll let you know how it goes once the call is complete.`
         );
       } catch (error) {
+        // Handle specific error types with helpful messages
+        if (error instanceof ContactStoreUnavailableError) {
+          log.warn({ userId: ctx.userId }, 'Contact store unavailable for call');
+          return (
+            `I'm having trouble accessing your contacts right now. ` +
+            `Can you give me the phone number directly? ` +
+            `For example, "call my mom at 555-123-4567"`
+          );
+        }
+
         log.error({ error: String(error), contactQuery, purpose }, 'Failed to initiate call');
 
         return (
