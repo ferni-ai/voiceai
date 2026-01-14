@@ -353,6 +353,125 @@ export async function getProactiveSuggestions(
 }
 
 // ============================================================================
+// CACHING (Performance Optimization)
+// ============================================================================
+
+/**
+ * Simple LRU cache for retrieval results
+ */
+class RetrievalCache {
+  private cache = new Map<string, { result: RetrievalResult; timestamp: number }>();
+  private maxSize: number;
+  private ttlMs: number;
+
+  constructor(maxSize = 100, ttlMs = 30000) {
+    this.maxSize = maxSize;
+    this.ttlMs = ttlMs;
+  }
+
+  private makeKey(userId: string, query: string, options?: RetrievalOptions): string {
+    return `${userId}:${query}:${JSON.stringify(options || {})}`;
+  }
+
+  get(userId: string, query: string, options?: RetrievalOptions): RetrievalResult | null {
+    const key = this.makeKey(userId, query, options);
+    const entry = this.cache.get(key);
+
+    if (!entry) return null;
+
+    // Check TTL
+    if (Date.now() - entry.timestamp > this.ttlMs) {
+      this.cache.delete(key);
+      return null;
+    }
+
+    return entry.result;
+  }
+
+  set(
+    userId: string,
+    query: string,
+    options: RetrievalOptions | undefined,
+    result: RetrievalResult
+  ): void {
+    const key = this.makeKey(userId, query, options);
+
+    // Evict oldest if at capacity
+    if (this.cache.size >= this.maxSize) {
+      const oldestKey = this.cache.keys().next().value;
+      if (oldestKey) this.cache.delete(oldestKey);
+    }
+
+    this.cache.set(key, { result, timestamp: Date.now() });
+  }
+
+  clear(): void {
+    this.cache.clear();
+  }
+
+  getStats(): { size: number; maxSize: number; ttlMs: number } {
+    return { size: this.cache.size, maxSize: this.maxSize, ttlMs: this.ttlMs };
+  }
+}
+
+let retrievalCacheInstance: RetrievalCache | null = null;
+
+/**
+ * Get the shared retrieval cache
+ */
+export function getRetrievalCache(maxSize?: number, ttlMs?: number): RetrievalCache {
+  if (!retrievalCacheInstance) {
+    retrievalCacheInstance = new RetrievalCache(maxSize, ttlMs);
+  }
+  return retrievalCacheInstance;
+}
+
+/**
+ * Cached retrieval - checks cache before hitting storage
+ */
+export async function retrieveContextCached(
+  userId: string,
+  query: string,
+  context?: Partial<RetrievalContext>,
+  options?: RetrievalOptions & { bypassCache?: boolean }
+): Promise<RetrievalResult> {
+  const cache = getRetrievalCache();
+
+  // Check cache first (unless bypassed)
+  if (!options?.bypassCache) {
+    const cached = cache.get(userId, query, options);
+    if (cached) {
+      log.debug({ userId, query }, 'Retrieval cache hit');
+      return cached;
+    }
+  }
+
+  // Cache miss - do actual retrieval
+  const result = await retrieveContext(userId, query, context, options);
+
+  // Store in cache
+  cache.set(userId, query, options, result);
+
+  return result;
+}
+
+/**
+ * Clear the retrieval cache (useful after writes)
+ */
+export function clearRetrievalCache(): void {
+  if (retrievalCacheInstance) {
+    retrievalCacheInstance.clear();
+  }
+}
+
+/**
+ * Get retrieval cache statistics
+ */
+export function getRetrievalCacheStats(): { size: number; maxSize: number; ttlMs: number } {
+  return getRetrievalCache().getStats();
+}
+
+// ============================================================================
 // RE-EXPORTS
 // ============================================================================
 

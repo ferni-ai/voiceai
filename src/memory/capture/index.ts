@@ -197,26 +197,141 @@ export async function captureTurnUnified(input: CaptureInput): Promise<CaptureRe
 
 /**
  * Capture from a batch of turns (for post-session processing)
+ *
+ * Performance optimized:
+ * - Processes turns in parallel batches
+ * - Limits concurrent operations to avoid overwhelming the system
  */
 export async function captureBatchUnified(
   userId: string,
   sessionId: string,
-  turns: Array<{ transcript: string; turnNumber: number; timestamp?: Date }>
+  turns: Array<{ transcript: string; turnNumber: number; timestamp?: Date }>,
+  options?: { batchSize?: number; parallel?: boolean }
 ): Promise<CaptureResultUnified[]> {
+  const batchSize = options?.batchSize ?? 5;
+  const parallel = options?.parallel ?? true;
+
+  if (!parallel) {
+    // Sequential processing (safe mode)
+    const results: CaptureResultUnified[] = [];
+    for (const turn of turns) {
+      const result = await captureTurnUnified({
+        userId,
+        sessionId,
+        turnNumber: turn.turnNumber,
+        transcript: turn.transcript,
+        timestamp: turn.timestamp,
+      });
+      results.push(result);
+    }
+    return results;
+  }
+
+  // Parallel batch processing (performance mode)
   const results: CaptureResultUnified[] = [];
 
-  for (const turn of turns) {
-    const result = await captureTurnUnified({
-      userId,
-      sessionId,
-      turnNumber: turn.turnNumber,
-      transcript: turn.transcript,
-      timestamp: turn.timestamp,
-    });
-    results.push(result);
+  for (let i = 0; i < turns.length; i += batchSize) {
+    const batch = turns.slice(i, i + batchSize);
+    const batchResults = await Promise.all(
+      batch.map((turn) =>
+        captureTurnUnified({
+          userId,
+          sessionId,
+          turnNumber: turn.turnNumber,
+          transcript: turn.transcript,
+          timestamp: turn.timestamp,
+        })
+      )
+    );
+    results.push(...batchResults);
   }
 
   return results;
+}
+
+// ============================================================================
+// PERFORMANCE UTILITIES
+// ============================================================================
+
+/**
+ * Debounced capture for high-frequency updates
+ * Collects captures and flushes periodically
+ */
+class CaptureBuffer {
+  private buffer: Map<string, CaptureInput[]> = new Map();
+  private flushTimeout: NodeJS.Timeout | null = null;
+  private flushIntervalMs = 1000;
+
+  constructor(flushIntervalMs?: number) {
+    if (flushIntervalMs) this.flushIntervalMs = flushIntervalMs;
+  }
+
+  add(input: CaptureInput): void {
+    const key = `${input.userId}:${input.sessionId}`;
+    const existing = this.buffer.get(key) || [];
+    existing.push(input);
+    this.buffer.set(key, existing);
+
+    // Schedule flush if not already scheduled
+    if (!this.flushTimeout) {
+      this.flushTimeout = setTimeout(() => this.flush(), this.flushIntervalMs);
+    }
+  }
+
+  async flush(): Promise<void> {
+    if (this.flushTimeout) {
+      clearTimeout(this.flushTimeout);
+      this.flushTimeout = null;
+    }
+
+    const entries = Array.from(this.buffer.entries());
+    this.buffer.clear();
+
+    for (const [key, inputs] of entries) {
+      const [userId, sessionId] = key.split(':');
+      try {
+        await captureBatchUnified(
+          userId,
+          sessionId,
+          inputs.map((i) => ({
+            transcript: i.transcript,
+            turnNumber: i.turnNumber,
+            timestamp: i.timestamp,
+          }))
+        );
+      } catch (error) {
+        log.warn({ error: String(error), key }, 'Buffered capture flush failed');
+      }
+    }
+  }
+}
+
+let captureBufferInstance: CaptureBuffer | null = null;
+
+/**
+ * Get the shared capture buffer for debounced captures
+ */
+export function getCaptureBuffer(flushIntervalMs?: number): CaptureBuffer {
+  if (!captureBufferInstance) {
+    captureBufferInstance = new CaptureBuffer(flushIntervalMs);
+  }
+  return captureBufferInstance;
+}
+
+/**
+ * Add a capture to the buffer (will be processed in batch)
+ */
+export function bufferCapture(input: CaptureInput): void {
+  getCaptureBuffer().add(input);
+}
+
+/**
+ * Flush all buffered captures immediately
+ */
+export async function flushCaptureBuffer(): Promise<void> {
+  if (captureBufferInstance) {
+    await captureBufferInstance.flush();
+  }
 }
 
 // ============================================================================
