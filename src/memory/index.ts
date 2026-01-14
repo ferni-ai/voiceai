@@ -1504,10 +1504,24 @@ export {
   getThreadStats,
   findOrCreateThread,
   markDormantThreads,
-  // Knowledge Graph Singleton
-  getKnowledgeGraph,
+  // Knowledge Graph Singleton - EXPORTED LAZILY below to avoid circular imports
+  // getKnowledgeGraph,
   type KnowledgeGraph,
 } from './knowledge-graph/index.js';
+
+/**
+ * Get knowledge graph singleton (lazy import to avoid circular dependencies)
+ *
+ * The knowledge-graph/index.js has complex import chains that can cause
+ * circular reference issues at module initialization time. This wrapper
+ * provides lazy access to avoid the problem.
+ */
+export async function getKnowledgeGraphLazy(): Promise<
+  import('./knowledge-graph/index.js').KnowledgeGraph
+> {
+  const { getKnowledgeGraph } = await import('./knowledge-graph/index.js');
+  return getKnowledgeGraph();
+}
 
 // ============================================================================
 // SPANNER GRAPH (L3 Long-Term Memory)
