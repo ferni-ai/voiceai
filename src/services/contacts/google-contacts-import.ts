@@ -175,7 +175,7 @@ export async function importGoogleContacts(
 
     try {
       const googleapis = await import('googleapis');
-      google = googleapis.google as typeof google;
+      google = googleapis.google as unknown as typeof google;
     } catch {
       log.warn('googleapis package not installed. Google Contacts import unavailable.');
       result.errors.push('googleapis package not installed. Run: npm install googleapis');
@@ -412,7 +412,7 @@ export async function getGoogleContactsAuthUrl(
   state: string
 ): Promise<string> {
   try {
-    const { google } = (await import('googleapis')) as {
+    const { google } = (await import('googleapis')) as unknown as {
       google: {
         auth: {
           OAuth2: new (...args: unknown[]) => { generateAuthUrl: (opts: unknown) => string };
@@ -445,7 +445,7 @@ export async function exchangeGoogleContactsCode(
   code: string
 ): Promise<{ accessToken: string; refreshToken?: string }> {
   try {
-    const { google } = (await import('googleapis')) as {
+    const { google } = (await import('googleapis')) as unknown as {
       google: {
         auth: {
           OAuth2: new (...args: unknown[]) => {

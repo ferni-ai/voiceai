@@ -8,7 +8,7 @@
  * - contact_relationships (from contact-relationship-service.ts)
  * - relationship_network (from superhuman/relationship-network.ts)
  * - relationship_nodes (from semantic-intelligence/relationship-graph.ts)
- * - guest_profiles (from jordan-planning-services.ts)
+ * - guest_profiles (from event-intelligence-services.ts)
  * - network/relationships (from research tools)
  *
  * This migration:

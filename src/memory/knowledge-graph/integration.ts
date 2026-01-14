@@ -13,7 +13,8 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { getKnowledgeGraph, getEntityResolver } from './index.js';
+// NOTE: getKnowledgeGraph and getEntityResolver are imported lazily inside functions
+// to avoid circular dependency (integration.ts <- index.ts <- integration.ts)
 import type {
   Entity,
   EntityType,
@@ -47,7 +48,7 @@ export async function integrateContact(
     sourceText?: string;
   }
 ): Promise<Entity> {
-  const kg = getKnowledgeGraph();
+  const kg = await getKG();
 
   // Build entity mention from contact
   const mention: EntityMention = {
@@ -110,8 +111,8 @@ export async function integrateCommitment(
     sourceText?: string;
   }
 ): Promise<Entity> {
-  const kg = getKnowledgeGraph();
-  const resolver = getEntityResolver();
+  const kg = await getKG();
+  const resolver = await getResolver();
 
   // Create commitment entity
   const mention: EntityMention = {
@@ -178,7 +179,7 @@ export async function integrateRelationshipMention(
     emotionalIntensity?: number;
   }
 ): Promise<Entity> {
-  const kg = getKnowledgeGraph();
+  const kg = await getKG();
 
   const entityMention: EntityMention = {
     text: mention.personName || mention.relationship,
@@ -229,7 +230,7 @@ export async function processConversationTurn(
     extractedRelationships?: Array<{ relationship: string; name?: string; context: string }>;
   }
 ): Promise<void> {
-  const kg = getKnowledgeGraph();
+  const kg = await getKG();
 
   // Process extracted names
   if (turn.extractedNames) {
@@ -326,7 +327,7 @@ export async function syncFromSuperhumanService(
   service: 'commitment-keeper' | 'relationship-network' | 'dream-keeper' | 'values-alignment',
   data: unknown[]
 ): Promise<number> {
-  const kg = getKnowledgeGraph();
+  const kg = await getKG();
   let synced = 0;
 
   switch (service) {
@@ -414,6 +415,7 @@ export async function migrateUserData(userId: string): Promise<{
   commitments: number;
   relationships: number;
 }> {
+  const kg = await getKG();
   const stats = {
     contacts: 0,
     commitments: 0,
@@ -475,5 +477,14 @@ export async function migrateUserData(userId: string): Promise<{
   return stats;
 }
 
-// Get the singleton for use in the module
-const kg = getKnowledgeGraph();
+// Helper to get knowledge graph lazily (avoids circular dependency)
+async function getKG() {
+  const { getKnowledgeGraph } = await import('./index.js');
+  return getKnowledgeGraph();
+}
+
+// Helper to get entity resolver lazily (avoids circular dependency)
+async function getResolver() {
+  const { getEntityResolver } = await import('./index.js');
+  return getEntityResolver();
+}

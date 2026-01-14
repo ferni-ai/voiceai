@@ -95,6 +95,8 @@ export {
   getAllContacts,
   // Health
   getEntityStoreHealth,
+  // Errors
+  EntityStoreNotReadyError,
 } from './integration.js';
 
 // ============================================================================

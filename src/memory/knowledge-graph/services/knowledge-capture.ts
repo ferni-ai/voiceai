@@ -42,11 +42,32 @@ export interface TurnCaptureInput {
   transcript: string;
   /** Active persona ID */
   personaId?: string;
-  /** Detected emotion */
+  /** Detected emotion (from transcript analysis) */
   emotion?: {
     primary?: string;
     intensity?: number;
     valence?: number;
+  };
+  /** Voice prosody signals (from audio analysis) - "Better Than Human" */
+  voiceSignals?: {
+    /** Detected emotion from voice tone (happy, sad, anxious, stressed, etc.) */
+    voiceEmotion?: string;
+    /** Voice energy level 0-1 */
+    energy?: number;
+    /** Speaking rate relative to baseline (1.0 = normal) */
+    speakingRate?: number;
+    /** Voice tremor/strain detected (indicates stress/anxiety) */
+    strain?: boolean;
+    /** Detected pauses or hesitations */
+    hesitations?: number;
+    /** Pitch variation (monotone vs expressive) */
+    pitchVariation?: 'low' | 'normal' | 'high';
+    /** Raw prosody scores for advanced analysis */
+    prosodyScores?: {
+      pitch?: number;
+      energy?: number;
+      tempo?: number;
+    };
   };
   /** Current topic */
   topic?: string;
@@ -76,6 +97,115 @@ export interface CaptureResult {
     extractionTimeMs: number;
     storageTimeMs: number;
   };
+}
+
+// ============================================================================
+// VOICE EMOTION INTEGRATION - "Better Than Human" capability
+// ============================================================================
+
+/**
+ * Calculate comprehensive emotional context from both transcript and voice signals.
+ *
+ * Voice signals provide insights that text alone cannot capture:
+ * - Strain in voice → hidden stress/anxiety
+ * - Energy levels → enthusiasm vs fatigue
+ * - Hesitations → uncertainty or difficult topics
+ * - Speaking rate → excitement or nervousness
+ *
+ * This is a "Better Than Human" capability - no human friend can consistently
+ * detect and track these subtle voice-based emotional signals.
+ */
+function calculateEmotionalContext(
+  textEmotion?: { primary?: string; intensity?: number; valence?: number },
+  voiceSignals?: TurnCaptureInput['voiceSignals']
+): { sentiment: number; intensity: number; voiceEmotionDetected?: string } {
+  // Default values
+  let sentiment = 0;
+  let intensity = 0.5;
+  let voiceEmotionDetected: string | undefined;
+
+  // Start with text-based emotion
+  if (textEmotion) {
+    // Map text valence to sentiment (-1 to 1)
+    if (typeof textEmotion.valence === 'number') {
+      sentiment = textEmotion.valence;
+    } else if (typeof textEmotion.valence === 'string') {
+      sentiment = textEmotion.valence === 'positive' ? 0.5 : textEmotion.valence === 'negative' ? -0.5 : 0;
+    }
+    intensity = textEmotion.intensity ?? 0.5;
+  }
+
+  // Enhance with voice signals (this is the "Better Than Human" part)
+  if (voiceSignals) {
+    // Voice emotion detected from prosody
+    if (voiceSignals.voiceEmotion) {
+      voiceEmotionDetected = voiceSignals.voiceEmotion;
+
+      // Adjust sentiment based on voice emotion
+      const voiceEmotionSentiment: Record<string, number> = {
+        happy: 0.6,
+        excited: 0.7,
+        calm: 0.2,
+        neutral: 0,
+        sad: -0.4,
+        anxious: -0.3,
+        stressed: -0.4,
+        angry: -0.6,
+        frustrated: -0.5,
+        tired: -0.2,
+      };
+
+      const voiceSentiment = voiceEmotionSentiment[voiceSignals.voiceEmotion.toLowerCase()] ?? 0;
+
+      // Blend text and voice sentiment (voice is often more reliable for true emotion)
+      sentiment = sentiment * 0.4 + voiceSentiment * 0.6;
+    }
+
+    // Voice strain indicates hidden stress (adjust intensity up)
+    if (voiceSignals.strain) {
+      intensity = Math.min(1, intensity + 0.2);
+      // If text says positive but voice shows strain, something's off
+      if (sentiment > 0) {
+        sentiment = sentiment * 0.5; // Reduce positive sentiment
+      }
+    }
+
+    // Low energy suggests fatigue or sadness
+    if (voiceSignals.energy !== undefined && voiceSignals.energy < 0.3) {
+      intensity = Math.max(0.2, intensity - 0.1);
+      if (sentiment > 0) {
+        sentiment = sentiment * 0.7; // Muted positive
+      }
+    }
+
+    // High energy with fast speaking rate suggests excitement or anxiety
+    if (voiceSignals.energy !== undefined && voiceSignals.energy > 0.7 && voiceSignals.speakingRate && voiceSignals.speakingRate > 1.2) {
+      intensity = Math.min(1, intensity + 0.15);
+    }
+
+    // Many hesitations suggest difficulty with topic
+    if (voiceSignals.hesitations && voiceSignals.hesitations > 3) {
+      // Topic is emotionally significant
+      intensity = Math.min(1, intensity + 0.1);
+    }
+
+    // Pitch variation
+    if (voiceSignals.pitchVariation === 'low') {
+      // Monotone often indicates suppressed emotion or depression
+      if (sentiment > 0) {
+        sentiment = sentiment * 0.6;
+      }
+    } else if (voiceSignals.pitchVariation === 'high') {
+      // Expressive pitch suggests strong emotion
+      intensity = Math.min(1, intensity + 0.1);
+    }
+  }
+
+  // Clamp final values
+  sentiment = Math.max(-1, Math.min(1, sentiment));
+  intensity = Math.max(0, Math.min(1, intensity));
+
+  return { sentiment, intensity, voiceEmotionDetected };
 }
 
 // ============================================================================
@@ -264,6 +394,9 @@ export async function captureTurn(input: TurnCaptureInput): Promise<CaptureResul
           // Get facts specific to this entity
           const entityFacts = extractedFacts.filter((f) => f.entityId === resolved.id);
 
+          // Combine transcript emotion with voice signals for comprehensive emotional context
+          const emotionalContext = calculateEmotionalContext(input.emotion, input.voiceSignals);
+
           await createMention(input.userId, {
             userId: input.userId,
             entityId: resolved.id,
@@ -272,8 +405,8 @@ export async function captureTurn(input: TurnCaptureInput): Promise<CaptureResul
             timestamp: new Date(),
             transcript: resolved.extracted.sourceText || input.transcript,
             mentionType: resolved.isNew ? 'reference' : 'reference',
-            sentiment: input.emotion?.valence || 0,
-            emotionalIntensity: input.emotion?.intensity || 0.5,
+            sentiment: emotionalContext.sentiment,
+            emotionalIntensity: emotionalContext.intensity,
             topics: input.topic ? [input.topic] : [],
             facts: entityFacts.map((f) => ({
               type: f.type as 'attribute' | 'event' | 'relationship' | 'state',

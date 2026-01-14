@@ -22,59 +22,313 @@ Level 10:  config/, utils/, types/
 
 ---
 
+## 🏗️ Clean Architecture (January 2026 Refactor)
+
+The memory module follows clean architecture with **six** focused entry points:
+
+### **RECOMMENDED: Use the Memory Facade**
+
+```typescript
+import { Memory } from './memory/facade.js';
+
+// Initialize at startup
+await Memory.initialize();
+
+// Capture from conversation
+await Memory.capture({ userId, sessionId, transcript, turnNumber });
+
+// Retrieve context
+const context = await Memory.retrieve(userId, query);
+
+// Ask natural language questions
+const { answer, entities } = await Memory.ask(userId, 'What do we know about Mike?');
+
+// Health check
+const healthy = await Memory.isHealthy();
+```
+
+The `Memory` facade provides the cleanest, most stable API for new code.
+
+---
+
+### Individual Entry Points
+
+### 1. Unified Capture (`capture/`)
+
+**Single entry point for all memory capture operations.**
+
+```typescript
+import { captureTurnUnified } from './memory/capture/index.js';
+
+// Capture memory from a conversation turn
+const result = await captureTurnUnified({
+  userId,
+  sessionId,
+  turnNumber,
+  transcript: userText,
+  emotion: { primary: 'happy', intensity: 0.8 },
+  personaId: 'ferni',
+});
+
+// Result includes:
+// - fast: Fast regex extraction results
+// - stmRecorded: Whether STM buffer was updated
+// - entities: Captured person entities
+// - asyncJobId: For tracking deep extraction
+```
+
+**What it does:**
+1. Runs `fastCapture()` inline (< 50ms regex extraction)
+2. Records to STM buffer (L1 memory)
+3. Captures person entities to entity-store
+4. Queues async deep extraction
+
+### 2. Unified Persistence (`persistence/`)
+
+**Single access point for all storage operations.**
+
+```typescript
+import {
+  getUnifiedStore,
+  saveDocument,
+  getDocument,
+  searchVectors,
+  getPersistenceHealth,
+} from './memory/persistence/index.js';
+
+// Save a document
+await saveDocument(userId, 'memories', 'mem-123', { content: '...' });
+
+// Get a document
+const doc = await getDocument(userId, 'memories', 'mem-123');
+
+// Semantic search
+const results = await searchVectors('outdoor activities', { topK: 5 });
+
+// Health check
+const health = await getPersistenceHealth();
+```
+
+**What it abstracts:**
+- Firestore (primary document store)
+- FirestoreVectorStore (embeddings)
+- Redis (optional cache)
+- Spanner (L3 graph storage)
+
+### 3. Interfaces (`interfaces/`)
+
+**Canonical import point for all memory types.**
+
+```typescript
+import type {
+  // Entity types (from entity-store)
+  Entity,
+  EntityType,
+  PersonAttributes,
+  // Knowledge graph types
+  Relationship,
+  Fact,
+  Correlation,
+  // Service interfaces
+  MemoryOrchestrator,
+  VectorStoreContract,
+} from './memory/interfaces/index.js';
+```
+
+---
+
 ## Directory Structure
 
 ```
 memory/
-├── __tests__/                    # Test files
+├── CLAUDE.md                     # This file
+├── facade.ts                     # 🌟 RECOMMENDED: Memory facade API
+├── index.ts                      # Main exports (all modules)
 ├── interfaces/                   # Clean architecture interfaces
-│   └── index.ts                  # VectorStoreContract, MemoryDecayService, etc.
-├── user-memory-indexer/          # User memory vectorization (modular)
-│   ├── index.ts                  # Main entry point
-│   ├── types.ts                  # Types and doc ID generation
-│   ├── profile-indexers.ts       # Profile data indexers
-│   └── human-memory-indexers.ts  # Human-centric memory indexers
-├── firestore-store.ts            # Firestore document storage
-├── firestore-vector-store.ts     # Re-exports from modular firestore-vector-store/
-├── firestore-vector-store/       # Vector embeddings in Firestore (modular)
-│   ├── index.ts                  # Re-exports + singleton
-│   ├── types.ts                  # Interfaces, configs, constants
-│   ├── helpers.ts                # Embedding extraction, filter matching
-│   ├── fallback-cache.ts         # In-memory fallback when Firestore unavailable
-│   ├── recovery.ts               # Auto-recovery and cache migration
-│   ├── core.ts                   # Main FirestoreVectorStore class
-│   └── CLAUDE.md                 # Module documentation
-├── firestore-memory-persistence.ts # Memory persistence helpers
-├── firestore-converters-integration.ts # Type converters
-├── embeddings.ts                 # Embedding generation (OpenAI)
-├── embedding-cache.ts            # Embedding cache layer
-├── advanced-retrieval.ts         # Semantic search with RAG
-├── associative-memory.ts         # Memory associations
-├── emotional-memory-unified.ts   # Emotion-tagged memories (uses DI)
-├── emotional-threading.ts        # Emotional context threads
-├── behavioral-pattern-detector.ts # Pattern detection
-├── communication-preferences.ts  # User preferences
-├── human-signal-extractor.ts     # Extract signals from conversation
-├── history.ts                    # Conversation history
-├── in-memory-store.ts            # Fast in-memory cache
-├── background-indexer.ts         # Async indexing
-├── result.ts                     # Result type for error handling
-├── type-guards.ts                # Runtime type validation
-├── store.ts                      # Abstract MemoryStore base class
-├── store-factory.ts              # Store factory (Firestore/Postgres/in-memory)
-└── index.ts                      # Main exports
+│   └── index.ts                  # Canonical type import point
+│
+├── capture/                      # 🆕 Unified capture pipeline
+│   └── index.ts                  # captureTurnUnified()
+│
+├── retrieval/                    # 🆕 Unified retrieval layer
+│   └── index.ts                  # retrieveContext(), search
+│
+├── persistence/                  # 🆕 Unified storage layer
+│   └── index.ts                  # saveDocument(), searchVectors()
+│
+├── init/                         # 🆕 Initialization & health
+│   └── index.ts                  # initialize(), shutdown(), health
+│
+├── entity-store/                 # Unified entity storage (BTH memory)
+│   ├── types.ts                  # Source of truth for entity types
+│   ├── storage.ts                # Firestore CRUD
+│   ├── entity-resolver.ts        # Resolve mentions to entities
+│   ├── integration.ts            # capturePersonEntity()
+│   └── migration.ts              # Legacy data migration
+│
+├── knowledge-graph/              # Graph intelligence layer
+│   ├── types.ts                  # Graph types (extends entity-store)
+│   ├── extractors/               # LLM entity/fact/relationship extraction
+│   ├── services/                 # Knowledge capture, NL query
+│   └── storage/                  # Insights, threads
+│
+├── dynamic/                      # Three-layer memory (L1/L2/L3)
+│   ├── fast-capture.ts           # L2: Regex extraction (< 50ms)
+│   ├── stm-buffer.ts             # L1: In-memory session context
+│   ├── stm-promotion.ts          # L1→L2: Session-end promotion
+│   ├── deep-extraction-worker.ts # L3: Async LLM extraction
+│   └── firestore-spanner-sync.ts # L2→L3: Background sync
+│
+├── spanner-graph/                # L3 long-term graph storage
+│   ├── schema.ts                 # DDL and types
+│   ├── client.ts                 # Spanner client
+│   └── queries.ts                # GQL graph queries
+│
+├── firestore-vector-store/       # Vector embeddings (modular)
+│   ├── core.ts                   # Main class
+│   ├── fallback-cache.ts         # In-memory fallback
+│   └── recovery.ts               # Auto-recovery
+│
+├── Memory Graph & Lifecycle      # Human-like memory operations
+│   ├── memory-graph.ts           # Associative links
+│   ├── spreading-activation.ts   # Graph traversal
+│   ├── protection-engine.ts      # Protect important memories
+│   ├── lifecycle-integration.ts  # Bridge to storage
+│   └── learning-engine.ts        # Adapt to user reactions
+│
+└── Core Stores
+    ├── firestore-store.ts        # Firestore document store
+    ├── postgres-store.ts         # PostgreSQL store
+    ├── in-memory-store.ts        # Development store
+    ├── redis-cache.ts            # Session cache
+    └── store-factory.ts          # Auto-select store
+```
+
+---
+
+## Three-Layer Memory Architecture
+
+```
+User Speech
+    │
+    ▼
+┌──────────────────────┐
+│   Fast Capture       │  < 50ms (inline)
+│   (fast-capture.ts)  │
+└────────┬─────────────┘
+         │
+    ┌────┴────┐
+    │         │
+    ▼         ▼
+┌────────┐  ┌────────────────────┐
+│  STM   │  │  AsyncEvents.emit  │
+│ Buffer │  │  (fire & forget)   │
+│  (L1)  │  └────────┬───────────┘
+└────────┘           │
+                     ▼
+           ┌──────────────────────┐
+           │  Deep Extraction     │  Background (1-3s)
+           │  Worker              │
+           └──────────┬───────────┘
+                      │
+                      ▼
+           ┌──────────────────────┐
+           │  Firestore (L2)      │
+           │  Entity Store        │
+           └──────────┬───────────┘
+                      │
+                      ▼ (Background sync, every 6h)
+           ┌──────────────────────┐
+           │  Spanner Graph (L3)  │
+           └──────────────────────┘
+```
+
+| Layer | Storage | Latency | TTL | Purpose |
+|-------|---------|---------|-----|---------|
+| **L1: STM** | In-memory | < 1ms | Session | Current conversation context |
+| **L2: Working** | Firestore | 50-150ms | 7-30 days | Recent entities, facts |
+| **L3: Long-Term** | Spanner | 100-200ms | Forever | Relationship traversal |
+
+---
+
+## Key Modules
+
+### Entity Store (Better Than Human Memory)
+
+Unified storage for all entities (people, places, events, concepts).
+
+```typescript
+import {
+  capturePersonEntity,
+  findContactForTelephony,
+  whatDoWeKnowAbout,
+} from './memory/entity-store/index.js';
+
+// Capture a person from conversation
+const result = await capturePersonEntity(userId, {
+  name: 'Mike',
+  relationship: 'brother',
+  phone: '555-1234',
+}, context);
+
+// Find contact for calling
+const contact = await findContactForTelephony(userId, 'my brother');
+
+// Get everything about someone
+const info = await whatDoWeKnowAbout(userId, 'Mike');
+```
+
+### Knowledge Graph
+
+Graph intelligence layer for extraction and querying.
+
+```typescript
+import {
+  captureTurn,
+  executeNaturalQuery,
+  getKnowledgeGraph,
+} from './memory/knowledge-graph/index.js';
+
+// Capture knowledge from turn
+await captureTurn({
+  userId,
+  sessionId,
+  turnNumber,
+  transcript: 'My brother Mike is having surgery',
+  emotion: { primary: 'worried' },
+});
+
+// Natural language query
+const result = await executeNaturalQuery(userId, 'What do we know about Mike?');
+```
+
+### Memory Graph & Lifecycle
+
+Human-like memory operations.
+
+```typescript
+import {
+  getMemoryGraph,
+  getSpreadingActivation,
+  getLearningEngine,
+  runLifecycleMaintenance,
+} from './memory/index.js';
+
+// Spreading activation (like human memory recall)
+const activation = await getSpreadingActivation();
+const activated = await activation.spread(memoryId);
+
+// Learn from user reactions
+const learning = getLearningEngine();
+await learning.recordReaction(surfacingEvent, 'grateful');
 ```
 
 ---
 
 ## System Health Monitoring
 
-**Function:** `getMemorySystemHealth()`
-
-Returns unified health status for all memory subsystems:
-
 ```typescript
-import { getMemorySystemHealth, type MemorySystemHealth } from './memory/index.js';
+import { getMemorySystemHealth } from './memory/index.js';
 
 const health = await getMemorySystemHealth();
 // Returns:
@@ -82,222 +336,12 @@ const health = await getMemorySystemHealth();
 //   overall: 'healthy' | 'degraded' | 'unhealthy',
 //   initialized: boolean,
 //   stores: {
-//     primary: { healthy: boolean, type: StoreType, details?: string },
-//     vector: { healthy: boolean, usingFallback: boolean, cacheSize: number, details?: string },
-//     redis: { enabled: boolean, healthy: boolean, details?: string }
+//     primary: { healthy: boolean, type: StoreType },
+//     vector: { healthy: boolean, usingFallback: boolean, cacheSize: number },
+//     redis: { enabled: boolean, healthy: boolean }
 //   },
-//   embedding: {
-//     provider: string,
-//     dimensions: number,
-//     dimensionMatch: boolean  // true if provider dimensions match vector store config
-//   }
+//   embedding: { provider: string, dimensions: number, dimensionMatch: boolean }
 // }
-```
-
-**Health States:**
-- `healthy`: All systems operational
-- `degraded`: Operating in fallback mode (e.g., in-memory cache instead of Firestore)
-- `unhealthy`: Critical failure, memory system not initialized
-
----
-
-## Core Components
-
-### 1. Firestore Store
-
-**File:** `firestore-store.ts`
-
-Document storage for structured data.
-
-```typescript
-import { getUserDocument, setUserDocument } from './firestore-store.js';
-
-// Read
-const profile = await getUserDocument<UserProfile>(userId, 'profile');
-
-// Write
-await setUserDocument(userId, 'profile', { name: 'John', ... });
-```
-
-### 2. Vector Store
-
-**File:** `firestore-vector-store.ts`
-
-Semantic search using vector embeddings.
-
-```typescript
-import { addMemory, searchMemories } from './firestore-vector-store.js';
-
-// Store with embedding
-await addMemory(userId, {
-  content: 'User mentioned they love hiking',
-  type: 'preference',
-  embedding: await generateEmbedding(content),
-});
-
-// Semantic search
-const memories = await searchMemories(userId, {
-  query: 'outdoor activities',
-  limit: 5,
-  threshold: 0.7,
-});
-```
-
-### 3. Embeddings
-
-**File:** `embeddings.ts`
-
-Generate embeddings via OpenAI.
-
-```typescript
-import { generateEmbedding, generateEmbeddings } from './embeddings.js';
-
-const embedding = await generateEmbedding('User loves hiking');
-const embeddings = await generateEmbeddings(['hiking', 'mountains', 'outdoors']);
-```
-
-### 4. Advanced Retrieval
-
-**File:** `advanced-retrieval.ts`
-
-RAG-style retrieval with context.
-
-```typescript
-import { retrieveRelevantContext } from './advanced-retrieval.js';
-
-const context = await retrieveRelevantContext(userId, {
-  query: 'What are their hobbies?',
-  includeEmotional: true,
-  timeWindow: '30d',
-});
-```
-
----
-
-## Memory Types
-
-| Type | Purpose | Storage |
-|------|---------|---------|
-| **Facts** | User preferences, history | Firestore docs |
-| **Memories** | Conversation memories | Vector store |
-| **Patterns** | Behavioral patterns | Firestore |
-| **Emotions** | Emotional context | Vector store |
-| **Preferences** | Communication style | Firestore |
-
----
-
-## Caching Strategy
-
-### Embedding Cache
-
-**File:** `embedding-cache.ts`
-
-Caches embeddings to reduce API calls.
-
-```typescript
-import { getCachedEmbedding, cacheEmbedding } from './embedding-cache.js';
-
-// Check cache first
-let embedding = getCachedEmbedding(text);
-if (!embedding) {
-  embedding = await generateEmbedding(text);
-  cacheEmbedding(text, embedding);
-}
-```
-
-### In-Memory Store
-
-**File:** `in-memory-store.ts`
-
-Fast cache for frequently accessed data.
-
-```typescript
-import { InMemoryStore } from './in-memory-store.js';
-
-const cache = new InMemoryStore<UserProfile>({ ttlMs: 60000 });
-cache.set(userId, profile);
-const cached = cache.get(userId);
-```
-
----
-
-## Firestore Schema
-
-### Collections
-
-```
-bogle_users/{userId}/
-├── profile                  # User profile document
-├── memories/                # Memory documents
-├── patterns/                # Behavioral patterns
-├── commitments/             # Promises/intentions
-├── relationships/           # Social network
-├── values/                  # Stated/demonstrated values
-├── dreams/                  # Long-term aspirations
-├── capacity/                # Energy/burnout tracking
-├── narrative/               # Life chapters
-├── seasonal/                # Seasonal patterns
-└── preferences/             # Communication preferences
-```
-
-### Memory Document
-
-```typescript
-interface MemoryDocument {
-  id: string;
-  userId: string;
-  content: string;
-  type: 'fact' | 'preference' | 'event' | 'emotion';
-  embedding: number[];
-  createdAt: Timestamp;
-  updatedAt: Timestamp;
-  metadata?: Record<string, unknown>;
-}
-```
-
----
-
-## Best Practices
-
-### 1. Graceful Degradation
-
-Always handle missing data gracefully:
-
-```typescript
-const profile = await getUserDocument(userId, 'profile');
-if (!profile) {
-  // Return safe default
-  return defaultProfile;
-}
-```
-
-### 2. Batch Operations
-
-Use batch writes for multiple operations:
-
-```typescript
-import { batchWrite } from './firestore-store.js';
-
-await batchWrite(userId, [
-  { path: 'memories', data: memory1 },
-  { path: 'patterns', data: pattern1 },
-]);
-```
-
-### 3. Indexing
-
-Index frequently queried fields:
-
-```typescript
-// Firestore index in firestore.indexes.json
-{
-  "collectionGroup": "memories",
-  "queryScope": "COLLECTION",
-  "fields": [
-    { "fieldPath": "type", "order": "ASCENDING" },
-    { "fieldPath": "createdAt", "order": "DESCENDING" }
-  ]
-}
 ```
 
 ---
@@ -305,12 +349,17 @@ Index frequently queried fields:
 ## Testing
 
 ```bash
-# Run memory tests
-pnpm vitest run src/memory/__tests__/
+# Run all memory tests
+pnpm vitest run src/memory/
 
-# With Firestore emulator
+# Run with Firestore emulator
 firebase emulators:start --only firestore
 FIRESTORE_EMULATOR_HOST=localhost:8080 pnpm vitest run src/memory/
+
+# Run specific modules
+pnpm vitest run src/memory/entity-store/
+pnpm vitest run src/memory/knowledge-graph/
+pnpm vitest run src/memory/dynamic/
 ```
 
 ---
@@ -318,55 +367,60 @@ FIRESTORE_EMULATOR_HOST=localhost:8080 pnpm vitest run src/memory/
 ## Rules
 
 ### Do
+
 - Use typed converters for Firestore
 - Cache embeddings to reduce costs
 - Handle missing data gracefully
 - Use batch operations for bulk writes
 - Index frequently queried fields
+- Use `captureTurnUnified()` for new capture code
+- Import types from `interfaces/index.ts`
 
 ### Don't
+
 - Store sensitive data unencrypted
 - Generate embeddings without caching
 - Query without limits
 - Skip error handling
-- Import from higher architecture levels (services, intelligence, conversation, etc.)
+- Import from higher architecture levels
+- Bypass unified capture/persistence layers
+- Directly access internal modules (use facades)
 
 ---
 
-## Dependency Injection Pattern
+## Migration Guide
 
-To avoid architecture violations, some modules use dependency injection for components from higher layers:
+### Updating from Legacy Imports
 
-### Emotional Memory Unified
-
-The `emotional-memory-unified.ts` module coordinates user emotion tracking (from intelligence layer) and persona bonding (from conversation layer). To avoid importing from these higher layers:
-
+**Before (direct imports):**
 ```typescript
-import { configureEmotionalMemoryEngines } from './memory/emotional-memory-unified.js';
-
-// In services/index.ts during initialization:
-configureEmotionalMemoryEngines({
-  getUserEmotionEngine: (userId) => getEmotionalMemory(userId),
-  getBondingEngine: (userId, bond) => getEmotionalMemory(userId, bond),
-  removeUserEmotionEngine: (userId) => removeEmotionalMemory(userId),
-  clearBondingEngine: (userId) => clearEmotionalMemory(userId),
-});
+import { fastCapture } from './memory/dynamic/fast-capture.js';
+import { capturePersonEntity } from './memory/entity-store/integration.js';
+import { recordTurn } from './memory/dynamic/stm-buffer.js';
 ```
 
-### Embedding Cache Metrics
-
-The `embedding-cache.ts` module can report cache metrics to the performance-metrics service:
-
+**After (unified capture):**
 ```typescript
-import { configureEmbeddingCacheMetrics } from './memory/embedding-cache.js';
-import { recordCacheHit, recordCacheMiss, recordCacheEviction } from '../services/performance-metrics.js';
+import { captureTurnUnified } from './memory/capture/index.js';
 
-// In services initialization:
-configureEmbeddingCacheMetrics({
-  recordCacheHit,
-  recordCacheMiss,
-  recordCacheEviction,
-});
+// One function handles all capture
+const result = await captureTurnUnified(input);
+```
+
+**Before (multiple store access):**
+```typescript
+import { getFirestoreStore } from './memory/firestore-store.js';
+import { getFirestoreVectorStore } from './memory/firestore-vector-store.js';
+```
+
+**After (unified persistence):**
+```typescript
+import {
+  getUnifiedStore,
+  getUnifiedVectorStore,
+  saveDocument,
+  searchVectors,
+} from './memory/persistence/index.js';
 ```
 
 ---
@@ -376,8 +430,10 @@ configureEmbeddingCacheMetrics({
 - Firestore: https://firebase.google.com/docs/firestore
 - OpenAI Embeddings: https://platform.openai.com/docs/guides/embeddings
 - Memory Management: `docs/architecture/MEMORY-MANAGEMENT.md`
-- Persistence: `docs/architecture/PERSISTENCE-ARCHITECTURE.md`
+- Dynamic Memory: `docs/architecture/DYNAMIC-MEMORY-ARCHITECTURE.md`
+- Entity Store: `src/memory/entity-store/CLAUDE.md`
+- Knowledge Graph: `src/memory/knowledge-graph/CLAUDE.md`
 
 ---
 
-*Last updated: December 2024*
+*Last updated: January 2026 (Clean Architecture Refactor)*
