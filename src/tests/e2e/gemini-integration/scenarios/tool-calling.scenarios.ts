@@ -266,7 +266,7 @@ export const handoffScenarios: ToolCallingScenario[] = [
     severity: 'critical',
   },
   {
-    id: 'handoff-maya-habits',
+    id: 'handoff-maya-santos',
     name: 'Habit discussion triggers Maya handoff',
     description: 'User wants to build habits - should CALL handoffToMaya',
     category: 'handoff',
@@ -391,7 +391,7 @@ export const handoffScenarios: ToolCallingScenario[] = [
     severity: 'critical',
   },
   {
-    id: 'handoff-nayan-wisdom',
+    id: 'handoff-nayan',
     name: 'Deep wisdom request triggers Nayan handoff',
     description: 'User needs philosophical guidance - should CALL handoffToNayan',
     category: 'handoff',

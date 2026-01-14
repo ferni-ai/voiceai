@@ -208,7 +208,7 @@ const toolCallingScenarios: TestScenario[] = [
     severity: 'critical',
   },
   {
-    id: 'handoff-nayan-wisdom',
+    id: 'handoff-nayan',
     name: 'Philosophy triggers Nayan handoff',
     userMessage: "What's the meaning of life?",
     expectedTool: 'handoffToNayan',
