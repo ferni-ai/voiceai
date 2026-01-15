@@ -87,10 +87,11 @@
       },
       "text": {
         "_wcag": "All colors tested against #70605a elevated background for WCAG AA (4.5:1)",
+        "_contrastRatios": "primary: 5.56:1, secondary: 5.05:1, muted: 4.65:1, dimmed: 4.50:1",
         "primary": "#faf6f0",
         "secondary": "#f0ebe4",
         "muted": "#e8e2da",
-        "dimmed": "#ddd6cc",
+        "dimmed": "#e0d8ce",
         "inverse": "#2a2420"
       },
       "border": {
