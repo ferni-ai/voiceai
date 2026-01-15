@@ -57,6 +57,52 @@ export async function handleBTHIntelligenceRoutes(
     return false;
   }
 
+  // ===========================================================================
+  // BTH VALIDATION ROUTES (no userId required)
+  // These routes are for service health monitoring and capability validation
+  // ===========================================================================
+  const validationRoutes = ['/api/bth/health', '/api/bth/capabilities', '/api/bth/validation'];
+  const adminRoutes = ['/api/admin/bth/health', '/api/admin/bth/test'];
+  if (
+    validationRoutes.some((r) => pathname?.startsWith(r)) ||
+    adminRoutes.some((r) => pathname?.startsWith(r))
+  ) {
+    try {
+      const bthValidationRouter = (await import('../../../api/bth-validation-routes.js')).default;
+      const express = await import('express');
+      // Use Express router to handle the request
+      const mockApp = express.default();
+      mockApp.use('/api', bthValidationRouter);
+      // Create a promise-based handler
+      return new Promise<boolean>((resolve) => {
+        // Store original end function
+        const originalEnd = res.end.bind(res);
+        let handled = false;
+        // Intercept res.end to know when response is sent
+        (res as unknown as { end: (cb?: () => void) => void }).end = (chunk?: unknown) => {
+          handled = true;
+          originalEnd(chunk);
+          resolve(true);
+        };
+        // Try to handle with Express router
+        mockApp(
+          req as unknown as import('express').Request,
+          res as unknown as import('express').Response,
+          () => {
+            // Next was called - route wasn't handled
+            if (!handled) {
+              resolve(false);
+            }
+          }
+        );
+      });
+    } catch (routerError) {
+      log.error({ error: String(routerError) }, 'BTH validation router failed');
+      sendError(res, 500, 'BTH validation service unavailable');
+      return true;
+    }
+  }
+
   await loadUserKnowledge();
 
   // Parse user ID from path: /api/bth/:userId or /api/bth/:userId/subpath
