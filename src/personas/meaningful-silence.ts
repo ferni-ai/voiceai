@@ -30,9 +30,9 @@ import {
   generateQuestion,
   type GeneratedQuestion,
   type QuestionContext,
-} from '../intelligence/dynamic-questions.js';
+} from '../intelligence/coaching/dynamic-questions.js';
 // Coaching-level questions - memory-grounded, pattern-surfacing, anticipatory
-import { getCoachingQuestion } from '../intelligence/coaching-questions.js';
+import { getCoachingQuestion } from '../intelligence/coaching/questions.js';
 import { getLogger } from '../utils/safe-logger.js';
 // Dynamic persona content loading
 import { loadSilenceResponses, type SilenceResponses } from '../services/persona-content-loader.js';

@@ -34,10 +34,13 @@ interface PendingCallResult {
   callId: string;
   contactName: string;
   status: 'completed' | 'voicemail' | 'no_answer' | 'busy' | 'failed';
-  outcome: string;
+  outcome: string; // Friendly summary (superhuman friendlyReport)
+  transcriptSummary?: string; // Detailed summary of conversation
   objectiveAchieved: boolean;
   callbackRequired: boolean;
+  callbackTime?: string;
   actionItems?: string[];
+  messagesForUser?: string[]; // Things the recipient wanted to relay
   capturedAt: string;
   delivered?: boolean;
 }
@@ -52,9 +55,10 @@ interface PendingCallResult {
  */
 export async function getPendingCallResults(userId: string): Promise<PendingCallResult[]> {
   try {
-    const { getFirestoreDb } = await import('../../../services/superhuman/firestore-utils.js').catch(
-      () => ({ getFirestoreDb: null })
-    );
+    const { getFirestoreDb } =
+      await import('../../../services/superhuman/firestore-utils.js').catch(() => ({
+        getFirestoreDb: null,
+      }));
 
     const db = getFirestoreDb ? getFirestoreDb() : null;
 
@@ -90,9 +94,12 @@ export async function getPendingCallResults(userId: string): Promise<PendingCall
         contactName: data.request?.contactName || data.request?.contactQuery || 'someone',
         status: data.outcome?.status || 'completed',
         outcome: data.outcome?.outcome || 'Call completed',
+        transcriptSummary: data.outcome?.transcriptSummary, // Superhuman detailed summary
         objectiveAchieved: data.outcome?.objectiveAchieved ?? true,
         callbackRequired: data.outcome?.callbackRequired ?? false,
+        callbackTime: data.outcome?.callbackTime,
         actionItems: data.outcome?.actionItems,
+        messagesForUser: data.outcome?.messagesForUser, // Things they wanted to relay
         capturedAt: data.capturedAt,
         delivered: data.delivered,
       });
@@ -112,14 +119,12 @@ export async function getPendingCallResults(userId: string): Promise<PendingCall
 /**
  * Mark call results as delivered so they won't be repeated.
  */
-export async function markCallResultsDelivered(
-  userId: string,
-  callIds: string[]
-): Promise<void> {
+export async function markCallResultsDelivered(userId: string, callIds: string[]): Promise<void> {
   try {
-    const { getFirestoreDb } = await import('../../../services/superhuman/firestore-utils.js').catch(
-      () => ({ getFirestoreDb: null })
-    );
+    const { getFirestoreDb } =
+      await import('../../../services/superhuman/firestore-utils.js').catch(() => ({
+        getFirestoreDb: null,
+      }));
 
     const db = getFirestoreDb ? getFirestoreDb() : null;
 
@@ -190,10 +195,21 @@ export async function buildPendingCallResultsContext(userId: string): Promise<st
       lines.push(`❌ **Couldn't connect**: ${result.outcome}`);
     }
 
-    if (result.callbackRequired) {
-      lines.push(`⚠️ They want a callback from the user.`);
+    // Superhuman: Messages the recipient wanted to relay
+    if (result.messagesForUser && result.messagesForUser.length > 0) {
+      lines.push(`💬 **They wanted to tell the user**: ${result.messagesForUser.join(', ')}`);
     }
 
+    // Callback requested
+    if (result.callbackRequired) {
+      if (result.callbackTime) {
+        lines.push(`⚠️ They want a callback - ${result.callbackTime}`);
+      } else {
+        lines.push(`⚠️ They want a callback from the user.`);
+      }
+    }
+
+    // Action items
     if (result.actionItems && result.actionItems.length > 0) {
       lines.push(`📝 Action items: ${result.actionItems.join(', ')}`);
     }
@@ -205,7 +221,9 @@ export async function buildPendingCallResultsContext(userId: string): Promise<st
   lines.push('- Weave it naturally into your greeting');
   lines.push("- If successful: 'Oh! While you were away, I called [name] - [outcome]!'");
   lines.push("- If voicemail: 'I tried calling [name] for you - left a voicemail.'");
-  lines.push("- If failed: 'I tried reaching [name] but couldn't get through. Want me to try again?'");
+  lines.push(
+    "- If failed: 'I tried reaching [name] but couldn't get through. Want me to try again?'"
+  );
   lines.push('');
 
   // Mark as delivered (fire and forget - don't block on this)
@@ -225,10 +243,14 @@ export async function buildPendingCallResultsContext(userId: string): Promise<st
  */
 export async function buildPendingBackgroundResultsContext(userId: string): Promise<string | null> {
   try {
-    const { buildPendingResultsContext } = await import('../../../services/background-agents/index.js');
+    const { buildPendingResultsContext } =
+      await import('../../../services/background-agents/index.js');
     return await buildPendingResultsContext(userId);
   } catch (error) {
-    log.debug({ error: String(error) }, 'Unified background results not available, falling back to calls only');
+    log.debug(
+      { error: String(error) },
+      'Unified background results not available, falling back to calls only'
+    );
     // Fall back to just call results
     return buildPendingCallResultsContext(userId);
   }

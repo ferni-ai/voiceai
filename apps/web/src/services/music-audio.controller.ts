@@ -776,15 +776,19 @@ class MusicAudioController {
     backendDucking: boolean;
     currentGain: number;
     targetGain: number;
+    usingFallback: boolean;
+    trackId: string | null;
   } {
     return {
-      hasTrack: this.currentTrack !== null,
+      hasTrack: this.currentTrack !== null || this.fallbackAudioElement !== null,
       hasGainNode: this.currentTrack?.gainNode !== null,
       agentSpeaking: this.agentSpeaking,
       userSpeaking: this.userSpeaking,
       backendDucking: this.backendDucking,
       currentGain: this.currentTrack?.gainNode?.gain.value ?? 1.0,
       targetGain: this.currentTrack?.targetGain ?? 1.0,
+      usingFallback: this.usingFallback,
+      trackId: this.currentTrack?.trackId ?? null,
     };
   }
 
@@ -861,3 +865,12 @@ export function resetMusicAudioController(): void {
 // Export the class for typing
 export { MusicAudioController };
 export type { MusicTrackState };
+
+// ============================================================================
+// DEBUG HELPER - Expose to window for console debugging
+// ============================================================================
+
+if (typeof window !== 'undefined') {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (window as any).__ferniMusicAudioController = getMusicAudioController();
+}

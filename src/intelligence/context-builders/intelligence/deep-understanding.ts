@@ -31,42 +31,45 @@ import {
   analyzeSilence,
   formatSilenceForPrompt,
   type SilenceAnalysis,
-} from '../../silence-intelligence.js';
+} from '../../deep-understanding/silence.js';
 
 // Voice-text mismatch detection
-import { buildMismatchGuidance, detectMismatch } from '../../voice-text-mismatch.js';
+import { buildMismatchGuidance, detectMismatch } from '../../detectors/voice-mismatch.js';
 
 import {
   formatPredictionForPrompt,
   predictUserState,
   recordConversationObservation,
-} from '../../life-rhythm-prediction.js';
+} from '../../deep-understanding/life-rhythm.js';
 
 import {
   detectUnspokenTension,
   extractPersonMentions,
   formatRelationalInsightsForPrompt,
   recordPersonMention,
-} from '../../relational-network.js';
+} from '../../deep-understanding/relationships.js';
 
-import { analyzeResistance, formatResistanceForPrompt } from '../../resistance-detection.js';
+import {
+  analyzeResistance,
+  formatResistanceForPrompt,
+} from '../../deep-understanding/resistance.js';
 
-import { assessEnergyState, formatEnergyForPrompt } from '../../energy-state.js';
+import { assessEnergyState, formatEnergyForPrompt } from '../../deep-understanding/energy.js';
 
-import { analyzeSubconscious } from '../../subconscious-goals.js';
+import { analyzeSubconscious } from '../../deep-understanding/subconscious.js';
 
-import { analyzeFlow, formatFlowForPrompt } from '../../conversational-flow.js';
+import { analyzeFlow, formatFlowForPrompt } from '../../deep-understanding/flow.js';
 
 import {
   detectMisunderstanding,
   formatRepairForPrompt,
   generateRepair,
   recordAIResponse,
-} from '../../repair-intelligence.js';
+} from '../../deep-understanding/repair.js';
 
-import { analyzeHope, formatHopeForPrompt } from '../../hope-trajectory.js';
+import { analyzeHope, formatHopeForPrompt } from '../../deep-understanding/hope.js';
 
-import { analyzeChapter, formatChapterForPrompt } from '../../life-chapter.js';
+import { analyzeChapter, formatChapterForPrompt } from '../../deep-understanding/life-chapter.js';
 
 import {
   BuilderCategory,

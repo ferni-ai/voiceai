@@ -117,9 +117,8 @@ export async function startup(): Promise<AppConfig> {
   logger.info('Initializing Redis Pub/Sub...');
   const pubsubStart = Date.now();
   try {
-    const { initializeRedisPubSub, subscribeToCacheInvalidation } = await import(
-      './services/redis-pubsub.js'
-    );
+    const { initializeRedisPubSub, subscribeToCacheInvalidation } =
+      await import('./services/redis-pubsub.js');
     const pubsubReady = await initializeRedisPubSub();
     if (pubsubReady) {
       // Subscribe to cache invalidation events
@@ -197,7 +196,8 @@ export async function startup(): Promise<AppConfig> {
 
   // Start scheduled actions worker (for workflow routine reminders)
   try {
-    const { startScheduledActionsWorker } = await import('./services/workflows/scheduled-actions.js');
+    const { startScheduledActionsWorker } =
+      await import('./services/workflows/scheduled-actions.js');
     await startScheduledActionsWorker();
     logger.info('📅 Scheduled actions worker started');
   } catch (error) {
@@ -206,7 +206,8 @@ export async function startup(): Promise<AppConfig> {
 
   // Start calendar trigger worker (for calendar-based workflow triggers)
   try {
-    const { startCalendarTriggerWorker } = await import('./services/workflows/calendar-trigger-worker.js');
+    const { startCalendarTriggerWorker } =
+      await import('./services/workflows/calendar-trigger-worker.js');
     startCalendarTriggerWorker();
     logger.info('📅 Calendar trigger worker started');
   } catch (error) {
@@ -215,13 +216,25 @@ export async function startup(): Promise<AppConfig> {
 
   // Start scheduled outreach executor (for multiOutreach scheduled messages)
   try {
-    const { startScheduledOutreachExecutor } = await import(
-      './services/outreach/scheduled-outreach-executor.js'
-    );
+    const { startScheduledOutreachExecutor } =
+      await import('./services/outreach/scheduled-outreach-executor.js');
     startScheduledOutreachExecutor({ pollIntervalMs: 60000 }); // Check every minute
     logger.info('✓ Scheduled outreach executor running');
   } catch (err) {
     logger.warn(`Scheduled outreach executor failed to start (non-fatal): ${err}`);
+  }
+
+  // Start superhuman call scheduler (recurring calls + callback retries)
+  try {
+    const { startSuperhumanScheduler } =
+      await import('./services/outreach/superhuman-call-scheduler.js');
+    startSuperhumanScheduler({
+      recurringPollIntervalMs: 5 * 60 * 1000, // Check recurring every 5 min
+      callbackPollIntervalMs: 2 * 60 * 1000, // Check callbacks every 2 min
+    });
+    logger.info('✓ Superhuman call scheduler running');
+  } catch (err) {
+    logger.warn(`Superhuman call scheduler failed to start (non-fatal): ${err}`);
   }
 
   logger.info('✓ Schedulers running');
@@ -312,7 +325,7 @@ export async function startup(): Promise<AppConfig> {
 
     const deferredInits = await Promise.allSettled([
       // Community insights (collective learning) - not needed for first greeting
-      import('./intelligence/community-insights.js')
+      import('./intelligence/collective/community-insights.js')
         .then(({ initializeCommunityInsights }) => initializeCommunityInsights())
         .then(() => {
           logger.debug('✓ Community insights loaded (deferred)');
@@ -320,7 +333,7 @@ export async function startup(): Promise<AppConfig> {
         }),
 
       // Collective learning scheduler - runs background aggregation jobs
-      import('./intelligence/collective-learning-scheduler.js').then(
+      import('./intelligence/collective/scheduler.js').then(
         ({ startCollectiveLearningScheduler }) => {
           startCollectiveLearningScheduler();
           logger.debug('✓ Collective learning scheduler started (deferred)');
@@ -329,7 +342,7 @@ export async function startup(): Promise<AppConfig> {
       ),
 
       // Agent evolution (persona self-improvement) - not needed for first greeting
-      import('./intelligence/agent-evolution.js')
+      import('./intelligence/collective/agent-evolution.js')
         .then(({ initializeAgentEvolution }) => initializeAgentEvolution())
         .then(() => {
           logger.debug('✓ Agent evolution loaded (deferred)');
@@ -357,10 +370,7 @@ export async function startup(): Promise<AppConfig> {
       // This ensures stale data is cleaned up after restarts
       import('./services/data-layer/ttl-cleanup.js').then(async ({ runTTLCleanup }) => {
         const result = await runTTLCleanup({ dryRun: false });
-        logger.debug(
-          { deletedCount: result.totalDeleted },
-          '✓ TTL cleanup completed (deferred)'
-        );
+        logger.debug({ deletedCount: result.totalDeleted }, '✓ TTL cleanup completed (deferred)');
         return 'ttl_cleanup';
       }),
     ]);
@@ -434,7 +444,8 @@ export async function shutdown(): Promise<void> {
 
     // Stop scheduled actions worker
     try {
-      const { stopScheduledActionsWorker } = await import('./services/workflows/scheduled-actions.js');
+      const { stopScheduledActionsWorker } =
+        await import('./services/workflows/scheduled-actions.js');
       stopScheduledActionsWorker();
     } catch {
       // Ignore if not running
@@ -442,7 +453,8 @@ export async function shutdown(): Promise<void> {
 
     // Stop calendar trigger worker
     try {
-      const { stopCalendarTriggerWorker } = await import('./services/workflows/calendar-trigger-worker.js');
+      const { stopCalendarTriggerWorker } =
+        await import('./services/workflows/calendar-trigger-worker.js');
       stopCalendarTriggerWorker();
     } catch {
       // Ignore if not running
@@ -472,7 +484,7 @@ export async function shutdown(): Promise<void> {
     logger.info('Saving community insights...');
     try {
       const { saveCommunityInsightsToFirestore } =
-        await import('./intelligence/community-insights.js');
+        await import('./intelligence/collective/community-insights.js');
       await saveCommunityInsightsToFirestore();
       logger.info('✓ Community insights saved');
     } catch (error) {
@@ -482,7 +494,8 @@ export async function shutdown(): Promise<void> {
     // Save agent evolution states before shutdown
     logger.info('Saving agent evolution states...');
     try {
-      const { saveAgentEvolutionToFirestore } = await import('./intelligence/agent-evolution.js');
+      const { saveAgentEvolutionToFirestore } =
+        await import('./intelligence/collective/agent-evolution.js');
       await saveAgentEvolutionToFirestore();
       logger.info('✓ Agent evolution saved');
     } catch (error) {

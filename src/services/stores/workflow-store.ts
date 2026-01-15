@@ -321,9 +321,7 @@ export async function saveWorkflowData(userId: string, data: Partial<WorkflowDat
     // Prune old executions
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - updated.settings.executionHistoryDays);
-    updated.executions = updated.executions.filter(
-      (e) => new Date(e.startedAt) >= cutoffDate
-    );
+    updated.executions = updated.executions.filter((e) => new Date(e.startedAt) >= cutoffDate);
 
     // Always save to in-memory for fast access
     workflowStorage.set(userId, updated);
@@ -336,7 +334,10 @@ export async function saveWorkflowData(userId: string, data: Partial<WorkflowDat
       };
       const result = await saveLifeAutomationData(userId, 'workflows', firestoreData);
       if (!result.success) {
-        log.warn({ userId, error: result.error }, 'Failed to save to Firestore, data in memory only');
+        log.warn(
+          { userId, error: result.error },
+          'Failed to save to Firestore, data in memory only'
+        );
       }
     }
 
@@ -356,7 +357,9 @@ export async function saveWorkflowData(userId: string, data: Partial<WorkflowDat
  */
 export async function createWorkflow(
   userId: string,
-  workflow: Omit<Workflow, 'id' | 'userId' | 'runCount' | 'createdAt' | 'updatedAt' | 'status'> & { status?: WorkflowStatus }
+  workflow: Omit<Workflow, 'id' | 'userId' | 'runCount' | 'createdAt' | 'updatedAt' | 'status'> & {
+    status?: WorkflowStatus;
+  }
 ): Promise<Workflow> {
   const data = await getWorkflowData(userId);
   const now = new Date().toISOString();
@@ -458,9 +461,7 @@ export async function getWorkflowsByTriggerType(
   triggerType: TriggerType
 ): Promise<Workflow[]> {
   const data = await getWorkflowData(userId);
-  return data.workflows.filter(
-    (w) => w.status === 'active' && w.trigger.type === triggerType
-  );
+  return data.workflows.filter((w) => w.status === 'active' && w.trigger.type === triggerType);
 }
 
 /**
@@ -490,9 +491,7 @@ export async function getDueScheduledWorkflows(userId: string): Promise<Workflow
   const data = await getWorkflowData(userId);
 
   // This is a simplified check - real implementation would parse cron
-  return data.workflows.filter(
-    (w) => w.status === 'active' && w.trigger.type === 'time'
-  );
+  return data.workflows.filter((w) => w.status === 'active' && w.trigger.type === 'time');
 }
 
 // ============================================================================

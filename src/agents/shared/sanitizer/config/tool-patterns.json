@@ -16,6 +16,14 @@
         "play music",
         "Playing music",
         "playing music",
+        "play some music",
+        "Play some music",
+        "put on some music",
+        "Put on some music",
+        "throw on some music",
+        "Throw on some music",
+        "i want to hear music",
+        "I want to hear music",
         "searchMusic",
         "search music",
         "Searching music",
@@ -39,7 +47,11 @@
         "skipSong",
         "skip song",
         "whatsPlaying",
-        "whats playing"
+        "whats playing",
+        "play something",
+        "Play something",
+        "some tunes",
+        "Some tunes"
       ]
     },
 
@@ -77,6 +89,16 @@
       "patterns": [
         "getWeather",
         "get weather",
+        "check the weather",
+        "Check the weather",
+        "how cold is it",
+        "How cold is it",
+        "how hot is it",
+        "How hot is it",
+        "is it raining",
+        "Is it raining",
+        "gonna rain",
+        "going to rain",
         "getWeatherForecast",
         "searchNews",
         "search news",
@@ -87,8 +109,22 @@
         "checking news",
         "headlines",
         "Headlines",
+        "whats happening",
+        "what's happening",
+        "What's happening",
+        "catch me up",
+        "Catch me up",
+        "update me",
+        "Update me",
         "getCurrentTime",
         "get current time",
+        "what time is it",
+        "What time is it",
+        "tell me the time",
+        "Tell me the time",
+        "time in",
+        "Time in",
+        "timeInCity",
         "getMarketSummary"
       ]
     },
@@ -100,6 +136,16 @@
         "handoff to",
         "transferTo",
         "transfer to",
+        "talk to",
+        "Talk to",
+        "speak with",
+        "Speak with",
+        "switch to",
+        "Switch to",
+        "can i talk to",
+        "Can I talk to",
+        "bring in",
+        "Bring in",
         "handoffToMaya",
         "handoffToAlex",
         "handoffToPeter",
@@ -772,6 +818,32 @@
         "whats happening",
         "What is happening"
       ]
+    },
+
+    "search": {
+      "description": "Web search and lookup tools",
+      "patterns": [
+        "searchWeb",
+        "search web",
+        "search for",
+        "Search for",
+        "look up",
+        "Look up",
+        "find out about",
+        "Find out about",
+        "what is",
+        "What is",
+        "who is",
+        "Who is",
+        "define",
+        "Define",
+        "meaning of",
+        "Meaning of",
+        "searchWikipedia",
+        "search wikipedia",
+        "defineTerm",
+        "define term"
+      ]
     }
   },
 
@@ -786,6 +858,10 @@
     "getfinancialsnews",
     "getstocknews",
     "gettechnews",
-    "getmarketsummary"
+    "getmarketsummary",
+    "searchweb",
+    "searchwikipedia",
+    "defineterm",
+    "timeincity"
   ]
 }

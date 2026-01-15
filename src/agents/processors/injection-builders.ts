@@ -963,7 +963,8 @@ export async function buildHumanLevelInjections(
     if (analysis.emotion.primary !== 'neutral' && (analysis.emotion.intensity || 0.5) > 0.5) {
       const intensity = (analysis.emotion.intensity || 0.5) >= 0.7 ? 'strong' : 'moderate';
       services.emotionalMemory.recordMoment(
-        analysis.emotion.primary as import('../../intelligence/emotion-detector.js').PrimaryEmotion,
+        analysis.emotion
+          .primary as import('../../intelligence/detectors/emotion.js').PrimaryEmotion,
         currentTopic || 'general',
         userText.slice(0, 50),
         userText,

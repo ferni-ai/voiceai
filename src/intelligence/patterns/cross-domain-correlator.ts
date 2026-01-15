@@ -284,8 +284,7 @@ function updateOrCreateCorrelation(
   signalB: DomainSignal
 ): void {
   // Normalize order for consistent matching
-  const [first, second] =
-    signalA.domain < signalB.domain ? [signalA, signalB] : [signalB, signalA];
+  const [first, second] = signalA.domain < signalB.domain ? [signalA, signalB] : [signalB, signalA];
 
   // Look for existing correlation
   const existing = state.correlations.find(
@@ -346,9 +345,7 @@ function updateOrCreateCorrelation(
 /**
  * Calculate confidence level based on observation count.
  */
-function calculateConfidence(
-  observationCount: number
-): 'suspected' | 'likely' | 'confirmed' {
+function calculateConfidence(observationCount: number): 'suspected' | 'likely' | 'confirmed' {
   if (observationCount >= CONFIG.MIN_OBSERVATIONS_FOR_CONFIRMED) {
     return 'confirmed';
   }
@@ -447,6 +444,9 @@ function getInsightTemplates(): Record<
   }
 > {
   return {
+    // ═══════════════════════════════════════════════════════════════════════════
+    // SLEEP CORRELATIONS - Core wellbeing indicator
+    // ═══════════════════════════════════════════════════════════════════════════
     sleep_mood: {
       insight: (a, b, s) =>
         s > 0
@@ -461,38 +461,202 @@ function getInsightTemplates(): Record<
       insight: (a, b) => `${a} sleep patterns seem to affect your ${b} productivity`,
       suggestion: () => `Your sleep might be a lever for productivity`,
     },
-    stress_sleep: {
+    sleep_energy: {
+      insight: (a, b) => `${a} sleep directly impacts your ${b} energy levels`,
+      suggestion: () => `Sleep quality is your energy foundation`,
+    },
+    sleep_stress: {
       insight: (a, b) => `${a} stress levels appear connected to ${b} sleep`,
       suggestion: () => `Managing stress before bed might help sleep quality`,
     },
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // STRESS CORRELATIONS - Impact on everything
+    // ═══════════════════════════════════════════════════════════════════════════
     stress_habits: {
       insight: (a, b) => `When stress is ${a}, your ${b} habit consistency changes`,
       suggestion: () => `Stress management might help habit consistency`,
     },
+    stress_social: {
+      insight: (a, b) => `${a} stress levels correlate with ${b} social engagement`,
+      suggestion: () => `Social support might help during stressful times`,
+    },
+    stress_exercise: {
+      insight: (a, b) => `${a} stress and ${b} exercise seem connected`,
+      suggestion: () => `Exercise could be a stress management tool for you`,
+    },
+    stress_health: {
+      insight: (a, b) => `Your ${a} stress appears to affect your ${b} health`,
+      suggestion: () => `Stress management might have health benefits`,
+    },
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // ENERGY CORRELATIONS - Daily capacity
+    // ═══════════════════════════════════════════════════════════════════════════
     energy_exercise: {
       insight: (a, b, s) =>
         s > 0 ? `${b} exercise correlates with ${a} energy` : `${b} might be affecting your energy`,
       suggestion: () => `Exercise could be a key energy lever for you`,
     },
+    energy_productivity: {
+      insight: (a, b) => `${a} energy levels predict ${b} productive days`,
+      suggestion: () => `Protecting your energy protects your output`,
+    },
+    energy_mood: {
+      insight: (a, b) => `${a} energy and ${b} mood tend to track together`,
+      suggestion: () => `Energy management might improve mood`,
+    },
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // MOOD CORRELATIONS - Emotional patterns
+    // ═══════════════════════════════════════════════════════════════════════════
     mood_social: {
       insight: (a, b) => `Feeling ${a} often coincides with ${b} social activity`,
       suggestion: () => `Social connection might be important for your mood`,
     },
+    mood_exercise: {
+      insight: (a, b) => `${a} moods and ${b} exercise patterns are connected`,
+      suggestion: () => `Exercise might be a mood stabilizer for you`,
+    },
+    mood_habits: {
+      insight: (a, b) => `Your mood affects your ${b} habit consistency`,
+      suggestion: () => `Gentle self-compassion on hard days helps`,
+    },
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // WORK CORRELATIONS - Professional impact
+    // ═══════════════════════════════════════════════════════════════════════════
     work_stress: {
       insight: (a, b) => `${a} at work connects with ${b} stress levels`,
       suggestion: () => `Work patterns might be worth examining`,
     },
+    work_sleep: {
+      insight: (a, b) => `Work ${a} seems to affect your ${b} sleep`,
+      suggestion: () => `Work boundaries might protect your sleep`,
+    },
+    work_family: {
+      insight: (a, b) => `Work ${a} correlates with ${b} family time`,
+      suggestion: () => `Work-life balance patterns are emerging`,
+    },
+    work_mood: {
+      insight: (a, b) => `Work ${a} connects with feeling ${b}`,
+      suggestion: () => `Your work satisfaction affects wellbeing`,
+    },
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // SOCIAL CORRELATIONS - Relationship impact
+    // ═══════════════════════════════════════════════════════════════════════════
+    social_energy: {
+      insight: (a, b) => `Social ${a} affects your ${b} energy`,
+      suggestion: () => `Understanding your social energy equation helps`,
+    },
+    social_habits: {
+      insight: (a, b) => `Social ${a} impacts your ${b} habit consistency`,
+      suggestion: () => `Social accountability might help habits`,
+    },
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PERSON-SPECIFIC CORRELATIONS - Relationship dynamics
+    // ═══════════════════════════════════════════════════════════════════════════
     person_mentioned_mood: {
       insight: (a, b) => `Conversations about ${a} often come with ${b} feelings`,
       suggestion: () => `This relationship seems emotionally significant`,
     },
+    person_mentioned_stress: {
+      insight: (a, b) => `Mentions of ${a} correlate with ${b} stress`,
+      suggestion: () => `This relationship might be worth exploring`,
+    },
+    person_mentioned_energy: {
+      insight: (a, b) => `Talking about ${a} affects your ${b} energy`,
+      suggestion: () => `Some relationships energize, others drain`,
+    },
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // TEMPORAL CORRELATIONS - When patterns
+    // ═══════════════════════════════════════════════════════════════════════════
     time_of_day_energy: {
       insight: (a, b) => `Your energy tends to be ${b} during ${a}`,
       suggestion: () => `Consider scheduling important tasks around your energy patterns`,
     },
+    time_of_day_mood: {
+      insight: (a, b) => `Your mood tends toward ${b} during ${a}`,
+      suggestion: () => `Time of day affects your emotional state`,
+    },
+    time_of_day_productivity: {
+      insight: (a, b) => `You're most ${b} during ${a}`,
+      suggestion: () => `Protect your peak hours for important work`,
+    },
     day_of_week_mood: {
       insight: (a, b) => `${a}s often bring ${b} feelings`,
       suggestion: () => `Being aware of weekly patterns might help planning`,
+    },
+    day_of_week_energy: {
+      insight: (a, b) => `${a}s tend to be ${b} energy days`,
+      suggestion: () => `Plan around your weekly energy rhythm`,
+    },
+    day_of_week_stress: {
+      insight: (a, b) => `${a}s correlate with ${b} stress`,
+      suggestion: () => `Weekly stress patterns are emerging`,
+    },
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // FINANCIAL CORRELATIONS - Money & mood
+    // ═══════════════════════════════════════════════════════════════════════════
+    financial_stress: {
+      insight: (a, b) => `Financial ${a} connects with ${b} stress levels`,
+      suggestion: () => `Financial clarity might reduce stress`,
+    },
+    financial_mood: {
+      insight: (a, b) => `Financial ${a} affects your ${b} mood`,
+      suggestion: () => `Money and emotions are connected for you`,
+    },
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // HEALTH CORRELATIONS - Physical wellbeing
+    // ═══════════════════════════════════════════════════════════════════════════
+    health_mood: {
+      insight: (a, b) => `Health ${a} connects with ${b} mood`,
+      suggestion: () => `Physical and emotional health are linked`,
+    },
+    health_energy: {
+      insight: (a, b) => `Health ${a} affects your ${b} energy`,
+      suggestion: () => `Physical health is an energy foundation`,
+    },
+    health_productivity: {
+      insight: (a, b) => `Health ${a} impacts ${b} productivity`,
+      suggestion: () => `Taking care of yourself is taking care of your work`,
+    },
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // HABIT CORRELATIONS - Consistency patterns
+    // ═══════════════════════════════════════════════════════════════════════════
+    habits_mood: {
+      insight: (a, b) => `Habit consistency ${a} correlates with ${b} mood`,
+      suggestion: () => `Small wins compound into bigger wellbeing`,
+    },
+    habits_energy: {
+      insight: (a, b) => `Habit ${a} connects with ${b} energy`,
+      suggestion: () => `Good habits might be energizing you`,
+    },
+    habits_productivity: {
+      insight: (a, b) => `Habit ${a} predicts ${b} productive days`,
+      suggestion: () => `Habits are your productivity foundation`,
+    },
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // FAMILY CORRELATIONS - Home life impact
+    // ═══════════════════════════════════════════════════════════════════════════
+    family_mood: {
+      insight: (a, b) => `Family ${a} connects with feeling ${b}`,
+      suggestion: () => `Family dynamics affect your emotional state`,
+    },
+    family_stress: {
+      insight: (a, b) => `Family ${a} correlates with ${b} stress`,
+      suggestion: () => `Family is a significant stress factor`,
+    },
+    family_energy: {
+      insight: (a, b) => `Family ${a} affects your ${b} energy`,
+      suggestion: () => `Family time has energy implications`,
     },
   };
 }
@@ -524,8 +688,7 @@ export function getCorrelations(
   if (options?.domains?.length) {
     correlations = correlations.filter(
       (c) =>
-        options.domains!.includes(c.domainA.domain) ||
-        options.domains!.includes(c.domainB.domain)
+        options.domains!.includes(c.domainA.domain) || options.domains!.includes(c.domainB.domain)
     );
   }
 
@@ -601,8 +764,7 @@ export function getRelevantCorrelations(
     if (corr.confidence === 'confirmed') relevance += 0.2;
 
     // Recency boost
-    const daysSince =
-      (Date.now() - new Date(corr.lastObserved).getTime()) / (1000 * 60 * 60 * 24);
+    const daysSince = (Date.now() - new Date(corr.lastObserved).getTime()) / (1000 * 60 * 60 * 24);
     if (daysSince < 7) relevance += 0.1;
 
     // Penalty if recently surfaced

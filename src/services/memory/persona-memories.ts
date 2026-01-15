@@ -32,15 +32,15 @@ import { cleanForFirestore } from '../../utils/firestore-utils.js';
 /**
  * Memory storage persona IDs (internal/legacy keys).
  * These are used as storage keys for backward compatibility.
- * 
+ *
  * NOTE: For user-facing code, use canonical IDs from personas/id-mapping.ts
  * and convert using the mapping utilities.
  */
 export type MemoryPersonaId =
-  | 'jack-b'        // Storage key for Ferni memories
-  | 'nayan-patel'   // Storage key for Nayan memories (historical: was "Bogle")
-  | 'peter-john'    // Storage key for Peter memories
-  | 'spend-save'    // Storage key for Maya memories
+  | 'jack-b' // Storage key for Ferni memories
+  | 'nayan-patel' // Storage key for Nayan memories (historical: was "Bogle")
+  | 'peter-john' // Storage key for Peter memories
+  | 'spend-save' // Storage key for Maya memories
   | 'event-planner' // Storage key for Jordan memories
   | 'comm-specialist'; // Storage key for Alex memories
 
@@ -109,7 +109,10 @@ export function isStorageKey(key: string): key is MemoryPersonaId {
 }
 
 // Map persona IDs to profile field names
-const PERSONA_FIELD_MAP: Record<MemoryPersonaId, keyof NonNullable<UserProfile['personaMemories']>> = {
+const PERSONA_FIELD_MAP: Record<
+  MemoryPersonaId,
+  keyof NonNullable<UserProfile['personaMemories']>
+> = {
   'jack-b': 'jackie',
   'nayan-patel': 'bogle',
   'peter-john': 'peter',

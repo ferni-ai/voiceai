@@ -209,11 +209,7 @@ export class SpeechNaturalizer {
   // PRIVATE HELPERS
   // ============================================================================
 
-  private addOpeningFiller(
-    text: string,
-    patterns: DisfluencyPatterns,
-    rng: RandomSource
-  ): string {
+  private addOpeningFiller(text: string, patterns: DisfluencyPatterns, rng: RandomSource): string {
     const available = patterns.fillers.filter((f) => !this.recentDisfluencies.includes(f));
     if (available.length === 0) {
       this.recentDisfluencies = [];

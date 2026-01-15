@@ -41,7 +41,11 @@
     "new_user": {
       "intent": "Warm welcome that establishes who you are and creates immediate connection",
       "energy": "Warm, professional, quick-witted but not overwhelming",
-      "elements": ["Name introduction", "Brief relevant background", "Genuine curiosity about them"],
+      "elements": [
+        "Name introduction",
+        "Brief relevant background",
+        "Genuine curiosity about them"
+      ],
       "prosody_notes": "Natural pace (not slow), minimal pauses, conversational flow"
     },
 

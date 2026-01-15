@@ -246,7 +246,8 @@ export class ConsolidationEngine {
       // Apply decay
       const effectiveDecayRate =
         this.config.baseDecayRate * emotionalProtection * importanceProtection;
-      const decayAmount = effectiveDecayRate * (daysSinceMention - this.config.recentMentionProtectionDays);
+      const decayAmount =
+        effectiveDecayRate * (daysSinceMention - this.config.recentMentionProtectionDays);
 
       const newImportance = Math.max(0, entity.importance - decayAmount);
 
@@ -391,7 +392,11 @@ export class ConsolidationEngine {
     return 1 - distance / maxLength;
   }
 
-  private async mergeEntities(userId: string, primary: Entity, duplicates: Entity[]): Promise<void> {
+  private async mergeEntities(
+    userId: string,
+    primary: Entity,
+    duplicates: Entity[]
+  ): Promise<void> {
     const db = await getFirestoreDb();
     if (!db) return;
 
@@ -426,15 +431,17 @@ export class ConsolidationEngine {
       .doc(userId)
       .collection(ENTITIES_SUBCOLLECTION)
       .doc(primary.id)
-      .update(cleanForFirestore({
-        aliases: [...mergedAliases],
-        mentionCount: totalMentions,
-        emotionalSalience: maxSalience,
-        importance: maxImportance,
-        firstMentioned: earliestMention,
-        properties: primary.properties,
-        updatedAt: new Date(),
-      }));
+      .update(
+        cleanForFirestore({
+          aliases: [...mergedAliases],
+          mentionCount: totalMentions,
+          emotionalSalience: maxSalience,
+          importance: maxImportance,
+          firstMentioned: earliestMention,
+          properties: primary.properties,
+          updatedAt: new Date(),
+        })
+      );
 
     // Re-point facts and relationships to primary
     for (const dup of duplicates) {
@@ -571,11 +578,15 @@ export class ConsolidationEngine {
     const db = await getFirestoreDb();
     if (!db) return;
 
-    await db.collection(COLLECTION).doc(userId).collection(CONSOLIDATION_LOG_SUBCOLLECTION).add({
-      timestamp: new Date(),
-      ...result,
-      newCorrelationsCount: result.newCorrelations.length,
-    });
+    await db
+      .collection(COLLECTION)
+      .doc(userId)
+      .collection(CONSOLIDATION_LOG_SUBCOLLECTION)
+      .add({
+        timestamp: new Date(),
+        ...result,
+        newCorrelationsCount: result.newCorrelations.length,
+      });
   }
 }
 

@@ -11,12 +11,7 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { handleCorsPreflightIfNeeded, parseBody, sendJSON, sendError } from '../../helpers.js';
-import {
-  createApiKey,
-  listApiKeys,
-  rotateApiKey,
-  deleteApiKey,
-} from '../../publisher-auth.js';
+import { createApiKey, listApiKeys, rotateApiKey, deleteApiKey } from '../../publisher-auth.js';
 import { getPublisherFromToken } from './shared/developer-auth.js';
 
 const log = getLogger().child({ module: 'developers-keys' });
@@ -97,16 +92,20 @@ export async function handleDeveloperKeysRoutes(
 
         log.info({ publisherId, keyId, keyType: body.type }, 'API key created via console');
 
-        sendJSON(res, {
-          success: true,
-          key: {
-            id: keyId,
-            apiKey, // Full key - shown only once!
-            type: body.type,
-            createdAt: new Date().toISOString(),
+        sendJSON(
+          res,
+          {
+            success: true,
+            key: {
+              id: keyId,
+              apiKey, // Full key - shown only once!
+              type: body.type,
+              createdAt: new Date().toISOString(),
+            },
+            warning: "Save this API key now. You won't be able to see it again!",
           },
-          warning: 'Save this API key now. You won\'t be able to see it again!',
-        }, 201);
+          201
+        );
         return true;
       } catch (error) {
         const err = error instanceof Error ? error : new Error(String(error));

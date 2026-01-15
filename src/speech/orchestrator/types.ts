@@ -4,7 +4,7 @@
  * @module speech/orchestrator/types
  */
 
-import type { EmotionResult } from '../../intelligence/emotion-detector.js';
+import type { EmotionResult } from '../../intelligence/detectors/emotion.js';
 
 // ============================================================================
 // INPUT TYPES

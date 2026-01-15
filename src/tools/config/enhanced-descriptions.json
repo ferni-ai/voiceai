@@ -1358,6 +1358,49 @@
       "parameters": {
         "query": "What to search for. Examples: 'Taylor Swift', 'chill vibes playlist', 'Abbey Road album', 'workout songs'"
       }
+    },
+
+    "_comment_time_tools": "=== TIME AND TIMEZONE TOOLS ===",
+
+    "timeInCity": {
+      "description": "Get the current time in a specific city. Use when user asks 'what time is it in Tokyo?', 'time in London', 'what's the time in New York?'. Returns the time and day in that city.",
+      "parameters": {
+        "city": "City name to get the time for. Examples: 'Tokyo', 'London', 'New York', 'Sydney', 'Paris'"
+      }
+    },
+    "bestTimeToCall": {
+      "description": "Find a good time to call someone in another timezone. Use when user says 'when should I call London?', 'best time to reach Tokyo', 'what time works for someone in Sydney?'. Calculates overlapping reasonable hours.",
+      "parameters": {
+        "theirCity": "City where the other person is. Examples: 'Tokyo', 'London', 'Sydney'",
+        "yourTime": "Optional: Your proposed time to check. Examples: '9am', '2:30pm', '18:00'"
+      }
+    },
+
+    "_comment_search_tools": "=== SEARCH AND LOOKUP TOOLS ===",
+
+    "searchWeb": {
+      "description": "Search the web for information. EXECUTE SILENTLY - don't announce 'let me search', just call and share results naturally. Use when user asks factual questions, wants to know about something, or needs to look something up.",
+      "parameters": {
+        "query": "What to search for. Examples: 'capital of France', 'who invented the telephone', 'latest iPhone model'"
+      }
+    },
+    "searchWikipedia": {
+      "description": "Look up information on Wikipedia. Use for factual questions, learning about topics, or getting encyclopedic information.",
+      "parameters": {
+        "query": "Topic to look up. Examples: 'Quantum computing', 'Marie Curie', 'Renaissance art'"
+      }
+    },
+    "defineTerm": {
+      "description": "Define a word or concept. Use when user asks 'what does X mean?', 'define Y', 'what is Z?'. Returns a clear definition.",
+      "parameters": {
+        "term": "The word or concept to define. Examples: 'ephemeral', 'blockchain', 'cognitive dissonance'"
+      }
+    },
+    "searchRecipes": {
+      "description": "Search for recipes and cooking instructions. Use when user asks for recipe ideas, how to make a dish, or cooking instructions.",
+      "parameters": {
+        "dish": "The dish to find a recipe for. Examples: 'chicken parmesan', 'chocolate cake', 'vegan tacos'"
+      }
     }
   }
 }

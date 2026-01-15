@@ -86,9 +86,7 @@ function detectMortalityRelevance(text: string): {
 
   // Parent/family time
   if (
-    /\bparent|\bfather|\bmother|\bmom\b|\bdad\b|\bfamily visit|\bsee my folks\b/i.test(
-      lowerText
-    )
+    /\bparent|\bfather|\bmother|\bmom\b|\bdad\b|\bfamily visit|\bsee my folks\b/i.test(lowerText)
   ) {
     return { relevant: true, topic: 'parent', parentMentioned: true };
   }
@@ -202,10 +200,7 @@ export async function buildMortalityPerspectiveContext(
     contextString += `\nNayan can surface this perspective gently when the user seems stuck in "someday" thinking.\n`;
     contextString += `This is not morbid - it's clarifying. Help them see finite time as a gift, not a burden.\n`;
 
-    log.debug(
-      { userId, topic: relevance.topic },
-      'Built mortality perspective context'
-    );
+    log.debug({ userId, topic: relevance.topic }, 'Built mortality perspective context');
 
     return {
       lifeExpectancy,

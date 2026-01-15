@@ -189,7 +189,7 @@ export const Memory = {
     userId: string,
     query: string,
     topK = 5
-  ): Promise<import('./interfaces/index.js').RetrievedMemory[]> {
+  ): Promise<Array<import('./interfaces/index.js').RetrievedMemory>> {
     const { semanticSearch } = await import('./retrieval/index.js');
     return semanticSearch(userId, query, topK);
   },
@@ -233,11 +233,7 @@ export const Memory = {
   /**
    * Get a document from persistent storage
    */
-  async getDocument<T>(
-    userId: string,
-    collection: string,
-    docId: string
-  ): Promise<T | null> {
+  async getDocument<T>(userId: string, collection: string, docId: string): Promise<T | null> {
     const { getDocument } = await import('./persistence/index.js');
     return getDocument<T>(userId, collection, docId);
   },
@@ -245,11 +241,7 @@ export const Memory = {
   /**
    * Delete a document from persistent storage
    */
-  async deleteDocument(
-    userId: string,
-    collection: string,
-    docId: string
-  ): Promise<void> {
+  async deleteDocument(userId: string, collection: string, docId: string): Promise<void> {
     const { deleteDocument } = await import('./persistence/index.js');
     await deleteDocument(userId, collection, docId);
   },
@@ -273,7 +265,7 @@ export const Memory = {
     const result = await executeNaturalQuery(userId, question);
 
     return {
-      answer: result.formattedResponse || 'I don\'t have information about that.',
+      answer: result.formattedResponse || "I don't have information about that.",
       entities: result.relatedEntities.map((e) => ({
         name: e.canonicalName,
         type: e.type,
@@ -310,7 +302,8 @@ export const Memory = {
       entity: result.entity,
       summary: `I know about ${result.entity.canonicalName}.`,
       facts: result.facts?.map((f) => f.content || `${f.key}: ${f.value}`) || [],
-      relationships: result.relationships?.map((r) => `${r.type} (${r.fromEntity} -> ${r.toEntity})`) || [],
+      relationships:
+        result.relationships?.map((r) => `${r.type} (${r.fromEntity} -> ${r.toEntity})`) || [],
     };
   },
 

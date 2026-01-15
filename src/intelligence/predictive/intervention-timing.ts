@@ -28,24 +28,24 @@ const log = createLogger({ module: 'InterventionTiming' });
 
 /** Types of interventions we can time */
 export type InterventionType =
-  | 'gentle_challenge'      // When to push
-  | 'reframe_suggestion'    // When to offer new perspective
-  | 'habit_reminder'        // When reminders work
-  | 'emotional_check_in'    // When to ask how they're doing
-  | 'celebration'           // When to celebrate
-  | 'hard_truth'            // When tough love lands
-  | 'silence'               // When to say nothing
-  | 'proactive_outreach'    // When to reach out first
-  | 'deep_question'         // When to ask something profound
-  | 'practical_advice'      // When advice is welcome
-  | 'validation'            // When to affirm their feelings
-  | 'accountability'        // When to hold them to commitments
-  | 'encouragement'         // When to boost confidence
-  | 'perspective_shift'     // When to broaden their view
-  | 'grounding'             // When to bring them back to earth
-  | 'humor'                 // When lightness helps
-  | 'boundary_support'      // When to help with boundaries
-  | 'presence';             // When just being present is the intervention
+  | 'gentle_challenge' // When to push
+  | 'reframe_suggestion' // When to offer new perspective
+  | 'habit_reminder' // When reminders work
+  | 'emotional_check_in' // When to ask how they're doing
+  | 'celebration' // When to celebrate
+  | 'hard_truth' // When tough love lands
+  | 'silence' // When to say nothing
+  | 'proactive_outreach' // When to reach out first
+  | 'deep_question' // When to ask something profound
+  | 'practical_advice' // When advice is welcome
+  | 'validation' // When to affirm their feelings
+  | 'accountability' // When to hold them to commitments
+  | 'encouragement' // When to boost confidence
+  | 'perspective_shift' // When to broaden their view
+  | 'grounding' // When to bring them back to earth
+  | 'humor' // When lightness helps
+  | 'boundary_support' // When to help with boundaries
+  | 'presence'; // When just being present is the intervention
 
 /** Conditions for optimal timing */
 export interface OptimalConditions {
@@ -54,7 +54,15 @@ export interface OptimalConditions {
   /** Required context/topics */
   requiredContext: string[];
   /** Best time of day */
-  timeOfDay: ('morning' | 'afternoon' | 'evening' | 'night' | 'early_evening' | 'late_night' | 'any')[];
+  timeOfDay: (
+    | 'morning'
+    | 'afternoon'
+    | 'evening'
+    | 'night'
+    | 'early_evening'
+    | 'late_night'
+    | 'any'
+  )[];
   /** Best days of week */
   dayOfWeek: number[];
   /** Days since last meaningful conversation */
@@ -78,7 +86,7 @@ export interface InterventionOutcome {
   /** How they responded */
   responseType: 'accepted' | 'deflected' | 'rejected' | 'ignored' | 'engaged';
   /** Did it achieve the intended effect? */
-  effectivenessScore: number;  // 0-1
+  effectivenessScore: number; // 0-1
   /** Notes about what happened */
   notes?: string;
 }
@@ -148,7 +156,7 @@ const CONFIG = {
       emotionalStates: ['calm', 'confident', 'motivated'],
       requiredContext: [],
       timeOfDay: ['morning', 'afternoon'],
-      dayOfWeek: [1, 2, 3, 4, 5],  // Weekdays
+      dayOfWeek: [1, 2, 3, 4, 5], // Weekdays
       recencyRange: { min: 0, max: 3 },
       contraindications: ['stressed', 'overwhelmed', 'sad', 'crisis'],
     },
@@ -172,7 +180,7 @@ const CONFIG = {
       emotionalStates: ['any'],
       requiredContext: [],
       timeOfDay: ['evening', 'afternoon'],
-      dayOfWeek: [0, 3, 6],  // Sunday, Wednesday, Saturday
+      dayOfWeek: [0, 3, 6], // Sunday, Wednesday, Saturday
       recencyRange: { min: 2, max: 14 },
       contraindications: [],
     },
@@ -188,7 +196,7 @@ const CONFIG = {
       emotionalStates: ['calm', 'grounded', 'ready'],
       requiredContext: ['trust_established', 'asked_for_honesty'],
       timeOfDay: ['morning', 'afternoon'],
-      dayOfWeek: [1, 2, 3, 4],  // Mid-week
+      dayOfWeek: [1, 2, 3, 4], // Mid-week
       recencyRange: { min: 0, max: 2 },
       contraindications: ['vulnerable', 'crisis', 'tired', 'stressed', 'defensive'],
     },
@@ -204,7 +212,7 @@ const CONFIG = {
       emotionalStates: ['any'],
       requiredContext: [],
       timeOfDay: ['morning', 'early_evening'],
-      dayOfWeek: [2, 3, 4],  // Tue-Thu
+      dayOfWeek: [2, 3, 4], // Tue-Thu
       recencyRange: { min: 3, max: 14 },
       contraindications: ['requested_space'],
     },
@@ -212,7 +220,7 @@ const CONFIG = {
       emotionalStates: ['reflective', 'calm', 'curious', 'open'],
       requiredContext: ['trust_established'],
       timeOfDay: ['evening', 'late_night'],
-      dayOfWeek: [0, 5, 6],  // Weekends + Friday
+      dayOfWeek: [0, 5, 6], // Weekends + Friday
       recencyRange: { min: 0, max: 3 },
       contraindications: ['rushed', 'distracted', 'surface_mode'],
     },
@@ -381,7 +389,7 @@ export function recordQuickOutcome(
       topic: context.topic,
       timeOfDay,
       dayOfWeek: now.getDay(),
-      daysSinceLastConversation: 0,  // Current conversation
+      daysSinceLastConversation: 0, // Current conversation
     },
     outcome: success ? 'positive' : 'negative',
     responseType: success ? 'accepted' : 'deflected',
@@ -417,8 +425,7 @@ export function getTimingRecommendation(
 
   // Get conditions (learned or default)
   const pattern = profile?.patterns.get(interventionType);
-  const conditions = pattern?.optimalConditions || 
-    CONFIG.DEFAULT_CONDITIONS[interventionType];
+  const conditions = pattern?.optimalConditions || CONFIG.DEFAULT_CONDITIONS[interventionType];
 
   // Calculate optimality score
   let optimalityScore = 0;
@@ -432,7 +439,10 @@ export function getTimingRecommendation(
   else if (hour < 21) currentTimeOfDay = 'evening';
   else currentTimeOfDay = 'night';
 
-  if (conditions.timeOfDay.includes(currentTimeOfDay) || conditions.timeOfDay.includes('any' as typeof currentTimeOfDay)) {
+  if (
+    conditions.timeOfDay.includes(currentTimeOfDay) ||
+    conditions.timeOfDay.includes('any' as typeof currentTimeOfDay)
+  ) {
     optimalityScore += 1;
     reasoning.push(`Good time (${currentTimeOfDay})`);
   } else {
@@ -451,12 +461,14 @@ export function getTimingRecommendation(
 
   // Check emotional state
   if (context.emotionalState) {
-    if (conditions.emotionalStates.includes(context.emotionalState) ||
-        conditions.emotionalStates.includes('any')) {
-      optimalityScore += 1.5;  // Emotional state is important
+    if (
+      conditions.emotionalStates.includes(context.emotionalState) ||
+      conditions.emotionalStates.includes('any')
+    ) {
+      optimalityScore += 1.5; // Emotional state is important
       reasoning.push(`Emotional state matches (${context.emotionalState})`);
     } else if (conditions.contraindications.includes(context.emotionalState)) {
-      optimalityScore -= 2;  // Strong negative
+      optimalityScore -= 2; // Strong negative
       reasoning.push(`⚠️ Emotional state is a contraindication`);
     } else {
       reasoning.push(`Emotional state neutral`);
@@ -478,7 +490,7 @@ export function getTimingRecommendation(
   } else if (daysSince < conditions.recencyRange.min) {
     reasoning.push(`Might be too soon`);
   } else {
-    optimalityScore += 0.3;  // Overdue is usually still okay
+    optimalityScore += 0.3; // Overdue is usually still okay
     reasoning.push(`Overdue for this intervention`);
   }
   factors++;
@@ -509,8 +521,13 @@ export function getTimingRecommendation(
   if (normalizedScore < 0.5 || riskLevel === 'high') {
     // Find better alternative
     const allTypes: InterventionType[] = [
-      'validation', 'encouragement', 'emotional_check_in', 'celebration',
-      'practical_advice', 'accountability', 'gentle_challenge',
+      'validation',
+      'encouragement',
+      'emotional_check_in',
+      'celebration',
+      'practical_advice',
+      'accountability',
+      'gentle_challenge',
     ];
 
     let bestAlt: InterventionType | null = null;
@@ -518,7 +535,7 @@ export function getTimingRecommendation(
 
     for (const altType of allTypes) {
       if (altType === interventionType) continue;
-      
+
       const altRec = evaluateIntervention(profile, altType, context);
       if (altRec > bestAltScore) {
         bestAltScore = altRec;
@@ -567,16 +584,26 @@ export function getAllTimingRecommendations(
   } = {}
 ): TimingRecommendation[] {
   const allTypes: InterventionType[] = [
-    'gentle_challenge', 'reframe_suggestion', 'habit_reminder',
-    'emotional_check_in', 'celebration', 'hard_truth', 'silence',
-    'proactive_outreach', 'deep_question', 'practical_advice',
-    'validation', 'accountability', 'encouragement', 'perspective_shift',
-    'grounding', 'humor', 'boundary_support',
+    'gentle_challenge',
+    'reframe_suggestion',
+    'habit_reminder',
+    'emotional_check_in',
+    'celebration',
+    'hard_truth',
+    'silence',
+    'proactive_outreach',
+    'deep_question',
+    'practical_advice',
+    'validation',
+    'accountability',
+    'encouragement',
+    'perspective_shift',
+    'grounding',
+    'humor',
+    'boundary_support',
   ];
 
-  const recommendations = allTypes.map((type) =>
-    getTimingRecommendation(userId, type, context)
-  );
+  const recommendations = allTypes.map((type) => getTimingRecommendation(userId, type, context));
 
   return recommendations.sort((a, b) => b.optimalityScore - a.optimalityScore);
 }
@@ -635,7 +662,9 @@ export function buildInterventionTimingContext(
       const typeName = rec.interventionType.replace(/_/g, ' ');
       sections.push(`• ${typeName} (${Math.round(rec.optimalityScore * 100)}% optimal)`);
       if (rec.historicalSuccess > 0.7) {
-        sections.push(`  → Works well for them (${Math.round(rec.historicalSuccess * 100)}% success)`);
+        sections.push(
+          `  → Works well for them (${Math.round(rec.historicalSuccess * 100)}% success)`
+        );
       }
     }
     sections.push('');
@@ -672,7 +701,7 @@ function getOrCreateProfile(userId: string): UserTimingProfile {
       patterns: new Map(),
       outcomes: [],
       globalPreferences: {
-        bestDaysForDeepWork: [1, 2, 3, 4],  // Default: weekdays
+        bestDaysForDeepWork: [1, 2, 3, 4], // Default: weekdays
         bestTimeForChallenge: 'morning',
         needsWarmupTime: true,
         sensitiveToTiming: false,
@@ -732,14 +761,15 @@ function updatePattern(profile: UserTimingProfile, outcome: InterventionOutcome)
   } else if (outcome.outcome === 'negative') {
     // This was a bad time - add to contraindications
     if (outcome.conditions.emotionalState) {
-      if (!pattern.optimalConditions.contraindications.includes(outcome.conditions.emotionalState)) {
+      if (
+        !pattern.optimalConditions.contraindications.includes(outcome.conditions.emotionalState)
+      ) {
         pattern.optimalConditions.contraindications.push(outcome.conditions.emotionalState);
       }
       // Remove from positive if present
-      pattern.optimalConditions.emotionalStates = 
-        pattern.optimalConditions.emotionalStates.filter(
-          (s) => s !== outcome.conditions.emotionalState
-        );
+      pattern.optimalConditions.emotionalStates = pattern.optimalConditions.emotionalStates.filter(
+        (s) => s !== outcome.conditions.emotionalState
+      );
     }
   }
 

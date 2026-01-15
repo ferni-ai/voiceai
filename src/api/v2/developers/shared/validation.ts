@@ -27,27 +27,29 @@ export const IdParamSchema = z.object({
 
 /** JSON Schema definition (simplified) */
 export const JSONSchemaSchema: z.ZodType<unknown> = z.lazy(() =>
-  z.object({
-    type: z.union([z.string(), z.array(z.string())]).optional(),
-    properties: z.record(z.string(), JSONSchemaSchema).optional(),
-    required: z.array(z.string()).optional(),
-    items: JSONSchemaSchema.optional(),
-    enum: z.array(z.unknown()).optional(),
-    description: z.string().optional(),
-    default: z.unknown().optional(),
-    minimum: z.number().optional(),
-    maximum: z.number().optional(),
-    minLength: z.number().optional(),
-    maxLength: z.number().optional(),
-    pattern: z.string().optional(),
-    format: z.string().optional(),
-    additionalProperties: z.union([z.boolean(), JSONSchemaSchema]).optional(),
-    oneOf: z.array(JSONSchemaSchema).optional(),
-    anyOf: z.array(JSONSchemaSchema).optional(),
-    allOf: z.array(JSONSchemaSchema).optional(),
-    $ref: z.string().optional(),
-    $defs: z.record(z.string(), JSONSchemaSchema).optional(),
-  }).passthrough()
+  z
+    .object({
+      type: z.union([z.string(), z.array(z.string())]).optional(),
+      properties: z.record(z.string(), JSONSchemaSchema).optional(),
+      required: z.array(z.string()).optional(),
+      items: JSONSchemaSchema.optional(),
+      enum: z.array(z.unknown()).optional(),
+      description: z.string().optional(),
+      default: z.unknown().optional(),
+      minimum: z.number().optional(),
+      maximum: z.number().optional(),
+      minLength: z.number().optional(),
+      maxLength: z.number().optional(),
+      pattern: z.string().optional(),
+      format: z.string().optional(),
+      additionalProperties: z.union([z.boolean(), JSONSchemaSchema]).optional(),
+      oneOf: z.array(JSONSchemaSchema).optional(),
+      anyOf: z.array(JSONSchemaSchema).optional(),
+      allOf: z.array(JSONSchemaSchema).optional(),
+      $ref: z.string().optional(),
+      $defs: z.record(z.string(), JSONSchemaSchema).optional(),
+    })
+    .passthrough()
 );
 
 // ============================================================================
@@ -58,35 +60,37 @@ export const JSONSchemaSchema: z.ZodType<unknown> = z.lazy(() =>
 export const MCPTransportSchema = z.enum(['stdio', 'http', 'websocket']);
 
 /** Create MCP server input */
-export const CreateMCPServerSchema = z.object({
-  personaId: z.string().optional(),
-  name: z.string().min(1).max(100),
-  description: z.string().max(500),
-  transport: MCPTransportSchema,
-  command: z.string().optional(),
-  args: z.array(z.string()).optional(),
-  endpoint: z.string().url().optional(),
-  headers: z.record(z.string(), z.string()).optional(),
-  secrets: z.record(z.string(), z.string()).optional(),
-  autoConnect: z.boolean().default(true),
-  enabled: z.boolean().default(true),
-  timeout: z.number().int().min(1000).max(60000).optional(),
-}).refine(
-  (data) => {
-    // Stdio requires command
-    if (data.transport === 'stdio' && !data.command) {
-      return false;
+export const CreateMCPServerSchema = z
+  .object({
+    personaId: z.string().optional(),
+    name: z.string().min(1).max(100),
+    description: z.string().max(500),
+    transport: MCPTransportSchema,
+    command: z.string().optional(),
+    args: z.array(z.string()).optional(),
+    endpoint: z.string().url().optional(),
+    headers: z.record(z.string(), z.string()).optional(),
+    secrets: z.record(z.string(), z.string()).optional(),
+    autoConnect: z.boolean().default(true),
+    enabled: z.boolean().default(true),
+    timeout: z.number().int().min(1000).max(60000).optional(),
+  })
+  .refine(
+    (data) => {
+      // Stdio requires command
+      if (data.transport === 'stdio' && !data.command) {
+        return false;
+      }
+      // HTTP/WebSocket require endpoint
+      if ((data.transport === 'http' || data.transport === 'websocket') && !data.endpoint) {
+        return false;
+      }
+      return true;
+    },
+    {
+      message: 'stdio transport requires command; http/websocket require endpoint',
     }
-    // HTTP/WebSocket require endpoint
-    if ((data.transport === 'http' || data.transport === 'websocket') && !data.endpoint) {
-      return false;
-    }
-    return true;
-  },
-  {
-    message: 'stdio transport requires command; http/websocket require endpoint',
-  }
-);
+  );
 
 /** Update MCP server input */
 export const UpdateMCPServerSchema = z.object({
@@ -124,39 +128,46 @@ export const ToolConfigSchema = z.object({
 });
 
 /** Create tool input */
-export const CreateToolSchema = z.object({
-  personaId: z.string().optional(),
-  name: z.string().regex(/^[a-z0-9-]+$/, 'Name must be kebab-case').min(1).max(50),
-  displayName: z.string().min(1).max(100),
-  description: z.string().max(500),
-  llmDescription: z.string().max(1000),
-  type: ToolExecutionTypeSchema,
-  config: ToolConfigSchema,
-  parameters: JSONSchemaSchema,
-  returns: JSONSchemaSchema.optional(),
-  enabled: z.boolean().default(true),
-  requiresAuth: z.boolean().default(false),
-  version: z.string().default('1.0.0'),
-}).refine(
-  (data) => {
-    // Webhook requires url
-    if (data.type === 'webhook' && !data.config.url) {
-      return false;
+export const CreateToolSchema = z
+  .object({
+    personaId: z.string().optional(),
+    name: z
+      .string()
+      .regex(/^[a-z0-9-]+$/, 'Name must be kebab-case')
+      .min(1)
+      .max(50),
+    displayName: z.string().min(1).max(100),
+    description: z.string().max(500),
+    llmDescription: z.string().max(1000),
+    type: ToolExecutionTypeSchema,
+    config: ToolConfigSchema,
+    parameters: JSONSchemaSchema,
+    returns: JSONSchemaSchema.optional(),
+    enabled: z.boolean().default(true),
+    requiresAuth: z.boolean().default(false),
+    version: z.string().default('1.0.0'),
+  })
+  .refine(
+    (data) => {
+      // Webhook requires url
+      if (data.type === 'webhook' && !data.config.url) {
+        return false;
+      }
+      // MCP requires serverId and toolName
+      if (data.type === 'mcp' && (!data.config.serverId || !data.config.toolName)) {
+        return false;
+      }
+      // Prompt requires prompt
+      if (data.type === 'prompt' && !data.config.prompt) {
+        return false;
+      }
+      return true;
+    },
+    {
+      message:
+        'Tool config must match type: webhook needs url, mcp needs serverId+toolName, prompt needs prompt',
     }
-    // MCP requires serverId and toolName
-    if (data.type === 'mcp' && (!data.config.serverId || !data.config.toolName)) {
-      return false;
-    }
-    // Prompt requires prompt
-    if (data.type === 'prompt' && !data.config.prompt) {
-      return false;
-    }
-    return true;
-  },
-  {
-    message: 'Tool config must match type: webhook needs url, mcp needs serverId+toolName, prompt needs prompt',
-  }
-);
+  );
 
 /** Update tool input */
 export const UpdateToolSchema = z.object({
@@ -258,7 +269,13 @@ export const ActivityQuerySchema = PaginationSchema.extend({
 // ============================================================================
 
 /** Workflow trigger types */
-export const WorkflowTriggerTypeSchema = z.enum(['voice_command', 'tool_call', 'schedule', 'event', 'api']);
+export const WorkflowTriggerTypeSchema = z.enum([
+  'voice_command',
+  'tool_call',
+  'schedule',
+  'event',
+  'api',
+]);
 
 /** Workflow node types */
 export const WorkflowNodeTypeSchema = z.enum([
@@ -322,10 +339,12 @@ export const WorkflowNodeSchema = z.object({
   name: z.string().min(1).max(100),
   type: WorkflowNodeTypeSchema,
   config: NodeConfigSchema,
-  position: z.object({
-    x: z.number(),
-    y: z.number(),
-  }).optional(),
+  position: z
+    .object({
+      x: z.number(),
+      y: z.number(),
+    })
+    .optional(),
 });
 
 /** Workflow edge */

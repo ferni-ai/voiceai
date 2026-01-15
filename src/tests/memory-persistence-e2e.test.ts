@@ -38,7 +38,7 @@ const mockPaceObservations: any[] = [];
 const mockOpenThreads: any[] = [];
 const mockFollowUps: any[] = [];
 
-vi.mock('../intelligence/humor-calibration.js', () => ({
+vi.mock('../intelligence/tracking/humor.js', () => ({
   getHumorCalibration: vi.fn(() => ({
     getGuidance: () => ({
       preferences: { prefersWit: true },
@@ -53,7 +53,7 @@ vi.mock('../intelligence/humor-calibration.js', () => ({
   }),
 }));
 
-vi.mock('../intelligence/story-preference.js', () => ({
+vi.mock('../intelligence/tracking/story-preference.js', () => ({
   getStoryPreference: vi.fn(() => ({
     getGuidance: () => ({
       preferences: { prefersShort: true },
@@ -82,7 +82,7 @@ vi.mock('../intelligence/story-preference.js', () => ({
   }),
 }));
 
-vi.mock('../intelligence/communication-mirroring.js', () => ({
+vi.mock('../intelligence/tracking/communication-style.js', () => ({
   getCommunicationMirroring: vi.fn(() => ({
     getGuidance: () => ({
       detectedStyle: { formality: 'casual', energy: 'high' },
@@ -91,7 +91,7 @@ vi.mock('../intelligence/communication-mirroring.js', () => ({
   removeCommunicationMirroring: vi.fn(),
 }));
 
-vi.mock('../intelligence/emotional-memory.js', () => ({
+vi.mock('../intelligence/tracking/emotional-memory.js', () => ({
   getEmotionalMemory: vi.fn(() => ({
     exportMoments: () => [...mockEmotionalMoments],
     importMoments: (moments: any[]) => {
@@ -105,7 +105,7 @@ vi.mock('../intelligence/emotional-memory.js', () => ({
   }),
 }));
 
-vi.mock('../intelligence/voice-pace-adapter.js', () => ({
+vi.mock('../intelligence/tracking/voice-pace.js', () => ({
   getVoicePaceAdapter: vi.fn(() => ({
     getCurrentState: () => ({
       learnedPreferences: {
@@ -126,7 +126,7 @@ vi.mock('../intelligence/voice-pace-adapter.js', () => ({
   }),
 }));
 
-vi.mock('../intelligence/response-quality-tracker.js', () => ({
+vi.mock('../intelligence/tracking/response-quality.js', () => ({
   getResponseQualityTracker: vi.fn(() => ({
     calculatePreferences: () => ({
       prefersStories: true,
@@ -142,7 +142,7 @@ vi.mock('../intelligence/response-quality-tracker.js', () => ({
   removeResponseQualityTracker: vi.fn(),
 }));
 
-vi.mock('../intelligence/conversation-pattern-analyzer.js', () => ({
+vi.mock('../intelligence/tracking/conversation-patterns.js', () => ({
   getConversationPatternAnalyzer: vi.fn(() => ({
     analyzePatterns: () => ({
       preferredTimes: ['morning'],
@@ -156,7 +156,7 @@ vi.mock('../intelligence/conversation-pattern-analyzer.js', () => ({
   removeConversationPatternAnalyzer: vi.fn(),
 }));
 
-vi.mock('../intelligence/cross-session-threader.js', () => ({
+vi.mock('../intelligence/tracking/cross-session.js', () => ({
   getCrossSessionThreader: vi.fn(() => ({
     getAllData: () => ({
       threads: mockOpenThreads,

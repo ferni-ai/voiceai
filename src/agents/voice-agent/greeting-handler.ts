@@ -355,9 +355,15 @@ export async function generateAndSpeakGreeting(ctx: GreetingContext): Promise<Gr
     diag.error('Greeting failed', { error: String(e) });
   }
 
-  // Add to conversation history (internal tracking)
-  if (services && typeof services.addTurn === 'function') {
-    services.addTurn('assistant', greeting);
+  // Add to conversation history (internal tracking + on-behalf call capture)
+  try {
+    const { recordAgentTurn } = await import('./agent-turn-recorder.js');
+    await recordAgentTurn(sessionId, services, greeting);
+  } catch {
+    // Fallback to direct recording if recorder fails
+    if (services && typeof services.addTurn === 'function') {
+      services.addTurn('assistant', greeting);
+    }
   }
 
   // =========================================================================

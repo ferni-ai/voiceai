@@ -351,7 +351,7 @@ export async function resetGlobalServices(): Promise<void> {
 
   try {
     const { shutdownCommunicationMirroringPersistence } =
-      await import('../intelligence/communication-mirroring.js');
+      await import('../intelligence/tracking/communication-style.js');
     await shutdownCommunicationMirroringPersistence();
   } catch {
     // Non-critical

@@ -268,17 +268,13 @@ function createMockAudioFrame(options: {
   sampleRate?: number;
   isLastFrame?: boolean;
 }): { data: Int16Array; samplesPerChannel: number; sampleRate: number; channels: number } {
-  const {
-    samplesPerChannel = 480,
-    channels = 1,
-    sampleRate = 24000,
-  } = options;
+  const { samplesPerChannel = 480, channels = 1, sampleRate = 24000 } = options;
 
   // Create a sine wave for testing
   const data = new Int16Array(samplesPerChannel * channels);
   const frequency = 440; // A4 note
   for (let i = 0; i < samplesPerChannel; i++) {
-    const sample = Math.sin(2 * Math.PI * frequency * i / sampleRate) * 0.5 * 32767;
+    const sample = Math.sin((2 * Math.PI * frequency * i) / sampleRate) * 0.5 * 32767;
     for (let c = 0; c < channels; c++) {
       data[i * channels + c] = Math.round(sample);
     }
@@ -451,7 +447,7 @@ describe('Persona Humanization Config', () => {
     });
 
     it('should return ultraRealistic for nayan', () => {
-      expect(getRecommendedPreset('nayan-sharma')).toBe('ultraRealistic');
+      expect(getRecommendedPreset('nayan-patel')).toBe('ultraRealistic');
       expect(getRecommendedPreset('nayan')).toBe('ultraRealistic');
     });
 

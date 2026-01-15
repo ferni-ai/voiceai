@@ -94,10 +94,7 @@ export interface ContextualVariantSelection {
 /**
  * Evaluate a single context condition against user context
  */
-export function evaluateCondition(
-  condition: ContextCondition,
-  context: UserContext
-): boolean {
+export function evaluateCondition(condition: ContextCondition, context: UserContext): boolean {
   const fieldValue = getContextValue(context, condition.field);
 
   if (fieldValue === undefined || fieldValue === null) {
@@ -317,7 +314,9 @@ export const highEngagementBoost: ContextModifier = {
 export const skepticalUserBoost: ContextModifier = {
   name: 'skeptical-user-boost',
   description: 'Boost trust-building variants for skeptical users',
-  conditions: [{ field: 'emotionalState', operator: 'eq', value: 'skeptical', weightModifier: 1.5 }],
+  conditions: [
+    { field: 'emotionalState', operator: 'eq', value: 'skeptical', weightModifier: 1.5 },
+  ],
   apply: (context) => (context.emotionalState === 'skeptical' ? 1.5 : 1),
 };
 

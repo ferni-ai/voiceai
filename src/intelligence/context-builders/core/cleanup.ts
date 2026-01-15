@@ -63,7 +63,8 @@ export async function cleanupAllContextBuilderSessions(): Promise<void> {
 
   // Clear all deep understanding sessions
   try {
-    const { clearAllDeepUnderstandingSessions } = await import('../intelligence/deep-understanding.js');
+    const { clearAllDeepUnderstandingSessions } =
+      await import('../intelligence/deep-understanding.js');
     clearAllDeepUnderstandingSessions();
   } catch {
     /* module not loaded */
@@ -71,7 +72,8 @@ export async function cleanupAllContextBuilderSessions(): Promise<void> {
 
   // Clear all conversational superpowers sessions
   try {
-    const { clearAllSuperpowersSessions } = await import('../superhuman/conversational-superpowers.js');
+    const { clearAllSuperpowersSessions } =
+      await import('../superhuman/conversational-superpowers.js');
     clearAllSuperpowersSessions();
   } catch {
     /* module not loaded */

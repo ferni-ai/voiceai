@@ -280,7 +280,7 @@ describe('Service Persistence Integration', () => {
         getCommunicationMirroring,
         initializeCommunicationMirroringPersistence,
         shutdownCommunicationMirroringPersistence,
-      } = await import('../intelligence/communication-mirroring.js');
+      } = await import('../intelligence/tracking/communication-style.js');
 
       await initializeCommunicationMirroringPersistence();
 

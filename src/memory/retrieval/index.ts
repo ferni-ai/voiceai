@@ -139,9 +139,8 @@ export async function retrieveContext(
 
   // 2. ENTITY STORE SEARCH
   try {
-    const { isEntityStoreReady, retrieveMemoriesUnified } = await import(
-      '../entity-store/integration.js'
-    );
+    const { isEntityStoreReady, retrieveMemoriesUnified } =
+      await import('../entity-store/integration.js');
     if (isEntityStoreReady()) {
       const entityResults = await retrieveMemoriesUnified(userId, query);
 
@@ -209,9 +208,8 @@ export async function retrieveContext(
   // 5. NATURAL LANGUAGE QUERY (knowledge graph)
   if (options?.includeRelationships) {
     try {
-      const { isKnowledgeCaptureReady, executeNaturalQuery } = await import(
-        '../knowledge-graph/index.js'
-      );
+      const { isKnowledgeCaptureReady, executeNaturalQuery } =
+        await import('../knowledge-graph/index.js');
       if (isKnowledgeCaptureReady()) {
         const nlResult = await executeNaturalQuery(userId, query);
         // Check if we got any meaningful results (entity, facts, or mentions)
@@ -263,10 +261,7 @@ export async function semanticSearch(
 /**
  * Entity lookup (find person/place/thing)
  */
-export async function findEntity(
-  userId: string,
-  query: string
-): Promise<EntityMatch | null> {
+export async function findEntity(userId: string, query: string): Promise<EntityMatch | null> {
   const result = await retrieveContext(userId, query, undefined, {
     topK: 1,
     includeAssociative: false,
@@ -278,10 +273,7 @@ export async function findEntity(
 /**
  * Get recent conversation context
  */
-export async function getRecentContext(
-  sessionId: string,
-  userId: string
-): Promise<string | null> {
+export async function getRecentContext(sessionId: string, userId: string): Promise<string | null> {
   try {
     const { buildSTMContext } = await import('../dynamic/stm-buffer.js');
     return buildSTMContext(sessionId);
@@ -496,3 +488,61 @@ export { getRetrievalExplainer } from '../retrieval-explanations.js';
 
 // Natural reference generation
 export { getNaturalReferenceGenerator } from '../natural-reference-generator.js';
+
+// Hybrid continuity retrieval (Firestore + Spanner + Vector)
+export {
+  retrieveContinuityBundle,
+  formatContinuityForLLM,
+  getInjectedMemories,
+  type ContinuityBundle,
+  type ThreadSummary,
+  type AnchorSummary,
+  type SemanticMatch,
+  type RetrievalMetadata,
+  type RetrievalOptions as ContinuityRetrievalOptions,
+  type InjectedMemory,
+} from './hybrid-continuity-retrieval.js';
+
+// Semantic memory search (for continuity bundle integration)
+export {
+  searchMemories,
+  searchAnchors,
+  searchSessionSummaries,
+  searchFacts,
+  indexMemory,
+  indexMemoriesBatch,
+  removeIndexedMemory,
+  toSemanticMatches,
+  type SemanticSearchOptions,
+  type SemanticSearchResult,
+  type SemanticSearchMetrics,
+  type MemorySourceType,
+} from './semantic-memory-search.js';
+
+// Recall attribution (track memory usage in responses)
+export {
+  parseAttributions,
+  containsMemoryReferences,
+  extractMemoryTags,
+  aggregateAttributionStats,
+  type AttributionResult,
+  type AttributionSummary,
+} from './recall-attribution.js';
+
+// Injected memory store (for attribution tracking across turns)
+export {
+  setInjectedMemories,
+  getAndClearInjectedMemories,
+  peekInjectedMemories,
+  clearSessionMemories,
+  getStoreStats as getInjectedMemoryStoreStats,
+  cleanupExpiredSessions,
+} from './injected-memory-store.js';
+
+// Memory feedback loop (boost/decay based on usage)
+export {
+  applyAttributionFeedback,
+  calculateSignificanceBoost,
+  calculateSignificanceDecay,
+  adjustScoreForUsage,
+} from './memory-feedback.js';

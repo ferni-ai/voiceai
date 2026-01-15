@@ -13,9 +13,17 @@
  */
 
 import type { PersonalityRepository } from '../domain/interfaces/personality-repository.js';
-import type { VoiceAnalyzer, VoiceFeatures, SilenceAnalysisResult } from '../domain/interfaces/voice-analyzer.js';
+import type {
+  VoiceAnalyzer,
+  VoiceFeatures,
+  SilenceAnalysisResult,
+} from '../domain/interfaces/voice-analyzer.js';
 import type { EmotionDetector } from '../domain/interfaces/emotion-detector.js';
-import type { PersonalityProfile, ConversationContext, PersonalMoment } from '../domain/model/personality-profile.js';
+import type {
+  PersonalityProfile,
+  ConversationContext,
+  PersonalMoment,
+} from '../domain/model/personality-profile.js';
 import type { EmotionalState } from '../domain/model/value-objects/emotional-state.js';
 import type { AnticipatedEmotion } from '../domain/model/value-objects/anticipated-emotion.js';
 import type { EmotionalPattern } from '../domain/model/emotional-pattern.js';
@@ -53,21 +61,26 @@ function getCacheKey(userId: string, personaId: string): string {
 function getCachedProfile(userId: string, personaId: string): PersonalityProfile | null {
   const key = getCacheKey(userId, personaId);
   const cached = profileCache.get(key);
-  
+
   if (!cached) return null;
-  
+
   // Check TTL
   if (Date.now() - cached.loadedAt > CACHE_TTL_MS) {
     profileCache.delete(key);
     return null;
   }
-  
+
   return cached.profile;
 }
 
-function setCachedProfile(userId: string, personaId: string, profile: PersonalityProfile, decayApplied = false): void {
+function setCachedProfile(
+  userId: string,
+  personaId: string,
+  profile: PersonalityProfile,
+  decayApplied = false
+): void {
   const key = getCacheKey(userId, personaId);
-  
+
   // Prune cache if too large
   if (profileCache.size >= MAX_CACHE_SIZE) {
     // Delete oldest entries
@@ -77,7 +90,7 @@ function setCachedProfile(userId: string, personaId: string, profile: Personalit
       profileCache.delete(entries[i][0]);
     }
   }
-  
+
   profileCache.set(key, {
     profile,
     loadedAt: Date.now(),
@@ -96,7 +109,7 @@ async function getOrLoadProfile(
   repository: PersonalityRepository
 ): Promise<{ profile: PersonalityProfile; needsDecay: boolean; fromCache: boolean }> {
   const key = getCacheKey(userId, personaId);
-  
+
   // 1. Check cache first
   const cached = getCachedProfile(userId, personaId);
   if (cached) {
@@ -107,7 +120,7 @@ async function getOrLoadProfile(
       fromCache: true,
     };
   }
-  
+
   // 2. Check if there's already a load in progress for this key
   const existingPromise = loadingPromises.get(key);
   if (existingPromise) {
@@ -117,7 +130,7 @@ async function getOrLoadProfile(
       return { profile, needsDecay: false, fromCache: true };
     }
   }
-  
+
   // 3. Start a new load and track the promise
   const loadPromise = (async () => {
     const profile = await repository.loadProfile(userId, personaId, {
@@ -127,21 +140,22 @@ async function getOrLoadProfile(
     });
     return profile;
   })();
-  
+
   loadingPromises.set(key, loadPromise);
-  
+
   try {
     const profile = await loadPromise;
-    
+
     if (!profile) {
       // Create new profile
-      const { PersonalityProfile: ProfileClass } = await import('../domain/model/personality-profile.js');
+      const { PersonalityProfile: ProfileClass } =
+        await import('../domain/model/personality-profile.js');
       const newProfile = ProfileClass.create(userId, personaId);
       await repository.saveProfile(newProfile);
       setCachedProfile(userId, personaId, newProfile, false);
       return { profile: newProfile, needsDecay: true, fromCache: false };
     }
-    
+
     setCachedProfile(userId, personaId, profile, false);
     return { profile, needsDecay: true, fromCache: false };
   } finally {
@@ -165,8 +179,8 @@ export function clearProfileCache(): void {
 }
 
 /** Get cache stats for monitoring */
-export function getProfileCacheStats(): { 
-  cacheSize: number; 
+export function getProfileCacheStats(): {
+  cacheSize: number;
   loadingCount: number;
   maxSize: number;
   ttlMs: number;
@@ -408,9 +422,7 @@ export class BuildPersonalityContext {
   /**
    * Infer conversation phase from turn count
    */
-  private inferConversationPhase(
-    turnCount?: number
-  ): 'opening' | 'middle' | 'deep' | 'closing' {
+  private inferConversationPhase(turnCount?: number): 'opening' | 'middle' | 'deep' | 'closing' {
     if (!turnCount) return 'middle';
     if (turnCount <= 2) return 'opening';
     if (turnCount <= 6) return 'middle';

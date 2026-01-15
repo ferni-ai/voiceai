@@ -14,13 +14,13 @@
  */
 
 import { broadcastVoiceEmotion } from '../../../services/cognitive-broadcast.js';
-import { getSessionState, updateVoiceEmotion } from '../../session-state.js';
+import { getSessionState, updateVoiceEmotion } from '../../state/session.js';
 import {
   generateVoiceAwareGuidance,
   processVoiceEmotion,
   trackSessionVoiceEmotion,
   type VoiceEmotionSignals,
-} from '../../voice-emotion-cognitive.js';
+} from '../../detectors/voice-emotion-cognitive.js';
 import { BuilderCategory } from '../core/categories.js';
 import {
   createCriticalInjection,

@@ -77,7 +77,9 @@ function validateConfig(config: AgentPageConfig): void {
   // Validate hex color format
   const hexPattern = /^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$/;
   if (!hexPattern.test(config.brand.primary)) {
-    throw new Error(`Invalid primary color format: ${config.brand.primary}. Use hex format like #96151D`);
+    throw new Error(
+      `Invalid primary color format: ${config.brand.primary}. Use hex format like #96151D`
+    );
   }
 }
 
@@ -208,9 +210,7 @@ function buildTemplateContext(config: AgentPageConfig): TemplateContext {
  * await writeFile('joel-dickson.html', page.html);
  * ```
  */
-export async function generateAgentPage(
-  config: AgentPageConfig
-): Promise<GeneratedPage> {
+export async function generateAgentPage(config: AgentPageConfig): Promise<GeneratedPage> {
   const startTime = Date.now();
 
   try {

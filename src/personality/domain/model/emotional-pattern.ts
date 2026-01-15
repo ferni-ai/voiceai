@@ -353,7 +353,7 @@ export class EmotionalPattern {
    * Get most recent evidence
    */
   get mostRecentEvidence(): PatternEvidence | null {
-    return this._evidence.length > 0 ? this._evidence[this._evidence.length - 1] ?? null : null;
+    return this._evidence.length > 0 ? (this._evidence[this._evidence.length - 1] ?? null) : null;
   }
 
   // ============================================================================
@@ -411,7 +411,15 @@ export class EmotionalPattern {
 
     if (context.currentTime && this.patternType === 'temporal') {
       // Check time-based triggers (e.g., "sunday evening")
-      const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+      const dayNames = [
+        'sunday',
+        'monday',
+        'tuesday',
+        'wednesday',
+        'thursday',
+        'friday',
+        'saturday',
+      ];
       const currentDay = dayNames[context.currentTime.getDay()];
       const currentHour = context.currentTime.getHours();
       const timeOfDay = currentHour < 12 ? 'morning' : currentHour < 18 ? 'afternoon' : 'evening';

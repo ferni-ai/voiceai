@@ -63,8 +63,8 @@ const styles = `
   .life-coaching-hub-backdrop {
     position: absolute;
     inset: 0;
-    background: rgba(44, 37, 32, 0.75);
-    backdrop-filter: blur(8px);
+    background: var(--backdrop-dark, rgba(44, 37, 32, 0.75));
+    backdrop-filter: var(--glass-blur-heavy, blur(20px));
   }
   
   .life-coaching-hub {
@@ -75,7 +75,7 @@ const styles = `
     background: var(--color-bg-elevated, #FFFDFB);
     border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
     border-radius: var(--radius-xl, 20px);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+    box-shadow: var(--shadow-2xl, 0 25px 50px -12px rgba(0, 0, 0, 0.25));
     overflow: hidden;
     display: flex;
     flex-direction: column;
@@ -342,7 +342,7 @@ function injectStyles(): void {
 // STATE
 // ============================================================================
 
-type TabId = 'all' | 'life-coaching' | 'emotional-support' | 'growth' | 'relationships' | 'superhuman';
+type TabId = 'all' | 'life-coaching' | 'emotional-support' | 'growth' | 'relationships' | 'practical' | 'superhuman';
 
 interface HubState {
   overlay: HTMLElement | null;
@@ -366,6 +366,7 @@ const TABS: Array<{ id: TabId; label: string; icon: string }> = [
   { id: 'emotional-support', label: 'Emotions', icon: 'shield' },
   { id: 'growth', label: 'Growth', icon: 'trending-up' },
   { id: 'relationships', label: 'Relationships', icon: 'users' },
+  { id: 'practical', label: 'Everyday', icon: 'sparkles' },
   { id: 'superhuman', label: 'Better Than Human', icon: 'sparkles' },
 ];
 
@@ -380,7 +381,7 @@ function getCapabilitiesForTab(tabId: TabId): Capability[] {
   
   if (tabId === 'all') {
     return CAPABILITIES.filter(c => 
-      ['life-coaching', 'emotional-support', 'growth', 'relationships', 'superhuman'].includes(c.category)
+      ['life-coaching', 'emotional-support', 'growth', 'relationships', 'practical', 'superhuman'].includes(c.category)
     );
   }
   

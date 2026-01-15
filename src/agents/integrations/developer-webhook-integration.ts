@@ -84,9 +84,7 @@ export function onSessionStarted(ctx: SessionEventContext): void {
  *
  * Call this from cleanup-handler.ts during session cleanup.
  */
-export function onSessionEnded(
-  ctx: SessionEventContext & { duration?: number }
-): void {
+export function onSessionEnded(ctx: SessionEventContext & { duration?: number }): void {
   const { sessionId, userId, personaId, publisherId, duration } = ctx;
 
   if (!publisherId) {
@@ -119,9 +117,7 @@ export function onSessionEnded(
  *
  * Call this from tool executor when a tool is invoked.
  */
-export function onToolCalled(
-  ctx: ToolEventContext & { args?: Record<string, unknown> }
-): void {
+export function onToolCalled(ctx: ToolEventContext & { args?: Record<string, unknown> }): void {
   const { sessionId, userId, personaId, publisherId, toolName, toolDomain, args } = ctx;
 
   if (!publisherId) {
@@ -150,7 +146,16 @@ export function onToolCalled(
 export function onToolCompleted(
   ctx: ToolEventContext & { result?: unknown; executionTimeMs?: number }
 ): void {
-  const { sessionId, userId, personaId, publisherId, toolName, toolDomain, result, executionTimeMs } = ctx;
+  const {
+    sessionId,
+    userId,
+    personaId,
+    publisherId,
+    toolName,
+    toolDomain,
+    result,
+    executionTimeMs,
+  } = ctx;
 
   if (!publisherId) {
     return;
@@ -176,9 +181,7 @@ export function onToolCompleted(
  *
  * Call this from tool executor when a tool fails.
  */
-export function onToolFailed(
-  ctx: ToolEventContext & { error: string }
-): void {
+export function onToolFailed(ctx: ToolEventContext & { error: string }): void {
   const { sessionId, userId, personaId, publisherId, toolName, toolDomain, error } = ctx;
 
   if (!publisherId) {

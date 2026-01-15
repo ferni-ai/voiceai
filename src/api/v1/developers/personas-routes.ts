@@ -149,7 +149,10 @@ function validateManifest(manifest: PersonaManifest): ValidationResult {
     if (!Array.isArray(manifest.knowledge.domains) || manifest.knowledge.domains.length < 1) {
       errors.push('At least 1 knowledge domain is required');
     }
-    if (!Array.isArray(manifest.knowledge.expertise_tags) || manifest.knowledge.expertise_tags.length < 3) {
+    if (
+      !Array.isArray(manifest.knowledge.expertise_tags) ||
+      manifest.knowledge.expertise_tags.length < 3
+    ) {
       warnings.push('Consider adding at least 3 expertise tags for better discoverability');
     }
   }
@@ -240,7 +243,10 @@ async function getPersona(personaId: string): Promise<StoredPersona | null> {
 /**
  * Create a new persona draft
  */
-async function createPersona(publisherId: string, manifest: PersonaManifest): Promise<StoredPersona> {
+async function createPersona(
+  publisherId: string,
+  manifest: PersonaManifest
+): Promise<StoredPersona> {
   const db = await getFirestore();
   const personaId = generatePersonaId();
   const now = new Date();
@@ -253,11 +259,14 @@ async function createPersona(publisherId: string, manifest: PersonaManifest): Pr
     updatedAt: now,
   };
 
-  await db.collection(PERSONAS_COLLECTION).doc(personaId).set({
-    ...persona,
-    createdAt: now,
-    updatedAt: now,
-  });
+  await db
+    .collection(PERSONAS_COLLECTION)
+    .doc(personaId)
+    .set({
+      ...persona,
+      createdAt: now,
+      updatedAt: now,
+    });
 
   return { id: personaId, ...persona };
 }
@@ -620,7 +629,7 @@ export async function handleDeveloperPersonasRoutes(
 
       sendJSON(res, {
         success: true,
-        message: 'Persona submitted for review. You\'ll receive an email when it\'s approved.',
+        message: "Persona submitted for review. You'll receive an email when it's approved.",
         persona: {
           id: submitted.id,
           name: submitted.manifest.identity.name,

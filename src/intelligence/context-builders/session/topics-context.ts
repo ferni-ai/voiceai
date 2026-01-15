@@ -15,7 +15,7 @@
  */
 import { getSessionConversationManager } from '../../../services/conversation-manager.js';
 import type { TopicWeight } from '../../../speech/speech-context.js';
-import { getProactiveGoalReference, verifyTopicThreading } from '../../human-behaviors.js';
+import { getProactiveGoalReference, verifyTopicThreading } from '../../human-behaviors/index.js';
 import {
   createHintInjection,
   createStandardInjection,

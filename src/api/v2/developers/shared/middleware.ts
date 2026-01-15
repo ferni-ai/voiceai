@@ -168,7 +168,7 @@ export async function requireApiKeyAuth(
   res: ServerResponse
 ): Promise<AuthContext | null> {
   const apiKey =
-    req.headers['x-api-key'] as string | undefined ||
+    (req.headers['x-api-key'] as string | undefined) ||
     req.headers.authorization?.replace('Bearer ', '');
 
   if (!apiKey) {

@@ -41,7 +41,10 @@ import {
   createMultiVariantTest,
   type ExperimentSettings,
 } from '../../../services/experiments/superhuman-experiments.js';
-import { extractContextFromRequest, type UserContext } from '../../../services/experiments/contextual-selector.js';
+import {
+  extractContextFromRequest,
+  type UserContext,
+} from '../../../services/experiments/contextual-selector.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { parseBody } from '../../helpers.js';
 import { requireAuth, optionalAuth } from '../../auth-middleware.js';
@@ -114,7 +117,12 @@ export async function handleSuperhumanExperimentsRoutes(
 
     // GET /api/v1/public/superhuman/experiments - List active experiments
     if (pathname === BASE_PATH && method === 'GET') {
-      const status = parsedUrl.searchParams.get('status') as 'running' | 'paused' | 'graduated' | 'stopped' | null;
+      const status = parsedUrl.searchParams.get('status') as
+        | 'running'
+        | 'paused'
+        | 'graduated'
+        | 'stopped'
+        | null;
       const experiments = await listExperiments(status || 'running');
 
       sendJson(res, 200, {
@@ -217,7 +225,8 @@ export async function handleSuperhumanExperimentsRoutes(
         },
         isNew: enrollment.isNew,
         source: enrollment.source,
-        confidence: 'confidence' in enrollment.selection ? enrollment.selection.confidence : undefined,
+        confidence:
+          'confidence' in enrollment.selection ? enrollment.selection.confidence : undefined,
       });
       return true;
     }
@@ -329,15 +338,11 @@ export async function handleSuperhumanExperimentsRoutes(
           body.tags
         );
       } else if (body.variants && body.variants.length >= 2) {
-        experiment = await createMultiVariantTest(
-          body.id,
-          body.name,
-          body.variants,
-          body.settings
-        );
+        experiment = await createMultiVariantTest(body.id, body.name, body.variants, body.settings);
       } else {
         sendJson(res, 400, {
-          error: 'Either provide variantA/variantB for simple test, or variants array for multi-variant',
+          error:
+            'Either provide variantA/variantB for simple test, or variants array for multi-variant',
         });
         return true;
       }
@@ -368,7 +373,10 @@ export async function handleSuperhumanExperimentsRoutes(
 
       await updateExperimentMetadata(experimentId, body);
 
-      log.info({ experimentId, updates: Object.keys(body), updater: auth.userId }, 'Experiment updated');
+      log.info(
+        { experimentId, updates: Object.keys(body), updater: auth.userId },
+        'Experiment updated'
+      );
 
       sendJson(res, 200, { success: true, experimentId });
       return true;
@@ -390,7 +398,10 @@ export async function handleSuperhumanExperimentsRoutes(
 
       await graduateExperiment(experimentId, body.winnerId);
 
-      log.info({ experimentId, winnerId: body.winnerId, graduator: auth.userId }, 'Experiment graduated');
+      log.info(
+        { experimentId, winnerId: body.winnerId, graduator: auth.userId },
+        'Experiment graduated'
+      );
 
       sendJson(res, 200, { success: true, experimentId, winnerId: body.winnerId });
       return true;

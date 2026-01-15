@@ -28,12 +28,12 @@ import type {
   BundleVerbalPersonality,
 } from '../../../personas/bundles/types/content.js';
 import { createLogger } from '../../../utils/safe-logger.js';
-import { DISTRESS } from '../../distress-levels.js';
+import { DISTRESS } from '../../detectors/distress.js';
 import {
   getLovableState,
   type LovablePresenceState,
   updateLovableState,
-} from '../../session-state.js';
+} from '../../state/session.js';
 import {
   createHintInjection,
   createStandardInjection,

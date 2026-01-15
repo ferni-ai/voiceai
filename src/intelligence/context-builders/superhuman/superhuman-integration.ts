@@ -577,7 +577,7 @@ export async function getPredictiveContext(userId: string, sessionId?: string): 
   try {
     // 3. Coaching patterns ready to surface
     const { getPatternsToSurface, generatePatternSurfacingQuestion } =
-      await import('../../coaching-patterns.js');
+      await import('../../coaching/patterns.js');
     const patternsToSurface = await getPatternsToSurface(userId);
     if (patternsToSurface.length > 0) {
       sections.push('\n[COACHING PATTERNS READY TO SURFACE]');

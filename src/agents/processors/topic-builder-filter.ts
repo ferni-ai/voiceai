@@ -13,7 +13,7 @@
  * @module agents/processors/topic-builder-filter
  */
 
-import type { TopicCategory } from '../../intelligence/topic-tracker.js';
+import type { TopicCategory } from '../../intelligence/detectors/topic.js';
 
 // ============================================================================
 // BUILDER CATEGORIES

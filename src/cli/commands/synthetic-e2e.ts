@@ -1470,7 +1470,7 @@ const BACKCHANNEL_TESTS: SyntheticTestCase[] = [
 
 const HANDOFF_TESTS: SyntheticTestCase[] = [
   {
-    id: 'handoff-maya-habits',
+    id: 'handoff-maya-santos',
     category: 'handoff',
     probe: 'I need help building a morning routine',
     expectedTool: 'handoffToMaya',
@@ -1505,7 +1505,7 @@ const HANDOFF_TESTS: SyntheticTestCase[] = [
     description: 'Life planning should transfer to Jordan',
   },
   {
-    id: 'handoff-nayan-wisdom',
+    id: 'handoff-nayan',
     category: 'handoff',
     probe: 'I need some philosophical guidance about the meaning of life',
     expectedTool: 'handoffToNayan',

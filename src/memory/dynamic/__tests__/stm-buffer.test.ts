@@ -128,13 +128,7 @@ describe('STM Buffer', () => {
 
       // Record 5 turns
       for (let i = 0; i < 5; i++) {
-        recordTurn(
-          testSessionId,
-          testUserId,
-          createMockCaptureResult(),
-          `Turn ${i}`,
-          i
-        );
+        recordTurn(testSessionId, testUserId, createMockCaptureResult(), `Turn ${i}`, i);
       }
 
       const turns = getRecentTurns(testSessionId);
@@ -153,22 +147,14 @@ describe('STM Buffer', () => {
       recordTurn(
         testSessionId,
         testUserId,
-        createMockCaptureResult(
-          [{ name: 'Mom', type: 'person' }],
-          ['happy'],
-          ['family']
-        ),
+        createMockCaptureResult([{ name: 'Mom', type: 'person' }], ['happy'], ['family']),
         'My mom is great.',
         1
       );
       recordTurn(
         testSessionId,
         testUserId,
-        createMockCaptureResult(
-          [{ name: 'Mike', type: 'person' }],
-          ['stressed'],
-          ['work']
-        ),
+        createMockCaptureResult([{ name: 'Mike', type: 'person' }], ['stressed'], ['work']),
         'Mike at work is stressful.',
         2
       );
@@ -214,11 +200,7 @@ describe('STM Buffer', () => {
       recordTurn(
         testSessionId,
         testUserId,
-        createMockCaptureResult(
-          [{ name: 'Mom', type: 'person' }],
-          ['happy'],
-          ['family']
-        ),
+        createMockCaptureResult([{ name: 'Mom', type: 'person' }], ['happy'], ['family']),
         'My mom called.',
         1
       );
@@ -232,13 +214,7 @@ describe('STM Buffer', () => {
 
   describe('cleanupSession()', () => {
     it('should remove session data', () => {
-      recordTurn(
-        testSessionId,
-        testUserId,
-        createMockCaptureResult(),
-        'Test',
-        1
-      );
+      recordTurn(testSessionId, testUserId, createMockCaptureResult(), 'Test', 1);
 
       expect(getRecentTurns(testSessionId).length).toBe(1);
 

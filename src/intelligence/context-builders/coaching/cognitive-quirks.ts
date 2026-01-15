@@ -24,7 +24,7 @@ import {
   markQuirkUsed,
   wasHabitUsed,
   wasQuirkUsed,
-} from '../../session-state.js';
+} from '../../state/session.js';
 import {
   createHintInjection,
   registerContextBuilder,

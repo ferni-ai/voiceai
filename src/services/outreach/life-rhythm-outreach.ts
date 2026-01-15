@@ -18,7 +18,7 @@ import { createLogger } from '../../utils/safe-logger.js';
 import {
   predictUserState,
   type RhythmPrediction,
-} from '../../intelligence/life-rhythm-prediction.js';
+} from '../../intelligence/deep-understanding/life-rhythm.js';
 import { getOutreachDecisionEngine } from './decision-engine.js';
 import type { AgentId } from '../agent-bus.js';
 

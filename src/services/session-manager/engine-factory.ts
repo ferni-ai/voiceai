@@ -24,8 +24,8 @@ import {
   getVoicePaceAdapter,
 } from '../../intelligence/index.js';
 
-import type { OpenThread, PromisedFollowUp } from '../../intelligence/cross-session-threader.js';
-import type { EmotionalMoment } from '../../intelligence/emotional-memory.js';
+import type { OpenThread, PromisedFollowUp } from '../../intelligence/tracking/cross-session.js';
+import type { EmotionalMoment } from '../../intelligence/tracking/emotional-memory.js';
 
 /**
  * All intelligence engines created for a session

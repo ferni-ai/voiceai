@@ -3,19 +3,19 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { detectPatterns, generateMirror, getAnticipatoryQuestion } from '../coaching-questions.js';
-import { type QuestionContext } from '../dynamic-questions.js';
+import { detectPatterns, generateMirror, getAnticipatoryQuestion } from '../coaching/questions.js';
+import { type QuestionContext } from '../coaching/dynamic-questions.js';
 import {
   detectPatternsInTranscript,
   generatePatternSurfacingQuestion,
   type UserPattern,
-} from '../coaching-patterns.js';
+} from '../coaching/patterns.js';
 import {
   analyzeVoiceSignals,
   getAnticipatedNeed,
   type SignalContext,
   type VoiceSignals,
-} from '../voice-signals.js';
+} from '../detectors/voice-signals.js';
 
 describe('Coaching Questions', () => {
   describe('detectPatterns', () => {

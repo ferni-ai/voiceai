@@ -281,7 +281,10 @@ export async function saveMealData(userId: string, data: Partial<MealData>): Pro
       };
       const result = await saveLifeAutomationData(userId, 'meals', firestoreData);
       if (!result.success) {
-        log.warn({ userId, error: result.error }, 'Failed to save to Firestore, data in memory only');
+        log.warn(
+          { userId, error: result.error },
+          'Failed to save to Firestore, data in memory only'
+        );
       }
     }
 
@@ -626,9 +629,7 @@ export async function getMealsForDate(
   for (const plan of data.mealPlans) {
     const dayEntries = plan.entries.filter((e) => e.date === date);
     for (const entry of dayEntries) {
-      const recipe = entry.recipeId
-        ? data.recipes.find((r) => r.id === entry.recipeId)
-        : undefined;
+      const recipe = entry.recipeId ? data.recipes.find((r) => r.id === entry.recipeId) : undefined;
       entries.push({ ...entry, recipe });
     }
   }

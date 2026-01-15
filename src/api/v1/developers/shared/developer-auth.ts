@@ -77,7 +77,8 @@ export interface QuerySnapshot {
 // FIREBASE AUTH (Singleton)
 // ============================================================================
 
-let firebaseAuthInstance: Awaited<ReturnType<typeof import('firebase-admin/auth').getAuth>> | null = null;
+let firebaseAuthInstance: Awaited<ReturnType<typeof import('firebase-admin/auth').getAuth>> | null =
+  null;
 let authInitPromise: Promise<void> | null = null;
 
 /**

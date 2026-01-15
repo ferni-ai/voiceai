@@ -647,7 +647,7 @@ async function aggregatePatterns(userId: string): Promise<PatternKnowledge> {
 
   try {
     // Get behavioral patterns from coaching-patterns
-    const { getUserPatterns } = await import('../coaching-patterns.js');
+    const { getUserPatterns } = await import('../coaching/patterns.js');
     const userPatterns = await getUserPatterns(userId);
 
     patterns.behaviors = userPatterns.slice(0, 10).map((p) => ({

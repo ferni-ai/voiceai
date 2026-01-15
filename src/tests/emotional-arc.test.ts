@@ -17,7 +17,7 @@ import {
   resetEmotionalArcTracker,
   type EmotionalArcTracker,
 } from '../conversation/emotional-arc.js';
-import type { EmotionResult } from '../intelligence/emotion-detector.js';
+import type { EmotionResult } from '../intelligence/detectors/emotion.js';
 
 // ============================================================================
 // HELPER FUNCTIONS

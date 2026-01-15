@@ -13,12 +13,7 @@
 import { createLogger } from '../../utils/safe-logger.js';
 import { getEntityStore } from './store.js';
 import { graphRAGRetrieve } from './graph-rag.js';
-import type {
-  Entity,
-  EntityType,
-  SurfacingOpportunity,
-  EntityRelationship,
-} from './types.js';
+import type { Entity, EntityType, SurfacingOpportunity, EntityRelationship } from './types.js';
 
 const log = createLogger({ module: 'ProactiveSurfacing' });
 
@@ -306,9 +301,7 @@ export class ProactiveSurfacingEngine {
   /**
    * Check for temporal triggers (birthdays, anniversaries, etc.)
    */
-  private async checkTemporalTriggers(
-    userId: string
-  ): Promise<
+  private async checkTemporalTriggers(userId: string): Promise<
     Array<{
       entity: Entity;
       urgency: 'high' | 'medium' | 'low';
@@ -369,9 +362,7 @@ export class ProactiveSurfacingEngine {
       if (attrs._type !== 'event' || !attrs.date) continue;
 
       const eventDate = new Date(attrs.date);
-      const daysUntil = Math.ceil(
-        (eventDate.getTime() - today.getTime()) / (24 * 60 * 60 * 1000)
-      );
+      const daysUntil = Math.ceil((eventDate.getTime() - today.getTime()) / (24 * 60 * 60 * 1000));
 
       if (daysUntil === 0) {
         triggers.push({
@@ -400,9 +391,7 @@ export class ProactiveSurfacingEngine {
   /**
    * Detect pattern-based surfacing opportunities
    */
-  private async detectPatternOpportunities(
-    context: ConversationContext
-  ): Promise<
+  private async detectPatternOpportunities(context: ConversationContext): Promise<
     Array<{
       entity: Entity;
       confidence: number;
@@ -465,7 +454,7 @@ export class ProactiveSurfacingEngine {
       "I've noticed something...",
       'This might be interesting...',
       "I'm curious about something...",
-      'You know what I\'ve picked up on?',
+      "You know what I've picked up on?",
     ];
 
     const opener = softOpeners[Math.floor(Math.random() * softOpeners.length)];
@@ -476,9 +465,7 @@ export class ProactiveSurfacingEngine {
   /**
    * Check for commitment check-in opportunities
    */
-  private async checkCommitmentOpportunities(
-    context: ConversationContext
-  ): Promise<
+  private async checkCommitmentOpportunities(context: ConversationContext): Promise<
     Array<{
       entity: Entity;
       timing: 'immediate' | 'soon' | 'when_relevant';

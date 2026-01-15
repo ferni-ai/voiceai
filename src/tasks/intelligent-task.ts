@@ -6,8 +6,8 @@
  */
 
 import { type llm, type voice } from '@livekit/agents';
-import type { EmotionResult } from '../intelligence/emotion-detector.js';
-import type { IntentResult } from '../intelligence/intent-classifier.js';
+import type { EmotionResult } from '../intelligence/detectors/emotion.js';
+import type { IntentResult } from '../intelligence/detectors/intent.js';
 import type { ConversationAnalysis, SessionServices } from '../services/index.js';
 import { getLogger } from '../utils/safe-logger.js';
 import { AgentTask, TaskRegressionError } from './agent-task.js';

@@ -69,7 +69,10 @@ interface InsightGenerationResult {
 /**
  * Generate insights for users from their knowledge graphs
  */
-export class InsightGenerationJob extends ScheduledJob<InsightGenerationConfig, InsightGenerationResult> {
+export class InsightGenerationJob extends ScheduledJob<
+  InsightGenerationConfig,
+  InsightGenerationResult
+> {
   readonly name = 'knowledge-graph-insight-generation';
   readonly description = 'Generate patterns, correlations, and insights from knowledge graph';
 
@@ -80,17 +83,16 @@ export class InsightGenerationJob extends ScheduledJob<InsightGenerationConfig, 
     minStrength: 0.5,
   };
 
-  protected async execute(config: InsightGenerationConfig, ctx: JobContext): Promise<InsightGenerationResult> {
+  protected async execute(
+    config: InsightGenerationConfig,
+    ctx: JobContext
+  ): Promise<InsightGenerationResult> {
     let processedUsers = 0;
     let totalInsights = 0;
 
     try {
-      const { getConsolidationEngine } = await import(
-        '../../memory/knowledge-graph/index.js'
-      );
-      const { createInsightsBatch } = await import(
-        '../../memory/knowledge-graph/storage/index.js'
-      );
+      const { getConsolidationEngine } = await import('../../memory/knowledge-graph/index.js');
+      const { createInsightsBatch } = await import('../../memory/knowledge-graph/storage/index.js');
 
       const users = await getKnowledgeGraphUsers(config.maxUsers);
       ctx.log.info({ userCount: users.length }, 'Starting insight generation job');
@@ -122,7 +124,10 @@ export class InsightGenerationJob extends ScheduledJob<InsightGenerationConfig, 
               }));
 
             if (insights.length > 0) {
-              await createInsightsBatch(userId, insights as Parameters<typeof createInsightsBatch>[1]);
+              await createInsightsBatch(
+                userId,
+                insights as Parameters<typeof createInsightsBatch>[1]
+              );
               totalInsights += insights.length;
               ctx.counters.success++;
             }
@@ -131,10 +136,7 @@ export class InsightGenerationJob extends ScheduledJob<InsightGenerationConfig, 
           processedUsers++;
         } catch (error) {
           ctx.counters.errors++;
-          ctx.log.warn(
-            { error: String(error), userId },
-            'Failed to generate insights for user'
-          );
+          ctx.log.warn({ error: String(error), userId }, 'Failed to generate insights for user');
         }
       }
 
@@ -201,15 +203,16 @@ export class ConsolidationJob extends ScheduledJob<ConsolidationConfig, Consolid
     archiveThreshold: 0.05,
   };
 
-  protected async execute(config: ConsolidationConfig, ctx: JobContext): Promise<ConsolidationResult> {
+  protected async execute(
+    config: ConsolidationConfig,
+    ctx: JobContext
+  ): Promise<ConsolidationResult> {
     let processedUsers = 0;
     let entitiesMerged = 0;
     let entitiesDecayed = 0;
 
     try {
-      const { getConsolidationEngine } = await import(
-        '../../memory/knowledge-graph/index.js'
-      );
+      const { getConsolidationEngine } = await import('../../memory/knowledge-graph/index.js');
 
       const users = await getKnowledgeGraphUsers(config.maxUsers);
       ctx.log.info({ userCount: users.length }, 'Starting consolidation job');
@@ -272,7 +275,10 @@ interface ThreadMaintenanceResult {
 /**
  * Maintain conversation threads - mark dormant, cleanup
  */
-export class ThreadMaintenanceJob extends ScheduledJob<ThreadMaintenanceConfig, ThreadMaintenanceResult> {
+export class ThreadMaintenanceJob extends ScheduledJob<
+  ThreadMaintenanceConfig,
+  ThreadMaintenanceResult
+> {
   readonly name = 'knowledge-graph-thread-maintenance';
   readonly description = 'Mark dormant threads, cleanup expired data';
 
@@ -282,15 +288,17 @@ export class ThreadMaintenanceJob extends ScheduledJob<ThreadMaintenanceConfig, 
     dormantAfterDays: 14,
   };
 
-  protected async execute(config: ThreadMaintenanceConfig, ctx: JobContext): Promise<ThreadMaintenanceResult> {
+  protected async execute(
+    config: ThreadMaintenanceConfig,
+    ctx: JobContext
+  ): Promise<ThreadMaintenanceResult> {
     let processedUsers = 0;
     let threadsDormant = 0;
     let insightsExpired = 0;
 
     try {
-      const { markDormantThreads, deleteExpiredInsights, deleteNegativeInsights } = await import(
-        '../../memory/knowledge-graph/storage/index.js'
-      );
+      const { markDormantThreads, deleteExpiredInsights, deleteNegativeInsights } =
+        await import('../../memory/knowledge-graph/storage/index.js');
 
       const users = await getKnowledgeGraphUsers(config.maxUsers);
       ctx.log.info({ userCount: users.length }, 'Starting thread maintenance job');
@@ -314,10 +322,7 @@ export class ThreadMaintenanceJob extends ScheduledJob<ThreadMaintenanceConfig, 
           ctx.counters.success++;
         } catch (error) {
           ctx.counters.errors++;
-          ctx.log.warn(
-            { error: String(error), userId },
-            'Failed to maintain threads for user'
-          );
+          ctx.log.warn({ error: String(error), userId }, 'Failed to maintain threads for user');
         }
       }
 
@@ -389,10 +394,7 @@ export class EntityDecayJob extends ScheduledJob<EntityDecayConfig, EntityDecayR
           ctx.counters.success++;
         } catch (error) {
           ctx.counters.errors++;
-          ctx.log.warn(
-            { error: String(error), userId },
-            'Failed to apply decay for user'
-          );
+          ctx.log.warn({ error: String(error), userId }, 'Failed to apply decay for user');
         }
       }
 
@@ -410,9 +412,7 @@ export class EntityDecayJob extends ScheduledJob<EntityDecayConfig, EntityDecayR
   }
 
   private async applyDecayForUser(userId: string, config: EntityDecayConfig): Promise<number> {
-    const { getAllEntities, updateEntity } = await import(
-      '../../memory/entity-store/storage.js'
-    );
+    const { getAllEntities, updateEntity } = await import('../../memory/entity-store/storage.js');
 
     const entities = await getAllEntities(userId, { limit: 500 });
     const now = Date.now();

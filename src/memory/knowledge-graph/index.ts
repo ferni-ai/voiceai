@@ -63,14 +63,9 @@ export {
 // ============================================================================
 
 // Import for local use in getKnowledgeGraph
-import {
-  captureTurn,
-  isKnowledgeCaptureReady,
-} from './services/index.js';
+import { captureTurn, isKnowledgeCaptureReady } from './services/index.js';
 
-import {
-  executeNaturalQuery,
-} from './services/index.js';
+import { executeNaturalQuery } from './services/index.js';
 
 // Re-export everything
 export {
@@ -117,10 +112,7 @@ export {
 // CONSOLIDATION EXPORTS
 // ============================================================================
 
-export {
-  getConsolidationEngine,
-  default as ConsolidationEngine,
-} from './consolidation.js';
+export { getConsolidationEngine, default as ConsolidationEngine } from './consolidation.js';
 
 // ============================================================================
 // STORAGE EXPORTS
@@ -161,10 +153,7 @@ export {
 // ENTITY RESOLVER RE-EXPORT
 // ============================================================================
 
-export {
-  getEntityResolver,
-  type EntityResolver,
-} from '../entity-store/entity-resolver.js';
+export { getEntityResolver, type EntityResolver } from '../entity-store/entity-resolver.js';
 
 // ============================================================================
 // KNOWLEDGE GRAPH SINGLETON
@@ -198,7 +187,12 @@ export interface KnowledgeGraph {
   /** Add a fact about an entity (stub) */
   addFact: (userId: string, entityId: string, fact: unknown, context?: unknown) => Promise<void>;
   /** Record a mention of an entity (stub) */
-  recordMention: (userId: string, entityId: string, mention: unknown, context?: unknown) => Promise<void>;
+  recordMention: (
+    userId: string,
+    entityId: string,
+    mention: unknown,
+    context?: unknown
+  ) => Promise<void>;
 }
 
 let knowledgeGraphInstance: KnowledgeGraph | null = null;
@@ -222,7 +216,11 @@ export function getKnowledgeGraph(): KnowledgeGraph {
       isReady: () => isKnowledgeCaptureReady(),
 
       // Full implementations (not stubs!)
-      resolveMention: async (userId: string, mention: unknown, context?: unknown): Promise<Entity> => {
+      resolveMention: async (
+        userId: string,
+        mention: unknown,
+        context?: unknown
+      ): Promise<Entity> => {
         // Use the full entity resolver implementation
         if (resolver && typeof resolver.resolveMention === 'function') {
           const resolved = await resolver.resolveMention(userId, mention);
@@ -236,9 +234,8 @@ export function getKnowledgeGraph(): KnowledgeGraph {
         const result = await resolver.resolvePerson(userId, {
           name: input.name || input.text,
           relationship: input.relationship,
-          context: typeof context === 'object' && context !== null 
-            ? JSON.stringify(context) 
-            : undefined,
+          context:
+            typeof context === 'object' && context !== null ? JSON.stringify(context) : undefined,
         });
 
         return result.entity as Entity;
@@ -247,11 +244,11 @@ export function getKnowledgeGraph(): KnowledgeGraph {
       addFact: async (userId: string, entityId: string, fact: unknown, context?: unknown) => {
         // Full implementation: Store fact as part of a mention
         const { createMention } = await import('../entity-store/storage.js');
-        
-        const factObj = fact as { 
-          type?: string; 
-          key?: string; 
-          value?: string; 
+
+        const factObj = fact as {
+          type?: string;
+          key?: string;
+          value?: string;
           content?: string;
           confidence?: number;
         };
@@ -268,12 +265,15 @@ export function getKnowledgeGraph(): KnowledgeGraph {
           sentiment: 0,
           emotionalIntensity: 0,
           mentionType: 'reference',
-          facts: [{
-            type: (factObj.type as 'attribute' | 'event' | 'relationship' | 'state') || 'attribute',
-            key: factObj.key || 'fact',
-            value: factObj.value || factObj.content || '',
-            confidence: factObj.confidence ?? 0.8,
-          }],
+          facts: [
+            {
+              type:
+                (factObj.type as 'attribute' | 'event' | 'relationship' | 'state') || 'attribute',
+              key: factObj.key || 'fact',
+              value: factObj.value || factObj.content || '',
+              confidence: factObj.confidence ?? 0.8,
+            },
+          ],
         });
 
         // Also update the entity's lastSeen
@@ -284,10 +284,15 @@ export function getKnowledgeGraph(): KnowledgeGraph {
         });
       },
 
-      recordMention: async (userId: string, entityId: string, mention: unknown, context?: unknown) => {
+      recordMention: async (
+        userId: string,
+        entityId: string,
+        mention: unknown,
+        context?: unknown
+      ) => {
         // Full implementation: Record the mention in storage
         const { createMention, updateEntity } = await import('../entity-store/storage.js');
-        
+
         const mentionObj = mention as {
           text?: string;
           snippet?: string;
@@ -298,12 +303,14 @@ export function getKnowledgeGraph(): KnowledgeGraph {
           sentiment?: number;
         };
 
-        const contextObj = context as {
-          sessionId?: string;
-          personaId?: string;
-          turnNumber?: number;
-          topics?: string[];
-        } | undefined;
+        const contextObj = context as
+          | {
+              sessionId?: string;
+              personaId?: string;
+              turnNumber?: number;
+              topics?: string[];
+            }
+          | undefined;
 
         // Create the mention record
         await createMention(userId, {

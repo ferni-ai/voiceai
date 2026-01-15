@@ -19,7 +19,7 @@ import {
   importRepairProfile,
   type MisunderstandingDetection,
   type RepairProfile,
-} from '../repair-intelligence.js';
+} from '../deep-understanding/repair.js';
 
 // ============================================================================
 // TEST SETUP

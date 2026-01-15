@@ -56,6 +56,16 @@ Thumbs.db
 
 # TypeScript
 *.tsbuildinfo
+
+# TypeScript build artifacts in source directories
+# (proper builds go to dist/ via tsconfig.json outDir)
+src/**/*.js
+src/**/*.js.map
+src/**/*.d.ts
+src/**/*.d.ts.map
+!src/**/*.config.js
+!src/**/vite.config.ts
+
 .spotify-tokens.json
 .spotify-token.json
 .spotify-device.json

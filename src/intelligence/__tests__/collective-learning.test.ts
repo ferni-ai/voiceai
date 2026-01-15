@@ -9,8 +9,8 @@ import {
   analyzeUserEngagement,
   getCollectiveRecommendations,
   type ConversationSignalContext,
-} from '../collective-learning-integration.js';
-import type { EmotionResult } from '../emotion-detector.js';
+} from '../collective/integration.js';
+import type { EmotionResult } from '../detectors/emotion.js';
 
 describe('Collective Learning Integration', () => {
   describe('analyzeResponseType', () => {

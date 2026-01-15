@@ -156,9 +156,7 @@ export class ActionEngine {
 
     // Calculate expiry
     const expiryTime =
-      expirySeconds ||
-      typeConfig.defaultExpirySeconds ||
-      this.defaultExpiry[priority];
+      expirySeconds || typeConfig.defaultExpirySeconds || this.defaultExpiry[priority];
     const expiresAt = new Date(Date.now() + expiryTime * 1000);
 
     // Create the action
@@ -345,10 +343,7 @@ export class ActionEngine {
           error: result.message,
         });
 
-        log.warn(
-          { actionId, type: action.type, error: result.message },
-          'Action execution failed'
-        );
+        log.warn({ actionId, type: action.type, error: result.message }, 'Action execution failed');
       }
 
       return { success: result.success, result, error: result.message };

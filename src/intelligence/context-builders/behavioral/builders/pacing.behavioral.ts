@@ -11,7 +11,7 @@
 import type { ContextBuilderInput } from '../../core/types.js';
 import type { BehavioralSignals, LengthModifier, PaceModifier } from '../signals.js';
 import { registerBehavioralBuilder } from '../orchestrator.js';
-import { DISTRESS } from '../../../distress-levels.js';
+import { DISTRESS } from '../../../detectors/distress.js';
 
 // ============================================================================
 // PACING RULES

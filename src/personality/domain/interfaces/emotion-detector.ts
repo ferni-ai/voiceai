@@ -126,10 +126,7 @@ export interface EmotionDetector {
    *
    * SUPERHUMAN: Notice when someone shares something for the first time
    */
-  detectFirstTimeVulnerability(
-    text: string,
-    userId: string
-  ): Promise<FirstTimeVulnerabilityResult>;
+  detectFirstTimeVulnerability(text: string, userId: string): Promise<FirstTimeVulnerabilityResult>;
 
   /**
    * Extract topics associated with emotions

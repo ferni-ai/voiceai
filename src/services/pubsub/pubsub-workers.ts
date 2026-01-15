@@ -253,7 +253,9 @@ export class ContextWarmupPubSubWorker extends BasePubSubWorker {
     log.debug({ type, data }, 'Processing context warmup message');
 
     try {
-      const contextModule = await import('../../intelligence/context-service.js').catch(() => null);
+      const contextModule = await import('../../intelligence/core/context-service.js').catch(
+        () => null
+      );
       if (contextModule && typeof contextModule.prewarmContextCache === 'function') {
         const { userId, personaId } = data as { userId: string; personaId: string };
         await contextModule.prewarmContextCache(userId, personaId);

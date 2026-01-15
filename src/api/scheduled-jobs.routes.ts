@@ -263,7 +263,7 @@ async function handleAggregateCommunityInsights(res: ServerResponse): Promise<vo
 
     // Import and run capability learning aggregation
     const { persistPatterns, getAllPatterns } =
-      await import('../intelligence/capability-learning.js');
+      await import('../intelligence/tracking/capabilities.js');
 
     // Get current patterns and persist them
     const patterns = getAllPatterns();
@@ -870,12 +870,10 @@ async function handleDailyAdminReport(res: ServerResponse): Promise<void> {
     log.info('Running daily admin report job (Cloud Scheduler)');
 
     const { generateDailyReport } = await import('../services/admin/daily-report.js');
-    const { generateDailyReportHTML, generateDailyReportPlainText } = await import(
-      '../services/admin/daily-report-template.js'
-    );
-    const { sendEmail, isEmailDeliveryAvailable, initializeEmailDelivery } = await import(
-      '../services/outreach/delivery/email-delivery.js'
-    );
+    const { generateDailyReportHTML, generateDailyReportPlainText } =
+      await import('../services/admin/daily-report-template.js');
+    const { sendEmail, isEmailDeliveryAvailable, initializeEmailDelivery } =
+      await import('../services/outreach/delivery/email-delivery.js');
 
     // Initialize email if not already done
     if (!isEmailDeliveryAvailable()) {

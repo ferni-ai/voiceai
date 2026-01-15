@@ -169,7 +169,10 @@ async function buildHumanPersonalityContext(
 
   // Don't inject timing guidance - personality-v2 handles this now
   // Keep the analysis for local decision-making (e.g., callback timing)
-  log.debug({ intent: timing.intent, confidence: timing.confidence }, '⏱️ Timing analysis (deferred to v2)');
+  log.debug(
+    { intent: timing.intent, confidence: timing.confidence },
+    '⏱️ Timing analysis (deferred to v2)'
+  );
 
   // ============================================================================
   // 1. EMOTIONAL DATA RECORDING

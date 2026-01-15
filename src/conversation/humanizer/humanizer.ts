@@ -88,7 +88,7 @@ export class ConversationHumanizer {
   setSessionContext(sessionId: string, userId?: string): void {
     this.sessionId = sessionId;
     this.userId = userId;
-    
+
     // Recreate processors with new context
     this.preLlm = new PreLlmProcessor(this.personaId, sessionId);
     this.postLlm = new PostLlmProcessor(
@@ -98,7 +98,7 @@ export class ConversationHumanizer {
       this.sessionCount,
       this.sessionStartTime
     );
-    
+
     log.debug({ sessionId, userId }, 'Session context updated');
   }
 
@@ -276,7 +276,10 @@ export class ConversationHumanizer {
    * Get unresolved conversation threads
    */
   getUnresolvedThreads(): string[] {
-    return this.preLlm.getMemory().getUnresolvedThreads().map((t) => t.topic);
+    return this.preLlm
+      .getMemory()
+      .getUnresolvedThreads()
+      .map((t) => t.topic);
   }
 
   /**

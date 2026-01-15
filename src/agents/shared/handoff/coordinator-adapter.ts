@@ -138,7 +138,16 @@ export class CoordinatorAdapter {
   private readonly tts?: TTSWithVoiceSwitch;
 
   constructor(config: CoordinatorAdapterConfig) {
-    const { ctx, session, services, room, getVoiceAgentRef, initialAgent, tts, sessionId: configSessionId } = config;
+    const {
+      ctx,
+      session,
+      services,
+      room,
+      getVoiceAgentRef,
+      initialAgent,
+      tts,
+      sessionId: configSessionId,
+    } = config;
     this.session = session;
     this.services = services;
     this.room = room;
@@ -146,7 +155,8 @@ export class CoordinatorAdapter {
     // CRITICAL: Use passed sessionId to match speech coordination.
     // Previously used ctx.room?.name which didn't match the sessionId used in
     // initializeSpeechCoordination(), causing "sessionId: 'unknown'" errors.
-    this.sessionId = configSessionId || services.sessionId || ctx.room?.name || `adapter-${Date.now()}`;
+    this.sessionId =
+      configSessionId || services.sessionId || ctx.room?.name || `adapter-${Date.now()}`;
     this.tts = tts;
 
     // Create the coordinator with our callbacks
@@ -334,10 +344,7 @@ export class CoordinatorAdapter {
       const displayName = getPersonaDisplayName(personaId);
 
       // Use voice-id-resolver as single source of truth
-      const voiceIdResult = resolveVoiceId(
-        { voiceId, personaId },
-        { logLevel: 'info' }
-      );
+      const voiceIdResult = resolveVoiceId({ voiceId, personaId }, { logLevel: 'info' });
 
       if (!voiceIdResult.success) {
         log.error(

@@ -48,7 +48,10 @@ interface ContactBestTimes {
 }
 
 // Cache
-const reachabilityCache = new Map<string, { data: Map<string, ContactBestTimes>; timestamp: number }>();
+const reachabilityCache = new Map<
+  string,
+  { data: Map<string, ContactBestTimes>; timestamp: number }
+>();
 const CACHE_TTL = 10 * 60 * 1000; // 10 minutes
 
 // ============================================================================
@@ -68,9 +71,10 @@ async function getAllReachabilityData(userId: string): Promise<Map<string, Conta
   const results = new Map<string, ContactBestTimes>();
 
   try {
-    const { getFirestoreDb } = await import('../../../services/superhuman/firestore-utils.js').catch(
-      () => ({ getFirestoreDb: null })
-    );
+    const { getFirestoreDb } =
+      await import('../../../services/superhuman/firestore-utils.js').catch(() => ({
+        getFirestoreDb: null,
+      }));
 
     const db = getFirestoreDb ? getFirestoreDb() : null;
     if (!db) return results;
@@ -174,19 +178,17 @@ function buildBestTimeContext(reachabilityData: Map<string, ContactBestTimes>): 
     return null; // No useful data
   }
 
-  const lines: string[] = [
-    '',
-    '## 📞 BEST TIME AWARENESS',
-    '',
-  ];
+  const lines: string[] = ['', '## 📞 BEST TIME AWARENESS', ''];
 
   // Current time assessment
   if (currentHour < 9 || currentHour >= 20) {
-    lines.push('⚠️ It\'s outside typical calling hours. Consider waiting until business hours.');
+    lines.push("⚠️ It's outside typical calling hours. Consider waiting until business hours.");
   } else if (goodTimeCount > badTimeCount) {
     lines.push('✅ Now is generally a good time to make calls based on past success.');
   } else if (badTimeCount > goodTimeCount) {
-    lines.push('⚠️ This time slot has had some failed calls in the past. Proceed with that in mind.');
+    lines.push(
+      '⚠️ This time slot has had some failed calls in the past. Proceed with that in mind.'
+    );
   }
 
   // Format day/hour info
@@ -198,7 +200,7 @@ function buildBestTimeContext(reachabilityData: Map<string, ContactBestTimes>): 
       const best = data.bestTimes[0];
       const dayName = dayNames[best.dayOfWeek];
       const timeStr = formatHour(best.hourOfDay);
-      
+
       // Only mention if it's helpful
       if (best.score > 0.5) {
         insights.push(`Historically successful: ${dayName}s around ${timeStr}`);

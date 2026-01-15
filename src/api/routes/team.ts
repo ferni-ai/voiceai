@@ -322,7 +322,7 @@ async function calculateMostActiveDay(
   // Check cache first
   const cacheKey = `mostActiveDay:${userId}`;
   const cached = teamAnalyticsCache.get(cacheKey);
-  if (cached && (Date.now() - cached.timestamp) < TEAM_ANALYTICS_CACHE_TTL_MS) {
+  if (cached && Date.now() - cached.timestamp < TEAM_ANALYTICS_CACHE_TTL_MS) {
     return cached.data;
   }
   try {
@@ -350,9 +350,8 @@ async function calculateMostActiveDay(
 
     // Try to get more session data from Firestore for better accuracy
     try {
-      const { getConversationHistoryService } = await import(
-        '../../services/stores/conversation-history.js'
-      );
+      const { getConversationHistoryService } =
+        await import('../../services/stores/conversation-history.js');
       const historyService = getConversationHistoryService();
       const history = await historyService.getHistory(userId, 30);
 

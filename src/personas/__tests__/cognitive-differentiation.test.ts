@@ -29,7 +29,14 @@ import {
 describe('Cognitive Differentiation', () => {
   describe('Profile Loading', () => {
     it('should return differentiation for all 6 personas', () => {
-      const personaIds = ['ferni', 'peter-john', 'alex-chen', 'maya-santos', 'jordan-taylor', 'nayan-patel'];
+      const personaIds = [
+        'ferni',
+        'peter-john',
+        'alex-chen',
+        'maya-santos',
+        'jordan-taylor',
+        'nayan-patel',
+      ];
 
       for (const personaId of personaIds) {
         const diff = getCognitiveDifferentiation(personaId);
@@ -77,7 +84,14 @@ describe('Cognitive Differentiation', () => {
 
   describe('Question Generation', () => {
     const questionTypes = ['starter', 'deep_dive'] as const;
-    const personaIds = ['ferni', 'peter-john', 'alex-chen', 'maya-santos', 'jordan-taylor', 'nayan-patel'];
+    const personaIds = [
+      'ferni',
+      'peter-john',
+      'alex-chen',
+      'maya-santos',
+      'jordan-taylor',
+      'nayan-patel',
+    ];
 
     it('should return questions for each persona and type', () => {
       for (const personaId of personaIds) {
@@ -112,7 +126,14 @@ describe('Cognitive Differentiation', () => {
 
   describe('Disagreement Phrases', () => {
     const intensities = ['mild', 'moderate', 'strong'] as const;
-    const personaIds = ['ferni', 'peter-john', 'alex-chen', 'maya-santos', 'jordan-taylor', 'nayan-patel'];
+    const personaIds = [
+      'ferni',
+      'peter-john',
+      'alex-chen',
+      'maya-santos',
+      'jordan-taylor',
+      'nayan-patel',
+    ];
 
     it('should return disagreement phrases for each persona and intensity', () => {
       for (const personaId of personaIds) {
@@ -145,7 +166,14 @@ describe('Cognitive Differentiation', () => {
 
   describe('Insight Lead-Ins', () => {
     it('should return insight lead-ins for all personas', () => {
-      const personaIds = ['ferni', 'peter-john', 'alex-chen', 'maya-santos', 'jordan-taylor', 'nayan-patel'];
+      const personaIds = [
+        'ferni',
+        'peter-john',
+        'alex-chen',
+        'maya-santos',
+        'jordan-taylor',
+        'nayan-patel',
+      ];
 
       for (const personaId of personaIds) {
         const leadIn = getInsightLeadIn(personaId);

@@ -159,11 +159,14 @@ export class CommitmentLinker {
       // 5. Create relationships in the knowledge graph
       await this.createCommitmentRelationships(userId, linkedCommitment);
 
-      log.info({
-        commitmentId: commitment.id,
-        entities: entities.length,
-        threads: threads.length,
-      }, 'Commitment linked to knowledge graph');
+      log.info(
+        {
+          commitmentId: commitment.id,
+          entities: entities.length,
+          threads: threads.length,
+        },
+        'Commitment linked to knowledge graph'
+      );
 
       return linkedCommitment;
     } catch (error) {
@@ -222,9 +225,7 @@ export class CommitmentLinker {
 
       // Fallback: scan all commitments
       const allCommitments = await this.getAllCommitments(userId);
-      return allCommitments.filter((c) =>
-        c.involvedEntities.some((e) => e.entityId === entityId)
-      );
+      return allCommitments.filter((c) => c.involvedEntities.some((e) => e.entityId === entityId));
     } catch (error) {
       log.debug({ error: String(error) }, 'Failed to get commitments for entity');
       return [];
@@ -259,9 +260,10 @@ export class CommitmentLinker {
       }
 
       // Hasn't been mentioned in a while (14 days)
-      const lastMention = c.followUpMentions.length > 0
-        ? Math.max(...c.followUpMentions.map((m) => new Date(m.date).getTime()))
-        : new Date(c.createdAt).getTime();
+      const lastMention =
+        c.followUpMentions.length > 0
+          ? Math.max(...c.followUpMentions.map((m) => new Date(m.date).getTime()))
+          : new Date(c.createdAt).getTime();
 
       if (now - lastMention > 14 * oneDayMs) return true;
 
@@ -276,14 +278,17 @@ export class CommitmentLinker {
     const commitments = await this.getAllCommitments(userId);
 
     // Build target statistics
-    const targetStats: Map<string, {
-      entityId: string;
-      entityName: string;
-      total: number;
-      completed: number;
-      overdue: number;
-      active: number;
-    }> = new Map();
+    const targetStats: Map<
+      string,
+      {
+        entityId: string;
+        entityName: string;
+        total: number;
+        completed: number;
+        overdue: number;
+        active: number;
+      }
+    > = new Map();
 
     // Build topic statistics
     const topicStats: Map<string, { total: number; completed: number }> = new Map();
@@ -329,12 +334,12 @@ export class CommitmentLinker {
       if (commitment.status === 'completed') {
         totalCompleted++;
         if (commitment.dueDate) {
-          const completionDate = commitment.followUpMentions.find(
-            (m) => m.sentiment === 'positive'
-          )?.date || commitment.createdAt;
+          const completionDate =
+            commitment.followUpMentions.find((m) => m.sentiment === 'positive')?.date ||
+            commitment.createdAt;
           const days = Math.round(
             (new Date(completionDate).getTime() - new Date(commitment.createdAt).getTime()) /
-            (24 * 60 * 60 * 1000)
+              (24 * 60 * 60 * 1000)
           );
           if (days > 0) {
             totalDaysToComplete += days;
@@ -475,7 +480,11 @@ export class CommitmentLinker {
   /**
    * Generate context string for surfacing during conversation
    */
-  async getCommitmentContext(userId: string, entityId?: string, topic?: string): Promise<string | null> {
+  async getCommitmentContext(
+    userId: string,
+    entityId?: string,
+    topic?: string
+  ): Promise<string | null> {
     const relevantCommitments: LinkedCommitment[] = [];
 
     if (entityId) {
@@ -486,9 +495,7 @@ export class CommitmentLinker {
     if (topic) {
       const allCommitments = await this.getAllCommitments(userId);
       const topicCommitments = allCommitments.filter((c) =>
-        c.relatedThreads.some((t) =>
-          t.topic.toLowerCase().includes(topic.toLowerCase())
-        )
+        c.relatedThreads.some((t) => t.topic.toLowerCase().includes(topic.toLowerCase()))
       );
       relevantCommitments.push(...topicCommitments);
     }
@@ -545,9 +552,7 @@ export class CommitmentLinker {
       // Simple entity extraction via keywords
       // In production, would use LLM extraction
       const words = description.split(/\s+/);
-      const potentialNames = words.filter(
-        (w) => w.length > 2 && w[0] === w[0].toUpperCase()
-      );
+      const potentialNames = words.filter((w) => w.length > 2 && w[0] === w[0].toUpperCase());
 
       for (const name of potentialNames) {
         const matches = await searchEntities(userId, name, {
@@ -583,7 +588,10 @@ export class CommitmentLinker {
     return entities;
   }
 
-  private inferRole(description: string, entityName: string): 'beneficiary' | 'witness' | 'partner' | 'self' {
+  private inferRole(
+    description: string,
+    entityName: string
+  ): 'beneficiary' | 'witness' | 'partner' | 'self' {
     const lower = description.toLowerCase();
     const nameLower = entityName.toLowerCase();
 

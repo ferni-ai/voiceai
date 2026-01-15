@@ -91,10 +91,7 @@ export async function createInsight(
 
   await ref.doc(id).set(cleanForFirestore(fullInsight));
 
-  log.info(
-    { userId, insightId: id, type: insight.insightType },
-    '✨ Created insight'
-  );
+  log.info({ userId, insightId: id, type: insight.insightType }, '✨ Created insight');
 
   return fullInsight;
 }
@@ -132,10 +129,7 @@ export async function updateInsight(
 /**
  * Record that an insight was surfaced to the user
  */
-export async function recordInsightSurfaced(
-  userId: string,
-  insightId: string
-): Promise<void> {
+export async function recordInsightSurfaced(userId: string, insightId: string): Promise<void> {
   const ref = await getInsightsRef(userId);
   if (!ref) return;
 
@@ -216,9 +210,7 @@ export async function getAllInsights(
 
   // Filter by entity (post-query since Firestore can't do array-contains with in)
   if (options?.entityIds && options.entityIds.length > 0) {
-    insights = insights.filter((i) =>
-      i.entityIds.some((eid) => options.entityIds!.includes(eid))
-    );
+    insights = insights.filter((i) => i.entityIds.some((eid) => options.entityIds!.includes(eid)));
   }
 
   // Filter by confidence (post-query)
@@ -346,9 +338,7 @@ export async function deleteNegativeInsights(userId: string): Promise<number> {
   const ref = await getInsightsRef(userId);
   if (!ref) return 0;
 
-  const snapshot = await ref
-    .where('userFeedback', 'in', ['not_helpful', 'wrong'])
-    .get();
+  const snapshot = await ref.where('userFeedback', 'in', ['not_helpful', 'wrong']).get();
 
   let deleted = 0;
   for (const doc of snapshot.docs) {
@@ -456,8 +446,4 @@ export async function getInsightStats(userId: string): Promise<{
 // EXPORTS
 // ============================================================================
 
-export {
-  DEFAULT_COOLDOWN_HOURS,
-  DEFAULT_MAX_SURFACE_ATTEMPTS,
-  DEFAULT_RECEPTIVITY_THRESHOLD,
-};
+export { DEFAULT_COOLDOWN_HOURS, DEFAULT_MAX_SURFACE_ATTEMPTS, DEFAULT_RECEPTIVITY_THRESHOLD };

@@ -297,8 +297,7 @@ IMPORTANT: Respond ONLY with valid JSON in this exact format:
 
       // Extract JSON from response (handle markdown code blocks)
       const jsonMatch = responseText.match(/```json\s*([\s\S]*?)\s*```/) ||
-        responseText.match(/```\s*([\s\S]*?)\s*```/) ||
-        [null, responseText];
+        responseText.match(/```\s*([\s\S]*?)\s*```/) || [null, responseText];
 
       const jsonStr = jsonMatch[1] || responseText;
       const parsed = JSON.parse(jsonStr.trim());
@@ -322,7 +321,12 @@ IMPORTANT: Respond ONLY with valid JSON in this exact format:
   async generateTestSuite(count: number = 20): Promise<SyntheticConversation[]> {
     const conversations: SyntheticConversation[] = [];
     const categories = Object.keys(SCENARIO_PROMPTS) as ConversationCategory[];
-    const difficulties: SyntheticConversation['difficulty'][] = ['easy', 'medium', 'hard', 'edge-case'];
+    const difficulties: SyntheticConversation['difficulty'][] = [
+      'easy',
+      'medium',
+      'hard',
+      'edge-case',
+    ];
 
     console.log(`\n🧪 Generating ${count} synthetic conversations...\n`);
 
@@ -385,7 +389,7 @@ IMPORTANT: Respond ONLY with valid JSON in this exact format:
 async function main() {
   console.log('╔════════════════════════════════════════════════════════════╗');
   console.log('║   LLM-Powered Synthetic Conversation Generator             ║');
-  console.log('║   Stress-testing Ferni\'s memory pipeline                   ║');
+  console.log("║   Stress-testing Ferni's memory pipeline                   ║");
   console.log('╚════════════════════════════════════════════════════════════╝');
 
   const generator = new ConversationGenerator();
@@ -419,7 +423,9 @@ async function main() {
   }
 
   console.log(`\n✅ Test suite ready at: ${outputPath}`);
-  console.log('Run: npx vitest run src/tests/e2e/synthetic-conversations/run-synthetic-tests.test.ts');
+  console.log(
+    'Run: npx vitest run src/tests/e2e/synthetic-conversations/run-synthetic-tests.test.ts'
+  );
 }
 
 // Run if executed directly

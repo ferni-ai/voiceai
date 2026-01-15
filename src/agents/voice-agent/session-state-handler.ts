@@ -14,7 +14,12 @@ import { log, voice } from '@livekit/agents';
 // FIX AUDIT: Import from service layer instead of API routes (clean architecture)
 import { checkForAccentChange } from '../../services/session/index.js';
 import { getDJController } from '../../audio/index.js';
-import { notifyAgentSpeakingStart, notifyAgentSpeakingEnd, notifyUserSpeakingStart, notifyUserSpeakingEnd } from './music-handler.js';
+import {
+  notifyAgentSpeakingStart,
+  notifyAgentSpeakingEnd,
+  notifyUserSpeakingStart,
+  notifyUserSpeakingEnd,
+} from './music-handler.js';
 // Tool execution tracking - prevents dead air check-in during active tool calls
 import { getStateMetrics } from '../../speech/coordination/sanitizer-integration.js';
 import { getSessionFlags } from '../../config/voice-humanization-flags.js';
@@ -23,7 +28,7 @@ import {
   analyzeSilence,
   recordSilence,
   type SilenceAnalysis,
-} from '../../intelligence/silence-intelligence.js';
+} from '../../intelligence/deep-understanding/silence.js';
 import {
   getMeaningfulSilenceResponse,
   getLLMSilenceInstructions,
@@ -177,7 +182,7 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
   // This fixes the issue where user says "play music" and gets no response
   let emptyResponseWatchdogTimer: ReturnType<typeof setTimeout> | null = null;
   let lastUserMessageForRecovery: string | null = null;
-  const EMPTY_RESPONSE_WATCHDOG_MS = 5000; // 5 seconds - if no agent speech by then, trigger recovery
+  const EMPTY_RESPONSE_WATCHDOG_MS = 3000; // 3 seconds - fast recovery from stalled responses
 
   // Idle timeout tracking - auto-disconnect after extended silence
   let idleTimeoutTimer: ReturnType<typeof setTimeout> | null = null;
@@ -320,6 +325,21 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
   // Echo prevention grace period - ADAPTIVE based on actual speech patterns
   // Uses SpeechCoordinator's learned timing instead of hardcoded value
   const coordinator = getSpeechCoordinator();
+
+  /**
+   * Get the most recent user message for recovery paths.
+   * Reads from userData at call time to avoid race conditions
+   * where UserStateChanged fires before transcript handling completes.
+   */
+  const getLatestUserMessage = (): string | null => {
+    const recentTranscripts = userData.recentTranscripts ?? [];
+    return (
+      recentTranscripts[recentTranscripts.length - 1] ||
+      userData.lastUserMessage ||
+      userData.lastPartialTranscript ||
+      null
+    );
+  };
 
   /**
    * Get adaptive echo grace period based on last utterance duration.
@@ -849,9 +869,8 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
         clearTimeout(emptyResponseWatchdogTimer);
       }
 
-      // Store the user's last message for recovery (from userData if available)
-      const recentTranscripts = userData.recentTranscripts ?? [];
-      lastUserMessageForRecovery = recentTranscripts[recentTranscripts.length - 1] || userData.lastUserMessage || null;
+      // Store the user's last message for recovery (snapshot, may be stale until transcript arrives)
+      lastUserMessageForRecovery = getLatestUserMessage();
 
       emptyResponseWatchdogTimer = setTimeout(async () => {
         // If we get here, the agent didn't respond within 5 seconds
@@ -880,15 +899,21 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
           // DJ Controller not initialized - continue with recovery
         }
 
-        diag.state('🚨 [EMPTY_RESPONSE_WATCHDOG] No agent response after 5s - triggering recovery', {
-          lastUserMessage: lastUserMessageForRecovery?.slice(0, 50),
-          userFinishedAt: userFinishedSpeakingAt,
-        });
+        // Re-check latest message to avoid race with transcript handling
+        lastUserMessageForRecovery = getLatestUserMessage();
+        diag.state(
+          '🚨 [EMPTY_RESPONSE_WATCHDOG] No agent response after 3s - triggering recovery',
+          {
+            lastUserMessage: lastUserMessageForRecovery?.slice(0, 50),
+            userFinishedAt: userFinishedSpeakingAt,
+          }
+        );
 
         // Try direct tool routing first (handles music, weather, handoffs)
         if (lastUserMessageForRecovery) {
           try {
-            const { routeDirectly, isDirectRoutingEnabled } = await import('./direct-tool-router.js');
+            const { routeDirectly, isDirectRoutingEnabled } =
+              await import('./direct-tool-router.js');
 
             if (isDirectRoutingEnabled()) {
               const directResult = await routeDirectly(lastUserMessageForRecovery, {
@@ -909,13 +934,35 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
               }
             }
           } catch (routeErr) {
-            diag.warn('Empty response recovery: direct routing failed', { error: String(routeErr) });
+            diag.warn('Empty response recovery: direct routing failed', {
+              error: String(routeErr),
+            });
           }
         }
 
-        // If direct routing didn't handle it, let the silence handler take over
-        // (it will kick in at its normal threshold, but we've at least tried)
-        diag.state('🚨 [EMPTY_RESPONSE_WATCHDOG] Direct routing did not handle - awaiting silence handler');
+        // If direct routing didn't handle it, generate a fast, contextual check-in
+        // to avoid extended silence when the primary reply pipeline stalls.
+        if (lastUserMessageForRecovery) {
+          const recoveryContext = [
+            `User just said: "${lastUserMessageForRecovery}"`,
+            'Respond briefly and warmly, acknowledging their message and continuing naturally.',
+          ];
+          await generateReplyWithContext(session, {
+            context: recoveryContext,
+            fallbackMessage: "Got it. I'm here with you.",
+            allowInterruptions: true,
+            waitForPlayout: false,
+            timeoutMs: 3000,
+            logContext: 'empty-response-recovery',
+            sessionId,
+          });
+          return;
+        }
+
+        // Fall back to silence handler if we have no message to recover with
+        diag.state(
+          '🚨 [EMPTY_RESPONSE_WATCHDOG] Direct routing did not handle - awaiting silence handler'
+        );
       }, EMPTY_RESPONSE_WATCHDOG_MS);
       // Note: Thinking music is now handled by the ambient-music system automatically
 
@@ -1338,7 +1385,9 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
               allowInterruptions: silenceInstructions.allowInterruptions,
               // FIX: Only use fallback if music is NOT playing
               // Fallback like "How did that feel?" doesn't make sense during music
-              fallbackMessage: silenceContext.isMusicPlaying ? undefined : silenceInstructions.fallback,
+              fallbackMessage: silenceContext.isMusicPlaying
+                ? undefined
+                : silenceInstructions.fallback,
               context: `silence-${silenceInstructions.type}`,
               sessionId,
               // FIX: Increase timeout for silence responses (users are already in comfortable silence)

@@ -294,6 +294,109 @@ const PRACTICE_STEPS: Record<string, PracticeStep[]> = {
       ferniMessage: "I'll remember this conversation. Let me know how it goes.",
     },
   ],
+  'breath-focus': [
+    {
+      id: 'intro',
+      type: 'intro',
+      title: 'Breath Focus',
+      content: 'A short reset for your nervous system.',
+      ferniMessage: "We'll keep this simple. You're safe here.",
+    },
+    {
+      id: 'breath',
+      type: 'breathing',
+      title: 'Follow the Breath',
+      content: 'Breathe with me. In for 4, hold for 4, out for 6.',
+      duration: 60,
+      ferniMessage: "I'll guide the rhythm. You just follow.",
+    },
+    {
+      id: 'settle',
+      type: 'reflection',
+      title: 'Notice the Shift',
+      content: 'What feels different in your body now?',
+      placeholder: 'Slower, calmer, clearer, still busy...',
+      ferniMessage: 'Even a small shift counts.',
+    },
+    {
+      id: 'complete',
+      type: 'completion',
+      title: 'Centered',
+      content: "You made space for yourself. That's powerful.",
+      ferniMessage: "Return here anytime. I'll be with you.",
+    },
+  ],
+  'values-check': [
+    {
+      id: 'intro',
+      type: 'intro',
+      title: 'Values Check-in',
+      content: "Let's reconnect with what matters most to you.",
+      ferniMessage: "Values are your compass. We'll listen for them.",
+    },
+    {
+      id: 'values-list',
+      type: 'prompt',
+      title: 'Name What Matters',
+      content: 'What values feel most important right now?',
+      placeholder: 'Examples: presence, courage, family, growth...',
+      ferniMessage: 'There are no wrong answers here.',
+    },
+    {
+      id: 'alignment',
+      type: 'reflection',
+      title: 'Alignment',
+      content: 'Where did you live those values this week?',
+      placeholder: 'Small moments count too...',
+      ferniMessage: "Notice the moments you showed up for yourself.",
+    },
+    {
+      id: 'next-step',
+      type: 'chat',
+      title: 'One Gentle Step',
+      content: "What's one small way to honor those values today?",
+      ferniMessage: 'We only need one next step.',
+    },
+    {
+      id: 'complete',
+      type: 'completion',
+      title: 'Compass Set',
+      content: "You're clear on what matters. That's your strength.",
+      ferniMessage: "I'll remember these values with you.",
+    },
+  ],
+  'future-letter': [
+    {
+      id: 'intro',
+      type: 'intro',
+      title: 'Letter to Future Self',
+      content: 'Write a note to the you who will read this later.',
+      ferniMessage: "Future you will be grateful for your honesty.",
+    },
+    {
+      id: 'letter',
+      type: 'prompt',
+      title: 'Write the Letter',
+      content: "What do you want future you to remember?",
+      placeholder: 'Hopes, reminders, lessons, encouragement...',
+      ferniMessage: 'Say what only you can say.',
+    },
+    {
+      id: 'wisdom',
+      type: 'reflection',
+      title: 'A Single Line of Wisdom',
+      content: 'If you could leave one line of wisdom, what would it be?',
+      placeholder: 'Keep it short. Let it land.',
+      ferniMessage: 'One line can change a day.',
+    },
+    {
+      id: 'complete',
+      type: 'completion',
+      title: 'Letter Written',
+      content: "You just became a guide for your future self.",
+      ferniMessage: "I'll keep it safe with you.",
+    },
+  ],
 };
 
 // Default steps for unknown practices
@@ -320,6 +423,53 @@ const DEFAULT_STEPS: PracticeStep[] = [
     ferniMessage: 'Well done. Go gently.',
   },
 ];
+
+const PRACTICE_STEP_ALIASES: Record<string, string> = {
+  'daily-checkin': 'daily-check-in',
+  'daily-check-in': 'daily-check-in',
+  '/daily-checkin': 'daily-check-in',
+  '/daily-check-in': 'daily-check-in',
+  'gratitude': 'gratitude-practice',
+  'gratitude-practice': 'gratitude-practice',
+  '/gratitude': 'gratitude-practice',
+  'weekly-review': 'weekly-review',
+  '/weekly-review': 'weekly-review',
+  'brainstorm': 'brainstorm-session',
+  'brainstorm-session': 'brainstorm-session',
+  '/brainstorm': 'brainstorm-session',
+  'wind-down': 'wind-down',
+  '/wind-down': 'wind-down',
+  'breath-focus': 'breath-focus',
+  'values-check': 'values-check',
+  'values-check-in': 'values-check',
+  'future-letter': 'future-letter',
+  'letter-to-future-self': 'future-letter',
+};
+
+function normalizePracticeKey(value?: string): string | null {
+  if (!value) return null;
+  return value.trim().toLowerCase().replace(/\s+/g, '-');
+}
+
+function resolvePracticeSteps(practice: Practice): PracticeStep[] {
+  const candidates = [
+    normalizePracticeKey(practice.id),
+    normalizePracticeKey(practice.prompt),
+  ];
+
+  for (const candidate of candidates) {
+    if (!candidate) continue;
+    const alias = PRACTICE_STEP_ALIASES[candidate];
+    if (alias && PRACTICE_STEPS[alias]) {
+      return PRACTICE_STEPS[alias];
+    }
+    if (PRACTICE_STEPS[candidate]) {
+      return PRACTICE_STEPS[candidate];
+    }
+  }
+
+  return DEFAULT_STEPS;
+}
 
 // ============================================================================
 // STATE
@@ -978,25 +1128,26 @@ function renderStep(step: PracticeStep): string {
   }
 }
 
-function renderIntroStep(step: PracticeStep): string {
+function renderVoiceBanner(): string {
   const isVoiceConnected = connectionService.getRoomState().isConnected;
+  if (!isVoiceConnected) return '';
 
   return `
+    <div class="voice-mode-banner">
+      ${ICONS.voice}
+      Voice is connected if you'd like it
+      <button id="switch-to-voice" type="button">Switch to voice</button>
+    </div>
+  `;
+}
+
+function renderIntroStep(step: PracticeStep): string {
+  return `
     <div class="practice-step" data-step-id="${step.id}">
+      ${renderVoiceBanner()}
       <h3 class="practice-step-title">${step.title}</h3>
       <p class="practice-step-content">${step.content}</p>
       ${step.ferniMessage ? `<div class="ferni-message">${step.ferniMessage}</div>` : ''}
-      
-      ${
-        isVoiceConnected
-          ? `
-        <button class="skip-to-voice-btn" id="continue-with-voice">
-          ${ICONS.voice}
-          Continue with voice
-        </button>
-      `
-          : ''
-      }
     </div>
   `;
 }
@@ -1006,6 +1157,7 @@ function renderTextStep(step: PracticeStep): string {
 
   return `
     <div class="practice-step" data-step-id="${step.id}">
+      ${renderVoiceBanner()}
       <h3 class="practice-step-title">${step.title}</h3>
       <p class="practice-step-content">${step.content}</p>
       ${step.ferniMessage ? `<div class="ferni-message">${step.ferniMessage}</div>` : ''}
@@ -1022,6 +1174,7 @@ function renderTextStep(step: PracticeStep): string {
 function renderChatStep(step: PracticeStep): string {
   return `
     <div class="practice-step" data-step-id="${step.id}">
+      ${renderVoiceBanner()}
       <h3 class="practice-step-title">${step.title}</h3>
       <p class="practice-step-content">${step.content}</p>
       
@@ -1086,6 +1239,7 @@ function renderChatMessages(): string {
 function renderBreathingStep(step: PracticeStep): string {
   return `
     <div class="practice-step" data-step-id="${step.id}">
+      ${renderVoiceBanner()}
       <h3 class="practice-step-title">${step.title}</h3>
       <p class="practice-step-content">${step.content}</p>
       
@@ -1105,6 +1259,7 @@ function renderCompletionStep(step: PracticeStep): string {
   return `
     <div class="practice-step" data-step-id="${step.id}">
       <div class="practice-completion">
+        ${renderVoiceBanner()}
         <div class="completion-icon">
           ${ICONS.sparkles}
         </div>
@@ -1159,8 +1314,8 @@ function setupStepListeners(step: PracticeStep): void {
   container?.querySelector('#nav-back')?.addEventListener('click', goBack);
   container?.querySelector('#nav-next')?.addEventListener('click', goNext);
 
-  // Continue with voice
-  container?.querySelector('#continue-with-voice')?.addEventListener('click', switchToVoice);
+  // Switch to voice
+  container?.querySelector('#switch-to-voice')?.addEventListener('click', switchToVoice);
 
   // Text input auto-save
   const textInput = container?.querySelector('#step-input') as HTMLTextAreaElement;
@@ -1490,8 +1645,7 @@ export function startPractice(practice: Practice): void {
   }
 
   // Get steps for this practice
-  const practiceId = practice.id.toLowerCase().replace(/\s+/g, '-');
-  const steps = PRACTICE_STEPS[practiceId] || DEFAULT_STEPS;
+  const steps = resolvePracticeSteps(practice);
 
   // Reset state
   state.currentPractice = practice;

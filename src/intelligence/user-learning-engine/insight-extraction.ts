@@ -9,7 +9,7 @@
  * @module user-learning-engine/insight-extraction
  */
 
-import type { IntentResult } from '../intent-classifier.js';
+import type { IntentResult } from '../detectors/intent.js';
 import type { LearningInsight } from './types.js';
 
 // ============================================================================

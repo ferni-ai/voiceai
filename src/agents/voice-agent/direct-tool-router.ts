@@ -72,33 +72,153 @@ export interface DirectRouteContext {
  * IMPORTANT: Allow common conversation starters like "Yeah", "Okay", "Sure" before commands
  * because users often start requests with affirmations after the agent asks "What kind of music?"
  */
-const CONVERSATION_STARTERS = '(?:yeah|yes|yep|okay|ok|sure|alright|actually|um+|uh+|so|well|hey|oh|hmm),?\\s*';
+const CONVERSATION_STARTERS =
+  '(?:yeah|yes|yep|okay|ok|sure|alright|actually|um+|uh+|so|well|hey|oh|hmm),?\\s*';
 
 const MUSIC_PATTERNS = [
   // Direct commands with "play" - allow conversation starters
-  new RegExp(`^${CONVERSATION_STARTERS}?(can you |could you |would you |please )?(play|put on|start|queue)(\\s+me)?\\s+(some\\s+)?(.+\\s+)?(music|songs?|tunes?)`, 'i'),
+  new RegExp(
+    `^${CONVERSATION_STARTERS}?(can you |could you |would you |please )?(play|put on|start|queue|throw on)(\\s+me)?\\s+(some\\s+)?(.+\\s+)?(music|songs?|tunes?)`,
+    'i'
+  ),
   // Direct commands with specific genres (including "morning music", "workout music", etc.)
-  new RegExp(`^${CONVERSATION_STARTERS}?(can you |could you |would you |please )?(play|put on|start|queue)(\\s+me)?\\s+(some\\s+)?(jazz|rock|pop|classical|lofi|lo-fi|hip\\s*hop|rap|country|blues|r&b|soul|funk|electronic|house|techno|ambient|chill|relaxing|upbeat|happy|sad|focus|study|workout|sleep|meditation|calm|acoustic|indie|alternative|metal|punk|reggae|latin|k-?pop|morning|evening|night|spotify|playlist)`, 'i'),
+  new RegExp(
+    `^${CONVERSATION_STARTERS}?(can you |could you |would you |please )?(play|put on|start|queue|throw on)(\\s+me)?\\s+(some\\s+)?(jazz|rock|pop|classical|lofi|lo-fi|hip\\s*hop|rap|country|blues|r&b|soul|funk|electronic|house|techno|ambient|chill|relaxing|upbeat|happy|sad|focus|study|workout|sleep|meditation|calm|acoustic|indie|alternative|metal|punk|reggae|latin|k-?pop|morning|evening|night|spotify|playlist)`,
+    'i'
+  ),
   // "Play something" variations
-  new RegExp(`^${CONVERSATION_STARTERS}?(can you |could you |would you |please )?(play|put on)\\s+something(\\s+\\w+)?$`, 'i'),
+  new RegExp(
+    `^${CONVERSATION_STARTERS}?(can you |could you |would you |please )?(play|put on|throw on)\\s+something(\\s+\\w+)?$`,
+    'i'
+  ),
   // Direct artist/song requests
-  new RegExp(`^${CONVERSATION_STARTERS}?(can you |could you |would you |please )?(play|put on)\\s+.+\\s+by\\s+.+$`, 'i'),
+  new RegExp(
+    `^${CONVERSATION_STARTERS}?(can you |could you |would you |please )?(play|put on)\\s+.+\\s+by\\s+.+$`,
+    'i'
+  ),
   // "Some music please"
   new RegExp(`^${CONVERSATION_STARTERS}?(some\\s+)?(music|songs?|tunes?)\\s+please$`, 'i'),
   // Mood-based requests
-  new RegExp(`^${CONVERSATION_STARTERS}?(play|put on|i want|give me)\\s+something\\s+(relaxing|upbeat|calm|energizing|chill|focus|morning)`, 'i'),
+  new RegExp(
+    `^${CONVERSATION_STARTERS}?(play|put on|i want|give me|throw on)\\s+something\\s+(relaxing|upbeat|calm|energizing|chill|focus|morning)`,
+    'i'
+  ),
   // "Play some more music" - continuation requests
-  new RegExp(`^${CONVERSATION_STARTERS}?(can you |could you |would you |please )?(play|put on)(\\s+some)?\\s+more\\s+(music|songs?|tunes?)`, 'i'),
+  new RegExp(
+    `^${CONVERSATION_STARTERS}?(can you |could you |would you |please )?(play|put on)(\\s+some)?\\s+more\\s+(music|songs?|tunes?)`,
+    'i'
+  ),
+  // "I want to hear/listen to music" variations
+  new RegExp(
+    `^${CONVERSATION_STARTERS}?i (want to|wanna) (hear|listen to)\\s+(some\\s+)?(music|songs?|tunes?)`,
+    'i'
+  ),
+  // "Can we get some music" / "Let's have some music"
+  new RegExp(
+    `^${CONVERSATION_STARTERS}?(can we|let('s| us)|how about)\\s+(get|have|hear)\\s+(some\\s+)?(music|songs?|tunes?)`,
+    'i'
+  ),
+  // "Music please" / "Tunes please"
+  new RegExp(`^${CONVERSATION_STARTERS}?(music|songs?|tunes?)\\s*(please)?\\??$`, 'i'),
 ];
 
 /**
  * Weather intent patterns - simple and specific
  */
 const WEATHER_PATTERNS = [
-  /^(what('s| is)|how('s| is)|check)\s+(the\s+)?weather/i,
-  /^(is it|will it)\s+(going to\s+)?(rain|snow|cold|hot|warm|sunny|cloudy)/i,
-  /^weather\s*(forecast|today|tomorrow|this week)?$/i,
-  /^(do i need|should i bring)\s+(an?\s+)?(umbrella|jacket|coat)/i,
+  new RegExp(
+    `^${CONVERSATION_STARTERS}?(what('s| is)|how('s| is)|check)\\s+(the\\s+)?weather`,
+    'i'
+  ),
+  new RegExp(
+    `^${CONVERSATION_STARTERS}?(is it|will it)\\s+(going to\\s+)?(rain|snow|cold|hot|warm|sunny|cloudy)`,
+    'i'
+  ),
+  new RegExp(`^${CONVERSATION_STARTERS}?weather\\s*(forecast|today|tomorrow|this week)?$`, 'i'),
+  new RegExp(
+    `^${CONVERSATION_STARTERS}?(do i need|should i bring)\\s+(an?\\s+)?(umbrella|jacket|coat)`,
+    'i'
+  ),
+  // Additional natural phrasing
+  new RegExp(`^${CONVERSATION_STARTERS}?how (cold|hot|warm) is it`, 'i'),
+  new RegExp(
+    `^${CONVERSATION_STARTERS}?(is it|it is) (cold|hot|warm|raining|snowing)\\s*(outside|out)?\\??$`,
+    'i'
+  ),
+  new RegExp(`^${CONVERSATION_STARTERS}?what('s| is) it like (outside|out there)\\??$`, 'i'),
+  new RegExp(`^${CONVERSATION_STARTERS}?(gonna|going to) rain (today|tomorrow|later)?\\??$`, 'i'),
+  new RegExp(`^${CONVERSATION_STARTERS}?(what('s| is) the|check the) (temp|temperature)`, 'i'),
+];
+
+/**
+ * News intent patterns - specific to avoid false positives
+ */
+const NEWS_PATTERNS = [
+  new RegExp(
+    `^${CONVERSATION_STARTERS}?(can you |could you |would you |please |i was hoping you could |i was hoping you would |i was hoping )?(check|get|read|share|tell me|pull up|look up)?\\s*(the\\s+)?(latest\\s+)?(news|headlines|top stories)(\\s+today)?\\??$`,
+    'i'
+  ),
+  new RegExp(
+    `^${CONVERSATION_STARTERS}?(what('s| is)\\s+the\\s+)?(news|headlines|top stories)\\s*(today|right now)?\\??$`,
+    'i'
+  ),
+  /^(any|some)\s+(news|headlines)\s*(today|right now)?\??$/i,
+  // "What's happening" / "What's going on"
+  new RegExp(
+    `^${CONVERSATION_STARTERS}?what('s| is) (happening|going on)( in the world| today| right now)?\\??$`,
+    'i'
+  ),
+  // "Give me the news" / "Tell me the news"
+  new RegExp(`^${CONVERSATION_STARTERS}?(give|tell) me (the\\s+)?(news|headlines)`, 'i'),
+  // "Catch me up" / "Update me"
+  new RegExp(
+    `^${CONVERSATION_STARTERS}?(catch me up|update me)( on the news| on what's happening)?`,
+    'i'
+  ),
+];
+
+const NEWS_TOPIC_HINTS: Array<{
+  pattern: RegExp;
+  topic: string;
+  category?: 'general' | 'forex' | 'crypto' | 'merger';
+}> = [
+  {
+    pattern: /\b(tech|technology|ai|artificial intelligence|startup|silicon valley)\b/i,
+    topic: 'technology',
+  },
+  { pattern: /\b(crypto|bitcoin|ethereum|blockchain)\b/i, topic: 'financial', category: 'crypto' },
+  { pattern: /\b(forex|currency|currencies|fx)\b/i, topic: 'financial', category: 'forex' },
+  { pattern: /\b(merger|acquisition|m&a)\b/i, topic: 'financial', category: 'merger' },
+  {
+    pattern: /\b(finance|financial|markets?|stocks?|investing|economy|economic)\b/i,
+    topic: 'financial',
+  },
+];
+
+/**
+ * Time intent patterns - asking for current time or time in other cities
+ */
+const TIME_PATTERNS = [
+  // Current time
+  /^what('s| is) the time\??$/i,
+  /^what time is it\??$/i,
+  /^tell me the time$/i,
+  /^(can you |could you |would you )?check the time\??$/i,
+  // Time in a city
+  /^what('s| is) the time in .+\??$/i,
+  /^what time is it in .+\??$/i,
+  /^time in .+$/i,
+];
+
+/**
+ * Search/define intent patterns - simple lookups
+ */
+const SEARCH_PATTERNS = [
+  // Definition requests
+  /^(what('s| is)|define|meaning of) .+\??$/i,
+  /^who (is|was) .+\??$/i,
+  // Simple search
+  /^(search|look up|find out about) .+$/i,
 ];
 
 /**
@@ -106,27 +226,33 @@ const WEATHER_PATTERNS = [
  */
 const HANDOFF_PATTERNS: Array<{ pattern: RegExp; personaId: string }> = [
   {
-    pattern: /^(talk to|speak with|switch to|transfer( me)? to|let me talk to)\s+maya/i,
+    pattern:
+      /^(talk to|speak with|switch to|transfer( me)? to|let me talk to|can i (talk|speak) (to|with)|i (want|need) to (talk|speak) (to|with)|bring in|get)\s+maya/i,
     personaId: 'maya-santos',
   },
   {
-    pattern: /^(talk to|speak with|switch to|transfer( me)? to|let me talk to)\s+peter/i,
+    pattern:
+      /^(talk to|speak with|switch to|transfer( me)? to|let me talk to|can i (talk|speak) (to|with)|i (want|need) to (talk|speak) (to|with)|bring in|get)\s+peter/i,
     personaId: 'peter-john',
   },
   {
-    pattern: /^(talk to|speak with|switch to|transfer( me)? to|let me talk to)\s+alex/i,
+    pattern:
+      /^(talk to|speak with|switch to|transfer( me)? to|let me talk to|can i (talk|speak) (to|with)|i (want|need) to (talk|speak) (to|with)|bring in|get)\s+alex/i,
     personaId: 'alex-chen',
   },
   {
-    pattern: /^(talk to|speak with|switch to|transfer( me)? to|let me talk to)\s+jordan/i,
+    pattern:
+      /^(talk to|speak with|switch to|transfer( me)? to|let me talk to|can i (talk|speak) (to|with)|i (want|need) to (talk|speak) (to|with)|bring in|get)\s+jordan/i,
     personaId: 'jordan-taylor',
   },
   {
-    pattern: /^(talk to|speak with|switch to|transfer( me)? to|let me talk to)\s+nayan/i,
+    pattern:
+      /^(talk to|speak with|switch to|transfer( me)? to|let me talk to|can i (talk|speak) (to|with)|i (want|need) to (talk|speak) (to|with)|bring in|get)\s+nayan/i,
     personaId: 'nayan-patel',
   },
   {
-    pattern: /^(talk to|speak with|switch to|transfer( me)? to|let me talk to)\s+ferni/i,
+    pattern:
+      /^(talk to|speak with|switch to|transfer( me)? to|let me talk to|can i (talk|speak) (to|with)|i (want|need) to (talk|speak) (to|with)|bring in|get)\s+ferni/i,
     personaId: 'ferni',
   },
 ];
@@ -136,10 +262,14 @@ const HANDOFF_PATTERNS: Array<{ pattern: RegExp; personaId: string }> = [
 // ============================================================================
 
 interface DetectedIntent {
-  type: 'music' | 'weather' | 'handoff' | 'none';
+  type: 'music' | 'weather' | 'news' | 'time' | 'search' | 'handoff' | 'none';
   confidence: number;
   query?: string;
+  topic?: string;
+  category?: 'general' | 'forex' | 'crypto' | 'merger';
   targetPersonaId?: string;
+  /** For time queries - extracted city name if asking about another timezone */
+  city?: string;
 }
 
 /**
@@ -169,14 +299,24 @@ function detectIntent(transcript: string, context: DirectRouteContext): Detected
       // Extract the query (everything after "play/put on", ignoring conversation starters)
       // Handle: "Yeah, play some morning music" → "morning music"
       // Handle: "Play some jazz" → "jazz"
-      const queryMatch = text.match(/(?:play|put on|start|queue)(?:\s+me)?\s+(?:some\s+)?(?:more\s+)?(.+)/i);
+      const queryMatch = text.match(
+        /(?:play|put on|start|queue)(?:\s+me)?\s+(?:some\s+)?(?:more\s+)?(.+)/i
+      );
       let query = queryMatch?.[1] || 'music';
 
       // Clean up the query - remove trailing punctuation and "please"
-      query = query.replace(/[.!?]+$/i, '').replace(/\s+please$/i, '').trim();
+      query = query
+        .replace(/[.!?]+$/i, '')
+        .replace(/\s+please$/i, '')
+        .trim();
 
       // If query is just "music" or empty, use a sensible default
-      if (!query || query.toLowerCase() === 'music' || query.toLowerCase() === 'songs' || query.toLowerCase() === 'tunes') {
+      if (
+        !query ||
+        query.toLowerCase() === 'music' ||
+        query.toLowerCase() === 'songs' ||
+        query.toLowerCase() === 'tunes'
+      ) {
         query = 'music';
       }
 
@@ -194,6 +334,57 @@ function detectIntent(transcript: string, context: DirectRouteContext): Detected
     if (pattern.test(text)) {
       log.info({ transcript: text.slice(0, 50) }, '🌤️ Weather intent detected');
       return { type: 'weather', confidence: 0.95 };
+    }
+  }
+
+  // Check news patterns
+  for (const pattern of NEWS_PATTERNS) {
+    if (pattern.test(text)) {
+      const topicMatch = NEWS_TOPIC_HINTS.find((hint) => hint.pattern.test(text));
+      log.info(
+        { transcript: text.slice(0, 50), topic: topicMatch?.topic, category: topicMatch?.category },
+        '📰 News intent detected'
+      );
+      return {
+        type: 'news',
+        confidence: 0.95,
+        topic: topicMatch?.topic,
+        category: topicMatch?.category,
+      };
+    }
+  }
+
+  // Check time patterns
+  for (const pattern of TIME_PATTERNS) {
+    if (pattern.test(text)) {
+      // Extract city if asking about another timezone
+      const cityMatch = text.match(/(?:time in|is it in)\s+(.+?)\??$/i);
+      const city = cityMatch?.[1]?.trim();
+
+      log.info({ transcript: text.slice(0, 50), city }, '🕐 Time intent detected');
+      return {
+        type: 'time',
+        confidence: 0.95,
+        city,
+      };
+    }
+  }
+
+  // Check search/define patterns
+  for (const pattern of SEARCH_PATTERNS) {
+    if (pattern.test(text)) {
+      // Extract the search query
+      const queryMatch = text.match(
+        /(?:what(?:'s| is)|define|meaning of|who (?:is|was)|search|look up|find out about)\s+(.+?)\??$/i
+      );
+      const query = queryMatch?.[1]?.trim();
+
+      log.info({ transcript: text.slice(0, 50), query }, '🔍 Search intent detected');
+      return {
+        type: 'search',
+        confidence: 0.9,
+        query,
+      };
     }
   }
 
@@ -231,7 +422,10 @@ async function executeTool(
     const { executeJsonFunction } = await import('../shared/json-function-executor.js');
 
     // Helper to build a JsonFunctionCall with required 'raw' field
-    const buildFunctionCall = (fn: string, args: Record<string, unknown>): { fn: string; args: Record<string, unknown>; raw: string } => ({
+    const buildFunctionCall = (
+      fn: string,
+      args: Record<string, unknown>
+    ): { fn: string; args: Record<string, unknown>; raw: string } => ({
       fn,
       args,
       raw: JSON.stringify({ fn, args }),
@@ -263,6 +457,74 @@ async function executeTool(
           userLocation: context.userLocation,
         });
 
+        return {
+          success: result.success,
+          response: typeof result.result === 'string' ? result.result : undefined,
+          error: result.error,
+        };
+      }
+
+      case 'news': {
+        const args: Record<string, unknown> = {};
+        if (intent.topic) {
+          args.topic = intent.topic;
+        }
+        if (intent.category) {
+          args.category = intent.category;
+        }
+        const result = await executeJsonFunction(buildFunctionCall('getNews', args), {
+          sessionId: context.sessionId,
+          userId: context.userId,
+          personaId: context.personaId,
+        });
+
+        return {
+          success: result.success,
+          response: typeof result.result === 'string' ? result.result : undefined,
+          error: result.error,
+        };
+      }
+
+      case 'time': {
+        // Use timeInCity for timezone queries, or getCurrentTime for local time
+        if (intent.city) {
+          const result = await executeJsonFunction(
+            buildFunctionCall('timeInCity', { city: intent.city }),
+            {
+              sessionId: context.sessionId,
+              userId: context.userId,
+              personaId: context.personaId,
+            }
+          );
+          return {
+            success: result.success,
+            response: typeof result.result === 'string' ? result.result : undefined,
+            error: result.error,
+          };
+        } else {
+          // Local time - just return the current time directly (no tool needed)
+          const now = new Date();
+          const timeStr = now.toLocaleTimeString('en-US', {
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true,
+          });
+          return {
+            success: true,
+            response: `It's ${timeStr}.`,
+          };
+        }
+      }
+
+      case 'search': {
+        const result = await executeJsonFunction(
+          buildFunctionCall('searchWeb', { query: intent.query || '' }),
+          {
+            sessionId: context.sessionId,
+            userId: context.userId,
+            personaId: context.personaId,
+          }
+        );
         return {
           success: result.success,
           response: typeof result.result === 'string' ? result.result : undefined,
@@ -367,7 +629,15 @@ export async function routeDirectly(
           ? 'playMusic'
           : intent.type === 'weather'
             ? 'getWeather'
-            : 'handoff',
+            : intent.type === 'news'
+              ? 'getNews'
+              : intent.type === 'time'
+                ? intent.city
+                  ? 'timeInCity'
+                  : 'getCurrentTime'
+                : intent.type === 'search'
+                  ? 'searchWeb'
+                  : 'handoff',
       confidence: intent.confidence,
       intent: intent.type,
       speechResponse: result.response,

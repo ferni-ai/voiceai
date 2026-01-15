@@ -61,6 +61,8 @@
     "validate:humanization": "npx tsx apps/cli/src/commands/validate/validate.ts humanization",
     "validate:integrations": "npx tsx apps/cli/src/commands/validate/validate.ts integrations",
     "validate:persistence": "npx tsx apps/cli/src/commands/validate/validate.ts persistence",
+    "validate:admin": "npx tsx apps/cli/src/commands/validate/validate.ts admin-dashboards",
+    "validate:admin:prod": "npx tsx -e \"import('./apps/cli/src/commands/validate/validate-admin-dashboards.js').then(m => m.run(['--prod']))\"",
     "validate:all": "npx tsx apps/cli/src/commands/validate/validate.ts all",
     "validate:tools": "npx tsx scripts/validate-tool-registry.ts",
     "test:integrations": "npx env-cmd -f .env npx tsx apps/cli/src/commands/test/test-all-integrations.ts",
@@ -427,6 +429,7 @@
   "dependencies": {
     "@google-cloud/firestore": "^8.0.0",
     "@google-cloud/pubsub": "5.2.0",
+    "@google-cloud/spanner": "8.4.0",
     "@google-cloud/storage": "^7.14.0",
     "@google-cloud/vertexai": "1.10.0",
     "@google/genai": "^1.30.0",
@@ -460,12 +463,12 @@
     "pg": "^8.16.3",
     "pino": "10.1.0",
     "semver": "7.7.3",
+    "sharp": "^0.34.5",
     "stripe": "^20.0.0",
     "twilio": "^5.10.7",
     "uuid": "13.0.0",
     "ws": "8.18.3",
-    "zod": "4.1.13",
-    "sharp": "^0.34.5"
+    "zod": "4.1.13"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.11.0",

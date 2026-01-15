@@ -31,7 +31,12 @@ export interface UberWebhookEvent {
 }
 
 export interface UberWebhookHandlers {
-  onStatusChange?: (userId: string, requestId: string, status: UberRideStatus, ride?: UberRide) => Promise<void>;
+  onStatusChange?: (
+    userId: string,
+    requestId: string,
+    status: UberRideStatus,
+    ride?: UberRide
+  ) => Promise<void>;
   onReceiptReady?: (userId: string, requestId: string, receipt: UberReceipt) => Promise<void>;
 }
 
@@ -42,19 +47,13 @@ export interface UberWebhookHandlers {
 /**
  * Verify Uber webhook signature
  */
-function verifySignature(
-  payload: string,
-  signature: string,
-  secret: string
-): boolean {
+function verifySignature(payload: string, signature: string, secret: string): boolean {
   if (!signature || !secret) {
     return false;
   }
 
   try {
-    const expectedSignature = createHmac('sha256', secret)
-      .update(payload)
-      .digest('hex');
+    const expectedSignature = createHmac('sha256', secret).update(payload).digest('hex');
 
     // Use timing-safe comparison to prevent timing attacks
     const signatureBuffer = Buffer.from(signature, 'hex');
@@ -102,11 +101,7 @@ async function processUberWebhook(
     switch (event_type) {
       case 'requests.status_changed': {
         if (handlers.onStatusChange && meta.status) {
-          await handlers.onStatusChange(
-            meta.user_id,
-            meta.resource_id,
-            meta.status
-          );
+          await handlers.onStatusChange(meta.user_id, meta.resource_id, meta.status);
         }
         return {
           success: true,
@@ -243,17 +238,17 @@ export async function defaultStatusChangeHandler(
     no_drivers_available: 'No drivers available right now. Try again?',
     accepted: 'A driver accepted your ride!',
     arriving: 'Your driver is on the way.',
-    in_progress: 'You\'re on your way! Enjoy the ride.',
+    in_progress: "You're on your way! Enjoy the ride.",
     driver_canceled: 'Your driver had to cancel. Finding another...',
     rider_canceled: 'Your ride was cancelled.',
-    completed: 'You\'ve arrived! Hope it was a great ride.',
+    completed: "You've arrived! Hope it was a great ride.",
   };
 
   const message = statusMessages[status];
-  
+
   // This would trigger a notification to the user
   // await notificationService.send(userId, { title: 'Uber', body: message });
-  
+
   log.debug({ userId, message }, 'Status notification prepared');
 }
 

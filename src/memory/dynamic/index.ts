@@ -89,6 +89,25 @@ export {
   type SyncStats,
 } from './firestore-spanner-sync.js';
 
+// Memory Continuity (dual-write + capsule)
+export {
+  writeSessionContinuity,
+  getMemoryCapsule,
+  type MemoryCapsule,
+  type SessionContinuityData,
+  type ContinuityWriteResult,
+} from './memory-continuity.js';
+
+// Session Continuity Cache (fast access + async enrichment)
+export {
+  getCachedContinuity,
+  getEnrichedContinuity,
+  enrichFromSpanner,
+  waitForEnrichment,
+  clearSessionContinuity,
+  getContinuityCacheStats,
+} from './session-continuity-cache.js';
+
 // Observability metrics
 export {
   getDynamicMemoryMetrics,
@@ -103,6 +122,13 @@ export {
   recordFirestoreWrite,
   recordFirestoreRead,
   recordSyncCycle,
+  recordContinuityWrite,
+  recordContinuityRetrieval,
+  recordContinuityCacheAccess,
+  recordMemoryAttribution,
+  recordMemoriesInjected,
+  getAttributionRate,
+  getAttributionMetrics,
   resetMetrics,
   type DynamicMemoryMetrics,
 } from './metrics.js';

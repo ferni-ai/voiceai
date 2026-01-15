@@ -1,5 +1,0 @@
-/**
- * @deprecated Import from './detectors/topic.js' instead
- */
-export * from './detectors/topic.js';
-//# sourceMappingURL=topic-tracker.d.ts.map

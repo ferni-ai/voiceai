@@ -492,6 +492,39 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
         process.stderr.write(
           `[voice-agent-entry] 📞 Outbound call context set for room: ${roomNameForContext}, sessionId: ${sessionId}\n`
         );
+
+        // Initialize transcript capture for superhuman call analysis
+        try {
+          const { initializeTranscriptCapture } =
+            await import('../services/outreach/call-transcript-intelligence.js');
+          const { initializeOnBehalfCapture } =
+            await import('./integrations/on-behalf-transcript-capture.js');
+
+          // Initialize both - the orchestrator's capture and the session mapping
+          initializeTranscriptCapture(
+            metadata.callId as string,
+            outboundContext.recipientName,
+            'contact' // relationship will be enriched from entity store
+          );
+          initializeOnBehalfCapture(sessionId);
+
+          process.stderr.write(
+            `[voice-agent-entry] 📝 Transcript capture initialized for call: ${metadata.callId}\n`
+          );
+
+          // Register cleanup handler for on-behalf capture
+          cleanupHandlers.push(() => {
+            import('./integrations/on-behalf-transcript-capture.js')
+              .then(({ cleanupOnBehalfCapture }) => cleanupOnBehalfCapture(sessionId))
+              .catch(() => {
+                /* ignore */
+              });
+          });
+        } catch (transcriptError) {
+          process.stderr.write(
+            `[voice-agent-entry] ⚠️ Failed to init transcript capture: ${transcriptError}\n`
+          );
+        }
       } catch (error) {
         process.stderr.write(`[voice-agent-entry] ⚠️ Failed to set outbound context: ${error}\n`);
         // Continue anyway - the agent will still work, just without specialized context
@@ -1687,47 +1720,34 @@ Reference past context when relevant, but don't force it. Let the conversation f
     }
 
     // =========================================================================
-    // PRE-SESSION BRIEFING - Make Ferni aware of time, date, context
-    // ⚡ OPTIMIZATION: Non-blocking! Set fallback immediately, upgrade in background.
-    // GUARANTEE: Agent ALWAYS gets datetime awareness, even if full briefing fails
+    // PRE-SESSION BRIEFING - Make Ferni fully aware of the day
+    // ⚡ INSTANT: Uses pre-warmed day awareness cache (date, holidays, season, headlines)
+    // Plus user-specific: timezone, city weather, name, last conversation
     // =========================================================================
-    // Set fallback datetime awareness IMMEDIATELY (non-blocking)
-    const now = new Date();
-    const dateStr = now.toLocaleDateString('en-US', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
-    const timeStr = now.toLocaleTimeString('en-US', {
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true,
-    });
-    userData.preSessionBriefing = `[YOUR AWARENESS - ${dateStr}]\nIt's ${timeStr}.\nUse this awareness naturally - don't announce it, just BE present in the moment.`;
+    const { getFullDayBriefing } = await import('../services/day-awareness-cache.js');
 
-    // Generate full briefing in background (upgrades the fallback)
-    void (async () => {
-      try {
-        const { generatePreSessionBriefing } = await import('../services/pre-session-briefing.js');
-        const briefing = await generatePreSessionBriefing(userId, {
-          name: userData.userName || userData.name,
-          lastConversation: userData.lastConversationDate
-            ? new Date(userData.lastConversationDate)
-            : undefined,
-        });
-        // Upgrade to full briefing (will be used in subsequent turns)
-        userData.preSessionBriefing = briefing.formatted;
-        process.stderr.write(
-          `[voice-agent-entry] 📋 Pre-session briefing generated (${briefing.temporal.timeOfDay}, ${briefing.cultural.season})\n`
-        );
-      } catch (briefingErr) {
-        // Fallback already set, just log
-        process.stderr.write(
-          `[voice-agent-entry] Pre-session briefing failed, using fallback datetime: ${String(briefingErr)}\n`
-        );
-      }
-    })();
+    // Compute "last talked" text
+    let lastConversationWhen: string | undefined;
+    if (userData.lastConversationDate) {
+      const lastConv = new Date(userData.lastConversationDate);
+      const daysSince = Math.floor((Date.now() - lastConv.getTime()) / (24 * 60 * 60 * 1000));
+      lastConversationWhen =
+        daysSince === 0 ? 'earlier today' : daysSince === 1 ? 'yesterday' : `${daysSince} days ago`;
+    }
+
+    // Get full briefing with user context, weather, and headlines
+    const fullBriefing = getFullDayBriefing({
+      name: userData.userName || userData.name,
+      lastConversation: lastConversationWhen ? { when: lastConversationWhen } : undefined,
+      city: userData.userLocation?.city,
+      timezone: userData.userLocation?.timezone,
+    });
+
+    userData.preSessionBriefing = fullBriefing.formatted;
+
+    process.stderr.write(
+      `[voice-agent-entry] 📋 Pre-session briefing ready (${fullBriefing.day.timeOfDay}, ${fullBriefing.day.season}, weather=${fullBriefing.weather ? 'yes' : 'no'}, cached=${fullBriefing.day.freshness})\n`
+    );
 
     // Wait for participant before starting session
     // Multi-agent mode REQUIRES participant, so wait longer when enabled
@@ -2195,7 +2215,9 @@ Reference past context when relevant, but don't force it. Let the conversation f
     // they'll be queued/skipped until prewarm completes.
     // =========================================================================
     if (modelProvider.needsPrewarm()) {
-      process.stderr.write(`[voice-agent-entry] 🔥 Starting prewarm via gateway (${modelProvider.id})...\n`);
+      process.stderr.write(
+        `[voice-agent-entry] 🔥 Starting prewarm via gateway (${modelProvider.id})...\n`
+      );
       prewarmSessionAsync(session, sessionId);
     }
 
@@ -2351,12 +2373,16 @@ Reference past context when relevant, but don't force it. Let the conversation f
             domains: essentialDomains,
           });
           if (updated) {
-            process.stderr.write(`\n🔧 Essential tools registered with agent (${Object.keys(essentialTools).length} tools)\n`);
+            process.stderr.write(
+              `\n🔧 Essential tools registered with agent (${Object.keys(essentialTools).length} tools)\n`
+            );
           }
         }
       }
     } catch (toolUpdateError) {
-      process.stderr.write(`\n⚠️ Failed to update agent with essential tools: ${toolUpdateError}\n`);
+      process.stderr.write(
+        `\n⚠️ Failed to update agent with essential tools: ${toolUpdateError}\n`
+      );
     }
 
     const transcriptHandler = createTranscriptHandler({

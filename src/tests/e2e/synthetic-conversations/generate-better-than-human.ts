@@ -1,18 +1,22 @@
 #!/usr/bin/env npx tsx
 /**
  * Generate "Better Than Human" synthetic test conversations
- * 
+ *
  * These tests validate Ferni's superhuman capabilities:
  * - Perfect Memory: Never forgets a detail
  * - Pattern Recognition: Sees what humans miss
  * - Commitment Tracking: Promises never forgotten
  * - Relationship Network: Tracks complex social graphs
  * - Emotional Anticipation: Knows before they say it
- * 
+ *
  * Run: npx tsx src/tests/e2e/synthetic-conversations/generate-better-than-human.ts
  */
 
-import { ConversationGenerator, type ConversationCategory, type SyntheticConversation } from './conversation-generator.js';
+import {
+  ConversationGenerator,
+  type ConversationCategory,
+  type SyntheticConversation,
+} from './conversation-generator.js';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as dotenv from 'dotenv';
@@ -25,7 +29,7 @@ const __dirname = path.dirname(__filename);
 
 const BETTER_THAN_HUMAN_CATEGORIES: ConversationCategory[] = [
   'perfect_memory',
-  'pattern_recognition', 
+  'pattern_recognition',
   'commitment_tracking',
   'relationship_network',
   'emotional_anticipation',
@@ -47,18 +51,18 @@ async function generateBetterThanHumanTests(conversationsPerCategory: number = 3
 
   for (const category of BETTER_THAN_HUMAN_CATEGORIES) {
     console.log(`\n📦 Category: ${category}`);
-    
+
     for (let i = 0; i < conversationsPerCategory; i++) {
       const difficulty = DIFFICULTIES[i % DIFFICULTIES.length];
-      
+
       try {
         console.log(`  ⏳ Generating ${difficulty} conversation...`);
         const conv = await generator.generateConversation(category, difficulty);
         conversations.push(conv);
         console.log(`  ✅ Generated: ${conv.scenario.slice(0, 60)}...`);
-        
+
         // Small delay to avoid rate limits
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await new Promise((resolve) => setTimeout(resolve, 500));
       } catch (err) {
         const errorMsg = `Failed ${category}/${difficulty}: ${err}`;
         console.error(`  ❌ ${errorMsg}`);
@@ -74,16 +78,23 @@ async function generateBetterThanHumanTests(conversationsPerCategory: number = 3
   }
 
   const outputPath = path.join(outputDir, 'better-than-human-tests.json');
-  fs.writeFileSync(outputPath, JSON.stringify({ 
-    generatedAt: new Date().toISOString(),
-    totalConversations: conversations.length,
-    categories: [...new Set(conversations.map(c => c.category))],
-    conversations 
-  }, null, 2));
+  fs.writeFileSync(
+    outputPath,
+    JSON.stringify(
+      {
+        generatedAt: new Date().toISOString(),
+        totalConversations: conversations.length,
+        categories: [...new Set(conversations.map((c) => c.category))],
+        conversations,
+      },
+      null,
+      2
+    )
+  );
 
   // Also update latest test suite
   const latestPath = path.join(outputDir, 'test-suite-latest.json');
-  
+
   // Load existing conversations if any
   let existingConvs: SyntheticConversation[] = [];
   if (fs.existsSync(latestPath)) {
@@ -97,25 +108,32 @@ async function generateBetterThanHumanTests(conversationsPerCategory: number = 3
 
   // Merge new conversations
   const allConversations = [...existingConvs, ...conversations];
-  
-  fs.writeFileSync(latestPath, JSON.stringify({
-    generatedAt: new Date().toISOString(),
-    totalConversations: allConversations.length,
-    conversations: allConversations,
-  }, null, 2));
+
+  fs.writeFileSync(
+    latestPath,
+    JSON.stringify(
+      {
+        generatedAt: new Date().toISOString(),
+        totalConversations: allConversations.length,
+        conversations: allConversations,
+      },
+      null,
+      2
+    )
+  );
 
   console.log('\n' + '═'.repeat(60));
   console.log(`🎉 Generation Complete!`);
   console.log(`   Total: ${conversations.length} new conversations`);
   console.log(`   Combined: ${allConversations.length} total conversations`);
-  console.log(`   Categories: ${[...new Set(conversations.map(c => c.category))].join(', ')}`);
+  console.log(`   Categories: ${[...new Set(conversations.map((c) => c.category))].join(', ')}`);
   console.log(`   Errors: ${errors.length}`);
   console.log(`   Output: ${outputPath}`);
   console.log('═'.repeat(60));
 
   if (errors.length > 0) {
     console.log('\n⚠️  Errors:');
-    errors.forEach(e => console.log(`   - ${e}`));
+    errors.forEach((e) => console.log(`   - ${e}`));
   }
 }
 

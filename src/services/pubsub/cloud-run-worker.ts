@@ -93,7 +93,9 @@ export async function initializeDefaultHandlers(): Promise<void> {
   registerHandler('context:warmup', async (msg) => {
     log.debug({ type: msg.type, data: msg.data }, 'Processing context:warmup');
     try {
-      const contextModule = await import('../../intelligence/context-service.js').catch(() => null);
+      const contextModule = await import('../../intelligence/core/context-service.js').catch(
+        () => null
+      );
       if (contextModule && typeof contextModule.prewarmContextCache === 'function') {
         const { userId, personaId } = msg.data as { userId: string; personaId: string };
         await contextModule.prewarmContextCache(userId, personaId);

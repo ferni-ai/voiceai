@@ -284,7 +284,8 @@ export class AdvancedCorrelationEngine {
 
           const seq = sequenceCounts.get(key)!;
           seq.frequency++;
-          seq.typicalGapHours = (seq.typicalGapHours * (seq.frequency - 1) + gapHours) / seq.frequency;
+          seq.typicalGapHours =
+            (seq.typicalGapHours * (seq.frequency - 1) + gapHours) / seq.frequency;
         }
       }
 
@@ -313,7 +314,8 @@ export class AdvancedCorrelationEngine {
     const correlations: CrossDomainCorrelation[] = [];
 
     try {
-      const { getAllEntities, getMentionsForEntity } = await import('../../entity-store/storage.js');
+      const { getAllEntities, getMentionsForEntity } =
+        await import('../../entity-store/storage.js');
       const entities = await getAllEntities(userId, { limit: 200 });
 
       // Categorize entities by domain
@@ -417,10 +419,16 @@ export class AdvancedCorrelationEngine {
           userId,
           type: 'temporal',
           insight: `${pattern.observation}${pattern.suggestion ? ` ${pattern.suggestion}` : ''}`,
-          evidence: [`Observed ${pattern.occurrences} times`, `Confidence: ${Math.round(pattern.confidence * 100)}%`],
+          evidence: [
+            `Observed ${pattern.occurrences} times`,
+            `Confidence: ${Math.round(pattern.confidence * 100)}%`,
+          ],
           confidence: pattern.confidence,
           shouldSurface: pattern.actionability === 'high',
-          surfaceContext: pattern.actionability === 'high' ? `When it's ${pattern.type === 'weekly' ? this.getDayName(pattern.timing.value) : 'around this time'}` : undefined,
+          surfaceContext:
+            pattern.actionability === 'high'
+              ? `When it's ${pattern.type === 'weekly' ? this.getDayName(pattern.timing.value) : 'around this time'}`
+              : undefined,
           relatedPatterns: [pattern.id],
           generatedAt: new Date(),
         });
@@ -434,10 +442,14 @@ export class AdvancedCorrelationEngine {
           userId,
           type: 'emotional',
           insight: `${corr.trigger.name} ${direction} ${corr.emotion.primary} feelings.`,
-          evidence: [`Correlation: ${Math.round(corr.correlation * 100)}%`, `Observed ${corr.frequency} times`],
+          evidence: [
+            `Correlation: ${Math.round(corr.correlation * 100)}%`,
+            `Observed ${corr.frequency} times`,
+          ],
           confidence: 1 - corr.significance,
           shouldSurface: corr.emotion.valence < -0.3 && corr.correlation > 0.5,
-          surfaceContext: corr.emotion.valence < -0.3 ? `When discussing ${corr.trigger.name}` : undefined,
+          surfaceContext:
+            corr.emotion.valence < -0.3 ? `When discussing ${corr.trigger.name}` : undefined,
           relatedPatterns: [corr.id],
           generatedAt: new Date(),
         });
@@ -450,7 +462,10 @@ export class AdvancedCorrelationEngine {
           userId,
           type: 'behavioral',
           insight: seq.insight,
-          evidence: [`Occurs ${seq.frequency} times`, `Typically over ${Math.round(seq.typicalGapHours)} hours`],
+          evidence: [
+            `Occurs ${seq.frequency} times`,
+            `Typically over ${Math.round(seq.typicalGapHours)} hours`,
+          ],
           confidence: seq.confidence,
           shouldSurface: seq.assessment === 'negative',
           relatedPatterns: [seq.id],
@@ -498,7 +513,8 @@ export class AdvancedCorrelationEngine {
     for (const [hour, hourMentions] of byHour) {
       if (hourMentions.length < 5) continue;
 
-      const negativeRatio = hourMentions.filter((m) => this.isNegative(m.emotion)).length / hourMentions.length;
+      const negativeRatio =
+        hourMentions.filter((m) => this.isNegative(m.emotion)).length / hourMentions.length;
 
       if (negativeRatio > 0.6) {
         const timeLabel = hour < 12 ? `${hour}am` : hour === 12 ? '12pm' : `${hour - 12}pm`;
@@ -512,7 +528,10 @@ export class AdvancedCorrelationEngine {
           confidence: Math.min(0.85, negativeRatio * (hourMentions.length / 10)),
           occurrences: hourMentions.length,
           actionability: hour >= 21 || hour <= 5 ? 'high' : 'medium',
-          suggestion: hour >= 21 ? 'Late night thoughts can feel heavier. Consider a wind-down routine.' : undefined,
+          suggestion:
+            hour >= 21
+              ? 'Late night thoughts can feel heavier. Consider a wind-down routine.'
+              : undefined,
         });
       }
     }
@@ -533,7 +552,8 @@ export class AdvancedCorrelationEngine {
     for (const [day, dayMentions] of byDay) {
       if (dayMentions.length < 5) continue;
 
-      const negativeRatio = dayMentions.filter((m) => this.isNegative(m.emotion)).length / dayMentions.length;
+      const negativeRatio =
+        dayMentions.filter((m) => this.isNegative(m.emotion)).length / dayMentions.length;
       const avgIntensity = this.averageIntensity(dayMentions);
 
       if (negativeRatio > 0.55 && avgIntensity > 0.5) {
@@ -548,7 +568,10 @@ export class AdvancedCorrelationEngine {
           confidence: Math.min(0.8, negativeRatio * avgIntensity),
           occurrences: dayMentions.length,
           actionability: day === 0 || day === 1 ? 'high' : 'medium', // Sunday/Monday blues
-          suggestion: day === 1 ? 'Monday anxiety is real. Consider what might make Mondays gentler.' : undefined,
+          suggestion:
+            day === 1
+              ? 'Monday anxiety is real. Consider what might make Mondays gentler.'
+              : undefined,
         });
       }
     }
@@ -572,7 +595,8 @@ export class AdvancedCorrelationEngine {
     const lastWeek = byWeek.get(4) || [];
 
     if (firstWeek.length >= 5) {
-      const negativeRatio = firstWeek.filter((m) => this.isNegative(m.emotion)).length / firstWeek.length;
+      const negativeRatio =
+        firstWeek.filter((m) => this.isNegative(m.emotion)).length / firstWeek.length;
       if (negativeRatio > 0.5) {
         patterns.push({
           id: `monthly-${userId}-first-week`,
@@ -584,7 +608,8 @@ export class AdvancedCorrelationEngine {
           confidence: Math.min(0.75, negativeRatio),
           occurrences: firstWeek.length,
           actionability: 'medium',
-          suggestion: 'Is there something about the start of the month that creates pressure? Bills, work deadlines?',
+          suggestion:
+            'Is there something about the start of the month that creates pressure? Bills, work deadlines?',
         });
       }
     }
@@ -607,7 +632,8 @@ export class AdvancedCorrelationEngine {
     const winterMentions = winterMonths.flatMap((m) => byMonth.get(m) || []);
 
     if (winterMentions.length >= 10) {
-      const negativeRatio = winterMentions.filter((m) => this.isNegative(m.emotion)).length / winterMentions.length;
+      const negativeRatio =
+        winterMentions.filter((m) => this.isNegative(m.emotion)).length / winterMentions.length;
       const avgIntensity = this.averageIntensity(winterMentions);
 
       if (negativeRatio > 0.5 && avgIntensity > 0.5) {
@@ -621,7 +647,8 @@ export class AdvancedCorrelationEngine {
           confidence: Math.min(0.7, negativeRatio * avgIntensity),
           occurrences: winterMentions.length,
           actionability: 'high',
-          suggestion: 'Seasonal patterns are real. Consider extra self-care strategies for winter months.',
+          suggestion:
+            'Seasonal patterns are real. Consider extra self-care strategies for winter months.',
         });
       }
     }
@@ -629,7 +656,10 @@ export class AdvancedCorrelationEngine {
     return patterns;
   }
 
-  private detectTimeEmotionCorrelations(userId: string, mentions: Mention[]): EmotionalCorrelation[] {
+  private detectTimeEmotionCorrelations(
+    userId: string,
+    mentions: Mention[]
+  ): EmotionalCorrelation[] {
     const correlations: EmotionalCorrelation[] = [];
 
     // Late night correlation
@@ -680,7 +710,16 @@ export class AdvancedCorrelationEngine {
   }
 
   private isNegative(emotion?: string): boolean {
-    const negative = ['sad', 'angry', 'anxious', 'stressed', 'frustrated', 'hurt', 'worried', 'overwhelmed'];
+    const negative = [
+      'sad',
+      'angry',
+      'anxious',
+      'stressed',
+      'frustrated',
+      'hurt',
+      'worried',
+      'overwhelmed',
+    ];
     return negative.includes(emotion?.toLowerCase() || '');
   }
 
@@ -736,7 +775,11 @@ export class AdvancedCorrelationEngine {
   private calculateMentionCorrelation(
     mentions1: Mention[],
     mentions2: Mention[]
-  ): { value: number; lagDays: number; direction: 'bidirectional' | 'domain1_to_domain2' | 'domain2_to_domain1' } {
+  ): {
+    value: number;
+    lagDays: number;
+    direction: 'bidirectional' | 'domain1_to_domain2' | 'domain2_to_domain1';
+  } {
     // Simple correlation based on co-occurrence in same day
     const days1 = new Set(mentions1.map((m) => new Date(m.timestamp).toISOString().split('T')[0]));
     const days2 = new Set(mentions2.map((m) => new Date(m.timestamp).toISOString().split('T')[0]));

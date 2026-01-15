@@ -79,7 +79,11 @@ async function makeRequest(
 
     req.on('error', (err) => {
       if ((err as NodeJS.ErrnoException).code === 'ECONNREFUSED') {
-        resolve({ status: 0, data: { error: 'Connection refused - UI Server not running' }, headers: {} });
+        resolve({
+          status: 0,
+          data: { error: 'Connection refused - UI Server not running' },
+          headers: {},
+        });
       } else {
         reject(err);
       }
@@ -171,7 +175,7 @@ describe('Developer Platform v2 Routes - Availability', () => {
       if (!serverAvailable) return;
 
       const response = await makeRequest('/api/v2/developers/mcp-servers', {
-        headers: { 'Authorization': 'Bearer invalid_key_12345' },
+        headers: { Authorization: 'Bearer invalid_key_12345' },
       });
       expect(response.status).toBe(401);
     });
@@ -202,9 +206,8 @@ describe('Developer Platform v2 Routes - Availability', () => {
 
 describe('Webhook Signature Verification', () => {
   it('should generate and verify HMAC-SHA256 signatures', async () => {
-    const { signPayload, verifySignature } = await import(
-      '../services/developer-webhook-dispatcher.js'
-    );
+    const { signPayload, verifySignature } =
+      await import('../services/developer-webhook-dispatcher.js');
 
     const secret = 'whsec_test_secret_12345';
     const payload = {
@@ -230,9 +233,7 @@ describe('Webhook Signature Verification', () => {
   });
 
   it('should reject expired signatures', async () => {
-    const { verifySignature } = await import(
-      '../services/developer-webhook-dispatcher.js'
-    );
+    const { verifySignature } = await import('../services/developer-webhook-dispatcher.js');
 
     // Create an old signature (10 minutes ago)
     const oldTimestamp = Math.floor(Date.now() / 1000) - 600;
@@ -250,9 +251,7 @@ describe('Webhook Signature Verification', () => {
 
 describe('Privacy Crypto', () => {
   it('should encrypt and decrypt sensitive data', async () => {
-    const { encryptSensitive, decryptSensitive } = await import(
-      '../services/privacy-crypto.js'
-    );
+    const { encryptSensitive, decryptSensitive } = await import('../services/privacy-crypto.js');
 
     const sensitiveData = { apiKey: 'sk-test-12345', secret: 'my-secret' };
 
@@ -266,9 +265,7 @@ describe('Privacy Crypto', () => {
   });
 
   it('should hash phone numbers deterministically', async () => {
-    const { hashPhoneNumber, verifyPhoneHash } = await import(
-      '../services/privacy-crypto.js'
-    );
+    const { hashPhoneNumber, verifyPhoneHash } = await import('../services/privacy-crypto.js');
 
     const phone = '+15551234567';
 
@@ -325,7 +322,7 @@ describe('Workflow Engine', () => {
     // The workflow engine uses safe pattern matching, so function calls are just strings
     // process.exit() is NOT actually called - it's parsed as variable access
     expect(evaluateCondition('process.exit()', {})).toBe(false); // process is undefined
-    expect(evaluateCondition('require("fs")', {})).toBe(false);  // require is undefined
+    expect(evaluateCondition('require("fs")', {})).toBe(false); // require is undefined
 
     // Note: The workflow engine uses property access, so it's safe but can access __proto__
     // This is acceptable because it's read-only access, not code execution
@@ -338,27 +335,19 @@ describe('Workflow Engine', () => {
 
 describe('Developer MCP Registry', () => {
   it('should export loadDeveloperMCPServers function', async () => {
-    const { loadDeveloperMCPServers } = await import(
-      '../services/developer-mcp-registry.js'
-    );
+    const { loadDeveloperMCPServers } = await import('../services/developer-mcp-registry.js');
 
     expect(typeof loadDeveloperMCPServers).toBe('function');
   });
 
   it('should export mergeMCPServers function', async () => {
-    const { mergeMCPServers } = await import(
-      '../services/developer-mcp-registry.js'
-    );
+    const { mergeMCPServers } = await import('../services/developer-mcp-registry.js');
 
     expect(typeof mergeMCPServers).toBe('function');
 
     // Test merging logic - API servers should take precedence
-    const fileServers = [
-      { name: 'file-server', transport: 'stdio', command: 'node' },
-    ];
-    const apiServers = [
-      { name: 'api-server', transport: 'http', endpoint: 'https://example.com' },
-    ];
+    const fileServers = [{ name: 'file-server', transport: 'stdio', command: 'node' }];
+    const apiServers = [{ name: 'api-server', transport: 'http', endpoint: 'https://example.com' }];
 
     const merged = mergeMCPServers(fileServers as any, apiServers as any);
     expect(merged).toHaveLength(2);
@@ -371,9 +360,7 @@ describe('Developer MCP Registry', () => {
 
 describe('Integration Wiring', () => {
   it('should export webhook integration functions', async () => {
-    const integration = await import(
-      '../agents/integrations/developer-webhook-integration.js'
-    );
+    const integration = await import('../agents/integrations/developer-webhook-integration.js');
 
     expect(typeof integration.onSessionStarted).toBe('function');
     expect(typeof integration.onSessionEnded).toBe('function');
@@ -383,9 +370,7 @@ describe('Integration Wiring', () => {
   });
 
   it('should export tool integration functions', async () => {
-    const integration = await import(
-      '../agents/integrations/developer-tool-integration.js'
-    );
+    const integration = await import('../agents/integrations/developer-tool-integration.js');
 
     expect(typeof integration.loadDeveloperTools).toBe('function');
     expect(typeof integration.unloadDeveloperTools).toBe('function');
@@ -406,9 +391,7 @@ describe('Integration Wiring', () => {
 
 describe('Validation Schemas', () => {
   it('should validate MCP server creation', async () => {
-    const { CreateMCPServerSchema } = await import(
-      '../api/v2/developers/shared/validation.js'
-    );
+    const { CreateMCPServerSchema } = await import('../api/v2/developers/shared/validation.js');
 
     // Valid HTTP server
     const validHttpServer = {
@@ -439,9 +422,7 @@ describe('Validation Schemas', () => {
   });
 
   it('should validate webhook creation', async () => {
-    const { CreateWebhookSchema } = await import(
-      '../api/v2/developers/shared/validation.js'
-    );
+    const { CreateWebhookSchema } = await import('../api/v2/developers/shared/validation.js');
 
     const validWebhook = {
       name: 'My Webhook',
@@ -460,9 +441,7 @@ describe('Validation Schemas', () => {
   });
 
   it('should validate workflow creation', async () => {
-    const { CreateWorkflowSchema } = await import(
-      '../api/v2/developers/shared/validation.js'
-    );
+    const { CreateWorkflowSchema } = await import('../api/v2/developers/shared/validation.js');
 
     const validWorkflow = {
       name: 'My Workflow',
@@ -475,9 +454,7 @@ describe('Validation Schemas', () => {
         { id: 'start', name: 'Start', type: 'start', config: {} },
         { id: 'end', name: 'End', type: 'end', config: {} },
       ],
-      edges: [
-        { id: 'e1', sourceId: 'start', targetId: 'end' },
-      ],
+      edges: [{ id: 'e1', sourceId: 'start', targetId: 'end' }],
       entryNodeId: 'start',
       exitNodeIds: ['end'],
     };

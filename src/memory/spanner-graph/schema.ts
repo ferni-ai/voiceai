@@ -55,6 +55,7 @@ CREATE TABLE IF NOT EXISTS facts (
   fact_type STRING(50) NOT NULL,
   key STRING(255) NOT NULL,
   value STRING(1024),
+  domain STRING(50) DEFAULT 'general',
   confidence FLOAT64 DEFAULT 0.5,
   source_session STRING(36),
   extracted_at TIMESTAMP NOT NULL,
@@ -82,13 +83,48 @@ CREATE TABLE IF NOT EXISTS entity_facts (
   created_at TIMESTAMP NOT NULL OPTIONS (allow_commit_timestamp=true),
 ) PRIMARY KEY (user_id, entity_fact_id);
 
+-- Memory Threads table: Long-running conversation themes for continuity
+CREATE TABLE IF NOT EXISTS memory_threads (
+  thread_id STRING(36) NOT NULL,
+  user_id STRING(36) NOT NULL,
+  theme STRING(255) NOT NULL,
+  rolling_summary STRING(4096),
+  last_emotional_arc STRING(512),
+  confidence FLOAT64 DEFAULT 0.5,
+  session_count INT64 DEFAULT 1,
+  first_session_id STRING(36),
+  last_session_id STRING(36),
+  first_mentioned TIMESTAMP NOT NULL,
+  last_updated TIMESTAMP NOT NULL,
+  created_at TIMESTAMP NOT NULL OPTIONS (allow_commit_timestamp=true),
+) PRIMARY KEY (user_id, thread_id);
+
+-- Memory Anchors table: Significant memories that anchor recall
+CREATE TABLE IF NOT EXISTS memory_anchors (
+  anchor_id STRING(36) NOT NULL,
+  user_id STRING(36) NOT NULL,
+  anchor_type STRING(50) NOT NULL,
+  payload JSON,
+  significance_score FLOAT64 DEFAULT 0.5,
+  recall_count INT64 DEFAULT 0,
+  last_recalled TIMESTAMP,
+  source_session_id STRING(36),
+  source_thread_id STRING(36),
+  created_at TIMESTAMP NOT NULL OPTIONS (allow_commit_timestamp=true),
+) PRIMARY KEY (user_id, anchor_id);
+
 -- Indexes for efficient queries
 CREATE INDEX IF NOT EXISTS idx_entities_user_type ON entities(user_id, entity_type);
 CREATE INDEX IF NOT EXISTS idx_entities_user_name ON entities(user_id, name);
 CREATE INDEX IF NOT EXISTS idx_entities_last_mentioned ON entities(user_id, last_mentioned DESC);
 CREATE INDEX IF NOT EXISTS idx_facts_user_type ON facts(user_id, fact_type);
+CREATE INDEX IF NOT EXISTS idx_facts_user_domain ON facts(user_id, domain);
 CREATE INDEX IF NOT EXISTS idx_relationships_source ON relationships(user_id, source_entity_id);
 CREATE INDEX IF NOT EXISTS idx_relationships_target ON relationships(user_id, target_entity_id);
+CREATE INDEX IF NOT EXISTS idx_threads_user_updated ON memory_threads(user_id, last_updated DESC);
+CREATE INDEX IF NOT EXISTS idx_threads_user_theme ON memory_threads(user_id, theme);
+CREATE INDEX IF NOT EXISTS idx_anchors_user_type ON memory_anchors(user_id, anchor_type);
+CREATE INDEX IF NOT EXISTS idx_anchors_significance ON memory_anchors(user_id, significance_score DESC);
 `;
 
 // ============================================================================
@@ -179,12 +215,28 @@ export interface GraphEntity {
   updatedAt: Date;
 }
 
+/**
+ * Fact domains for classification
+ */
+export type FactDomain =
+  | 'work'
+  | 'health'
+  | 'family'
+  | 'finance'
+  | 'education'
+  | 'hobby'
+  | 'travel'
+  | 'relationship'
+  | 'general';
+
 export interface GraphFact {
   factId: string;
   userId: string;
   factType: 'attribute' | 'event' | 'relationship' | 'state' | 'preference';
   key: string;
   value: string;
+  /** Domain classification for filtered queries */
+  domain: FactDomain;
   confidence: number;
   sourceSession?: string;
   extractedAt: Date;
@@ -210,4 +262,63 @@ export interface RelationshipResult {
   source: GraphEntity;
   relationship: GraphRelationship;
   target: GraphEntity;
+}
+
+// ============================================================================
+// MEMORY CONTINUITY TYPES (Phase 1)
+// ============================================================================
+
+/**
+ * MemoryThread: Long-running conversation themes for continuity.
+ * Tracks rolling summaries and emotional arcs across sessions.
+ */
+export interface MemoryThread {
+  threadId: string;
+  userId: string;
+  theme: string;
+  rollingSummary?: string;
+  lastEmotionalArc?: string;
+  confidence: number;
+  sessionCount: number;
+  firstSessionId?: string;
+  lastSessionId?: string;
+  firstMentioned: Date;
+  lastUpdated: Date;
+  createdAt: Date;
+}
+
+/**
+ * Anchor types for significant memories
+ */
+export type MemoryAnchorType =
+  | 'breakthrough' // Major insight or realization
+  | 'commitment' // Promise or commitment made
+  | 'milestone' // Life milestone or achievement
+  | 'vulnerability' // Moment of vulnerability shared
+  | 'growth' // Evidence of personal growth
+  | 'pattern' // Recurring pattern identified
+  | 'relationship' // Significant relationship event
+  | 'emotional_peak'; // High emotional intensity moment
+
+/**
+ * MemoryAnchor: Significant memories that anchor recall.
+ * These are "sticky" memories that should be recalled proactively.
+ */
+export interface MemoryAnchor {
+  anchorId: string;
+  userId: string;
+  anchorType: MemoryAnchorType;
+  payload: {
+    summary: string;
+    context?: string;
+    entities?: string[];
+    emotionalTone?: string;
+    keywords?: string[];
+  };
+  significanceScore: number;
+  recallCount: number;
+  lastRecalled?: Date;
+  sourceSessionId?: string;
+  sourceThreadId?: string;
+  createdAt: Date;
 }

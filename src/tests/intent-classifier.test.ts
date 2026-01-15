@@ -19,7 +19,7 @@ import {
   classifyIntent,
   type IntentResult,
   type Intent,
-} from '../intelligence/intent-classifier.js';
+} from '../intelligence/detectors/intent.js';
 
 // ============================================================================
 // TESTS

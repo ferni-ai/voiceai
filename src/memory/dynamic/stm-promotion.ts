@@ -104,10 +104,7 @@ interface PromotionResult {
 // IMPORTANCE CALCULATION
 // ============================================================================
 
-function calculateEntityImportance(
-  entity: EntityFrequency,
-  turns: TurnMemory[]
-): number {
+function calculateEntityImportance(entity: EntityFrequency, turns: TurnMemory[]): number {
   let importance = 0;
 
   // Base importance from mention count
@@ -145,7 +142,15 @@ function calculateOverallEmotionalShift(
   if (trajectory.length < 2) return 'neutral';
 
   const positiveEmotions = ['happy', 'excited', 'grateful', 'relieved', 'hopeful', 'positive'];
-  const negativeEmotions = ['sad', 'angry', 'anxious', 'stressed', 'frustrated', 'negative', 'fear'];
+  const negativeEmotions = [
+    'sad',
+    'angry',
+    'anxious',
+    'stressed',
+    'frustrated',
+    'negative',
+    'fear',
+  ];
 
   let positiveCount = 0;
   let negativeCount = 0;
@@ -165,7 +170,11 @@ function calculateOverallEmotionalShift(
       currentValence = 'negative';
     }
 
-    if (lastValence !== 'neutral' && currentValence !== 'neutral' && lastValence !== currentValence) {
+    if (
+      lastValence !== 'neutral' &&
+      currentValence !== 'neutral' &&
+      lastValence !== currentValence
+    ) {
       shifts++;
     }
     if (currentValence !== 'neutral') {
@@ -233,7 +242,10 @@ export async function promoteSessionToFirestore(
 
       const importance = calculateEntityImportance(entity, buffer.turns);
 
-      if (entity.mentionCount >= activeConfig.minMentionCount || importance >= activeConfig.minImportanceScore) {
+      if (
+        entity.mentionCount >= activeConfig.minMentionCount ||
+        importance >= activeConfig.minImportanceScore
+      ) {
         // Find last context for this entity
         let lastContext = '';
         for (let i = buffer.turns.length - 1; i >= 0; i--) {
@@ -261,11 +273,7 @@ export async function promoteSessionToFirestore(
 
     // Write entities to Firestore
     for (const entity of entitiesToPromote) {
-      const ref = db
-        .collection('bogle_users')
-        .doc(userId)
-        .collection('promoted_entities')
-        .doc();
+      const ref = db.collection('bogle_users').doc(userId).collection('promoted_entities').doc();
       batch.set(ref, entity);
     }
     result.entitiesPromoted = entitiesToPromote.length;
@@ -361,4 +369,10 @@ export async function onSessionEnd(sessionId: string, userId: string): Promise<v
 // EXPORTS
 // ============================================================================
 
-export type { PromotionConfig, PromotionResult, PromotedEntity, PromotedEmotionalArc, PromotedTopicPattern };
+export type {
+  PromotionConfig,
+  PromotionResult,
+  PromotedEntity,
+  PromotedEmotionalArc,
+  PromotedTopicPattern,
+};

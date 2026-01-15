@@ -12,7 +12,7 @@ import {
   extractPreferences,
   hasPreferenceContent,
   type ExtractedPreference,
-} from '../intelligence/preference-extractor.js';
+} from '../intelligence/tracking/preferences.js';
 
 describe('preference-extractor', () => {
   // ============================================================================

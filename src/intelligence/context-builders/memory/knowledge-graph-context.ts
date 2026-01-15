@@ -17,11 +17,7 @@
 
 import { createLogger } from '../../../utils/safe-logger.js';
 import { BuilderCategory } from '../core/categories.js';
-import {
-  createHintInjection,
-  createStandardInjection,
-  registerContextBuilder,
-} from '../index.js';
+import { createHintInjection, createStandardInjection, registerContextBuilder } from '../index.js';
 import type { ContextBuilder, ContextBuilderInput, ContextInjection } from '../core/types.js';
 
 const log = createLogger({ module: 'context:knowledge-graph' });
@@ -59,9 +55,7 @@ let config = { ...DEFAULT_CONFIG };
 /**
  * Configure the knowledge graph context builder
  */
-export function configureKnowledgeGraphContext(
-  newConfig: Partial<KnowledgeGraphConfig>
-): void {
+export function configureKnowledgeGraphContext(newConfig: Partial<KnowledgeGraphConfig>): void {
   config = { ...config, ...newConfig };
 }
 
@@ -80,15 +74,18 @@ interface FormattedEntity {
 /**
  * Format entity for LLM context injection
  */
-function formatEntityForContext(entity: {
-  canonicalName: string;
-  specificRelation?: string;
-  relationship?: string;
-  topics?: string[];
-  salience?: number;
-  contact?: { phone?: string; email?: string; birthday?: string };
-  lastMentionedAt?: Date;
-}, facts: Array<{ content?: string; key?: string; value?: string }> = []): FormattedEntity {
+function formatEntityForContext(
+  entity: {
+    canonicalName: string;
+    specificRelation?: string;
+    relationship?: string;
+    topics?: string[];
+    salience?: number;
+    contact?: { phone?: string; email?: string; birthday?: string };
+    lastMentionedAt?: Date;
+  },
+  facts: Array<{ content?: string; key?: string; value?: string }> = []
+): FormattedEntity {
   const formattedFacts: string[] = [];
 
   // Add relationship as fact
@@ -147,7 +144,7 @@ function formatEntityForContext(entity: {
 function formatEntitiesForInjection(entities: FormattedEntity[]): string {
   if (entities.length === 0) return '';
 
-  const lines: string[] = ['[PEOPLE IN USER\'S LIFE - Use this knowledge naturally]'];
+  const lines: string[] = ["[PEOPLE IN USER'S LIFE - Use this knowledge naturally]"];
 
   for (const entity of entities) {
     const factStr = entity.facts.length > 0 ? `\n   • ${entity.facts.join('\n   • ')}` : '';
@@ -174,7 +171,7 @@ interface FormattedPattern {
 function formatPatternsForInjection(patterns: FormattedPattern[]): string {
   if (patterns.length === 0) return '';
 
-  const lines: string[] = ['[PATTERNS YOU\'VE NOTICED - Surface if relevant]'];
+  const lines: string[] = ["[PATTERNS YOU'VE NOTICED - Surface if relevant]"];
 
   for (const pattern of patterns) {
     lines.push(`🔍 ${pattern.description}`);
@@ -206,7 +203,8 @@ function formatProactiveSuggestions(suggestions: ProactiveSuggestion[]): string 
   const lines: string[] = ['[PROACTIVE MEMORY - Bring up naturally if appropriate]'];
 
   for (const suggestion of suggestions) {
-    const urgencyEmoji = suggestion.urgency === 'high' ? '❗' : suggestion.urgency === 'medium' ? '💡' : '💭';
+    const urgencyEmoji =
+      suggestion.urgency === 'high' ? '❗' : suggestion.urgency === 'medium' ? '💡' : '💭';
     lines.push(`${urgencyEmoji} ${suggestion.reason}`);
     lines.push(`   Try: "${suggestion.suggestedPhrase}"`);
   }
@@ -221,9 +219,7 @@ function formatProactiveSuggestions(suggestions: ProactiveSuggestion[]): string 
 /**
  * Build knowledge graph context
  */
-async function buildKnowledgeGraphContext(
-  input: ContextBuilderInput
-): Promise<ContextInjection[]> {
+async function buildKnowledgeGraphContext(input: ContextBuilderInput): Promise<ContextInjection[]> {
   const { userText, services, userData, analysis } = input;
   const injections: ContextInjection[] = [];
 
@@ -243,9 +239,8 @@ async function buildKnowledgeGraphContext(
       return [];
     }
 
-    const { searchEntities, getMentionsForEntity } = await import(
-      '../../../memory/entity-store/storage.js'
-    );
+    const { searchEntities, getMentionsForEntity } =
+      await import('../../../memory/entity-store/storage.js');
 
     // 1. Find entities relevant to current conversation
     const relevantEntities = await searchEntities(userId, userText, {
@@ -290,9 +285,8 @@ async function buildKnowledgeGraphContext(
     // 2. Get detected patterns (if enabled)
     if (config.enablePatterns) {
       try {
-        const { getCorrelationEngine } = await import(
-          '../../../memory/entity-store/correlation-engine.js'
-        );
+        const { getCorrelationEngine } =
+          await import('../../../memory/entity-store/correlation-engine.js');
 
         const correlationEngine = getCorrelationEngine();
         const correlations = await correlationEngine.getCorrelations(userId, {
@@ -301,11 +295,18 @@ async function buildKnowledgeGraphContext(
         });
 
         if (correlations.length > 0) {
-          const formattedPatterns: FormattedPattern[] = correlations.map((c: { description: string; strength: number; confidence: number; pattern?: { behavioral?: string } }) => ({
-            description: c.description,
-            strength: c.strength,
-            actionable: c.pattern?.behavioral,
-          }));
+          const formattedPatterns: FormattedPattern[] = correlations.map(
+            (c: {
+              description: string;
+              strength: number;
+              confidence: number;
+              pattern?: { behavioral?: string };
+            }) => ({
+              description: c.description,
+              strength: c.strength,
+              actionable: c.pattern?.behavioral,
+            })
+          );
 
           const patternContext = formatPatternsForInjection(formattedPatterns);
           if (patternContext) {
@@ -326,9 +327,8 @@ async function buildKnowledgeGraphContext(
     // 3. Get proactive surfacing suggestions (if enabled)
     if (config.enableProactiveSurfacing && turnCount > 0) {
       try {
-        const { checkProactiveSurfacing } = await import(
-          '../../../memory/entity-store/integration.js'
-        );
+        const { checkProactiveSurfacing } =
+          await import('../../../memory/entity-store/integration.js');
 
         const opportunities = await checkProactiveSurfacing(userId, userText, {
           sessionId: services?.sessionId || '',
@@ -336,7 +336,12 @@ async function buildKnowledgeGraphContext(
           turnNumber: turnCount,
           surfacingCountThisSession: 0, // Track externally if needed
           sessionTopics: analysis?.topics?.detected || [],
-          conversationMood: (analysis?.state?.currentMood as 'exploratory' | 'venting' | 'seeking_help' | 'casual') || undefined,
+          conversationMood:
+            (analysis?.state?.currentMood as
+              | 'exploratory'
+              | 'venting'
+              | 'seeking_help'
+              | 'casual') || undefined,
         });
 
         // Convert to suggestions format using available SurfacingOpportunity properties
@@ -367,9 +372,8 @@ async function buildKnowledgeGraphContext(
     // 4. Add cross-reference hints for related entities
     if (highRelevanceEntities.length > 0) {
       try {
-        const { getRelationshipsForEntity } = await import(
-          '../../../memory/entity-store/storage.js'
-        );
+        const { getRelationshipsForEntity } =
+          await import('../../../memory/entity-store/storage.js');
 
         const crossRefs: string[] = [];
         for (const entity of highRelevanceEntities.slice(0, 3)) {
@@ -383,11 +387,10 @@ async function buildKnowledgeGraphContext(
 
         if (crossRefs.length > 0) {
           injections.push(
-            createHintInjection(
-              'entity_relationships',
-              `[CONNECTIONS]\n${crossRefs.join('\n')}`,
-              { category: 'memory', confidence: 0.7 }
-            )
+            createHintInjection('entity_relationships', `[CONNECTIONS]\n${crossRefs.join('\n')}`, {
+              category: 'memory',
+              confidence: 0.7,
+            })
           );
         }
       } catch (error) {

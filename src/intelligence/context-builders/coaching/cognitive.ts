@@ -68,7 +68,7 @@ import {
 } from '../../../utils/cognitive-metrics.js';
 
 // Centralized distress levels
-import { DISTRESS } from '../../distress-levels.js';
+import { DISTRESS } from '../../detectors/distress.js';
 
 // Centralized session state
 import {
@@ -78,7 +78,7 @@ import {
   getCognitiveState,
   setActiveReasoningChain,
   updateUserCognitiveStyle,
-} from '../../session-state.js';
+} from '../../state/session.js';
 
 /**
  * Build cognitive intelligence context

@@ -254,7 +254,7 @@ vi.mock('../../services/superhuman/semantic-intelligence/emotional-trajectories.
 }));
 
 // Mock coaching patterns
-vi.mock('../../intelligence/coaching-patterns.js', () => ({
+vi.mock('../../intelligence/coaching/patterns.js', () => ({
   getUserPatterns: vi.fn().mockResolvedValue([
     {
       pattern: 'Gets anxious before presentations',

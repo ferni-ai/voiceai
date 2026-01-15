@@ -121,16 +121,12 @@ describe('Fast Capture', () => {
   describe('detectEntityMentions()', () => {
     it('should detect relationship words', () => {
       const mentions = detectEntityMentions('My sister called me yesterday.');
-      expect(mentions).toContainEqual(
-        expect.objectContaining({ name: 'sister', type: 'person' })
-      );
+      expect(mentions).toContainEqual(expect.objectContaining({ name: 'sister', type: 'person' }));
     });
 
     it('should detect capitalized names with action verbs', () => {
       const mentions = detectEntityMentions('Sarah told me about the event.');
-      expect(mentions).toContainEqual(
-        expect.objectContaining({ name: 'Sarah', type: 'person' })
-      );
+      expect(mentions).toContainEqual(expect.objectContaining({ name: 'Sarah', type: 'person' }));
     });
 
     it('should detect place mentions', () => {
@@ -191,23 +187,17 @@ describe('Fast Capture', () => {
   describe('detectDateSignals()', () => {
     it('should detect absolute dates', () => {
       const signals = detectDateSignals('The event is on January 15th.');
-      expect(signals).toContainEqual(
-        expect.objectContaining({ type: 'absolute' })
-      );
+      expect(signals).toContainEqual(expect.objectContaining({ type: 'absolute' }));
     });
 
     it('should detect relative dates', () => {
       const signals = detectDateSignals("I'll do it tomorrow.");
-      expect(signals).toContainEqual(
-        expect.objectContaining({ type: 'relative' })
-      );
+      expect(signals).toContainEqual(expect.objectContaining({ type: 'relative' }));
     });
 
     it('should detect recurring patterns', () => {
       const signals = detectDateSignals("It's her birthday next week.");
-      expect(signals).toContainEqual(
-        expect.objectContaining({ type: 'recurring' })
-      );
+      expect(signals).toContainEqual(expect.objectContaining({ type: 'recurring' }));
     });
   });
 

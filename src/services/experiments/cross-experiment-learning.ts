@@ -106,8 +106,7 @@ function inferUserSegments(outcomes: ExperimentOutcome[]): string[] {
   if (outcomes.length === 0) return ['new-user'];
 
   // Calculate overall conversion rate
-  const conversionRate =
-    outcomes.filter((o) => o.success).length / outcomes.length;
+  const conversionRate = outcomes.filter((o) => o.success).length / outcomes.length;
 
   if (conversionRate > 0.7) segments.push('high-converter');
   else if (conversionRate < 0.3) segments.push('low-converter');
@@ -254,8 +253,7 @@ export function findCorrelation(
   // Simplified: use variance in lift as proxy for correlation strength
   const lifts = variantPairings.map((p) => p.liftOverBaseline);
   const meanLift = lifts.reduce((a, b) => a + b, 0) / lifts.length;
-  const variance =
-    lifts.reduce((sum, l) => sum + Math.pow(l - meanLift, 2), 0) / lifts.length;
+  const variance = lifts.reduce((sum, l) => sum + Math.pow(l - meanLift, 2), 0) / lifts.length;
   const correlation = Math.min(Math.sqrt(variance) / 2, 1);
 
   // Confidence based on sample size
@@ -294,11 +292,7 @@ export function findAllCorrelations(
   // Check all pairs
   for (let i = 0; i < experimentIds.length; i++) {
     for (let j = i + 1; j < experimentIds.length; j++) {
-      const correlation = findCorrelation(
-        experimentIds[i],
-        experimentIds[j],
-        outcomes
-      );
+      const correlation = findCorrelation(experimentIds[i], experimentIds[j], outcomes);
 
       if (correlation && correlation.correlation >= minCorrelation) {
         correlations.push(correlation);
@@ -351,16 +345,14 @@ export function generateTransferPriors(
       if (pairing) {
         // Get historical performance of the paired variant
         const pairedOutcomes = historicalOutcomes.filter(
-          (o) =>
-            o.experimentId === pairedExpId && o.variantId === pairing.pairedVariant
+          (o) => o.experimentId === pairedExpId && o.variantId === pairing.pairedVariant
         );
 
         const successes = pairedOutcomes.filter((o) => o.success).length;
         const failures = pairedOutcomes.filter((o) => !o.success).length;
 
         // Weight by correlation strength and sample size
-        const weight =
-          correlation.correlation * correlation.confidence * pairing.lift;
+        const weight = correlation.correlation * correlation.confidence * pairing.lift;
 
         totalAlpha += successes * weight;
         totalBeta += failures * weight;
@@ -408,14 +400,10 @@ function findMostSimilarPairing(
 
   if (relevantPairings.length === 0) {
     // If no direct match, use highest lift pairing as fallback
-    const sortedPairings = [...pairings].sort(
-      (a, b) => b.liftOverBaseline - a.liftOverBaseline
-    );
+    const sortedPairings = [...pairings].sort((a, b) => b.liftOverBaseline - a.liftOverBaseline);
     if (sortedPairings.length > 0) {
       return {
-        pairedVariant: isExperimentA
-          ? sortedPairings[0].variantB
-          : sortedPairings[0].variantA,
+        pairedVariant: isExperimentA ? sortedPairings[0].variantB : sortedPairings[0].variantA,
         lift: sortedPairings[0].liftOverBaseline * 0.5, // Discount for non-direct match
       };
     }
@@ -423,9 +411,7 @@ function findMostSimilarPairing(
   }
 
   // Return the highest lift pairing
-  const best = relevantPairings.sort(
-    (a, b) => b.liftOverBaseline - a.liftOverBaseline
-  )[0];
+  const best = relevantPairings.sort((a, b) => b.liftOverBaseline - a.liftOverBaseline)[0];
 
   return {
     pairedVariant: isExperimentA ? best.variantB : best.variantA,
@@ -472,8 +458,7 @@ export function detectMetaPatterns(
         if (outcome.success) {
           // Use variantId prefix as "type" (simplified)
           const variantType = outcome.variantId.split('-')[0] || 'default';
-          preferenceSignature[variantType] =
-            (preferenceSignature[variantType] || 0) + 1;
+          preferenceSignature[variantType] = (preferenceSignature[variantType] || 0) + 1;
           totalOutcomes++;
         }
       }
@@ -543,9 +528,7 @@ export function predictVariantPreference(
 
     for (const pattern of matchingPatterns) {
       // Weight by segment overlap
-      const overlapCount = pattern.segments.filter((s) =>
-        userProfile.segments.includes(s)
-      ).length;
+      const overlapCount = pattern.segments.filter((s) => userProfile.segments.includes(s)).length;
       const weight = (overlapCount / pattern.segments.length) * pattern.confidence;
 
       const patternPreference = pattern.preferenceSignature[variantType] || 0.5;

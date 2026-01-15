@@ -67,7 +67,7 @@ const PROCESSING_PHRASES = {
   heavy: [
     '...yeah.',
     '[pause] ...wow.',
-    '[brief pause] ...that\'s a lot.',
+    "[brief pause] ...that's a lot.",
     '...hmm.',
     '[silence] ...I hear that.',
   ],
@@ -76,49 +76,39 @@ const PROCESSING_PHRASES = {
   excitement: [
     'Oh! ...wait, really?',
     '...oh wow!',
-    '[catching up] ...that\'s amazing!',
-    '...wait—that\'s huge!',
+    "[catching up] ...that's amazing!",
+    "...wait—that's huge!",
   ],
 
   // For sadness - gentle receiving
-  sadness: [
-    '...oh.',
-    '[softly] ...yeah.',
-    '...I hear you.',
-    '[pause] ...that\'s hard.',
-  ],
+  sadness: ['...oh.', '[softly] ...yeah.', '...I hear you.', "[pause] ...that's hard."],
 
   // For frustration - validate before solving
   frustration: [
     '...yeah, that would be frustrating.',
     '[exhale] ...ugh, I get that.',
-    '...that\'s annoying.',
-    '...I can see why that\'s bothering you.',
+    "...that's annoying.",
+    "...I can see why that's bothering you.",
   ],
 
   // For anxiety - grounding presence
   anxiety: [
-    '...okay. I\'m here.',
-    '[steady] ...let\'s slow down.',
-    '...take a breath. I\'m listening.',
+    "...okay. I'm here.",
+    "[steady] ...let's slow down.",
+    "...take a breath. I'm listening.",
     '...okay. One thing at a time.',
   ],
 
   // For joy - shared delight
   joy: [
-    '...aww, that\'s wonderful!',
+    "...aww, that's wonderful!",
     '[warm] ...I love that.',
     '...oh, that makes me smile.',
-    '...yes! That\'s so good.',
+    "...yes! That's so good.",
   ],
 
   // Default - neutral processing
-  default: [
-    '...hmm.',
-    '...okay.',
-    '...I see.',
-    '...yeah.',
-  ],
+  default: ['...hmm.', '...okay.', '...I see.', '...yeah.'],
 };
 
 // ============================================================================
@@ -166,13 +156,13 @@ before you say anything else.`,
 
 function detectEmotionState(input: ContextBuilderInput): EmotionalState | null {
   const { analysis, voiceEmotion, userText } = input;
-  
+
   const emotion = analysis?.emotion;
   if (!emotion) return null;
 
   const primary = emotion.primary?.toLowerCase() || '';
   const rawIntensity = emotion.intensity || 0.5;
-  
+
   // Map to our intensity levels
   let intensity: EmotionIntensity = 'moderate';
   if (rawIntensity > 0.8) intensity = 'intense';
@@ -181,18 +171,17 @@ function detectEmotionState(input: ContextBuilderInput): EmotionalState | null {
 
   // Check for vulnerability markers
   const lower = userText.toLowerCase();
-  const isVulnerable = 
+  const isVulnerable =
     emotion.needsSupport === true ||
     lower.includes("i've never") ||
-    lower.includes("first time") ||
-    lower.includes("hard to say") ||
+    lower.includes('first time') ||
+    lower.includes('hard to say') ||
     lower.includes("don't usually") ||
     rawIntensity > 0.7;
 
   // Check for celebration
-  const isCelebration = 
-    ['joy', 'excitement', 'proud', 'happy', 'thrilled'].includes(primary) &&
-    rawIntensity > 0.5;
+  const isCelebration =
+    ['joy', 'excitement', 'proud', 'happy', 'thrilled'].includes(primary) && rawIntensity > 0.5;
 
   // Check for distress
   const isDistress =
@@ -217,12 +206,15 @@ function calculateContagionTiming(state: EmotionalState): ContagionTiming {
 
   // Get appropriate processing phrase category
   let phraseCategory: keyof typeof PROCESSING_PHRASES = 'default';
-  
+
   if (isDistress) phraseCategory = 'anxiety';
   else if (['sadness', 'grief', 'loss', 'hurt'].includes(emotion)) phraseCategory = 'sadness';
-  else if (['frustration', 'anger', 'annoyed', 'irritated'].includes(emotion)) phraseCategory = 'frustration';
-  else if (['anxiety', 'worried', 'nervous', 'scared', 'fear'].includes(emotion)) phraseCategory = 'anxiety';
-  else if (isCelebration || ['excitement', 'thrilled'].includes(emotion)) phraseCategory = 'excitement';
+  else if (['frustration', 'anger', 'annoyed', 'irritated'].includes(emotion))
+    phraseCategory = 'frustration';
+  else if (['anxiety', 'worried', 'nervous', 'scared', 'fear'].includes(emotion))
+    phraseCategory = 'anxiety';
+  else if (isCelebration || ['excitement', 'thrilled'].includes(emotion))
+    phraseCategory = 'excitement';
   else if (['joy', 'happy', 'content', 'grateful'].includes(emotion)) phraseCategory = 'joy';
   else if (intensity === 'intense' || intensity === 'high') phraseCategory = 'heavy';
 
@@ -232,8 +224,9 @@ function calculateContagionTiming(state: EmotionalState): ContagionTiming {
 
   // Calculate mirror intensity (never 100% - that feels robotic)
   let mirrorIntensity = 0.8; // Default: 80%
-  
-  if (intensity === 'intense') mirrorIntensity = 0.75; // Dial back slightly on intense
+
+  if (intensity === 'intense')
+    mirrorIntensity = 0.75; // Dial back slightly on intense
   else if (intensity === 'high') mirrorIntensity = 0.85;
   else if (intensity === 'moderate') mirrorIntensity = 0.8;
   else if (intensity === 'low') mirrorIntensity = 0.9; // Can match more closely on subtle
@@ -350,7 +343,7 @@ export const emotionalContagionTimingBuilder: ContextBuilder = {
     lines.push('**Reflection Guidance:**');
     lines.push(timing.reflectionGuidance);
     lines.push('');
-    
+
     lines.push(`**Mirroring Intensity:** ${Math.round(timing.mirrorIntensity * 100)}%`);
     if (timing.mirrorIntensity < 0.7) {
       lines.push('(Be calmer than they are - be a grounding presence)');
@@ -401,9 +394,4 @@ export const emotionalContagionTimingBuilder: ContextBuilder = {
 
 registerContextBuilder(emotionalContagionTimingBuilder);
 
-export {
-  detectEmotionState,
-  calculateContagionTiming,
-  type EmotionalState,
-  type ContagionTiming,
-};
+export { detectEmotionState, calculateContagionTiming, type EmotionalState, type ContagionTiming };

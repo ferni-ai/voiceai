@@ -23,7 +23,7 @@ import { patternAnalyzer } from '../../tools/optimization/pattern-analyzer.js';
 import type { UserData } from '../shared/types.js';
 
 // Capability learning - track tool execution for collective learning
-import { onToolExecuted } from '../../intelligence/capability-learning.js';
+import { onToolExecuted } from '../../intelligence/tracking/capabilities.js';
 // Safe fire-and-forget pattern for non-critical async operations
 import { fireAndForget } from '../../utils/safe-fire-and-forget.js';
 // Semantic tool presence - "Better than Human" tool feedback

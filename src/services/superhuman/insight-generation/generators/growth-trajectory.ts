@@ -29,14 +29,14 @@ const GROWTH_TEMPLATES = {
     "Something I've watched unfold: you went from {startingPoint} to {currentPoint}. That's not nothing.",
   ],
   pattern_broken: [
-    "You used to {oldPattern}. The last {count} times? You handled it differently. That pattern is breaking.",
+    'You used to {oldPattern}. The last {count} times? You handled it differently. That pattern is breaking.',
     "I've noticed a shift. {oldPattern} used to be your go-to, but not anymore. You're responding differently now.",
     "There's something worth celebrating: {oldPattern} was so hard for you. Now it's not. What changed?",
   ],
   milestone_reached: [
     "This is a milestone worth marking: {milestone}. You've been working toward this.",
-    "I want to celebrate with you: {milestone}. That took courage and consistency.",
-    "Look at that: {milestone}. Remember when this felt impossible?",
+    'I want to celebrate with you: {milestone}. That took courage and consistency.',
+    'Look at that: {milestone}. Remember when this felt impossible?',
   ],
   gradual_shift: [
     "It's subtle, but I've watched you shift. Your relationship with {topic} has evolved.",
@@ -45,7 +45,7 @@ const GROWTH_TEMPLATES = {
   ],
   resilience: [
     "You've faced {challenge} multiple times now, and each time you bounce back a little faster. That's resilience building.",
-    "I see a pattern of resilience. When {challenge} happens, you recover better each time.",
+    'I see a pattern of resilience. When {challenge} happens, you recover better each time.',
     "Something I want you to know: you're more resilient than you were {timeframe} ago. The evidence is there.",
   ],
   self_compassion: [
@@ -66,7 +66,13 @@ interface GrowthData {
   progressPercentage: number;
   milestones: string[];
   timeframe: string;
-  growthType: 'then_vs_now' | 'pattern_broken' | 'milestone_reached' | 'gradual_shift' | 'resilience' | 'self_compassion';
+  growthType:
+    | 'then_vs_now'
+    | 'pattern_broken'
+    | 'milestone_reached'
+    | 'gradual_shift'
+    | 'resilience'
+    | 'self_compassion';
 }
 
 async function fetchGrowthData(userId: string): Promise<GrowthData[]> {
@@ -85,8 +91,7 @@ async function fetchGrowthData(userId: string): Promise<GrowthData[]> {
 
     // Analyze growth metrics if available
     if (fingerprint.growth) {
-      const { emotionalRangeGrowth, topicDiversityGrowth, cognitiveGrowth } =
-        fingerprint.growth;
+      const { emotionalRangeGrowth, topicDiversityGrowth, cognitiveGrowth } = fingerprint.growth;
 
       if (emotionalRangeGrowth && emotionalRangeGrowth > 0.1) {
         growthAreas.push({
@@ -158,9 +163,7 @@ async function fetchGrowthData(userId: string): Promise<GrowthData[]> {
   }
 
   // Sort by progress and return top areas
-  return growthAreas
-    .sort((a, b) => b.progressPercentage - a.progressPercentage)
-    .slice(0, 3);
+  return growthAreas.sort((a, b) => b.progressPercentage - a.progressPercentage).slice(0, 3);
 }
 
 function calculateTimeframe(start: Date | string | number, end: Date | string | number): string {

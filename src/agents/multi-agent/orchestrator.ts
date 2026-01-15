@@ -782,7 +782,10 @@ export class AgentOrchestrator {
       agent
         .wireHandlers()
         .then(() => {
-          log.info({ personaId: agent.personaId }, '⚡ Deferred handlers wired after handoff greeting');
+          log.info(
+            { personaId: agent.personaId },
+            '⚡ Deferred handlers wired after handoff greeting'
+          );
         })
         .catch((err) => {
           log.error(

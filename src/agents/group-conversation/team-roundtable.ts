@@ -118,10 +118,10 @@ export interface TeamRoundtableResult {
 const PERSONA_NAMES: Record<string, string> = {
   ferni: 'Ferni',
   'peter-john': 'Peter',
-  'maya-habits': 'Maya',
+  'maya-santos': 'Maya',
   'alex-chen': 'Alex',
   'jordan-taylor': 'Jordan',
-  'nayan-sharma': 'Nayan',
+  'nayan-patel': 'Nayan',
 };
 
 // ============================================================================
@@ -410,10 +410,10 @@ export class TeamRoundtable extends EventEmitter {
     const domainKeywords: Record<string, string[]> = {
       ferni: ['feeling', 'think', 'support', 'help', 'life', 'overall'],
       'peter-john': ['research', 'data', 'market', 'analysis', 'numbers', 'facts', 'study'],
-      'maya-habits': ['habit', 'routine', 'morning', 'exercise', 'sleep', 'energy', 'wellness'],
+      'maya-santos': ['habit', 'routine', 'morning', 'exercise', 'sleep', 'energy', 'wellness'],
       'alex-chen': ['communicate', 'email', 'meeting', 'schedule', 'organize', 'plan'],
       'jordan-taylor': ['event', 'party', 'celebration', 'birthday', 'wedding', 'trip'],
-      'nayan-sharma': ['meaning', 'philosophy', 'wisdom', 'purpose', 'values', 'legacy'],
+      'nayan-patel': ['meaning', 'philosophy', 'wisdom', 'purpose', 'values', 'legacy'],
     };
 
     const keywords = domainKeywords[personaId] ?? [];

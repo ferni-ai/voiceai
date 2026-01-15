@@ -50,7 +50,15 @@ function analyzeSentimentFromContext(
 
     // Specific emotion adjustments
     const positiveEmotions = ['happy', 'excited', 'grateful', 'hopeful', 'loving', 'proud'];
-    const negativeEmotions = ['sad', 'angry', 'frustrated', 'anxious', 'worried', 'upset', 'disappointed'];
+    const negativeEmotions = [
+      'sad',
+      'angry',
+      'frustrated',
+      'anxious',
+      'worried',
+      'upset',
+      'disappointed',
+    ];
 
     if (emotion.primary) {
       if (positiveEmotions.includes(emotion.primary.toLowerCase())) {
@@ -65,8 +73,29 @@ function analyzeSentimentFromContext(
   if (score === 0) {
     const lower = transcript.toLowerCase();
 
-    const positiveWords = ['love', 'great', 'amazing', 'wonderful', 'happy', 'excited', 'good', 'best', 'fantastic'];
-    const negativeWords = ['hate', 'terrible', 'awful', 'worried', 'scared', 'angry', 'upset', 'frustrated', 'bad', 'worst'];
+    const positiveWords = [
+      'love',
+      'great',
+      'amazing',
+      'wonderful',
+      'happy',
+      'excited',
+      'good',
+      'best',
+      'fantastic',
+    ];
+    const negativeWords = [
+      'hate',
+      'terrible',
+      'awful',
+      'worried',
+      'scared',
+      'angry',
+      'upset',
+      'frustrated',
+      'bad',
+      'worst',
+    ];
 
     let positiveCount = 0;
     let negativeCount = 0;
@@ -123,7 +152,10 @@ export async function initializeEntityStore(): Promise<void> {
     log.info('Entity store initialized');
   } catch (error) {
     initializationError = String(error);
-    log.warn({ error: initializationError }, 'Entity store initialization failed - will use legacy collections');
+    log.warn(
+      { error: initializationError },
+      'Entity store initialization failed - will use legacy collections'
+    );
   }
 }
 
@@ -211,9 +243,7 @@ function inferMentionType(transcript: string, input: PersonCaptureInput): Mentio
   }
 
   // Check for planning
-  if (
-    /\b(meeting|call|see|visit|meet up|hang out|tomorrow|next week|this weekend)\b/.test(lower)
-  ) {
+  if (/\b(meeting|call|see|visit|meet up|hang out|tomorrow|next week|this weekend)\b/.test(lower)) {
     return 'planning';
   }
 
@@ -546,9 +576,10 @@ export async function retrieveMemoriesUnified(
         id: entity.id,
         type: entity.type,
         lastSeen: entity.lastMentionedAt
-          ? (typeof (entity.lastMentionedAt as unknown as { toDate?: () => Date }).toDate === 'function'
+          ? typeof (entity.lastMentionedAt as unknown as { toDate?: () => Date }).toDate ===
+            'function'
             ? (entity.lastMentionedAt as unknown as { toDate: () => Date }).toDate().toISOString()
-            : (entity.lastMentionedAt as Date).toISOString())
+            : (entity.lastMentionedAt as Date).toISOString()
           : new Date().toISOString(),
         emotionalWeight: entity.emotionalWeight || 0.5,
         salienceScore: entity.salience || 0.5,
@@ -556,7 +587,7 @@ export async function retrieveMemoriesUnified(
         relationship: entity.relationship,
         specificRelation: entity.specificRelation,
       },
-      score: 1 - (index * 0.1), // Simple scoring based on search order
+      score: 1 - index * 0.1, // Simple scoring based on search order
       scoreBreakdown: {
         semantic: 0.7,
         temporal: 0.6,
@@ -694,7 +725,10 @@ export async function captureCommitmentEntity(
     originalStatement: data.commitment,
   });
 
-  log.info({ userId, entityId: entity.id, commitment: data.commitment }, '✨ Captured commitment entity');
+  log.info(
+    { userId, entityId: entity.id, commitment: data.commitment },
+    '✨ Captured commitment entity'
+  );
 
   return {
     entity,

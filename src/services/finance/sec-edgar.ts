@@ -190,9 +190,7 @@ export async function getCIKByTicker(ticker: string): Promise<SECResult<string>>
 
     if (!response.ok) {
       // Try the company tickers endpoint
-      const tickersResponse = await rateLimitedFetch(
-        `${SEC_BASE_URL}/files/company_tickers.json`
-      );
+      const tickersResponse = await rateLimitedFetch(`${SEC_BASE_URL}/files/company_tickers.json`);
 
       if (!tickersResponse.ok) {
         return { success: false, error: 'Failed to lookup CIK' };

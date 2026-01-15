@@ -170,7 +170,13 @@ export interface SetLanguageMessage extends BaseMessage {
  */
 export interface GameStateMessage extends BaseMessage {
   type: 'game_state';
-  gameType: 'tic-tac-toe' | '20-questions' | 'word-association' | 'story-builder' | 'would-you-rather' | string;
+  gameType:
+    | 'tic-tac-toe'
+    | '20-questions'
+    | 'word-association'
+    | 'story-builder'
+    | 'would-you-rather'
+    | string;
   status: 'active' | 'completed' | 'abandoned';
   gameData: Record<string, unknown>;
 }
@@ -613,11 +619,7 @@ export class FrontendPublisher {
    *
    * Triggers the game board UI to appear with the appropriate game type.
    */
-  async sendGameStarted(
-    gameId: string,
-    gameType: string,
-    gameName: string
-  ): Promise<boolean> {
+  async sendGameStarted(gameId: string, gameType: string, gameName: string): Promise<boolean> {
     this.logger.info({ gameId, gameType, gameName }, '🎮 Game started');
 
     return this.send<GameStartedMessage>({

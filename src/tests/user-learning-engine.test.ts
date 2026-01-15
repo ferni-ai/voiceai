@@ -13,11 +13,11 @@ import {
   UserLearningEngine,
   getLearningEngine,
   resetLearningEngine,
-} from '../intelligence/user-learning-engine.js';
+} from '../intelligence/user-learning-engine/index.js';
 import type { UserProfile } from '../types/user-profile.js';
-import type { EmotionResult } from '../intelligence/emotion-detector.js';
-import type { IntentResult } from '../intelligence/intent-classifier.js';
-import type { ConversationState } from '../intelligence/conversation-state.js';
+import type { EmotionResult } from '../intelligence/detectors/emotion.js';
+import type { IntentResult } from '../intelligence/detectors/intent.js';
+import type { ConversationState } from '../intelligence/state/conversation.js';
 
 // ============================================================================
 // TEST FIXTURES

@@ -420,7 +420,7 @@ describe('Context Builder Integration with Superhuman', () => {
   describe('Nayan Wisdom Insights', () => {
     it('should include superhuman context in briefing', async () => {
       const { buildNayanWisdomInsightsContext } =
-        await import('../intelligence/context-builders/personas/nayan-wisdom-insights.js');
+        await import('../intelligence/context-builders/personas/nayan-wisdom-insights/index.js');
 
       const input = createMockInput('nayan-patel', `nayan-test-${Date.now()}`);
       const result = await buildNayanWisdomInsightsContext(input as never);
@@ -480,7 +480,7 @@ describe('Performance Benchmarks', () => {
 
   it('should build Nayan context within time limit', async () => {
     const { buildNayanWisdomInsightsContext } =
-      await import('../intelligence/context-builders/personas/nayan-wisdom-insights.js');
+      await import('../intelligence/context-builders/personas/nayan-wisdom-insights/index.js');
 
     const input = {
       services: { personaId: 'nayan-patel', userId: 'perf-test', sessionId: 'perf-session' },

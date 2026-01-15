@@ -275,11 +275,11 @@ export class UnifiedAnalyzer {
     const startTime = Date.now();
 
     // Import analyzers dynamically to avoid circular dependencies
-    const { getEmotionDetector } = await import('../emotion-detector.js');
-    const { getIntentClassifier } = await import('../intent-classifier.js');
-    const { getTopicTracker } = await import('../topic-tracker.js');
-    const { getStateMachine } = await import('../conversation-state.js');
-    const { DISTRESS } = await import('../distress-levels.js');
+    const { getEmotionDetector } = await import('../detectors/emotion.js');
+    const { getIntentClassifier } = await import('../detectors/intent.js');
+    const { getTopicTracker } = await import('../detectors/topic.js');
+    const { getStateMachine } = await import('../state/conversation.js');
+    const { DISTRESS } = await import('../detectors/distress.js');
 
     // Run base analyses
     const emotionDetector = getEmotionDetector();

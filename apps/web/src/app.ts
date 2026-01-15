@@ -2066,7 +2066,7 @@ class VoiceAIApp {
         onMemoryLaneClick: () => void memoryLaneUI.open(),
         onPatternInsightsClick: () => {
           // Show pattern insights in a modal container
-          const container = document.querySelector('.app-shell') as HTMLElement | null;
+          const container = document.querySelector('.app-shell');
           if (container) {
             void patternInsightsUI.show(container);
           }
@@ -2081,6 +2081,23 @@ class VoiceAIApp {
         },
         onKnowledgeQuizClick: () => void openKnowledgeQuiz(),
         onGrowthJournalClick: () => void openGrowthJournal(),
+        // Capability discovery callbacks
+        onLifeCoachingHubClick: () => {
+          void import('./ui/life-coaching-hub.ui.js').then(({ lifeCoachingHub }) => {
+            lifeCoachingHub.show();
+          });
+        },
+        onSuperhumanDashboardClick: () => {
+          void import('./ui/superhuman-dashboard.ui.js').then(({ superhumanDashboard }) => {
+            void superhumanDashboard.show();
+          });
+        },
+        onCapabilityDiscoveryClick: () => {
+          // Default to life coaching hub for capability discovery
+          void import('./ui/life-coaching-hub.ui.js').then(({ lifeCoachingHub }) => {
+            lifeCoachingHub.show();
+          });
+        },
       });
 
       // Wire up Spotify state changes to menu
@@ -2341,6 +2358,24 @@ class VoiceAIApp {
     this.addTrackedListener(window, 'ferni:open-people', () => {
       openYourPeople();
     });
+
+    // 🎯 Capability Speak Trigger - When user clicks on capability card
+    // Shows the voice trigger phrase and connects if needed
+    this.addTrackedListener(window, 'ferni:speak-trigger', ((e: CustomEvent) => {
+      const { trigger, capabilityId } = e.detail || {};
+      if (!trigger) return;
+      
+      log.info({ trigger, capabilityId }, '🎯 Capability speak trigger');
+      
+      if (appState.get('connection') === 'connected') {
+        // Already connected - just show what to say
+        messageUI.show(`Say: "${trigger}"`, 'info', 4000);
+      } else {
+        // Not connected - connect first, then show the phrase
+        messageUI.show(`Connecting... then say: "${trigger}"`, 'info', 4000);
+        void this.connect();
+      }
+    }) as EventListener);
 
     // 🌱 Garden Widget - Plant seed flow integration
     this.addTrackedListener(window, 'ferni:open-plant-seed', ((e: CustomEvent) => {

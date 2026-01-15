@@ -18,7 +18,7 @@ import {
   getAgentEvolution,
   saveAgentEvolutionToFirestore,
   type PersonaExperiment,
-} from '../../intelligence/agent-evolution.js';
+} from '../../intelligence/collective/agent-evolution.js';
 
 const logger = getLogger().child({ module: 'ExperimentAdvanced' });
 

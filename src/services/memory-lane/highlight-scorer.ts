@@ -33,12 +33,12 @@ const log = createLogger({ module: 'HighlightScorer' });
 const WEIGHTS: ScoringWeights = {
   emotionalWeight: 0.25,
   uniqueness: 0.15,
-  growthIndicator: 0.20,
-  recency: 0.10,
+  growthIndicator: 0.2,
+  recency: 0.1,
   anniversaryBoost: 0.15,
-  topicRelevance: 0.10,
+  topicRelevance: 0.1,
   neverSurfaced: 0.05,
-  userLoved: 0.10,
+  userLoved: 0.1,
 };
 
 // Cooldown period before re-surfacing a memory (in days)
@@ -102,16 +102,14 @@ export function scoreMemory(
  * Calculate recency score - newer memories score higher for new users,
  * but for established users, older meaningful memories also score well
  */
-function calculateRecencyScore(
-  memory: MemoryHighlight,
-  context: MemoryScoringContext
-): number {
+function calculateRecencyScore(memory: MemoryHighlight, context: MemoryScoringContext): number {
   const memoryAge = context.currentDate.getTime() - new Date(memory.occurredAt).getTime();
   const daysOld = memoryAge / (24 * 60 * 60 * 1000);
 
   // For new users (< 30 days of memories), prefer recent
   const userAge = context.userFirstMemoryDate
-    ? (context.currentDate.getTime() - context.userFirstMemoryDate.getTime()) / (24 * 60 * 60 * 1000)
+    ? (context.currentDate.getTime() - context.userFirstMemoryDate.getTime()) /
+      (24 * 60 * 60 * 1000)
     : 365;
 
   if (userAge < 30) {
@@ -129,10 +127,7 @@ function calculateRecencyScore(
 /**
  * Calculate anniversary score - big boost if memory is from same day in previous year(s)
  */
-function calculateAnniversaryScore(
-  memory: MemoryHighlight,
-  context: MemoryScoringContext
-): number {
+function calculateAnniversaryScore(memory: MemoryHighlight, context: MemoryScoringContext): number {
   const memoryDate = new Date(memory.occurredAt);
   const currentDate = context.currentDate;
 
@@ -183,8 +178,7 @@ function calculateTopicRelevance(memory: MemoryHighlight, currentTopic: string):
   if (
     memory.topicTags.some(
       (tag) =>
-        normalizedTopic.includes(tag.toLowerCase()) ||
-        tag.toLowerCase().includes(normalizedTopic)
+        normalizedTopic.includes(tag.toLowerCase()) || tag.toLowerCase().includes(normalizedTopic)
     )
   ) {
     return 0.5;
@@ -241,9 +235,10 @@ export async function getHighlights(
   const scoringContext: MemoryScoringContext = {
     currentDate: new Date(),
     userTotalMemories: memories.length,
-    userFirstMemoryDate: memories.length > 0
-      ? new Date(Math.min(...memories.map((m) => new Date(m.occurredAt).getTime())))
-      : undefined,
+    userFirstMemoryDate:
+      memories.length > 0
+        ? new Date(Math.min(...memories.map((m) => new Date(m.occurredAt).getTime())))
+        : undefined,
     queryContext: options.topicTags?.length ? { currentTopic: options.topicTags[0] } : undefined,
   };
 

@@ -27,12 +27,7 @@ import { createLogger } from '../../utils/safe-logger.js';
 import { getEntityResolver } from '../entity-store/entity-resolver.js';
 import { getUnifiedQueryEngine } from './services/natural-language-query.js';
 import { getCorrelationEngine } from '../entity-store/correlation-engine.js';
-import type {
-  Entity,
-  SurfacingRecommendation,
-  SurfacingReason,
-  Correlation,
-} from './types.js';
+import type { Entity, SurfacingRecommendation, SurfacingReason, Correlation } from './types.js';
 import { getFirestoreDb, cleanForFirestore } from '../../utils/firestore-utils.js';
 import { generateId } from '../../utils/id-generator.js';
 
@@ -148,7 +143,9 @@ export class ProactiveSurfacingEngine {
     );
 
     // Sort by score and take top N
-    const sorted = filtered.sort((a, b) => b.score - a.score).slice(0, MAX_RECOMMENDATIONS_PER_TURN);
+    const sorted = filtered
+      .sort((a, b) => b.score - a.score)
+      .slice(0, MAX_RECOMMENDATIONS_PER_TURN);
 
     log.debug(
       {
@@ -417,9 +414,7 @@ export class ProactiveSurfacingEngine {
 
       // Check if this entity is associated with positive emotions
       if (result.recentMentions) {
-        const positiveCount = result.recentMentions.filter(
-          (m) => m.sentiment > 0.3
-        ).length;
+        const positiveCount = result.recentMentions.filter((m) => m.sentiment > 0.3).length;
         const ratio = positiveCount / result.recentMentions.length;
 
         if (ratio > 0.6) {
@@ -563,8 +558,10 @@ export class ProactiveSurfacingEngine {
       if (
         correlation.pattern.temporal === context.timeOfDay ||
         correlation.pattern.temporal === context.dayOfWeek ||
-        (correlation.pattern.temporal === 'weekends' && ['Saturday', 'Sunday'].includes(context.dayOfWeek || '')) ||
-        (correlation.pattern.temporal === 'weekdays' && !['Saturday', 'Sunday'].includes(context.dayOfWeek || ''))
+        (correlation.pattern.temporal === 'weekends' &&
+          ['Saturday', 'Sunday'].includes(context.dayOfWeek || '')) ||
+        (correlation.pattern.temporal === 'weekdays' &&
+          !['Saturday', 'Sunday'].includes(context.dayOfWeek || ''))
       ) {
         return true;
       }

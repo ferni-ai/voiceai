@@ -186,7 +186,7 @@ Extract facts as JSON array with: entityId, type (attribute/event/relationship/s
  */
 function validateFactType(type: string): ExtractedFact['type'] {
   const validTypes = ['attribute', 'event', 'relationship', 'state'] as const;
-  return validTypes.includes(type as typeof validTypes[number])
+  return validTypes.includes(type as (typeof validTypes)[number])
     ? (type as ExtractedFact['type'])
     : 'attribute';
 }
@@ -198,23 +198,51 @@ function validateFactType(type: string): ExtractedFact['type'] {
 const FACT_PATTERNS = [
   // Contact info
   { pattern: /(\d{3}[-.\s]?\d{3}[-.\s]?\d{4})/g, key: 'phone', type: 'attribute' as const },
-  { pattern: /([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z]{2,})/g, key: 'email', type: 'attribute' as const },
+  {
+    pattern: /([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z]{2,})/g,
+    key: 'email',
+    type: 'attribute' as const,
+  },
 
   // Dates
   { pattern: /birthday\s+(?:is\s+)?(\w+\s+\d+)/i, key: 'birthday', type: 'attribute' as const },
   { pattern: /born\s+(?:on\s+)?(\w+\s+\d+)/i, key: 'birthday', type: 'attribute' as const },
 
   // Location
-  { pattern: /lives?\s+in\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/i, key: 'location', type: 'attribute' as const },
-  { pattern: /from\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/i, key: 'origin', type: 'attribute' as const },
+  {
+    pattern: /lives?\s+in\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/i,
+    key: 'location',
+    type: 'attribute' as const,
+  },
+  {
+    pattern: /from\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/i,
+    key: 'origin',
+    type: 'attribute' as const,
+  },
 
   // Occupation
-  { pattern: /works?\s+(?:at|for)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/i, key: 'employer', type: 'attribute' as const },
-  { pattern: /(?:is\s+a|works\s+as)\s+(\w+(?:\s+\w+)?)/i, key: 'occupation', type: 'attribute' as const },
+  {
+    pattern: /works?\s+(?:at|for)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/i,
+    key: 'employer',
+    type: 'attribute' as const,
+  },
+  {
+    pattern: /(?:is\s+a|works\s+as)\s+(\w+(?:\s+\w+)?)/i,
+    key: 'occupation',
+    type: 'attribute' as const,
+  },
 
   // Events
-  { pattern: /(surgery|operation|procedure)\s+(?:is\s+)?(\w+)/i, key: 'medical', type: 'event' as const },
-  { pattern: /(wedding|married|getting\s+married)\s+(?:on\s+)?(\w+)?/i, key: 'wedding', type: 'event' as const },
+  {
+    pattern: /(surgery|operation|procedure)\s+(?:is\s+)?(\w+)/i,
+    key: 'medical',
+    type: 'event' as const,
+  },
+  {
+    pattern: /(wedding|married|getting\s+married)\s+(?:on\s+)?(\w+)?/i,
+    key: 'wedding',
+    type: 'event' as const,
+  },
   { pattern: /(retiring|retired)/i, key: 'retirement', type: 'event' as const },
   { pattern: /(promotion|promoted|got\s+a\s+raise)/i, key: 'career', type: 'event' as const },
 ];

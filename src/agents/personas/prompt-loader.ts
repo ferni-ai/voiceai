@@ -96,7 +96,11 @@ function truncatePromptToTokenLimit(prompt: string, maxTokens: number): string {
       }
       // Skip remaining sections
       log.info(
-        { sectionsKept: result.length, sectionsTotal: sections.length, sectionsSkipped: sections.length - result.length },
+        {
+          sectionsKept: result.length,
+          sectionsTotal: sections.length,
+          sectionsSkipped: sections.length - result.length,
+        },
         '📏 Skipping remaining sections to fit token limit'
       );
       break;

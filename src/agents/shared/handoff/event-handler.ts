@@ -99,7 +99,8 @@ export function createEventHandler(config: EventHandlerConfig): EventHandlerResu
   } = config;
   // Use passed sessionId if available, then services.sessionId, then room name
   // CRITICAL: This MUST match the sessionId used in initializeSpeechCoordination()
-  const sessionId = configSessionId || services.sessionId || ctx.room?.name || `event-handler-${Date.now()}`;
+  const sessionId =
+    configSessionId || services.sessionId || ctx.room?.name || `event-handler-${Date.now()}`;
 
   log.info({ sessionId, initialAgent }, '📡 Creating voiceSwitch event handler');
 

@@ -23,10 +23,7 @@ const ADMIN_KEY = process.env.E2E_ADMIN_KEY || 'dev-mode';
 const SKIP_E2E = !process.env.RUN_E2E_TESTS;
 
 // Helper to make authenticated requests
-async function apiRequest(
-  path: string,
-  options: RequestInit = {}
-): Promise<Response> {
+async function apiRequest(path: string, options: RequestInit = {}): Promise<Response> {
   const url = `${API_BASE_URL}${path}`;
   return fetch(url, {
     ...options,
@@ -39,10 +36,7 @@ async function apiRequest(
 }
 
 // Helper to make admin requests
-async function adminRequest(
-  path: string,
-  options: RequestInit = {}
-): Promise<Response> {
+async function adminRequest(path: string, options: RequestInit = {}): Promise<Response> {
   return apiRequest(path, {
     ...options,
     headers: {

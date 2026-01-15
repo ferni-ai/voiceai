@@ -179,7 +179,10 @@ async function deleteExpiredDocuments(
       await new Promise((resolve) => setTimeout(resolve, 100));
     }
 
-    log.info({ collection: config.path, deleted, ttlDays: config.ttlDays }, '✅ TTL cleanup complete');
+    log.info(
+      { collection: config.path, deleted, ttlDays: config.ttlDays },
+      '✅ TTL cleanup complete'
+    );
   } catch (error) {
     log.error({ error: String(error), collection: config.path }, 'TTL cleanup failed');
     errors = 1;

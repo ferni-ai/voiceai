@@ -153,12 +153,7 @@ export async function deleteDocument(
   const db = await getFirestore();
   if (!db) return;
 
-  await db
-    .collection('bogle_users')
-    .doc(userId)
-    .collection(collection)
-    .doc(docId)
-    .delete();
+  await db.collection('bogle_users').doc(userId).collection(collection).doc(docId).delete();
 }
 
 /**
@@ -196,7 +191,7 @@ export async function queryDocuments<T>(
   }
 
   const snapshot = await ref.get();
-  return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as T));
+  return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as T);
 }
 
 // ============================================================================

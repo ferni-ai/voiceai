@@ -314,7 +314,7 @@ class NowPlayingUI {
     this.container.classList.add('now-playing--collapsed');
 
     if (!prefersReducedMotion()) {
-      this.container.animate([{ width: this.container.offsetWidth + 'px' }, { width: '52px' }], {
+      this.container.animate([{ width: this.container.offsetWidth + 'px' }, { width: '56px' }], {
         duration: DURATION.NORMAL,
         easing: EASING.STANDARD,
         fill: 'forwards',
@@ -385,13 +385,13 @@ class NowPlayingUI {
         
         display: none;
         align-items: center;
-        gap: var(--space-3);
+        gap: var(--space-4);
         
-        padding: var(--space-2) var(--space-3);
+        padding: var(--space-3) var(--space-4);
         background: var(--color-background-elevated);
-        border: none;
-        border-radius: var(--radius-full);
-        box-shadow: var(--shadow-md);
+        border: 1px solid var(--color-border-subtle);
+        border-radius: var(--radius-2xl);
+        box-shadow: var(--shadow-lg);
         
         opacity: 0;
         pointer-events: none;
@@ -399,23 +399,28 @@ class NowPlayingUI {
         font-family: var(--font-body);
         color: var(--color-text-primary);
         
-        max-width: min(240px, 100%);
+        max-width: min(26rem, 94vw);
         overflow: hidden;
-        transition: width var(--duration-normal) var(--ease-standard),
+        transition: transform var(--duration-normal) var(--ease-out-expo),
+                    box-shadow var(--duration-normal) var(--ease-out-expo),
+                    border-color var(--duration-normal) var(--ease-out-expo),
                     max-width var(--duration-normal) var(--ease-standard);
         cursor: pointer;
+        will-change: transform;
       }
       
       .now-playing--visible {
         display: flex;
         pointer-events: auto;
+        opacity: 1;
       }
       
       /* Collapsed state */
       .now-playing--collapsed {
-        max-width: 52px;
+        max-width: 56px;
         padding: var(--space-2);
         gap: var(--space-2);
+        border-radius: var(--radius-full);
       }
       
       .now-playing--collapsed .now-playing__info,
@@ -436,7 +441,7 @@ class NowPlayingUI {
       }
       
       .now-playing--collapsed .now-playing__waveform {
-        height: 16px;
+        height: var(--space-5);
       }
       
       .now-playing--collapsed .now-playing__bar {
@@ -446,21 +451,21 @@ class NowPlayingUI {
       /* Icon container */
       .now-playing__icon {
         flex-shrink: 0;
-        width: 32px;
-        height: 32px;
+        width: var(--space-12);
+        height: var(--space-12);
         display: flex;
         align-items: center;
         justify-content: center;
         
         background: var(--persona-tint);
-        border-radius: var(--radius-lg);
-        color: var(--color-text-secondary);
+        border-radius: var(--radius-xl);
+        color: var(--color-text-primary);
         transition: width var(--duration-fast), height var(--duration-fast);
       }
       
       .now-playing__icon svg {
-        width: 16px;
-        height: 16px;
+        width: var(--space-5);
+        height: var(--space-5);
         transition: width var(--duration-fast), height var(--duration-fast);
       }
       
@@ -526,7 +531,7 @@ class NowPlayingUI {
 
       .now-playing__track {
         font-size: var(--text-sm);
-        font-weight: var(--font-weight-medium);
+        font-weight: var(--font-weight-semibold);
         color: var(--color-text-primary);
         white-space: nowrap;
         overflow: hidden;
@@ -549,12 +554,12 @@ class NowPlayingUI {
       .now-playing__time {
         display: flex;
         align-items: center;
-        gap: 2px;
-        font-size: 10px;
+        gap: var(--space-1);
+        font-size: var(--text-xs);
         font-family: var(--font-mono, monospace);
         color: var(--color-text-muted);
-        margin-top: 2px;
-        line-height: 1;
+        margin-top: var(--space-1);
+        line-height: var(--leading-tight);
       }
 
       .now-playing__time-current {
@@ -578,12 +583,13 @@ class NowPlayingUI {
       .now-playing__album-art {
         display: none;
         flex-shrink: 0;
-        width: 36px;
-        height: 36px;
-        border-radius: var(--radius-sm);
+        width: var(--space-12);
+        height: var(--space-12);
+        border-radius: var(--radius-lg);
         overflow: hidden;
         background: var(--color-background-muted);
         position: relative;
+        box-shadow: var(--shadow-sm);
       }
 
       .now-playing:not(.now-playing--collapsed) .now-playing__album-art {
@@ -604,11 +610,12 @@ class NowPlayingUI {
         width: 100%;
         height: 100%;
         color: var(--color-text-muted);
+        background: var(--color-background-tertiary);
       }
 
       .now-playing__album-art-fallback svg {
-        width: 18px;
-        height: 18px;
+        width: var(--space-5);
+        height: var(--space-5);
       }
 
       .now-playing__album-art--loaded .now-playing__album-art-img {
@@ -628,17 +635,18 @@ class NowPlayingUI {
       .now-playing__waveform {
         display: flex;
         align-items: center;
-        gap: 2px;
-        height: 20px;
+        gap: var(--space-1);
+        height: var(--space-6);
         flex-shrink: 0;
-        transition: height var(--duration-fast);
+        transition: height var(--duration-fast) var(--ease-out-expo);
       }
       
       .now-playing__bar {
-        width: 2.5px;
+        width: var(--space-1);
         background: var(--persona-primary);
-        border-radius: 1.25px;
-        transition: height 0.15s ease, width var(--duration-fast);
+        border-radius: var(--radius-full);
+        transition: height var(--duration-fast) var(--ease-standard),
+                    width var(--duration-fast) var(--ease-standard);
       }
       
       /* Progress bar */
@@ -647,8 +655,8 @@ class NowPlayingUI {
         bottom: 0;
         left: 0;
         right: 0;
-        height: 2px;
-        background: var(--color-border);
+        height: var(--space-1);
+        background: var(--color-border-subtle);
         border-radius: 0 0 var(--radius-full) var(--radius-full);
         overflow: hidden;
       }
@@ -657,7 +665,7 @@ class NowPlayingUI {
         height: 100%;
         background: var(--persona-primary);
         width: 0%;
-        transition: width 0.5s linear;
+        transition: width var(--duration-normal) linear;
       }
       
       /* State: Ducking */
@@ -671,7 +679,7 @@ class NowPlayingUI {
       
       /* State: Fading */
       .now-playing--fading {
-        animation: now-playing-pulse 1.2s ease-in-out infinite;
+        animation: now-playing-pulse var(--duration-slow) var(--ease-gentle) infinite;
       }
       
       @keyframes now-playing-pulse {
@@ -696,7 +704,7 @@ class NowPlayingUI {
       }
 
       .now-playing__icon--pause:hover {
-        background: var(--color-accent);
+        background: var(--color-accent-primary);
         color: var(--color-text-on-accent);
         transform: scale(1.05);
       }
@@ -721,7 +729,7 @@ class NowPlayingUI {
       }
 
       .now-playing--paused .now-playing__icon--play:hover {
-        background: var(--color-accent);
+        background: var(--color-accent-primary);
         color: var(--color-text-on-accent);
         transform: scale(1.05);
       }
@@ -734,7 +742,7 @@ class NowPlayingUI {
       .now-playing__controls {
         display: flex;
         align-items: center;
-        gap: var(--space-1);
+        gap: var(--space-2);
         flex-shrink: 0;
       }
 
@@ -742,22 +750,22 @@ class NowPlayingUI {
         display: flex;
         align-items: center;
         justify-content: center;
-        width: 28px;
-        height: 28px;
+        width: var(--space-8);
+        height: var(--space-8);
         padding: 0;
         border: none;
         border-radius: var(--radius-md);
         background: transparent;
         color: var(--color-text-secondary);
         cursor: pointer;
-        transition: background var(--duration-fast) ease,
-                    color var(--duration-fast) ease,
-                    transform var(--duration-fast) ease;
+        transition: background var(--duration-fast) var(--ease-standard),
+                    color var(--duration-fast) var(--ease-standard),
+                    transform var(--duration-fast) var(--ease-standard);
       }
 
       .now-playing__btn svg {
-        width: 14px;
-        height: 14px;
+        width: var(--space-4);
+        height: var(--space-4);
       }
 
       .now-playing__btn:hover {
@@ -786,7 +794,7 @@ class NowPlayingUI {
       }
 
       .now-playing__btn--history:hover {
-        color: var(--color-accent);
+        color: var(--color-accent-primary);
       }
 
       /* Volume control */
@@ -801,48 +809,49 @@ class NowPlayingUI {
         right: 100%;
         margin-right: var(--space-1);
         width: 0;
-        height: 4px;
+        height: var(--space-1);
         opacity: 0;
         pointer-events: none;
-        transition: width var(--duration-normal) ease, opacity var(--duration-fast) ease;
+        transition: width var(--duration-normal) var(--ease-standard),
+                    opacity var(--duration-fast) var(--ease-standard);
         appearance: none;
-        background: var(--color-border);
-        border-radius: 2px;
+        background: var(--color-border-subtle);
+        border-radius: var(--radius-full);
         cursor: pointer;
       }
 
       .now-playing__volume-control:hover .now-playing__volume-slider,
       .now-playing__volume-slider:focus {
-        width: 60px;
+        width: var(--space-20);
         opacity: 1;
         pointer-events: auto;
       }
 
       .now-playing__volume-slider::-webkit-slider-thumb {
         appearance: none;
-        width: 12px;
-        height: 12px;
+        width: var(--space-3);
+        height: var(--space-3);
         background: var(--persona-primary);
-        border-radius: 50%;
+        border-radius: var(--radius-full);
         cursor: pointer;
       }
 
       .now-playing__volume-slider::-moz-range-thumb {
-        width: 12px;
-        height: 12px;
+        width: var(--space-3);
+        height: var(--space-3);
         background: var(--persona-primary);
-        border-radius: 50%;
+        border-radius: var(--radius-full);
         border: none;
         cursor: pointer;
       }
 
       /* State: Changing (DJ crossfade) */
       .now-playing--changing {
-        animation: now-playing-crossfade 1.2s ease-in-out;
+        animation: now-playing-crossfade var(--duration-slow) var(--ease-gentle);
       }
       
       .now-playing--changing .now-playing__bar {
-        animation: now-playing-bar-crossfade 0.3s ease-in-out infinite alternate;
+        animation: now-playing-bar-crossfade var(--duration-fast) var(--ease-gentle) infinite alternate;
       }
       
       @keyframes now-playing-crossfade {
@@ -872,12 +881,13 @@ class NowPlayingUI {
         position: relative;
         width: 18px;
         height: 18px;
-        color: #e85d75;
+        color: var(--color-accent-primary);
         opacity: 0;
-        transition: opacity var(--duration-normal) ease-out, transform var(--duration-fast) ease;
+        transition: opacity var(--duration-normal) var(--ease-out-expo),
+                    transform var(--duration-fast) var(--ease-out-expo);
         cursor: help;
         flex-shrink: 0;
-        filter: drop-shadow(0 0 2px rgba(232, 93, 117, 0.4));
+        box-shadow: var(--shadow-glow);
       }
       
       .now-playing__our-song svg {
@@ -888,7 +898,7 @@ class NowPlayingUI {
       .now-playing--our-song .now-playing__our-song {
         display: flex;
         opacity: 1;
-        animation: heartPulse 1.8s ease-in-out infinite;
+        animation: heartPulse var(--duration-slow) var(--ease-gentle) infinite;
       }
       
       /* Warm glow background behind heart for "our song" */
@@ -896,25 +906,23 @@ class NowPlayingUI {
         background: linear-gradient(
           135deg,
           var(--color-background-elevated) 0%,
-          rgba(232, 93, 117, 0.08) 100%
+          var(--color-accent-subtle) 100%
         );
-        box-shadow: var(--shadow-md), 0 0 20px rgba(232, 93, 117, 0.15);
+        box-shadow: var(--shadow-lg), var(--shadow-glow);
       }
       
       @keyframes heartPulse {
         0%, 100% { 
           transform: scale(1); 
-          filter: drop-shadow(0 0 3px rgba(232, 93, 117, 0.5));
         }
         50% { 
           transform: scale(1.15); 
-          filter: drop-shadow(0 0 8px rgba(232, 93, 117, 0.8));
         }
       }
       
       .now-playing__our-song:hover {
         transform: scale(1.2);
-        filter: drop-shadow(0 0 10px rgba(232, 93, 117, 0.9));
+        box-shadow: var(--shadow-lg);
       }
 
       /* Our Song memory tooltip */
@@ -926,9 +934,9 @@ class NowPlayingUI {
         transform: translateX(-50%) scale(0.9);
         background: var(--color-background-elevated);
         color: var(--color-text-secondary);
-        font-size: 11px;
+        font-size: var(--text-xs);
         font-style: italic;
-        padding: 6px 10px;
+        padding: var(--space-2) var(--space-3);
         border-radius: var(--radius-sm);
         white-space: nowrap;
         max-width: 200px;
@@ -938,9 +946,9 @@ class NowPlayingUI {
         opacity: 0;
         visibility: hidden;
         pointer-events: none;
-        transition: opacity var(--duration-fast) ease, 
-                    transform var(--duration-fast) ease,
-                    visibility var(--duration-fast) ease;
+        transition: opacity var(--duration-fast) var(--ease-standard), 
+                    transform var(--duration-fast) var(--ease-standard),
+                    visibility var(--duration-fast) var(--ease-standard);
         z-index: calc(var(--z-tooltip) + 1);
       }
 
@@ -952,23 +960,28 @@ class NowPlayingUI {
 
       /* Sparkle decoration for Our Song */
       .now-playing--our-song::before {
-        content: '✨';
+        content: '';
         position: absolute;
-        top: -8px;
-        right: -4px;
-        font-size: 14px;
-        animation: sparkle 2s ease-in-out infinite;
+        top: calc(var(--space-1) * -1);
+        right: calc(var(--space-1) * -1);
+        width: var(--space-2);
+        height: var(--space-2);
+        border-radius: var(--radius-full);
+        background: var(--color-accent-primary);
+        box-shadow: var(--shadow-glow);
+        animation: sparkle var(--duration-slow) var(--ease-gentle) infinite;
         pointer-events: none;
-        opacity: 0.8;
+        opacity: 0.9;
       }
 
       @keyframes sparkle {
-        0%, 100% { opacity: 0.6; transform: scale(1) rotate(0deg); }
-        50% { opacity: 1; transform: scale(1.2) rotate(10deg); }
+        0%, 100% { opacity: 0.6; transform: scale(1); }
+        50% { opacity: 1; transform: scale(1.3); }
       }
       
       /* Hover effects */
       .now-playing:hover {
+        transform: translateY(calc(var(--space-1) * -1));
         box-shadow: var(--shadow-lg);
       }
       
@@ -978,8 +991,8 @@ class NowPlayingUI {
         position: absolute;
         top: -6px;
         right: -6px;
-        width: 20px;
-        height: 20px;
+        width: var(--space-6);
+        height: var(--space-6);
         padding: 0;
         border: none;
         border-radius: var(--radius-full);
@@ -987,15 +1000,15 @@ class NowPlayingUI {
         color: var(--color-text-muted);
         cursor: pointer;
         box-shadow: var(--shadow-sm);
-        transition: transform var(--duration-fast) ease,
-                    background var(--duration-fast) ease,
-                    color var(--duration-fast) ease;
-        z-index: var(--z-docked);
+        transition: transform var(--duration-fast) var(--ease-standard),
+                    background var(--duration-fast) var(--ease-standard),
+                    color var(--duration-fast) var(--ease-standard);
+        z-index: var(--z-floating);
       }
       
       .now-playing__dismiss svg {
-        width: 12px;
-        height: 12px;
+        width: var(--space-3);
+        height: var(--space-3);
       }
       
       .now-playing:hover .now-playing__dismiss {
@@ -1016,7 +1029,7 @@ class NowPlayingUI {
       
       /* Ambient minimal mode */
       .now-playing--ambient-minimal {
-        max-width: 40px !important;
+        max-width: 44px !important;
         padding: var(--space-2) !important;
         gap: 0 !important;
         border-radius: var(--radius-full) !important;
@@ -1031,15 +1044,15 @@ class NowPlayingUI {
       }
       
       .now-playing--ambient-minimal .now-playing__icon {
-        width: 24px;
-        height: 24px;
+        width: var(--space-8);
+        height: var(--space-8);
         background: transparent;
-        animation: ambient-pulse 3s ease-in-out infinite;
+        animation: ambient-pulse var(--duration-glacial) var(--ease-gentle) infinite;
       }
       
       .now-playing--ambient-minimal .now-playing__icon svg {
-        width: 14px;
-        height: 14px;
+        width: var(--space-4);
+        height: var(--space-4);
         color: var(--color-text-muted);
       }
       
@@ -1069,7 +1082,7 @@ class NowPlayingUI {
         white-space: nowrap;
         opacity: 0;
         pointer-events: none;
-        transition: opacity var(--duration-fast) ease;
+        transition: opacity var(--duration-fast) var(--ease-standard);
       }
       
       .now-playing--ambient-minimal:hover::after {
@@ -1088,6 +1101,15 @@ class NowPlayingUI {
           transition: none !important;
           animation: none !important;
         }
+      }
+
+      .now-playing__btn:focus-visible,
+      .now-playing__icon--pause:focus-visible,
+      .now-playing__icon--play:focus-visible,
+      .now-playing__info:focus-visible,
+      .now-playing__volume-slider:focus-visible {
+        outline: 2px solid var(--color-accent-primary);
+        outline-offset: 2px;
       }
       
       /* Mobile */

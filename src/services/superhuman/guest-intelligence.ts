@@ -137,7 +137,12 @@ async function loadGuestIntelligence(userId: string): Promise<GuestIntelligenceP
   if (!db) return null;
 
   try {
-    const doc = await db.collection('bogle_users').doc(userId).collection(COLLECTION).doc('profile').get();
+    const doc = await db
+      .collection('bogle_users')
+      .doc(userId)
+      .collection(COLLECTION)
+      .doc('profile')
+      .get();
     if (doc.exists) {
       return doc.data() as GuestIntelligenceProfile;
     }
@@ -148,7 +153,10 @@ async function loadGuestIntelligence(userId: string): Promise<GuestIntelligenceP
   }
 }
 
-async function saveGuestIntelligence(userId: string, profile: GuestIntelligenceProfile): Promise<void> {
+async function saveGuestIntelligence(
+  userId: string,
+  profile: GuestIntelligenceProfile
+): Promise<void> {
   const db = getFirestoreDb();
   if (!db) return;
 
@@ -175,12 +183,15 @@ async function saveGuestIntelligence(userId: string, profile: GuestIntelligenceP
 /**
  * Get or create a guest profile
  */
-export async function getGuestProfile(userId: string, guestName: string): Promise<GuestProfile | null> {
+export async function getGuestProfile(
+  userId: string,
+  guestName: string
+): Promise<GuestProfile | null> {
   const intelligence = await loadGuestIntelligence(userId);
   if (!intelligence) return null;
 
   const normalizedName = guestName.toLowerCase().trim();
-  
+
   // Check by name or aliases
   for (const guest of Object.values(intelligence.guests)) {
     if (
@@ -217,8 +228,8 @@ export async function upsertGuestProfile(
   if (existing) {
     // Deep merge updates - filter out undefined values from arrays
     const filterStrings = (arr: (string | undefined)[] | undefined, fallback: string[]): string[] =>
-      (arr?.filter((s): s is string => s !== undefined) ?? fallback);
-    
+      arr?.filter((s): s is string => s !== undefined) ?? fallback;
+
     const updated: GuestProfile = {
       // Core identity (name is immutable, others can be updated)
       name: existing.name,
@@ -235,32 +246,48 @@ export async function upsertGuestProfile(
       },
       // Accessibility
       accessibility: {
-        mobilityNeeds: filterStrings(updates.accessibility?.mobilityNeeds, existing.accessibility.mobilityNeeds),
-        sensoryNeeds: filterStrings(updates.accessibility?.sensoryNeeds, existing.accessibility.sensoryNeeds),
-        otherNeeds: filterStrings(updates.accessibility?.otherNeeds, existing.accessibility.otherNeeds),
+        mobilityNeeds: filterStrings(
+          updates.accessibility?.mobilityNeeds,
+          existing.accessibility.mobilityNeeds
+        ),
+        sensoryNeeds: filterStrings(
+          updates.accessibility?.sensoryNeeds,
+          existing.accessibility.sensoryNeeds
+        ),
+        otherNeeds: filterStrings(
+          updates.accessibility?.otherNeeds,
+          existing.accessibility.otherNeeds
+        ),
         notes: updates.accessibility?.notes ?? existing.accessibility.notes,
       },
       // Gifting
-      gifting: { 
+      gifting: {
         typicalGiftStyle: updates.gifting?.typicalGiftStyle ?? existing.gifting.typicalGiftStyle,
         averageGiftValue: updates.gifting?.averageGiftValue ?? existing.gifting.averageGiftValue,
-        preferencesReceiving: filterStrings(updates.gifting?.preferencesReceiving, existing.gifting.preferencesReceiving),
+        preferencesReceiving: filterStrings(
+          updates.gifting?.preferencesReceiving,
+          existing.gifting.preferencesReceiving
+        ),
         avoidGiving: filterStrings(updates.gifting?.avoidGiving, existing.gifting.avoidGiving),
       },
       // Social
-      social: { 
-        seatingPreferences: filterStrings(updates.social?.seatingPreferences, existing.social.seatingPreferences),
+      social: {
+        seatingPreferences: filterStrings(
+          updates.social?.seatingPreferences,
+          existing.social.seatingPreferences
+        ),
         socialStyle: updates.social?.socialStyle ?? existing.social.socialStyle,
         conversations: filterStrings(updates.social?.conversations, existing.social.conversations),
         triggers: filterStrings(updates.social?.triggers, existing.social.triggers),
         strengths: filterStrings(updates.social?.strengths, existing.social.strengths),
       },
       // Attendance
-      attendance: { 
+      attendance: {
         invitedCount: updates.attendance?.invitedCount ?? existing.attendance.invitedCount,
         attendedCount: updates.attendance?.attendedCount ?? existing.attendance.attendedCount,
         declinedCount: updates.attendance?.declinedCount ?? existing.attendance.declinedCount,
-        lastMinuteCancelCount: updates.attendance?.lastMinuteCancelCount ?? existing.attendance.lastMinuteCancelCount,
+        lastMinuteCancelCount:
+          updates.attendance?.lastMinuteCancelCount ?? existing.attendance.lastMinuteCancelCount,
         lastInvited: updates.attendance?.lastInvited ?? existing.attendance.lastInvited,
         lastAttended: updates.attendance?.lastAttended ?? existing.attendance.lastAttended,
       },
@@ -277,7 +304,7 @@ export async function upsertGuestProfile(
     // Create new - use helper to filter undefined from arrays
     const toStringArray = (arr: (string | undefined)[] | undefined): string[] =>
       arr?.filter((s): s is string => s !== undefined) ?? [];
-    
+
     const newGuest: GuestProfile = {
       name: normalizedName,
       aliases: toStringArray(updates.aliases),
@@ -474,7 +501,11 @@ export async function getSeatingRecommendations(
             guestList.some((g) => g.toLowerCase() === m.toLowerCase())
         );
         for (const member of otherMembers) {
-          if (!recommendation.recommendedNear.some((r) => r.guest.toLowerCase() === member.toLowerCase())) {
+          if (
+            !recommendation.recommendedNear.some(
+              (r) => r.guest.toLowerCase() === member.toLowerCase()
+            )
+          ) {
             recommendation.recommendedNear.push({
               guest: member,
               reason: `same group: ${group.name}`,
@@ -525,7 +556,11 @@ export async function getGuestListDietary(
 
     if (restrictions.includes('vegetarian')) result.vegetarian.push(guestName);
     if (restrictions.includes('vegan')) result.vegan.push(guestName);
-    if (restrictions.includes('gluten-free') || restrictions.includes('gluten free') || restrictions.includes('celiac')) {
+    if (
+      restrictions.includes('gluten-free') ||
+      restrictions.includes('gluten free') ||
+      restrictions.includes('celiac')
+    ) {
       result.glutenFree.push(guestName);
     }
 
@@ -633,10 +668,7 @@ export async function predictAttendance(
 /**
  * Get a summary of guest intelligence for a guest list
  */
-export async function getGuestListSummary(
-  userId: string,
-  guestList: string[]
-): Promise<string> {
+export async function getGuestListSummary(userId: string, guestList: string[]): Promise<string> {
   const [dietary, seating, attendance] = await Promise.all([
     getGuestListDietary(userId, guestList),
     getSeatingRecommendations(userId, guestList),
@@ -673,7 +705,7 @@ export async function getGuestListSummary(
   // Attendance predictions
   lines.push(
     `\n📊 Expected attendance: ${attendance.expectedCount.expected} of ${guestList.length} ` +
-    `(range: ${attendance.expectedCount.min}-${attendance.expectedCount.max})`
+      `(range: ${attendance.expectedCount.min}-${attendance.expectedCount.max})`
   );
 
   if (attendance.unlikely.length > 0) {

@@ -19,7 +19,11 @@ import {
 import type { PersonaConfig } from '../types.js';
 
 // Create mock persona configs with required fields for greeting tests
-function createMockPersona(id: string, name: string, greetingStyle: string = 'warm'): PersonaConfig {
+function createMockPersona(
+  id: string,
+  name: string,
+  greetingStyle: string = 'warm'
+): PersonaConfig {
   // Using 'as unknown as PersonaConfig' since we only need fields relevant to greeting tests
   return {
     id,

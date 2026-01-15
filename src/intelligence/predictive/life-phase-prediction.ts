@@ -36,51 +36,51 @@ const log = createLogger({ module: 'LifePhasePrediction' });
 
 /** Life phases */
 export type LifePhase =
-  | 'expansion'       // Growing, taking on challenges
-  | 'consolidation'   // Integrating, stabilizing gains
-  | 'transition'      // Between chapters, identity shifting
-  | 'recovery'        // Healing, rebuilding after difficulty
-  | 'plateau'         // Maintenance, sustainable pace
-  | 'emergence'       // New direction forming
-  | 'integration'     // Making sense of recent changes
-  | 'preparation'     // Building toward something
-  | 'crisis'          // Active difficulty, survival mode
-  | 'flowering';      // Peak expression, thriving
+  | 'expansion' // Growing, taking on challenges
+  | 'consolidation' // Integrating, stabilizing gains
+  | 'transition' // Between chapters, identity shifting
+  | 'recovery' // Healing, rebuilding after difficulty
+  | 'plateau' // Maintenance, sustainable pace
+  | 'emergence' // New direction forming
+  | 'integration' // Making sense of recent changes
+  | 'preparation' // Building toward something
+  | 'crisis' // Active difficulty, survival mode
+  | 'flowering'; // Peak expression, thriving
 
 /** Phase signals we track */
 export type PhaseSignal =
   // Activity signals
-  | 'new_initiatives'       // Starting new things
-  | 'completion_focus'      // Finishing things
-  | 'reflection_increase'   // More looking back
-  | 'future_planning'       // More forward thinking
-  | 'routine_stability'     // Keeping steady routines
-  | 'routine_disruption'    // Routines breaking down
+  | 'new_initiatives' // Starting new things
+  | 'completion_focus' // Finishing things
+  | 'reflection_increase' // More looking back
+  | 'future_planning' // More forward thinking
+  | 'routine_stability' // Keeping steady routines
+  | 'routine_disruption' // Routines breaking down
   // Emotional signals
-  | 'emotional_processing'  // Working through feelings
-  | 'emotional_stability'   // Steady emotional state
-  | 'emotional_volatility'  // Emotions all over
-  | 'hope_increase'         // More hopeful
-  | 'grief_presence'        // Processing loss
-  | 'excitement_increase'   // Building excitement
+  | 'emotional_processing' // Working through feelings
+  | 'emotional_stability' // Steady emotional state
+  | 'emotional_volatility' // Emotions all over
+  | 'hope_increase' // More hopeful
+  | 'grief_presence' // Processing loss
+  | 'excitement_increase' // Building excitement
   // Energy signals
-  | 'energy_increase'       // More energy available
-  | 'energy_decrease'       // Less energy
-  | 'sustainable_pace'      // Good energy management
-  | 'overextension'         // Doing too much
-  | 'withdrawal'            // Pulling back
+  | 'energy_increase' // More energy available
+  | 'energy_decrease' // Less energy
+  | 'sustainable_pace' // Good energy management
+  | 'overextension' // Doing too much
+  | 'withdrawal' // Pulling back
   // Growth signals
-  | 'learning_mode'         // Actively learning
-  | 'teaching_mode'         // Sharing what they know
-  | 'questioning_identity'  // Who am I?
-  | 'identity_clarity'      // Clear sense of self
-  | 'values_questioning'    // What matters?
-  | 'values_clarity';       // Clear values
+  | 'learning_mode' // Actively learning
+  | 'teaching_mode' // Sharing what they know
+  | 'questioning_identity' // Who am I?
+  | 'identity_clarity' // Clear sense of self
+  | 'values_questioning' // What matters?
+  | 'values_clarity'; // Clear values
 
 /** Phase observation */
 export interface PhaseObservation {
   signal: PhaseSignal;
-  strength: number;  // 0-1
+  strength: number; // 0-1
   timestamp: number;
   context?: string;
 }
@@ -95,8 +95,8 @@ export interface PhasePrediction {
   phaseStartEstimate: Date;
   /** Expected remaining duration */
   expectedDuration: {
-    min: number;  // days
-    max: number;  // days
+    min: number; // days
+    max: number; // days
     confidence: number;
   };
   /** Next phase prediction */
@@ -121,9 +121,9 @@ export interface PhasePrediction {
   };
   /** Phase health */
   phaseHealth: {
-    alignment: number;  // 0-1, are they living aligned with the phase?
+    alignment: number; // 0-1, are they living aligned with the phase?
     resistance: number; // 0-1, how much are they fighting the phase?
-    growth: number;     // 0-1, are they using the phase well?
+    growth: number; // 0-1, are they using the phase well?
   };
 }
 
@@ -132,7 +132,7 @@ export interface PhaseTransition {
   fromPhase: LifePhase;
   toPhase: LifePhase;
   timestamp: number;
-  duration: number;  // How long they were in previous phase
+  duration: number; // How long they were in previous phase
   triggers: string[];
   smoothness: 'smooth' | 'turbulent' | 'gradual' | 'sudden';
 }
@@ -150,7 +150,7 @@ interface UserPhaseProfile {
   observations: PhaseObservation[];
   /** Learned phase patterns */
   phasePatterns: {
-    typicalDurations: Map<LifePhase, number>;  // Average days per phase
+    typicalDurations: Map<LifePhase, number>; // Average days per phase
     commonSequences: Array<{ from: LifePhase; to: LifePhase; probability: number }>;
     personalTriggers: Map<LifePhase, string[]>;
   };
@@ -167,7 +167,13 @@ const CONFIG = {
   /** Signal weights for each phase */
   PHASE_SIGNALS: {
     expansion: {
-      positive: ['new_initiatives', 'future_planning', 'energy_increase', 'excitement_increase', 'learning_mode'],
+      positive: [
+        'new_initiatives',
+        'future_planning',
+        'energy_increase',
+        'excitement_increase',
+        'learning_mode',
+      ],
       negative: ['withdrawal', 'routine_stability', 'reflection_increase'],
     },
     consolidation: {
@@ -175,7 +181,12 @@ const CONFIG = {
       negative: ['new_initiatives', 'emotional_volatility', 'overextension'],
     },
     transition: {
-      positive: ['questioning_identity', 'values_questioning', 'reflection_increase', 'routine_disruption'],
+      positive: [
+        'questioning_identity',
+        'values_questioning',
+        'reflection_increase',
+        'routine_disruption',
+      ],
       negative: ['routine_stability', 'identity_clarity', 'completion_focus'],
     },
     recovery: {
@@ -187,11 +198,21 @@ const CONFIG = {
       negative: ['emotional_volatility', 'new_initiatives', 'energy_increase'],
     },
     emergence: {
-      positive: ['questioning_identity', 'future_planning', 'excitement_increase', 'energy_increase'],
+      positive: [
+        'questioning_identity',
+        'future_planning',
+        'excitement_increase',
+        'energy_increase',
+      ],
       negative: ['completion_focus', 'routine_stability'],
     },
     integration: {
-      positive: ['reflection_increase', 'emotional_processing', 'identity_clarity', 'values_clarity'],
+      positive: [
+        'reflection_increase',
+        'emotional_processing',
+        'identity_clarity',
+        'values_clarity',
+      ],
       negative: ['new_initiatives', 'overextension'],
     },
     preparation: {
@@ -203,7 +224,13 @@ const CONFIG = {
       negative: ['emotional_stability', 'sustainable_pace', 'future_planning'],
     },
     flowering: {
-      positive: ['energy_increase', 'teaching_mode', 'identity_clarity', 'values_clarity', 'new_initiatives'],
+      positive: [
+        'energy_increase',
+        'teaching_mode',
+        'identity_clarity',
+        'values_clarity',
+        'new_initiatives',
+      ],
       negative: ['questioning_identity', 'withdrawal', 'grief_presence'],
     },
   } as Record<LifePhase, { positive: PhaseSignal[]; negative: PhaseSignal[] }>,
@@ -318,11 +345,11 @@ export function recordPhaseSignal(
 export function recordConversationPhaseSignals(
   userId: string,
   analysis: {
-    newInitiatives?: number;       // Count of new things mentioned
-    reflectionLevel?: number;       // 0-1
-    futureFocus?: number;           // 0-1
-    emotionalVolatility?: number;   // 0-1
-    energyLevel?: number;           // 0-1
+    newInitiatives?: number; // Count of new things mentioned
+    reflectionLevel?: number; // 0-1
+    futureFocus?: number; // 0-1
+    emotionalVolatility?: number; // 0-1
+    energyLevel?: number; // 0-1
     identityQuestioning?: boolean;
     valuesDiscussion?: boolean;
     griefPresent?: boolean;
@@ -389,19 +416,12 @@ export function recordConversationPhaseSignals(
  * @param phase - Phase to set
  * @param reason - Why this phase
  */
-export function setCurrentPhase(
-  userId: string,
-  phase: LifePhase,
-  reason: string
-): void {
+export function setCurrentPhase(userId: string, phase: LifePhase, reason: string): void {
   const profile = getOrCreateProfile(userId);
 
   if (phase !== profile.currentPhase) {
     transitionPhase(profile, phase);
-    log.info(
-      { userId, phase, reason },
-      '🌙 Phase manually set'
-    );
+    log.info({ userId, phase, reason }, '🌙 Phase manually set');
   }
 }
 
@@ -427,7 +447,7 @@ export function predictPhase(userId: string): PhasePrediction | null {
   // Find top phase
   let topPhase: LifePhase = profile.currentPhase;
   let topScore = 0;
-  
+
   for (const [phase, score] of phaseScores) {
     if (score > topScore) {
       topScore = score;
@@ -533,11 +553,14 @@ export function buildPhaseContext(userId: string): string {
   sections.push('');
 
   // Current phase
-  const phaseDesc = prediction.currentPhase.charAt(0).toUpperCase() + 
+  const phaseDesc =
+    prediction.currentPhase.charAt(0).toUpperCase() +
     prediction.currentPhase.slice(1).replace(/_/g, ' ');
   sections.push(`**Current Phase:** ${phaseDesc}`);
   sections.push(`  Confidence: ${Math.round(prediction.phaseConfidence * 100)}%`);
-  sections.push(`  Started: ~${formatDuration(Date.now() - prediction.phaseStartEstimate.getTime())} ago`);
+  sections.push(
+    `  Started: ~${formatDuration(Date.now() - prediction.phaseStartEstimate.getTime())} ago`
+  );
   sections.push('');
 
   // Phase needs
@@ -556,7 +579,8 @@ export function buildPhaseContext(userId: string): string {
 
   // Next phase
   if (prediction.nextPhase.probability > 0.4) {
-    const nextDesc = prediction.nextPhase.phase.charAt(0).toUpperCase() + 
+    const nextDesc =
+      prediction.nextPhase.phase.charAt(0).toUpperCase() +
       prediction.nextPhase.phase.slice(1).replace(/_/g, ' ');
     sections.push(`**Ahead:** ${nextDesc} phase likely coming (${prediction.nextPhase.timing})`);
     if (prediction.nextPhase.triggers.length > 0) {
@@ -586,7 +610,7 @@ function getOrCreateProfile(userId: string): UserPhaseProfile {
   if (!profile) {
     profile = {
       userId,
-      currentPhase: 'plateau',  // Safe default
+      currentPhase: 'plateau', // Safe default
       phaseStarted: Date.now(),
       phaseHistory: [],
       observations: [],
@@ -615,7 +639,7 @@ function transitionPhase(profile: UserPhaseProfile, newPhase: LifePhase): void {
     toPhase: newPhase,
     timestamp: now,
     duration,
-    triggers: [],  // Could be filled in from recent observations
+    triggers: [], // Could be filled in from recent observations
     smoothness: durationDays < 3 ? 'sudden' : 'gradual',
   });
 
@@ -684,7 +708,7 @@ function calculatePhaseScores(profile: UserPhaseProfile): Map<LifePhase, number>
         currentScore += weight;
       }
       if (signals.negative.includes(obs.signal)) {
-        currentScore -= weight * 0.5;  // Negative signals have less weight
+        currentScore -= weight * 0.5; // Negative signals have less weight
       }
 
       scores.set(typedPhase, currentScore);
@@ -693,7 +717,7 @@ function calculatePhaseScores(profile: UserPhaseProfile): Map<LifePhase, number>
 
   // Bias toward current phase (inertia)
   const currentScore = scores.get(profile.currentPhase) || 0;
-  scores.set(profile.currentPhase, currentScore + 2);  // Phase inertia
+  scores.set(profile.currentPhase, currentScore + 2); // Phase inertia
 
   // Apply personal tendencies
   for (const [phase, tendency] of profile.phaseTendencies) {
@@ -744,9 +768,7 @@ function predictNextPhase(
   currentPhase: LifePhase
 ): PhasePrediction['nextPhase'] {
   // Check personal patterns first
-  const personalSeqs = profile.phasePatterns.commonSequences.filter(
-    (s) => s.from === currentPhase
-  );
+  const personalSeqs = profile.phasePatterns.commonSequences.filter((s) => s.from === currentPhase);
 
   if (personalSeqs.length > 0) {
     const topSeq = personalSeqs.sort((a, b) => b.probability - a.probability)[0];
@@ -764,7 +786,7 @@ function predictNextPhase(
     const topSeq = commonSeqs.sort((a, b) => b.probability - a.probability)[0];
     return {
       phase: topSeq.to,
-      probability: topSeq.probability * 0.8,  // Lower confidence for generic patterns
+      probability: topSeq.probability * 0.8, // Lower confidence for generic patterns
       timing: 'weeks',
       triggers: getCommonTriggers(topSeq.to),
     };
@@ -790,7 +812,11 @@ function getPhaseNeeds(phase: LifePhase): PhasePrediction['phaseNeeds'] {
       support: 'Validation that stabilizing is valuable',
       avoid: 'Pressure to do more, guilt about "not growing"',
       focus: 'Integration, appreciation of gains',
-      commonMistakes: ['Rushing to next thing', 'Dismissing progress', 'Feeling stuck when stabilizing'],
+      commonMistakes: [
+        'Rushing to next thing',
+        'Dismissing progress',
+        'Feeling stuck when stabilizing',
+      ],
     },
     transition: {
       support: 'Patience with uncertainty, presence',
@@ -802,7 +828,11 @@ function getPhaseNeeds(phase: LifePhase): PhasePrediction['phaseNeeds'] {
       support: 'Permission to rest, gentle care',
       avoid: 'Pressure to "get back to normal", minimizing',
       focus: 'Rest, healing, self-compassion',
-      commonMistakes: ['Rushing recovery', 'Guilt about needing time', 'Comparing to pre-difficulty self'],
+      commonMistakes: [
+        'Rushing recovery',
+        'Guilt about needing time',
+        'Comparing to pre-difficulty self',
+      ],
     },
     plateau: {
       support: 'Affirmation that maintenance is success',
@@ -811,7 +841,7 @@ function getPhaseNeeds(phase: LifePhase): PhasePrediction['phaseNeeds'] {
       commonMistakes: ['Forcing growth', 'Boredom-driven changes', 'Dismissing current life'],
     },
     emergence: {
-      support: 'Curiosity about what\'s forming',
+      support: "Curiosity about what's forming",
       avoid: 'Premature commitment, forcing clarity',
       focus: 'Exploration, playing, following interest',
       commonMistakes: ['Committing too early', 'Dismissing new interests', 'Over-analyzing'],
@@ -853,19 +883,20 @@ function calculatePhaseHealth(
   // Alignment: Are their signals consistent with the phase?
   const positiveSignals = activeSignals.filter((s) => s.contribution > 0);
   const negativeSignals = activeSignals.filter((s) => s.contribution < 0);
-  
-  const alignment = activeSignals.length > 0
-    ? positiveSignals.length / (positiveSignals.length + negativeSignals.length)
-    : 0.5;
+
+  const alignment =
+    activeSignals.length > 0
+      ? positiveSignals.length / (positiveSignals.length + negativeSignals.length)
+      : 0.5;
 
   // Resistance: Are they fighting the phase?
   // Look for signals that suggest wanting to be in a different phase
   const resistanceSignals = [
-    'overextension',  // Fighting recovery/plateau
-    'withdrawal',     // Fighting expansion
-    'emotional_volatility',  // Fighting consolidation
+    'overextension', // Fighting recovery/plateau
+    'withdrawal', // Fighting expansion
+    'emotional_volatility', // Fighting consolidation
   ];
-  
+
   const resistanceObs = profile.observations.filter(
     (o) => resistanceSignals.includes(o.signal) && o.strength > 0.6
   );
@@ -878,10 +909,8 @@ function calculatePhaseHealth(
     'identity_clarity',
     'emotional_processing',
   ];
-  
-  const growthObs = profile.observations.filter(
-    (o) => growthSignals.includes(o.signal)
-  );
+
+  const growthObs = profile.observations.filter((o) => growthSignals.includes(o.signal));
   const growth = Math.min(1, growthObs.length * 0.15);
 
   return { alignment, resistance, growth };

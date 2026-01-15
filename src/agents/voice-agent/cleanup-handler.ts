@@ -65,7 +65,7 @@ import { commitmentKeeper } from '../../services/superhuman/commitment-keeper.js
 import { cleanupIntelligenceSession } from '../integrations/unified-intelligence-integration.js';
 
 // Capability learning - track which capabilities resonated
-import { finalizeSessionLearning } from '../../intelligence/capability-learning.js';
+import { finalizeSessionLearning } from '../../intelligence/tracking/capabilities.js';
 import { clearSession as clearHumeSession } from '../../services/emotion-analysis/hume.js';
 
 // FIX AUDIT: Import seed economy from service layer (clean architecture)
@@ -76,6 +76,9 @@ import { clearSessionClosing, markSessionClosing } from '../shared/session-closi
 
 // Developer Platform: Webhook integration for marketplace personas
 import { onSessionEnded as dispatchSessionEndedWebhook } from '../integrations/developer-webhook-integration.js';
+
+// Memory Continuity - Session cache cleanup
+import { clearSessionContinuity } from '../../memory/dynamic/session-continuity-cache.js';
 
 // Event cleanup registry for tracking and cleaning up event handlers
 import { runSessionCleanup as runRegistryCleanup } from '../session/event-cleanup-registry.js';
@@ -474,7 +477,8 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
     userId
       ? (async () => {
           try {
-            const { flushMusicLearning } = await import('../../audio/music-learning-persistence.js');
+            const { flushMusicLearning } =
+              await import('../../audio/music-learning-persistence.js');
             await flushMusicLearning(userId);
             diag.session('🎵 Music learning persisted', { userId });
           } catch (musicErr) {
@@ -766,7 +770,8 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
     userId
       ? (async () => {
           try {
-            const { getLastConversationContext } = await import('../../services/memory/realtime-memory.js');
+            const { getLastConversationContext } =
+              await import('../../services/memory/realtime-memory.js');
             const { saveMemoryDirect } = await import('../../services/unified-memory-service.js');
 
             // Get conversation context for signal extraction
@@ -888,9 +893,7 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
     // Handoff tools session cache cleanup (prevents memory leaks)
     (async () => {
       try {
-        const { clearHandoffToolsCache } = await import(
-          '../../tools/handoff/session-cache.js'
-        );
+        const { clearHandoffToolsCache } = await import('../../tools/handoff/session-cache.js');
         clearHandoffToolsCache(sessionId);
       } catch {
         // Non-critical, ignore
@@ -1063,6 +1066,11 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
       const { clearSpeculativeState } =
         await import('../shared/performance/speculative-preloading.js');
       clearSpeculativeState(sessionId);
+    })(),
+
+    // Memory continuity cache cleanup (Spanner enrichment state)
+    (async () => {
+      clearSessionContinuity(sessionId);
     })(),
 
     // Semantic memory cache cleanup ("Better than Human" memory query caching)
@@ -1272,7 +1280,7 @@ async function cleanupDJIntegration(_services: SessionServices): Promise<void> {
     // The music-user-learning.ts module handles Thompson Sampling for preferences
     // and music-memory-integration.ts handles music helped memories
     // No manual preference merging needed here - it's all automatic now!
-    
+
     diag.session('🎧 DJ Controller cleanup complete');
   } catch (djErr) {
     diag.warn('🎧 DJ summary save failed (non-fatal)', { error: String(djErr) });

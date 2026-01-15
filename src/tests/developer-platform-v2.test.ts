@@ -277,7 +277,12 @@ describe('Developer Platform v2 - Validation Schemas', () => {
             },
           },
           { id: 'active', name: 'Active Path', type: 'webhook', config: { url: 'https://a.com' } },
-          { id: 'inactive', name: 'Inactive Path', type: 'webhook', config: { url: 'https://b.com' } },
+          {
+            id: 'inactive',
+            name: 'Inactive Path',
+            type: 'webhook',
+            config: { url: 'https://b.com' },
+          },
           { id: 'end', name: 'End', type: 'end', config: {} },
         ],
         edges: [
@@ -399,7 +404,11 @@ describe('Developer Platform v2 - Type Definitions', () => {
 
     // Verify MCPTransport includes expected values
     type MCPTransportType = (typeof types)['MCPTransport'];
-    const validTransports: MCPTransportType[] = ['stdio', 'http', 'websocket'] as unknown as MCPTransportType[];
+    const validTransports: MCPTransportType[] = [
+      'stdio',
+      'http',
+      'websocket',
+    ] as unknown as MCPTransportType[];
     expect(validTransports).toBeDefined();
 
     // Verify WebhookEventType includes expected values
@@ -478,21 +487,35 @@ describe('Developer Platform v2 - Middleware', () => {
     const { extractRouteParams } = await import('../api/v2/developers/shared/middleware.js');
 
     // Base path only
-    expect(extractRouteParams('/api/v2/developers/mcp-servers', '/api/v2/developers/mcp-servers')).toEqual({});
+    expect(
+      extractRouteParams('/api/v2/developers/mcp-servers', '/api/v2/developers/mcp-servers')
+    ).toEqual({});
 
     // With ID
-    expect(extractRouteParams('/api/v2/developers/mcp-servers/mcp_123', '/api/v2/developers/mcp-servers')).toEqual({
+    expect(
+      extractRouteParams('/api/v2/developers/mcp-servers/mcp_123', '/api/v2/developers/mcp-servers')
+    ).toEqual({
       id: 'mcp_123',
     });
 
     // With ID and action
-    expect(extractRouteParams('/api/v2/developers/mcp-servers/mcp_123/test', '/api/v2/developers/mcp-servers')).toEqual({
+    expect(
+      extractRouteParams(
+        '/api/v2/developers/mcp-servers/mcp_123/test',
+        '/api/v2/developers/mcp-servers'
+      )
+    ).toEqual({
       id: 'mcp_123',
       action: 'test',
     });
 
     // With ID and nested resource
-    expect(extractRouteParams('/api/v2/developers/mcp-servers/mcp_123/tools', '/api/v2/developers/mcp-servers')).toEqual({
+    expect(
+      extractRouteParams(
+        '/api/v2/developers/mcp-servers/mcp_123/tools',
+        '/api/v2/developers/mcp-servers'
+      )
+    ).toEqual({
       id: 'mcp_123',
       action: 'tools',
     });
@@ -544,7 +567,11 @@ describe('Developer Portal - API Client Compatibility', () => {
 
     // Verify extractRouteParams handles all expected patterns
     const testCases = [
-      { path: '/api/v2/developers/mcp-servers', base: '/api/v2/developers/mcp-servers', expected: {} },
+      {
+        path: '/api/v2/developers/mcp-servers',
+        base: '/api/v2/developers/mcp-servers',
+        expected: {},
+      },
       {
         path: '/api/v2/developers/mcp-servers/mcp_123',
         base: '/api/v2/developers/mcp-servers',

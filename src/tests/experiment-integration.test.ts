@@ -33,7 +33,7 @@ import {
   getAgentEvolution,
   resetAgentEvolution,
   type PersonaExperiment,
-} from '../intelligence/agent-evolution.js';
+} from '../intelligence/collective/agent-evolution.js';
 
 // ============================================================================
 // TEST SETUP

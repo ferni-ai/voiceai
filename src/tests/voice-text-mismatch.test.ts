@@ -12,7 +12,7 @@ import {
   buildMismatchGuidance,
   type MismatchResult,
   type MismatchType,
-} from '../intelligence/voice-text-mismatch.js';
+} from '../intelligence/detectors/voice-mismatch.js';
 
 import type { VoiceEmotionResult } from '../speech/audio-prosody.js';
 

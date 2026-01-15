@@ -6,7 +6,7 @@
  * @module context-builders/core/formatting
  */
 
-import { DISTRESS } from '../../distress-levels.js';
+import { DISTRESS } from '../../detectors/distress.js';
 import type { ConversationAnalysis, ContextInjection, ContextPriority } from './types.js';
 
 // ============================================================================

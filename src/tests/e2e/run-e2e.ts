@@ -301,7 +301,8 @@ const experimentTests: TestSuite = {
     {
       name: 'Create experiment',
       run: async () => {
-        const { getAgentEvolution } = await import('../../intelligence/agent-evolution.js');
+        const { getAgentEvolution } =
+          await import('../../intelligence/collective/agent-evolution.js');
         const evolution = getAgentEvolution();
 
         // Create test experiment

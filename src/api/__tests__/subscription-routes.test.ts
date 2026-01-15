@@ -71,7 +71,8 @@ describe('Subscription Routes API', () => {
 
   describe('GET /api/subscription/status', () => {
     it('should return 401 without authentication', async () => {
-      const { handleSubscriptionRequest, routeSubscriptionRequest } = await import('../subscription-routes.js');
+      const { handleSubscriptionRequest, routeSubscriptionRequest } =
+        await import('../subscription-routes.js');
 
       const ctx = createRequestContext({
         method: 'GET',

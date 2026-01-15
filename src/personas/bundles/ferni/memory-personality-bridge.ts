@@ -15,7 +15,7 @@
 
 import { createLogger } from '../../../utils/safe-logger.js';
 import type { ThemeCategory } from '../../../services/session-variety-tracker.js';
-import type { ProactiveInsight } from '../../../intelligence/superhuman-memory.js';
+import type { ProactiveInsight } from '../../../intelligence/superhuman-memory/index.js';
 
 const log = createLogger({ module: 'memory-personality-bridge' });
 

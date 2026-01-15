@@ -103,8 +103,8 @@ const styles = `
   .superhuman-dashboard-backdrop {
     position: absolute;
     inset: 0;
-    background: rgba(44, 37, 32, 0.75);
-    backdrop-filter: blur(8px);
+    background: var(--backdrop-dark, rgba(44, 37, 32, 0.75));
+    backdrop-filter: var(--glass-blur-heavy, blur(20px));
   }
   
   .superhuman-dashboard {
@@ -115,7 +115,7 @@ const styles = `
     background: var(--color-bg-elevated, #FFFDFB);
     border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
     border-radius: var(--radius-xl, 20px);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+    box-shadow: var(--shadow-2xl, 0 25px 50px -12px rgba(0, 0, 0, 0.25));
     overflow: hidden;
     display: flex;
     flex-direction: column;

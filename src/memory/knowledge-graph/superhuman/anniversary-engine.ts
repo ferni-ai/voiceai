@@ -98,10 +98,7 @@ export class AnniversaryEngine {
   /**
    * Get upcoming anniversaries for a user
    */
-  async getUpcomingAnniversaries(
-    userId: string,
-    daysAhead: number = 30
-  ): Promise<Anniversary[]> {
+  async getUpcomingAnniversaries(userId: string, daysAhead: number = 30): Promise<Anniversary[]> {
     try {
       const anniversaries = await this.loadAnniversaries(userId);
       const now = new Date();
@@ -142,8 +139,7 @@ export class AnniversaryEngine {
         // Check cooldown (don't surface same anniversary too often)
         if (anniversary.lastSurfacedAt) {
           const daysSinceSurfaced = Math.floor(
-            (now.getTime() - new Date(anniversary.lastSurfacedAt).getTime()) /
-              (24 * 60 * 60 * 1000)
+            (now.getTime() - new Date(anniversary.lastSurfacedAt).getTime()) / (24 * 60 * 60 * 1000)
           );
           // Don't surface more than once per week
           if (daysSinceSurfaced < 7) continue;
@@ -179,9 +175,8 @@ export class AnniversaryEngine {
     const detected: Anniversary[] = [];
 
     try {
-      const { getAllEntities, getMentionsForEntity } = await import(
-        '../../entity-store/storage.js'
-      );
+      const { getAllEntities, getMentionsForEntity } =
+        await import('../../entity-store/storage.js');
 
       const entities = await getAllEntities(userId, { limit: 100 });
 
@@ -248,8 +243,7 @@ export class AnniversaryEngine {
         if (!entity.firstMentionedAt) continue;
 
         const daysSinceFirst = Math.floor(
-          (now.getTime() - new Date(entity.firstMentionedAt).getTime()) /
-            (24 * 60 * 60 * 1000)
+          (now.getTime() - new Date(entity.firstMentionedAt).getTime()) / (24 * 60 * 60 * 1000)
         );
 
         // Check for relationship duration milestones
@@ -270,8 +264,7 @@ export class AnniversaryEngine {
               type: 'relationship_duration',
               description: `${milestone.label} of knowing ${entity.canonicalName}`,
               date: new Date(
-                new Date(entity.firstMentionedAt).getTime() +
-                  milestone.days * 24 * 60 * 60 * 1000
+                new Date(entity.firstMentionedAt).getTime() + milestone.days * 24 * 60 * 60 * 1000
               ),
               relatedId: entity.id,
               relatedName: entity.canonicalName,
@@ -294,11 +287,7 @@ export class AnniversaryEngine {
    */
   generateSurfacingPhrase(anniversary: Anniversary, daysUntil: number): string {
     const timePhrase =
-      daysUntil === 0
-        ? "today"
-        : daysUntil === 1
-        ? "tomorrow"
-        : `in ${daysUntil} days`;
+      daysUntil === 0 ? 'today' : daysUntil === 1 ? 'tomorrow' : `in ${daysUntil} days`;
 
     switch (anniversary.type) {
       case 'birthday':
@@ -415,11 +404,7 @@ export class AnniversaryEngine {
     if (!recurring) return date;
 
     const now = new Date();
-    const thisYear = new Date(
-      now.getFullYear(),
-      date.getMonth(),
-      date.getDate()
-    );
+    const thisYear = new Date(now.getFullYear(), date.getMonth(), date.getDate());
 
     if (thisYear >= now) {
       return thisYear;
@@ -474,9 +459,7 @@ export class AnniversaryEngine {
       lowerText.includes('memorial')
     ) {
       // Try to extract date
-      const dateMatch = text.match(
-        /(\d{1,2}[\/\-]\d{1,2}|\w+\s+\d{1,2}(?:st|nd|rd|th)?)/
-      );
+      const dateMatch = text.match(/(\d{1,2}[\/\-]\d{1,2}|\w+\s+\d{1,2}(?:st|nd|rd|th)?)/);
       if (dateMatch) {
         anniversaries.push({
           id: `death-${entity.id}`,
@@ -558,12 +541,12 @@ export class AnniversaryEngine {
   private getSuggestionForConversationMilestone(count: number): string {
     if (count === 10) return "We're getting to know each other!";
     if (count === 25) return "You're becoming a regular. I appreciate our talks.";
-    if (count === 50) return "Fifty conversations! We have quite a history now.";
-    if (count === 100) return "One hundred conversations. I feel like I truly know you.";
+    if (count === 50) return 'Fifty conversations! We have quite a history now.';
+    if (count === 100) return 'One hundred conversations. I feel like I truly know you.';
     if (count === 250) return "Two hundred fifty! You're one of my favorite people.";
     if (count === 500) return "Five hundred conversations. We've been through a lot together.";
-    if (count === 1000) return "A thousand conversations! This is a real relationship.";
-    return "This is a milestone worth celebrating!";
+    if (count === 1000) return 'A thousand conversations! This is a real relationship.';
+    return 'This is a milestone worth celebrating!';
   }
 }
 

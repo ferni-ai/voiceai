@@ -47,12 +47,12 @@ export interface WorkflowTemplate {
   description: string;
   category: TemplateCategory;
   icon: string;
-  
+
   // The workflow definition
   trigger: WorkflowTrigger;
   conditions: WorkflowCondition[];
   actions: WorkflowAction[];
-  
+
   // Customization options
   variables: Array<{
     name: string;
@@ -62,13 +62,13 @@ export interface WorkflowTemplate {
     defaultValue: unknown;
     required: boolean;
   }>;
-  
+
   // Template metadata
   estimatedTimeToSetup: string; // e.g., "2 minutes"
   tags: string[];
   popularity: number;
   featured: boolean;
-  
+
   // Requirements
   requiredIntegrations: string[];
   requiredPermissions: string[];
@@ -85,7 +85,8 @@ const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
   {
     id: 'morning-briefing',
     name: 'Good morning check-in',
-    description: 'I\'ll greet you each morning with weather, what\'s on your calendar, and a little encouragement',
+    description:
+      "I'll greet you each morning with weather, what's on your calendar, and a little encouragement",
     category: 'morning_routine',
     icon: '🌅',
     trigger: {
@@ -119,7 +120,7 @@ const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
         name: 'wakeTime',
         type: 'time',
         label: 'When do you usually wake up?',
-        description: 'I\'ll be there to greet you',
+        description: "I'll be there to greet you",
         defaultValue: '07:00',
         required: true,
       },
@@ -188,7 +189,7 @@ const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
   {
     id: 'meeting-prep',
     name: 'Heads up before meetings',
-    description: 'I\'ll give you a quick heads up before your meetings so you feel prepared',
+    description: "I'll give you a quick heads up before your meetings so you feel prepared",
     category: 'work_productivity',
     icon: '💭',
     trigger: {
@@ -231,7 +232,7 @@ const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
   {
     id: 'focus-time',
     name: 'Protect your focus',
-    description: 'When you need to concentrate, I\'ll help you stay undisturbed',
+    description: "When you need to concentrate, I'll help you stay undisturbed",
     category: 'work_productivity',
     icon: '🎯',
     trigger: {
@@ -245,7 +246,7 @@ const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
         id: 'a1',
         type: 'speak_message',
         name: 'Focus time started',
-        params: { message: 'Focus time. I\'ve got your back - notifications silenced.' },
+        params: { message: "Focus time. I've got your back - notifications silenced." },
       },
       {
         id: 'a2',
@@ -312,7 +313,7 @@ const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
   {
     id: 'posture-check',
     name: 'Body check-in',
-    description: 'A moment to notice how you\'re holding yourself',
+    description: "A moment to notice how you're holding yourself",
     category: 'health_fitness',
     icon: '🌿',
     trigger: {
@@ -326,7 +327,9 @@ const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
         id: 'a1',
         type: 'speak_message',
         name: 'Body check-in',
-        params: { message: 'Quick body check - how are you sitting? Take a breath. Roll your shoulders.' },
+        params: {
+          message: 'Quick body check - how are you sitting? Take a breath. Roll your shoulders.',
+        },
       },
     ],
     variables: [],
@@ -344,7 +347,7 @@ const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
   {
     id: 'arrive-home',
     name: 'Welcome home',
-    description: 'I\'ll make sure your home is ready for you when you arrive',
+    description: "I'll make sure your home is ready for you when you arrive",
     category: 'home_automation',
     icon: '🏠',
     trigger: {
@@ -371,14 +374,14 @@ const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
         id: 'a3',
         type: 'speak_message',
         name: 'Welcome home',
-        params: { message: 'Welcome home. I\'ve got everything warmed up for you.' },
+        params: { message: "Welcome home. I've got everything warmed up for you." },
       },
     ],
     variables: [
       {
         name: 'homeLocation',
         type: 'location',
-        label: 'Where\'s home?',
+        label: "Where's home?",
         defaultValue: null,
         required: true,
       },
@@ -401,7 +404,7 @@ const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
   {
     id: 'bedtime-routine',
     name: 'Wind-down ritual',
-    description: 'I\'ll help you transition to rest with soft lights and calm',
+    description: "I'll help you transition to rest with soft lights and calm",
     category: 'evening_routine',
     icon: '🌙',
     trigger: {
@@ -460,7 +463,7 @@ const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
   {
     id: 'commute-traffic',
     name: 'Beat the traffic',
-    description: 'I\'ll let you know when to leave so you don\'t hit traffic',
+    description: "I'll let you know when to leave so you don't hit traffic",
     category: 'travel',
     icon: '🚗',
     trigger: {
@@ -480,7 +483,10 @@ const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
         id: 'a2',
         type: 'speak_message',
         name: 'Traffic update',
-        params: { message: 'Heads up - traffic looks {{trafficCondition}}. Leave by {{suggestedDeparture}} to get there on time.' },
+        params: {
+          message:
+            'Heads up - traffic looks {{trafficCondition}}. Leave by {{suggestedDeparture}} to get there on time.',
+        },
       },
     ],
     variables: [
@@ -520,7 +526,7 @@ const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
   {
     id: 'subscription-review',
     name: 'Monthly money check',
-    description: 'Once a month, I\'ll remind you to peek at your subscriptions',
+    description: "Once a month, I'll remind you to peek at your subscriptions",
     category: 'financial',
     icon: '💰',
     trigger: {
@@ -540,7 +546,10 @@ const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
         id: 'a2',
         type: 'speak_message',
         name: 'Subscription summary',
-        params: { message: 'It\'s the first of the month. You have {{count}} subscriptions adding up to {{total}} a month. Worth a quick look?' },
+        params: {
+          message:
+            "It's the first of the month. You have {{count}} subscriptions adding up to {{total}} a month. Worth a quick look?",
+        },
       },
     ],
     variables: [],
@@ -572,7 +581,9 @@ const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
         id: 'a1',
         type: 'speak_message',
         name: 'Gratitude prompt',
-        params: { message: 'Before the day ends... what made you smile today? Even something small counts.' },
+        params: {
+          message: 'Before the day ends... what made you smile today? Even something small counts.',
+        },
       },
     ],
     variables: [
@@ -610,7 +621,10 @@ const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
         id: 'a1',
         type: 'speak_message',
         name: 'Reflection prompt',
-        params: { message: 'Hey. It\'s Sunday evening. Want to spend a few minutes looking back at this week? What felt good? What do you want more of next week?' },
+        params: {
+          message:
+            "Hey. It's Sunday evening. Want to spend a few minutes looking back at this week? What felt good? What do you want more of next week?",
+        },
       },
     ],
     variables: [
@@ -634,7 +648,7 @@ const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
   {
     id: 'breathing-break',
     name: 'Breathing break',
-    description: 'A quick reminder to pause and breathe - you\'ll be surprised how much it helps',
+    description: "A quick reminder to pause and breathe - you'll be surprised how much it helps",
     category: 'health_fitness',
     icon: '🌬️',
     trigger: {
@@ -648,7 +662,10 @@ const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
         id: 'a1',
         type: 'speak_message',
         name: 'Breathing prompt',
-        params: { message: 'Quick breathing break? Just 3 deep breaths. Breathe in... hold... breathe out. You\'ve got this.' },
+        params: {
+          message:
+            "Quick breathing break? Just 3 deep breaths. Breathe in... hold... breathe out. You've got this.",
+        },
       },
     ],
     variables: [
@@ -686,7 +703,10 @@ const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
         id: 'a1',
         type: 'speak_message',
         name: 'Morning affirmation',
-        params: { message: 'Hey {{name}}. Just wanted to remind you: you\'re doing better than you think. Today\'s going to be good.' },
+        params: {
+          message:
+            "Hey {{name}}. Just wanted to remind you: you're doing better than you think. Today's going to be good.",
+        },
       },
     ],
     variables: [
@@ -730,7 +750,10 @@ const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
         id: 'a1',
         type: 'speak_message',
         name: 'Connection prompt',
-        params: { message: 'It\'s been a while since you reached out to someone. Maybe a quick text to check in? Often the people we care about are just waiting for a reason to talk.' },
+        params: {
+          message:
+            "It's been a while since you reached out to someone. Maybe a quick text to check in? Often the people we care about are just waiting for a reason to talk.",
+        },
       },
     ],
     variables: [],
@@ -759,7 +782,10 @@ const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
         id: 'a1',
         type: 'speak_message',
         name: 'Intention prompt',
-        params: { message: 'Good morning. Before the day takes over... what\'s one thing you want to make sure happens today?' },
+        params: {
+          message:
+            "Good morning. Before the day takes over... what's one thing you want to make sure happens today?",
+        },
       },
     ],
     variables: [
@@ -797,7 +823,10 @@ const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
         id: 'a1',
         type: 'speak_message',
         name: 'Screen break',
-        params: { message: 'Quick screen break? Look at something 20 feet away for 20 seconds. Your eyes have been working hard.' },
+        params: {
+          message:
+            'Quick screen break? Look at something 20 feet away for 20 seconds. Your eyes have been working hard.',
+        },
       },
     ],
     variables: [],
@@ -812,7 +841,7 @@ const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
   {
     id: 'celebration-reminder',
     name: 'Small wins tracker',
-    description: 'At the end of each day, I\'ll help you notice what you accomplished',
+    description: "At the end of each day, I'll help you notice what you accomplished",
     category: 'evening_routine',
     icon: '🎉',
     trigger: {
@@ -826,7 +855,10 @@ const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
         id: 'a1',
         type: 'speak_message',
         name: 'Celebration prompt',
-        params: { message: 'Day\'s wrapping up. What\'s one thing you did today that you feel good about? Even finishing that one email counts.' },
+        params: {
+          message:
+            "Day's wrapping up. What's one thing you did today that you feel good about? Even finishing that one email counts.",
+        },
       },
     ],
     variables: [
@@ -852,7 +884,7 @@ const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
   {
     id: 'habit-streak-celebration',
     name: 'Celebrate your streaks',
-    description: 'When you hit a 7-day streak on any habit, I\'ll celebrate with you',
+    description: "When you hit a 7-day streak on any habit, I'll celebrate with you",
     category: 'health_fitness',
     icon: '🔥',
     trigger: {
@@ -866,7 +898,10 @@ const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
         id: 'a1',
         type: 'speak_message',
         name: 'Celebrate streak',
-        params: { message: '🔥 You just hit a {{streak}}-day streak on {{habitName}}! That\'s real commitment showing.' },
+        params: {
+          message:
+            "🔥 You just hit a {{streak}}-day streak on {{habitName}}! That's real commitment showing.",
+        },
       },
       {
         id: 'a2',
@@ -901,7 +936,7 @@ const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
         id: 'a1',
         type: 'speak_message',
         name: 'Encourage',
-        params: { message: 'Nice! {{habitName}} logged. That\'s {{streak}} days in a row now.' },
+        params: { message: "Nice! {{habitName}} logged. That's {{streak}} days in a row now." },
       },
     ],
     variables: [],
@@ -916,7 +951,7 @@ const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
   {
     id: 'meeting-prep',
     name: 'Meeting prep reminder',
-    description: 'I\'ll remind you 15 minutes before calendar events to get ready',
+    description: "I'll remind you 15 minutes before calendar events to get ready",
     category: 'work_productivity',
     icon: '📅',
     trigger: {
@@ -930,7 +965,9 @@ const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
         id: 'a1',
         type: 'speak_message',
         name: 'Prep reminder',
-        params: { message: 'Heads up - you have "{{eventTitle}}" in 15 minutes. Anything you need to prep?' },
+        params: {
+          message: 'Heads up - you have "{{eventTitle}}" in 15 minutes. Anything you need to prep?',
+        },
       },
     ],
     variables: [
@@ -954,7 +991,7 @@ const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
   {
     id: 'location-home-arrival',
     name: 'Home arrival wind-down',
-    description: 'When you arrive home, I\'ll check in and help you transition',
+    description: "When you arrive home, I'll check in and help you transition",
     category: 'evening_routine',
     icon: '🏠',
     trigger: {
@@ -969,7 +1006,9 @@ const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
         id: 'a1',
         type: 'speak_message',
         name: 'Home greeting',
-        params: { message: 'Welcome home. How was your day? Anything you want to leave at the door?' },
+        params: {
+          message: 'Welcome home. How was your day? Anything you want to leave at the door?',
+        },
       },
     ],
     variables: [
@@ -993,7 +1032,7 @@ const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
   {
     id: 'location-work-focus',
     name: 'Work arrival focus mode',
-    description: 'When you arrive at work, I\'ll help you get into focus mode',
+    description: "When you arrive at work, I'll help you get into focus mode",
     category: 'work_productivity',
     icon: '💼',
     trigger: {
@@ -1008,7 +1047,9 @@ const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
         id: 'a1',
         type: 'speak_message',
         name: 'Work focus',
-        params: { message: 'You\'re at work. What\'s the one thing that would make today successful?' },
+        params: {
+          message: "You're at work. What's the one thing that would make today successful?",
+        },
       },
     ],
     variables: [
@@ -1178,10 +1219,7 @@ export class TemplateLibrary {
       if (typeof value === 'string') {
         result[key] = this.interpolateString(value, variables);
       } else if (typeof value === 'object' && value !== null) {
-        result[key] = this.applyVariablesToObject(
-          value as Record<string, unknown>,
-          variables
-        );
+        result[key] = this.applyVariablesToObject(value as Record<string, unknown>, variables);
       } else {
         result[key] = value;
       }
@@ -1193,10 +1231,7 @@ export class TemplateLibrary {
   /**
    * Interpolate variables in a string
    */
-  private interpolateString(
-    str: string,
-    variables: Record<string, unknown>
-  ): string {
+  private interpolateString(str: string, variables: Record<string, unknown>): string {
     return str.replace(/\{\{(\w+)\}\}/g, (_, name) => {
       const value = variables[name];
       return value !== undefined ? String(value) : `{{${name}}}`;

@@ -9,7 +9,10 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import { getMealPlanner, resetMealPlanner } from '../../services/meals/meal-planner.js';
-import { getWorkflowEngine, resetWorkflowEngine } from '../../services/workflows/workflow-engine.js';
+import {
+  getWorkflowEngine,
+  resetWorkflowEngine,
+} from '../../services/workflows/workflow-engine.js';
 import {
   addRecipe,
   saveMealData,
@@ -349,7 +352,7 @@ describe('Document Management Integration', () => {
       const today = new Date();
       const futureDate = new Date(today);
       futureDate.setDate(futureDate.getDate() + 15);
-      
+
       const farFutureDate = new Date(today);
       farFutureDate.setDate(farFutureDate.getDate() + 90);
 
@@ -399,7 +402,7 @@ describe('Cross-Service Integration', () => {
   beforeEach(async () => {
     resetMealPlanner(testUserId);
     resetWorkflowEngine(testUserId);
-    
+
     await saveMealData(testUserId, {
       recipes: [],
       mealPlans: [],

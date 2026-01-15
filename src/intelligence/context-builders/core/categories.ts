@@ -242,6 +242,9 @@ export const BUILDER_CATEGORIES: Record<string, BuilderCategory> = {
   'macos-context': BuilderCategory.EXTERNAL,
   'message-review-awareness': BuilderCategory.EXTERNAL,
   'outreach-awareness': BuilderCategory.EXTERNAL,
+  'family-connection-nudge': BuilderCategory.EXTERNAL, // Superhuman: Notice when family need attention
+  'special-dates-awareness': BuilderCategory.EXTERNAL, // Superhuman: Birthday/anniversary awareness
+  'best-time-awareness': BuilderCategory.EXTERNAL, // Superhuman: Best times to reach contacts
 
   // HUMANIZING
   humanizing: BuilderCategory.HUMANIZING,

@@ -6,21 +6,9 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import {
-  ActionTracker,
-  getActionTracker,
-  resetActionTracker,
-} from '../tracker.js';
-import type {
-  FerniAction,
-  CreateActionOptions,
-  ActionFilter,
-} from '../types.js';
-import {
-  isTrackableTool,
-  getActionTypeForTool,
-  TRACKABLE_TOOLS,
-} from '../types.js';
+import { ActionTracker, getActionTracker, resetActionTracker } from '../tracker.js';
+import type { FerniAction, CreateActionOptions, ActionFilter } from '../types.js';
+import { isTrackableTool, getActionTypeForTool, TRACKABLE_TOOLS } from '../types.js';
 
 // Mock Firestore to disable persistence for unit tests
 vi.mock('../../superhuman/firestore-utils.js', () => ({

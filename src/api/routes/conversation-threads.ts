@@ -209,9 +209,8 @@ async function deleteThread(userId: string, threadId: string): Promise<boolean> 
 async function extractThreadsFromHistory(userId: string): Promise<ConversationThread[]> {
   try {
     // Get conversation history
-    const { getConversationHistoryService } = await import(
-      '../../services/stores/conversation-history.js'
-    );
+    const { getConversationHistoryService } =
+      await import('../../services/stores/conversation-history.js');
     const historyService = getConversationHistoryService();
     const history = await historyService.getHistory(userId, 50);
 
@@ -304,9 +303,7 @@ export async function handleGetThreads(
     }
 
     // Sort by updatedAt descending (already sorted by Firestore, but ensure consistency)
-    threads.sort((a, b) =>
-      new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
-    );
+    threads.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
 
     // Limit
     threads = threads.slice(0, limit);

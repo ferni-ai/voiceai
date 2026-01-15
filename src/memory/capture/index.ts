@@ -49,7 +49,10 @@ import {
 } from '../dynamic/fast-capture.js';
 import { recordTurn } from '../dynamic/stm-buffer.js';
 import { isEntityStoreReady, capturePersonEntity } from '../entity-store/integration.js';
-import type { CaptureContext, CaptureResult as EntityCaptureResult } from '../entity-store/types.js';
+import type {
+  CaptureContext,
+  CaptureResult as EntityCaptureResult,
+} from '../entity-store/types.js';
 
 const log = createLogger({ module: 'CaptureService' });
 
@@ -131,13 +134,7 @@ export async function captureTurnUnified(input: CaptureInput): Promise<CaptureRe
   // 2. Record to STM (Short-Term Memory buffer)
   let stmRecorded = false;
   try {
-    recordTurn(
-      input.sessionId,
-      input.userId,
-      fastResult,
-      input.transcript,
-      input.turnNumber
-    );
+    recordTurn(input.sessionId, input.userId, fastResult, input.transcript, input.turnNumber);
     stmRecorded = true;
   } catch (error) {
     log.warn({ error: String(error) }, 'Failed to record turn to STM');
@@ -146,9 +143,7 @@ export async function captureTurnUnified(input: CaptureInput): Promise<CaptureRe
   // 3. Capture person entities to entity store (if mentioned)
   const entityResults: EntityCaptureResult[] = [];
   if (isEntityStoreReady() && fastResult.mentionedEntities.length > 0) {
-    const personMentions = fastResult.mentionedEntities.filter(
-      (e) => e.type === 'person'
-    );
+    const personMentions = fastResult.mentionedEntities.filter((e) => e.type === 'person');
 
     const context: CaptureContext = {
       conversationId: input.sessionId,

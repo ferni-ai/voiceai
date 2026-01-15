@@ -25,27 +25,27 @@ const log = createLogger({ module: 'insight-gen:dream' });
 const DREAM_TEMPLATES = {
   dormant: [
     "You mentioned {dream} {timeAgo} with such excitement. I haven't heard about it since. Is it still calling to you?",
-    "I remember when you talked about {dream}. That dream went quiet. Sometimes life gets in the way, sometimes the dream changes. Which is it?",
+    'I remember when you talked about {dream}. That dream went quiet. Sometimes life gets in the way, sometimes the dream changes. Which is it?',
     "{dream} hasn't come up in a while. You were so lit up about it {timeAgo}. Where does it stand now?",
   ],
   fading: [
-    "The energy around {dream} seems different. You used to mention it often, now not so much. What shifted?",
-    "{dream} used to be a big part of what you imagined for yourself. Has that changed, or is it just buried?",
-    "I notice {dream} fading from our conversations. Is it still something you want, or has it transformed?",
+    'The energy around {dream} seems different. You used to mention it often, now not so much. What shifted?',
+    '{dream} used to be a big part of what you imagined for yourself. Has that changed, or is it just buried?',
+    'I notice {dream} fading from our conversations. Is it still something you want, or has it transformed?',
   ],
   reignite: [
     "I want to gently bring up {dream}. Remember that spark? It's worth checking if it's still there.",
-    "Something you said {timeAgo} about {dream} stuck with me. I wonder if that still resonates.",
-    "Can we revisit {dream}? It seemed important to you once. Important things deserve revisiting.",
+    'Something you said {timeAgo} about {dream} stuck with me. I wonder if that still resonates.',
+    'Can we revisit {dream}? It seemed important to you once. Important things deserve revisiting.',
   ],
   celebrate_progress: [
-    "I remember when {dream} was just an idea. Look where you are with it now!",
+    'I remember when {dream} was just an idea. Look where you are with it now!',
     "You've actually been moving on {dream}. From a quiet wish to real steps. That's worth noting.",
-    "{dream} is happening. Remember when it felt far away?",
+    '{dream} is happening. Remember when it felt far away?',
   ],
   new_spark: [
     "I'm noticing new energy around {dream}. Tell me more about what's drawing you there.",
-    "Something new is sparking: {dream}. Your voice shifts when you talk about it.",
+    'Something new is sparking: {dream}. Your voice shifts when you talk about it.',
     "This one feels fresh—{dream}. What's making you curious about this?",
   ],
 };
@@ -82,7 +82,10 @@ async function fetchDreamData(userId: string): Promise<DreamData[]> {
     const activeMatch = dreamContext.match(/Active dreams?:\s*([^\n]+)/i);
 
     if (dormantMatch) {
-      const dormantDreams = dormantMatch[1].split(/[,;]/).map((d) => d.trim()).filter(Boolean);
+      const dormantDreams = dormantMatch[1]
+        .split(/[,;]/)
+        .map((d) => d.trim())
+        .filter(Boolean);
 
       for (const dream of dormantDreams) {
         if (dream.length > 3) {
@@ -106,7 +109,10 @@ async function fetchDreamData(userId: string): Promise<DreamData[]> {
     }
 
     if (activeMatch) {
-      const activeDreams = activeMatch[1].split(/[,;]/).map((d) => d.trim()).filter(Boolean);
+      const activeDreams = activeMatch[1]
+        .split(/[,;]/)
+        .map((d) => d.trim())
+        .filter(Boolean);
 
       for (const dream of activeDreams) {
         if (dream.length > 3) {
@@ -203,7 +209,8 @@ function buildDreamInsight(dream: DreamData, userId: string): GeneratedInsight |
     userId,
     category: 'dream_decay',
     priority: dream.status === 'dormant' && dream.daysSilent > 60 ? 'medium' : 'low',
-    headline: dream.status === 'dormant' ? `"${dream.dream}" went quiet` : `Progress on "${dream.dream}"`,
+    headline:
+      dream.status === 'dormant' ? `"${dream.dream}" went quiet` : `Progress on "${dream.dream}"`,
     message,
     evidence: [
       `First mentioned: ${timeAgo}`,

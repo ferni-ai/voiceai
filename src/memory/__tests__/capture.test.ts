@@ -141,12 +141,8 @@ describe('Capture Module', () => {
 
   describe('STM Buffer re-exports', () => {
     it('should re-export STM buffer functions', async () => {
-      const {
-        recordTurn,
-        getSTMBuffer,
-        wasEntityMentioned,
-        buildSTMContext,
-      } = await import('../capture/index.js');
+      const { recordTurn, getSTMBuffer, wasEntityMentioned, buildSTMContext } =
+        await import('../capture/index.js');
 
       expect(typeof recordTurn).toBe('function');
       expect(typeof getSTMBuffer).toBe('function');

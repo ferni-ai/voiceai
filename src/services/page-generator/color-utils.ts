@@ -45,11 +45,7 @@ export function hexToRgba(hex: string, alpha: number): string {
 /**
  * Convert RGB to HSL
  */
-export function rgbToHsl(
-  r: number,
-  g: number,
-  b: number
-): { h: number; s: number; l: number } {
+export function rgbToHsl(r: number, g: number, b: number): { h: number; s: number; l: number } {
   r /= 255;
   g /= 255;
   b /= 255;
@@ -84,11 +80,7 @@ export function rgbToHsl(
 /**
  * Convert HSL to RGB
  */
-export function hslToRgb(
-  h: number,
-  s: number,
-  l: number
-): { r: number; g: number; b: number } {
+export function hslToRgb(h: number, s: number, l: number): { r: number; g: number; b: number } {
   h /= 360;
   s /= 100;
   l /= 100;
@@ -172,10 +164,7 @@ export function deriveSecondaryColor(primary: string): string {
 /**
  * Derive all brand colors from a primary color
  */
-export function deriveBrandColors(
-  primary: string,
-  secondary?: string
-): DerivedBrandColors {
+export function deriveBrandColors(primary: string, secondary?: string): DerivedBrandColors {
   const derivedSecondary = secondary || deriveSecondaryColor(primary);
 
   return {
@@ -190,10 +179,7 @@ export function deriveBrandColors(
 /**
  * Generate persona CSS block from brand colors
  */
-export function generatePersonaCss(
-  personaId: string,
-  colors: DerivedBrandColors
-): string {
+export function generatePersonaCss(personaId: string, colors: DerivedBrandColors): string {
   return `
     /* ${personaId} persona theme */
     [data-persona="${personaId}"] {

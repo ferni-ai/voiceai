@@ -615,8 +615,7 @@ export async function getEmotionalContext(userId: string): Promise<EmotionalCont
       switch (dominantArc.trend) {
         case 'rising':
           // Rising intensity with negative valence = declining emotional state
-          const avgValence =
-            dominantArc.waypoints.slice(-3).reduce((a, b) => a + b.valence, 0) / 3;
+          const avgValence = dominantArc.waypoints.slice(-3).reduce((a, b) => a + b.valence, 0) / 3;
           trend = avgValence < 0 ? 'declining' : 'stable';
           break;
         case 'falling':

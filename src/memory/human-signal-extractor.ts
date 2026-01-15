@@ -82,11 +82,17 @@ const DATE_PATTERNS = [
   { pattern: /(?:i|we) (?:turn|turned) (\d+) (?:on|in) (\w+)/i, type: 'birthday' as const },
   { pattern: /born (?:on |in )(\w+ \d+|\d+\/\d+)/i, type: 'birthday' as const },
   // Family birthdays: "my mom's birthday is June 15"
-  { pattern: /(?:my |our )(\w+)'s birthday is (on )?(\w+ \d+|\d+\/\d+)/i, type: 'birthday' as const },
+  {
+    pattern: /(?:my |our )(\w+)'s birthday is (on )?(\w+ \d+|\d+\/\d+)/i,
+    type: 'birthday' as const,
+  },
   // Friend birthdays: "Sarah's birthday is next week"
   { pattern: /(\w+)'s birthday is (on )?(\w+ \d+|\d+\/\d+|next \w+)/i, type: 'birthday' as const },
   // Kid birthdays: "my son turns 5 in March"
-  { pattern: /(?:my |our )(?:son|daughter|kid|child) (?:turns|is turning) (\d+) (?:on|in) (\w+)/i, type: 'birthday' as const },
+  {
+    pattern: /(?:my |our )(?:son|daughter|kid|child) (?:turns|is turning) (\d+) (?:on|in) (\w+)/i,
+    type: 'birthday' as const,
+  },
 
   // ═══════════════════════════════════════════════════════════════════════════
   // ANNIVERSARIES - Marriage and relationships
@@ -95,9 +101,15 @@ const DATE_PATTERNS = [
   { pattern: /(?:married|got married) (?:on |in )(\w+ \d+|\d{4})/i, type: 'anniversary' as const },
   { pattern: /(\d+) years? (?:married|together)/i, type: 'anniversary' as const },
   // Dating anniversary: "we've been together since 2019"
-  { pattern: /(?:been|started) (?:together|dating) (?:since|in) (\w+ \d+|\d{4})/i, type: 'anniversary' as const },
+  {
+    pattern: /(?:been|started) (?:together|dating) (?:since|in) (\w+ \d+|\d{4})/i,
+    type: 'anniversary' as const,
+  },
   // Wedding date: "our wedding was on June 20"
-  { pattern: /(?:our |the )wedding (?:was|is) (?:on |in )(\w+ \d+|\d{4})/i, type: 'anniversary' as const },
+  {
+    pattern: /(?:our |the )wedding (?:was|is) (?:on |in )(\w+ \d+|\d{4})/i,
+    type: 'anniversary' as const,
+  },
 
   // ═══════════════════════════════════════════════════════════════════════════
   // LOSS ANNIVERSARIES - Sensitive and important
@@ -140,19 +152,31 @@ const DATE_PATTERNS = [
   // Recovery: "clean since January 2020"
   { pattern: /(?:clean|sober) since (\w+ \d+|\d{4})/i, type: 'milestone' as const },
   // Health: "cancer-free for 2 years"
-  { pattern: /(?:cancer-free|in remission) (?:for |since )(\d+) (?:years?|months?)/i, type: 'milestone' as const },
+  {
+    pattern: /(?:cancer-free|in remission) (?:for |since )(\d+) (?:years?|months?)/i,
+    type: 'milestone' as const,
+  },
 
   // ═══════════════════════════════════════════════════════════════════════════
   // CAREER DATES - Work milestones (mapped to 'milestone' or 'recurring')
   // ═══════════════════════════════════════════════════════════════════════════
   // Start date: "I started at Google in 2020"
-  { pattern: /started (?:at |working at )?(?:\w+) (?:in |on )(\w+ \d+|\d{4})/i, type: 'milestone' as const },
+  {
+    pattern: /started (?:at |working at )?(?:\w+) (?:in |on )(\w+ \d+|\d{4})/i,
+    type: 'milestone' as const,
+  },
   // Work anniversary: "my work anniversary is March 1"
-  { pattern: /(?:work|job) anniversary (?:is |on )(\w+ \d+|\d+\/\d+)/i, type: 'recurring' as const },
+  {
+    pattern: /(?:work|job) anniversary (?:is |on )(\w+ \d+|\d+\/\d+)/i,
+    type: 'recurring' as const,
+  },
   // Retirement: "retiring in June"
   { pattern: /(?:retir(?:ing|e)) (?:in |on )(\w+ \d+|\d{4})/i, type: 'milestone' as const },
   // Promotion: "got promoted last month"
-  { pattern: /(?:got |was )promoted (?:in |on |last )(\w+ \d+|\d{4}|\w+)/i, type: 'celebration' as const },
+  {
+    pattern: /(?:got |was )promoted (?:in |on |last )(\w+ \d+|\d{4}|\w+)/i,
+    type: 'celebration' as const,
+  },
 
   // ═══════════════════════════════════════════════════════════════════════════
   // EDUCATION DATES - Academic milestones (mapped to 'celebration' or 'milestone')
@@ -160,27 +184,51 @@ const DATE_PATTERNS = [
   // Graduation: "graduating in May 2026"
   { pattern: /graduat(?:ed|ing|e) (?:in |on )(\w+ \d+|\d{4})/i, type: 'celebration' as const },
   // Starting school: "starts kindergarten in September"
-  { pattern: /(?:start(?:s|ed|ing)) (?:school|college|university|kindergarten) (?:in |on )(\w+ \d+|\d{4})/i, type: 'milestone' as const },
+  {
+    pattern:
+      /(?:start(?:s|ed|ing)) (?:school|college|university|kindergarten) (?:in |on )(\w+ \d+|\d{4})/i,
+    type: 'milestone' as const,
+  },
 
   // ═══════════════════════════════════════════════════════════════════════════
   // MEDICAL DATES - Health appointments (mapped to 'custom')
   // ═══════════════════════════════════════════════════════════════════════════
   // Surgery: "surgery scheduled for next Monday"
-  { pattern: /surgery (?:scheduled |is )?(?:for |on )(\w+ \d+|next \w+)/i, type: 'custom' as const },
+  {
+    pattern: /surgery (?:scheduled |is )?(?:for |on )(\w+ \d+|next \w+)/i,
+    type: 'custom' as const,
+  },
   // Doctor appointment: "doctor's appointment on Tuesday"
-  { pattern: /(?:doctor|therapist|dentist)(?:'s)? appointment (?:on |is |scheduled )?(\w+ \d+|next \w+|this \w+)/i, type: 'custom' as const },
+  {
+    pattern:
+      /(?:doctor|therapist|dentist)(?:'s)? appointment (?:on |is |scheduled )?(\w+ \d+|next \w+|this \w+)/i,
+    type: 'custom' as const,
+  },
   // Due date: "baby due in March"
-  { pattern: /(?:baby |due date |due )(?:is |in |on )(\w+ \d+|\d{4})/i, type: 'celebration' as const },
+  {
+    pattern: /(?:baby |due date |due )(?:is |in |on )(\w+ \d+|\d{4})/i,
+    type: 'celebration' as const,
+  },
 
   // ═══════════════════════════════════════════════════════════════════════════
   // TRAVEL & EVENTS - Upcoming plans (mapped to 'custom')
   // ═══════════════════════════════════════════════════════════════════════════
   // Trip: "trip to Hawaii in June"
-  { pattern: /(?:trip|vacation|holiday) (?:to \w+ )?(?:in |on |scheduled )(\w+ \d+|\d{4}|next \w+)/i, type: 'custom' as const },
+  {
+    pattern:
+      /(?:trip|vacation|holiday) (?:to \w+ )?(?:in |on |scheduled )(\w+ \d+|\d{4}|next \w+)/i,
+    type: 'custom' as const,
+  },
   // Event: "the wedding is on June 20"
-  { pattern: /(?:the |my |our )(?:wedding|party|reunion|conference) (?:is |on )(\w+ \d+|\d{4})/i, type: 'celebration' as const },
+  {
+    pattern: /(?:the |my |our )(?:wedding|party|reunion|conference) (?:is |on )(\w+ \d+|\d{4})/i,
+    type: 'celebration' as const,
+  },
   // Moving: "moving to Chicago in August"
-  { pattern: /(?:moving|move) (?:to \w+ )?(?:in |on )(\w+ \d+|\d{4})/i, type: 'milestone' as const },
+  {
+    pattern: /(?:moving|move) (?:to \w+ )?(?:in |on )(\w+ \d+|\d{4})/i,
+    type: 'milestone' as const,
+  },
 
   // ═══════════════════════════════════════════════════════════════════════════
   // SPECIAL DAYS - Holidays and traditions (mapped to 'recurring')

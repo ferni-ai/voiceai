@@ -79,7 +79,7 @@ export const BUILDER_IMPORTS: Record<string, BuilderImporter> = {
   'maya-habit-insights': async () => import('../personas/maya-habit-insights.js'),
   'maya-coaching-insights': async () => import('../personas/maya-coaching-insights/index.js'),
   'jordan-milestone-insights': async () => import('../personas/jordan-milestone-insights/index.js'),
-  'nayan-wisdom-insights': async () => import('../personas/nayan-wisdom-insights.js'),
+  'nayan-wisdom-insights': async () => import('../personas/nayan-wisdom-insights/index.js'),
   'alex-communication-insights': async () =>
     import('../personas/alex-communication-insights/index.js'),
   'joel-dickson-insights': async () => import('../personas/joel-dickson-insights/index.js'),
@@ -189,7 +189,8 @@ export const BUILDER_IMPORTS: Record<string, BuilderImporter> = {
   'revelation-awareness': async () => import('../awareness/revelation-awareness.js'),
   // E2E Integration: Captured data, emotional trajectory, session gap, and tool failure
   'captured-data-awareness': async () => import('../awareness/captured-data-awareness.js'),
-  'emotional-trajectory-awareness': async () => import('../awareness/emotional-trajectory-awareness.js'),
+  'emotional-trajectory-awareness': async () =>
+    import('../awareness/emotional-trajectory-awareness.js'),
   'session-gap-awareness': async () => import('../awareness/session-gap-awareness.js'),
   'tool-failure-awareness': async () => import('../awareness/tool-failure-awareness.js'),
   // Routine awareness: "What I Do For You" automated routines
@@ -209,6 +210,9 @@ export const BUILDER_IMPORTS: Record<string, BuilderImporter> = {
   'family-messages-context': async () => import('../external/family-messages-context.js'),
   'family-awareness-context': async () => import('../external/family-awareness-context.js'),
   'pending-call-results': async () => import('../external/pending-call-results.js'),
+  'family-connection-nudge': async () => import('../family/family-connection-nudge.js'),
+  'special-dates-awareness': async () => import('../family/special-dates-awareness.js'),
+  'best-time-awareness': async () => import('../family/best-time-awareness.js'),
 
   // ============================================================================
   // RELATIONSHIP (in relationship/)

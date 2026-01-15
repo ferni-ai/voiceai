@@ -6,9 +6,9 @@
 
 import type { EngagementScoringResult } from '../../conversation/engagement-scoring.js';
 import type { NarrativeArcResult } from '../../conversation/narrative-arc.js';
-import type { CognitiveLoadState } from '../../intelligence/cognitive-load.js';
-import type { HedgingAnalysisResult } from '../../intelligence/hedging-detection.js';
-import type { SelfSoothingResult } from '../../intelligence/self-soothing-detection.js';
+import type { CognitiveLoadState } from '../../intelligence/detectors/cognitive-load.js';
+import type { HedgingAnalysisResult } from '../../intelligence/detectors/hedging.js';
+import type { SelfSoothingResult } from '../../intelligence/detectors/self-soothing.js';
 import type { BreathPatternResult } from '../breath-detection.js';
 import type { EnergyDynamicsResult } from '../energy-dynamics.js';
 import type { FillerAnalysisResult } from '../filler-analysis.js';

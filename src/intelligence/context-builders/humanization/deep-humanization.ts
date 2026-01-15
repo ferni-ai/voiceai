@@ -14,7 +14,7 @@
  */
 
 import { createLogger } from '../../../utils/safe-logger.js';
-import { DISTRESS } from '../../distress-levels.js';
+import { DISTRESS } from '../../detectors/distress.js';
 import {
   createHintInjection,
   createStandardInjection,

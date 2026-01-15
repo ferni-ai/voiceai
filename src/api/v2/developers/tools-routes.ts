@@ -218,9 +218,7 @@ async function handleListTools(req: IncomingMessage, res: ServerResponse): Promi
     cursor: url.searchParams.get('cursor'),
   });
 
-  const pagination = paginationResult.success
-    ? paginationResult.data
-    : { page: 1, limit: 20 };
+  const pagination = paginationResult.success ? paginationResult.data : { page: 1, limit: 20 };
 
   try {
     const { getFirestore } = await import('../../v1/developers/shared/developer-auth.js');
@@ -602,9 +600,7 @@ async function testMCPTool(
 
   try {
     // Get the MCP server
-    const { getDeveloperMCPServer } = await import(
-      '../../../services/developer-mcp-registry.js'
-    );
+    const { getDeveloperMCPServer } = await import('../../../services/developer-mcp-registry.js');
     const server = await getDeveloperMCPServer(tool.config.serverId, publisherId);
 
     if (!server) {
@@ -612,9 +608,8 @@ async function testMCPTool(
     }
 
     // Try to call the tool via MCP
-    const { callMCPTool, connectToMCPServer } = await import(
-      '../../../personas/bundles/mcp-loader.js'
-    );
+    const { callMCPTool, connectToMCPServer } =
+      await import('../../../personas/bundles/mcp-loader.js');
 
     // Convert to bundle format for connection
     const bundleServer = {
@@ -660,10 +655,7 @@ async function testMCPTool(
 /**
  * Test a prompt tool (returns the rendered prompt)
  */
-function testPromptTool(
-  tool: DeveloperTool,
-  params: Record<string, unknown>
-): ToolTestResult {
+function testPromptTool(tool: DeveloperTool, params: Record<string, unknown>): ToolTestResult {
   if (!tool.config.prompt) {
     return { success: false, error: 'Prompt not configured' };
   }

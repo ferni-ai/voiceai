@@ -352,9 +352,7 @@ export function startAutoRefresh(): void {
   void (async () => {
     const isValid = await validateSpotifyToken();
     if (!isValid) {
-      getLogger().warn(
-        '🎵 Spotify token validation failed on startup - attempting refresh'
-      );
+      getLogger().warn('🎵 Spotify token validation failed on startup - attempting refresh');
       await getSpotifyAccessToken(true); // Force refresh
     }
   })();

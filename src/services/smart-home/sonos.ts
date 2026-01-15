@@ -256,7 +256,11 @@ async function sonosRequest<T>(
       }
 
       log.error({ status: response.status, error: errorText, endpoint }, 'Sonos API error');
-      throw new SonosApiError(`Sonos API error: ${response.status} - ${errorText}`, response.status, endpoint);
+      throw new SonosApiError(
+        `Sonos API error: ${response.status} - ${errorText}`,
+        response.status,
+        endpoint
+      );
     }
 
     // Success - reset circuit breaker
@@ -267,11 +271,7 @@ async function sonosRequest<T>(
     // Network errors count toward circuit breaker
     if (!(error instanceof SonosApiError)) {
       recordFailure();
-      throw new SonosApiError(
-        `Sonos network error: ${String(error)}`,
-        0,
-        endpoint
-      );
+      throw new SonosApiError(`Sonos network error: ${String(error)}`, 0, endpoint);
     }
     throw error;
   }
@@ -280,7 +280,9 @@ async function sonosRequest<T>(
 /**
  * Attempt to refresh the token using stored refresh token
  */
-async function attemptTokenRefresh(credentials: SonosCredentials): Promise<SonosCredentials | null> {
+async function attemptTokenRefresh(
+  credentials: SonosCredentials
+): Promise<SonosCredentials | null> {
   const clientId = process.env.SONOS_CLIENT_ID;
   const clientSecret = process.env.SONOS_CLIENT_SECRET;
 

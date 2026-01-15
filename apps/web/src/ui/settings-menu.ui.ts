@@ -117,6 +117,10 @@ export interface SettingsMenuUICallbacks {
   onKnowledgeQuizClick?: () => void;
   onGrowthJournalClick?: () => void;
   onClose?: () => void;
+  // Capability discovery callbacks
+  onLifeCoachingHubClick?: () => void;
+  onSuperhumanDashboardClick?: () => void;
+  onCapabilityDiscoveryClick?: () => void;
   // Warm menu callbacks
   onTogetherSessionsClick?: () => void;
   onAllConnectionsClick?: () => void;
@@ -774,6 +778,8 @@ class SettingsMenuUI {
                   expandedSections.has('understandingYou'),
                   `
             ${this.renderMenuItemWithBadge('what-i-do-for-you', ICONS.care, 'What I Do For You', t('common.new'))}
+            ${this.renderMenuItemWithBadge('superhuman-dashboard', ICONS.sparkles, 'What Ferni Knows', t('common.new'))}
+            ${this.renderMenuItemWithBadge('life-coaching-hub', ICONS.heart, 'Life Support Hub', t('common.new'))}
             ${this.renderMenuItemWithBadge('hub', ICONS.hub, 'Your Day with Ferni', t('common.new'))}
             ${this.renderMenuItem('your-story', ICONS.heart, t('menu.items.yourStory') || 'Your Story')}
             ${this.renderMenuItemWithBadge('your-year', ICONS.sparkles, t('menu.items.yourYear') || 'Your Year with Ferni', t('common.new'))}
@@ -1443,6 +1449,16 @@ class SettingsMenuUI {
         break;
       case 'growth-journal':
         this.callbacks.onGrowthJournalClick?.();
+        break;
+      // Capability discovery actions
+      case 'life-coaching-hub':
+        this.callbacks.onLifeCoachingHubClick?.();
+        break;
+      case 'superhuman-dashboard':
+        this.callbacks.onSuperhumanDashboardClick?.();
+        break;
+      case 'capability-discovery':
+        this.callbacks.onCapabilityDiscoveryClick?.();
         break;
       // Quick Add actions
     }

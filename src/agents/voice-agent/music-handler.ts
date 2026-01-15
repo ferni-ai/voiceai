@@ -21,15 +21,8 @@ import { coordinatedSay } from '../../speech/coordination/index.js';
 import { isMusicEnabled } from '../../config/environment.js';
 
 // New DJ Architecture
-import {
-  getDJController,
-  resetDJController,
-  type DJEvent,
-} from '../../audio/dj-controller.js';
-import {
-  getDJTimingEngine,
-  resetDJTimingEngine,
-} from '../../audio/dj-timing-engine.js';
+import { getDJController, resetDJController, type DJEvent } from '../../audio/dj-controller.js';
+import { getDJTimingEngine, resetDJTimingEngine } from '../../audio/dj-timing-engine.js';
 import {
   shouldSpeakIntro,
   shouldSpeakOutro,
@@ -94,9 +87,7 @@ export interface MusicHandlerResult {
 /**
  * Setup the music handler with the new DJ Controller architecture
  */
-export async function setupMusicHandler(
-  ctx: MusicHandlerContext
-): Promise<MusicHandlerResult> {
+export async function setupMusicHandler(ctx: MusicHandlerContext): Promise<MusicHandlerResult> {
   const { room, sessionPersona, conversationManager, sessionId, userId } = ctx;
 
   log.info({ sessionId, personaId: sessionPersona.id }, '🎵 Setting up Music Handler');
@@ -114,7 +105,10 @@ export async function setupMusicHandler(
     await initializeMusicPlayer(room);
     log.info({ sessionId }, '🎵 Music player initialized successfully');
   } catch (err) {
-    log.warn({ error: String(err), sessionId }, '🎵 Music player initialization failed - music will not be available');
+    log.warn(
+      { error: String(err), sessionId },
+      '🎵 Music player initialization failed - music will not be available'
+    );
   }
 
   // Pre-load user's music learning data
@@ -175,10 +169,7 @@ export async function setupMusicHandler(
         .sendMusicState(event.to, track, controllerState.isAmbient)
         .then((success) => {
           if (success) {
-            log.debug(
-              { state: event.to, track: track?.name },
-              '🎧 Music state sent to frontend'
-            );
+            log.debug({ state: event.to, track: track?.name }, '🎧 Music state sent to frontend');
           } else {
             log.warn({ state: event.to }, '🎧 Failed to send music state to frontend');
           }
@@ -206,9 +197,7 @@ export async function setupMusicHandler(
       let ourSongInfo: { isOurSong: boolean; context?: string } | undefined;
       if (userId) {
         try {
-          const { checkForOurSong } = await import(
-            '../../services/trust-systems/our-songs.js'
-          );
+          const { checkForOurSong } = await import('../../services/trust-systems/our-songs.js');
           const songCallback = checkForOurSong(userId, track.name, track.artist ?? '');
           if (songCallback) {
             ourSongInfo = { isOurSong: true, context: songCallback.phrase };
@@ -266,10 +255,22 @@ export async function setupMusicHandler(
     if (introDecision.shouldSpeak && !conversationManager.isAgentSpeaking()) {
       if (introDecision.delay > 0) {
         timingEngine.scheduleTimer('buildup', introDecision.delay, () => {
-          speakTrackIntro(track, sessionPersona.id, introDecision.isInterjection, sessionId, conversationManager);
+          speakTrackIntro(
+            track,
+            sessionPersona.id,
+            introDecision.isInterjection,
+            sessionId,
+            conversationManager
+          );
         });
       } else {
-        speakTrackIntro(track, sessionPersona.id, introDecision.isInterjection, sessionId, conversationManager);
+        speakTrackIntro(
+          track,
+          sessionPersona.id,
+          introDecision.isInterjection,
+          sessionId,
+          conversationManager
+        );
       }
     }
   });
@@ -278,7 +279,7 @@ export async function setupMusicHandler(
     if (event.type !== 'should_speak_outro') return;
 
     const { track } = event;
-    
+
     // 🎧 FIX: Skip outro speech if there are more tracks in queue
     // This prevents speech overlap when transitioning between queued tracks.
     // The outro is only meaningful for the final track in a sequence.
@@ -290,7 +291,7 @@ export async function setupMusicHandler(
       );
       return;
     }
-    
+
     const decisionContext: DecisionContext = {
       state: djController.getState(),
       track,
@@ -384,34 +385,41 @@ export async function setupMusicHandler(
 
   const musicPlayer = getMusicPlayer();
 
-  musicPlayer.setOnMusicStateChangeCallback((state: MusicState, track: MusicTrack | null, isAmbient: boolean) => {
-    switch (state) {
-      case 'playing':
-        if (track) {
-          // 🐛 FIX: Only dispatch PLAY_TRACK for NEW tracks, not when resuming from duck!
-          // Without this check, unduck → playing triggers PLAY_TRACK → track_started → DJ speech → loop forever
-          const currentState = djController.getState();
-          const isNewTrack = !currentState.currentTrack || currentState.currentTrack.name !== track.name;
-          const isResumeFromDuck = currentState.state === 'ducking' && currentState.currentTrack?.name === track.name;
-          
-          if (isNewTrack && !isResumeFromDuck) {
-            djController.dispatch({ type: 'PLAY_TRACK', track, isAmbient });
-          } else {
-            log.debug({ track: track.name, state: currentState.state }, '🎧 Skipping PLAY_TRACK - same track resuming from duck');
+  musicPlayer.setOnMusicStateChangeCallback(
+    (state: MusicState, track: MusicTrack | null, isAmbient: boolean) => {
+      switch (state) {
+        case 'playing':
+          if (track) {
+            // 🐛 FIX: Only dispatch PLAY_TRACK for NEW tracks, not when resuming from duck!
+            // Without this check, unduck → playing triggers PLAY_TRACK → track_started → DJ speech → loop forever
+            const currentState = djController.getState();
+            const isNewTrack =
+              !currentState.currentTrack || currentState.currentTrack.name !== track.name;
+            const isResumeFromDuck =
+              currentState.state === 'ducking' && currentState.currentTrack?.name === track.name;
+
+            if (isNewTrack && !isResumeFromDuck) {
+              djController.dispatch({ type: 'PLAY_TRACK', track, isAmbient });
+            } else {
+              log.debug(
+                { track: track.name, state: currentState.state },
+                '🎧 Skipping PLAY_TRACK - same track resuming from duck'
+              );
+            }
           }
-        }
-        break;
-      case 'stopped':
-        djController.dispatch({ type: 'STOP' });
-        break;
-      case 'paused':
-        djController.dispatch({ type: 'PAUSE' });
-        break;
-      case 'fading':
-        djController.dispatch({ type: 'TRACK_NEAR_END' });
-        break;
+          break;
+        case 'stopped':
+          djController.dispatch({ type: 'STOP' });
+          break;
+        case 'paused':
+          djController.dispatch({ type: 'PAUSE' });
+          break;
+        case 'fading':
+          djController.dispatch({ type: 'TRACK_NEAR_END' });
+          break;
+      }
     }
-  });
+  );
 
   musicPlayer.setOnTrackEndedCallback((track: MusicTrack, _wasAmbient: boolean) => {
     djController.dispatch({ type: 'TRACK_ENDED' });
@@ -547,8 +555,4 @@ export function notifyUserSpeakingEnd(): void {
 }
 
 // Backward compatibility exports
-export {
-  getMusicPlayer,
-  type MusicTrack,
-  type MusicState,
-} from '../../audio/music-player.js';
+export { getMusicPlayer, type MusicTrack, type MusicState } from '../../audio/music-player.js';

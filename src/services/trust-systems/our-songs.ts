@@ -727,6 +727,36 @@ export function getAllOurSongs(userId: string): SharedSongMemory[] {
 // PERSISTENCE HELPERS
 // ============================================================================
 
+/**
+ * Load Our Songs profile from Firestore
+ * Used by session-init-handler to hydrate the in-memory profile at session start
+ */
+export async function loadOurSongsFromStorage(userId: string): Promise<void> {
+  try {
+    const { getFirestoreInstance } = await import('../../utils/safe-firestore.js');
+    const db = await getFirestoreInstance();
+    if (!db) {
+      log.debug({ userId }, 'Firestore not available for Our Songs');
+      return;
+    }
+
+    const docRef = db.collection('users').doc(userId).collection('profiles').doc('our-songs');
+    const snapshot = await docRef.get();
+
+    if (snapshot.exists) {
+      const data = snapshot.data() as OurSongsProfile;
+      loadOurSongsProfile(userId, data);
+    } else {
+      // No profile yet - initialize empty using getOrCreateProfile pattern
+      getOrCreateProfile(userId);
+    }
+  } catch (error) {
+    log.debug({ userId, error: String(error) }, 'Failed to load Our Songs from storage');
+    // Initialize empty profile as fallback using standard pattern
+    getOrCreateProfile(userId);
+  }
+}
+
 export function loadOurSongsProfile(userId: string, data: OurSongsProfile): void {
   // Convert date strings back to Date objects
   const hydrated: OurSongsProfile = {
@@ -779,5 +809,6 @@ export default {
   getOurSongsStats,
   getAllOurSongs,
   loadOurSongsProfile,
+  loadOurSongsFromStorage,
   getOurSongsProfileForPersistence,
 };

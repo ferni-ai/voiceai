@@ -26,7 +26,7 @@ import {
 } from '../conversation/story-timing.js';
 import { generateProactiveOpener, buildOpenerContext } from '../conversation/proactive-starters.js';
 import type { PersonaConfig } from '../personas/types.js';
-import type { EmotionResult } from '../intelligence/emotion-detector.js';
+import type { EmotionResult } from '../intelligence/detectors/emotion.js';
 
 // ============================================================================
 // EMOTIONAL ARC TRACKER TESTS

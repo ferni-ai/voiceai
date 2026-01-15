@@ -595,10 +595,7 @@ export interface SendResult {
 /**
  * Create raw email message in RFC 2822 format
  */
-function createRawEmail(
-  from: string,
-  options: ComposeEmailOptions
-): string {
+function createRawEmail(from: string, options: ComposeEmailOptions): string {
   const { to, cc, bcc, subject, body, bodyType = 'text', inReplyTo, threadId } = options;
 
   const boundary = `boundary_${Date.now()}`;
@@ -699,10 +696,7 @@ export async function createDraft(
  *
  * "Better than Human" - Send emails on behalf of user (with consent)
  */
-export async function sendEmail(
-  userId: string,
-  options: ComposeEmailOptions
-): Promise<SendResult> {
+export async function sendEmail(userId: string, options: ComposeEmailOptions): Promise<SendResult> {
   const accessToken = await getValidAccessToken(userId);
   if (!accessToken) {
     return { success: false, error: 'Not authenticated' };
@@ -768,9 +762,7 @@ export async function replyToThread(
     }
 
     const lastMessage = thread.messages[thread.messages.length - 1];
-    const subject = thread.subject.startsWith('Re:')
-      ? thread.subject
-      : `Re: ${thread.subject}`;
+    const subject = thread.subject.startsWith('Re:') ? thread.subject : `Re: ${thread.subject}`;
 
     // Reply to sender of last message
     const to = [lastMessage.fromEmail];
@@ -871,10 +863,7 @@ export async function deleteDraft(userId: string, draftId: string): Promise<bool
 /**
  * List user's drafts
  */
-export async function listDrafts(
-  userId: string,
-  maxResults = 10
-): Promise<DraftResult[]> {
+export async function listDrafts(userId: string, maxResults = 10): Promise<DraftResult[]> {
   const accessToken = await getValidAccessToken(userId);
   if (!accessToken) return [];
 
@@ -906,13 +895,8 @@ export interface EmailSuggestion {
  *
  * "Better than Human" - Proactive email management
  */
-export async function generateEmailSuggestions(
-  userId: string
-): Promise<EmailSuggestion[]> {
-  const [triage, stats] = await Promise.all([
-    triageUnreadEmails(userId),
-    getInboxStats(userId),
-  ]);
+export async function generateEmailSuggestions(userId: string): Promise<EmailSuggestion[]> {
+  const [triage, stats] = await Promise.all([triageUnreadEmails(userId), getInboxStats(userId)]);
 
   if (!triage || !stats) return [];
 

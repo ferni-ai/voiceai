@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { IntentClassifier } from '../intelligence/intent-classifier.js';
+import { IntentClassifier } from '../intelligence/detectors/intent.js';
 
 describe('Intent Classifier - Financial Intents Tests', () => {
   let classifier: IntentClassifier;

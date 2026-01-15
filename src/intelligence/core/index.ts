@@ -20,3 +20,6 @@ export * from './unified-intelligence-api.js';
 
 // Voice Emotion Orchestrator - coordinates voice emotion systems
 export * from './voice-emotion-orchestrator.js';
+
+// Message Analyzer - comprehensive message analysis
+export * from './message-analyzer.js';

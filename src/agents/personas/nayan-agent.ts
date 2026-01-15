@@ -31,8 +31,8 @@ import {
 // Wisdom tools - Nayan's specialty (from domains)
 import { createWisdomTools } from '../../tools/domains/wisdom/wisdom.js';
 
-// Superhuman Wisdom Tools - Nayan's "Better Than Human" capabilities
-import { getToolDefinitions as getNayanWisdomTools } from '../../tools/domains/nayan-wisdom/index.js';
+// Superhuman Wisdom Tools - "Better Than Human" wisdom capabilities
+import { getToolDefinitions as getWisdomIntelligenceTools } from '../../tools/domains/wisdom-intelligence/index.js';
 
 // Conversation tools - wrap up, end conversation, graceful exit (from domains)
 import { createConversationTools } from '../../tools/domains/conversation/index.js';
@@ -108,7 +108,7 @@ function buildWisdomTools(): ToolSet {
  * - trackWisdomIncubation: Perfect patience for things ripening
  */
 async function buildSuperhumanWisdomTools(userId: string): Promise<ToolSet> {
-  const toolDefs = await getNayanWisdomTools();
+  const toolDefs = await getWisdomIntelligenceTools();
   const ctx: ToolContext = {
     agentId: 'nayan-patel',
     agentDisplayName: 'Nayan',
@@ -244,7 +244,10 @@ export class NayanAgent extends PersonaVoiceAgent {
     let superhumanWisdomTools: ToolSet = {} as ToolSet;
     try {
       superhumanWisdomTools = await buildSuperhumanWisdomTools(userId || 'anonymous');
-      log.info({ count: Object.keys(superhumanWisdomTools).length }, 'Loaded Nayan superhuman wisdom tools');
+      log.info(
+        { count: Object.keys(superhumanWisdomTools).length },
+        'Loaded Nayan superhuman wisdom tools'
+      );
     } catch (err) {
       log.warn({ error: String(err) }, 'Failed to load superhuman wisdom tools (non-blocking)');
     }
@@ -273,6 +276,9 @@ export class NayanAgent extends PersonaVoiceAgent {
   }
 }
 
-export async function createNayanAgent(chatCtx?: llm.ChatContext, userId?: string): Promise<NayanAgent> {
+export async function createNayanAgent(
+  chatCtx?: llm.ChatContext,
+  userId?: string
+): Promise<NayanAgent> {
   return NayanAgent.create(chatCtx, userId);
 }

@@ -37,7 +37,7 @@ declare module 'googleapis' {
       otherContacts: {
         list: (options: unknown) => Promise<{
           data: {
-            otherContacts?: Array<unknown>;
+            otherContacts?: unknown[];
             nextPageToken?: string;
           };
         }>;

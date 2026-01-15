@@ -2,36 +2,54 @@
 
 > **"Intelligence is not about having data. It's about knowing what matters right now."**
 
-**Status:** Production-ready ✅ | **Rationalization:** ✅ Complete (January 2026)  
-**Tests:** 71 passing | **Validation:** All 22 checks passing
+**Status:** Production-ready ✅ | **Architecture:** Clean (January 2026)  
+**Tests:** 71 passing | **Validation:** All checks passing
 
 This is Ferni's brain - the layer that turns 98 entity types into genuine awareness and intelligent responses.
 
 ---
 
-## ✅ Rationalization Complete (January 2026)
+## ✅ Clean Architecture (January 2026)
 
-**464 files have been organized into a clean, domain-driven architecture.**
+**Architecture has been rationalized into domain-driven modules.**
 
-### New Module Structure
+### Module Structure
 
-| Folder | Purpose | Files |
-|--------|---------|-------|
-| `core/` | Infrastructure (assembler, API, orchestrators) | 6 |
-| `detectors/` | Pure detection (emotion, intent, distress) | 11 |
-| `state/` | Session & conversation state | 3 |
-| `deep-understanding/` | Superhuman understanding (silence, rhythm, etc.) | 13 |
-| `tracking/` | Learning & tracking (humor, stories, patterns) | 14 |
-| `collective/` | Collective intelligence | 5 |
-| `coaching/` | Coaching intelligence | 5 |
-| `context-builders/` | Context injection system | 220 |
-| `predictive/` | Predictive intelligence | 33 |
-| `triggers/` | Superhuman triggers | 41 |
+| Folder | Purpose | Key Files |
+|--------|---------|-----------|
+| `core/` | Infrastructure (assembler, API, orchestrators) | `context-assembler.ts`, `unified-intelligence-api.ts`, `message-analyzer.ts` |
+| `detectors/` | Pure detection (emotion, intent, distress) | `emotion.ts`, `intent.ts`, `topic.ts`, `distress.ts` |
+| `state/` | Session & conversation state | `session.ts`, `conversation.ts` |
+| `deep-understanding/` | Superhuman understanding (silence, rhythm, etc.) | `silence.ts`, `flow.ts`, `hope.ts`, `energy.ts` |
+| `tracking/` | Learning & tracking (humor, stories, patterns) | `response-quality.ts`, `humor.ts`, `voice-pace.ts` |
+| `collective/` | Collective intelligence | `community-insights.ts`, `agent-evolution.ts` |
+| `coaching/` | Coaching intelligence | `questions.ts`, `patterns.ts`, `memory-loader.ts` |
+| `proactive/` | Proactive insights | `proactive-engine.ts` |
+| `patterns/` | Cross-domain correlation | `cross-domain-correlator.ts` |
+| `context-builders/` | Context injection system | 257 TypeScript files |
+| `unified/` | Unified analysis | `unified-analyzer.ts`, `humanization-orchestrator.ts` |
+| `human-behaviors/` | Human-like behaviors | `index.ts` |
+| `conversation-quality/` | Conversation quality | `index.ts` |
+| `superhuman-memory/` | Superhuman memory | `index.ts` |
+| `user-learning-engine/` | Per-user learning | `engine.ts` |
 
-### Migration Documentation
-- `docs/architecture/INTELLIGENCE-RATIONALIZATION.md` - Architecture plan
-- `docs/architecture/INTELLIGENCE-MIGRATION-TRACKER.md` - Completed tracker
-- `docs/architecture/CONTEXT-BUILDERS-MIGRATION-TRACKER.md` - Context builders tracker
+### Import Patterns
+
+**Preferred (canonical paths):**
+```typescript
+// Import from subdirectory barrels
+import { detectEmotion, EmotionDetector } from '../intelligence/detectors/index.js';
+import { getStateMachine } from '../intelligence/state/index.js';
+import { analyzeHope } from '../intelligence/deep-understanding/index.js';
+```
+
+**Also works (main barrel):**
+```typescript
+// Import from main index - re-exports everything
+import { detectEmotion, getStateMachine, analyzeHope } from '../intelligence/index.js';
+```
+
+**Note:** Legacy root-level re-exports have been DELETED. All imports must use canonical subdirectory paths.
 
 ---
 
@@ -43,25 +61,25 @@ This is Ferni's brain - the layer that turns 98 entity types into genuine awaren
 │  proactive/proactive-engine.ts                                  │
 │  "I noticed you haven't journaled since your breakup..."        │
 └─────────────────────────────────────────────────────────────────┘
-                                ▲
+                               ▲
 ┌─────────────────────────────────────────────────────────────────┐
 │                 LEVEL 4: CROSS-DOMAIN REASONING                 │
 │  patterns/cross-domain-correlator.ts                            │
 │  "Your sleep drops when work stress increases..."               │
 └─────────────────────────────────────────────────────────────────┘
-                                ▲
+                               ▲
 ┌─────────────────────────────────────────────────────────────────┐
 │                 LEVEL 3: TEMPORAL INTELLIGENCE                  │
 │  (patterns/temporal-patterns.ts - coming soon)                  │
 │  "You always get anxious before quarterly reviews..."           │
 └─────────────────────────────────────────────────────────────────┘
-                                ▲
+                               ▲
 ┌─────────────────────────────────────────────────────────────────┐
 │                 LEVEL 2: CONTEXTUAL AWARENESS                   │
-│  context-assembler.ts                                           │
+│  core/context-assembler.ts                                      │
 │  "Given your meeting with Sarah today..."                       │
 └─────────────────────────────────────────────────────────────────┘
-                                ▲
+                               ▲
 ┌─────────────────────────────────────────────────────────────────┐
 │                 LEVEL 1: DATA FOUNDATION                        │
 │  ../services/data-layer/                                        │
@@ -111,10 +129,11 @@ cleanupIntelligence(userId);
 
 | File | Level | Purpose |
 |------|-------|---------|
-| `context-assembler.ts` | L2 | Assembles all relevant context for a user |
+| `core/context-assembler.ts` | L2 | Assembles all relevant context for a user |
+| `core/unified-intelligence-api.ts` | All | Single entry point for intelligence |
+| `core/message-analyzer.ts` | L1-L2 | Comprehensive message analysis |
 | `patterns/cross-domain-correlator.ts` | L4 | Detects patterns across life domains |
 | `proactive/proactive-engine.ts` | L5 | Decides when/what to surface proactively |
-| `unified-intelligence-api.ts` | All | Single entry point for intelligence |
 | `index.ts` | Export | Unified exports for the layer |
 
 ---
@@ -302,6 +321,7 @@ All intelligence should feel like it comes from a friend who genuinely cares, no
 ## Related Documentation
 
 - [Intelligent Agent Architecture](/docs/architecture/INTELLIGENT-AGENT-ARCHITECTURE.md)
+- [Context Builders CLAUDE.md](/src/intelligence/context-builders/CLAUDE.md)
 - [Data Layer CLAUDE.md](/src/services/data-layer/CLAUDE.md)
 - [Entity Types](/src/services/data-layer/types.ts)
 

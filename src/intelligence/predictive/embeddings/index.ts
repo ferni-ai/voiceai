@@ -36,8 +36,16 @@ export { entityEmbeddingSync } from './entity-embedding-sync.js';
 // Re-export types that are unique to this module (avoiding conflicts with superhuman-persistence types)
 // Note: AvoidancePersistenceData, TrajectoryPersistenceData, BreakthroughPersistenceData are NOT re-exported
 // here because different versions exist in superhuman-persistence.ts
-export type { RippleSpacePersistenceData, InterventionPersistenceData } from './embedding-persistence.js';
-export type { EntityContext, EntityAvoidanceLink, EntityTrajectoryContext, EntityBreakthroughContext } from './entity-synergy.js';
+export type {
+  RippleSpacePersistenceData,
+  InterventionPersistenceData,
+} from './embedding-persistence.js';
+export type {
+  EntityContext,
+  EntityAvoidanceLink,
+  EntityTrajectoryContext,
+  EntityBreakthroughContext,
+} from './entity-synergy.js';
 
 // ============================================================================
 // NAMED IMPORTS FOR INTERNAL USE
@@ -80,18 +88,18 @@ export async function getEmbeddingPredictiveContext(
   context: EmbeddingPredictiveContext
 ): Promise<string> {
   const sections: string[] = [];
-  
+
   try {
     // 1. Semantic Avoidance
     const avoidanceContext = semanticAvoidance.buildSemanticAvoidanceContext(context.userId);
     if (avoidanceContext) sections.push(avoidanceContext);
-    
+
     // 2. Conversation Trajectory (if session active)
     if (context.sessionId) {
       const trajectoryContext = conversationTrajectory.buildTrajectoryContext(context.sessionId);
       if (trajectoryContext) sections.push(trajectoryContext);
     }
-    
+
     // 3. Intervention Matching (if current situation provided)
     if (context.currentSituation) {
       const interventionContext = await interventionMatching.buildInterventionMatchingContext(
@@ -99,7 +107,7 @@ export async function getEmbeddingPredictiveContext(
         context.currentSituation
       );
       if (interventionContext) sections.push(interventionContext);
-      
+
       // 4. Breakthrough Pattern Matching
       const breakthroughContext = await breakthroughEmbeddings.buildBreakthroughEmbeddingContext(
         context.userId,
@@ -107,16 +115,16 @@ export async function getEmbeddingPredictiveContext(
           topic: context.currentSituation.topic,
           conversationContext: context.currentSituation.transcript,
           emotionalState: context.currentSituation.emotionalState,
-          indicators: [],  // Would be passed from breakthrough proximity
+          indicators: [], // Would be passed from breakthrough proximity
         }
       );
       if (breakthroughContext) sections.push(breakthroughContext);
-      
+
       // 5. Trajectory Pattern Matching
       const patternContext = await trajectoryPatterns.buildTrajectoryPatternContext(
         context.userId,
         {
-          signals: [],  // Would be passed from pre-trajectory detection
+          signals: [], // Would be passed from pre-trajectory detection
           contextDescription: context.currentSituation.transcript,
           lifeDomains: [],
           emotionalState: context.currentSituation.emotionalState,
@@ -124,26 +132,25 @@ export async function getEmbeddingPredictiveContext(
       );
       if (patternContext) sections.push(patternContext);
     }
-    
+
     // 6. Ripple Embedding Space
     const rippleContext = await rippleEmbeddingSpace.buildRippleSpaceContext(
       context.userId,
       context.currentTopic
     );
     if (rippleContext) sections.push(rippleContext);
-    
+
     // 7. Community Learning
     const communityContext = await cognitiveSimilarity.buildCommunityLearningContext(
       context.userId
     );
     if (communityContext) sections.push(communityContext);
-    
   } catch (error) {
     // Fail silently - embedding context is enhancement, not critical
   }
-  
+
   if (sections.length === 0) return '';
-  
+
   return '\n=== EMBEDDING INTELLIGENCE ===\n' + sections.join('\n\n');
 }
 

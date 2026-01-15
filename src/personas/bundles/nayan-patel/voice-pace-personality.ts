@@ -22,7 +22,7 @@ import type {
   EnergyLevel,
   ConversationTempo,
   LearnedPacePreferences,
-} from '../../../intelligence/voice-pace-adapter.js';
+} from '../../../intelligence/tracking/voice-pace.js';
 
 const log = createLogger({ module: 'nayan-voice-pace' });
 

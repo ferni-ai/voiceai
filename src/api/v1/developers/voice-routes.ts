@@ -9,12 +9,7 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import { getLogger } from '../../../utils/safe-logger.js';
-import {
-  handleCorsPreflightIfNeeded,
-  parseBody,
-  sendJSON,
-  sendError,
-} from '../../helpers.js';
+import { handleCorsPreflightIfNeeded, parseBody, sendJSON, sendError } from '../../helpers.js';
 import { getPublisherFromToken } from './shared/developer-auth.js';
 
 const log = getLogger().child({ module: 'developers-voices' });
@@ -190,11 +185,27 @@ const CURATED_VOICES: VoiceInfo[] = [
 
 // Voice categories for filtering
 const VOICE_CATEGORIES = [
-  { id: 'coaching', name: 'Coaching & Support', tags: ['life coach', 'wellness', 'support', 'mentor'] },
-  { id: 'productivity', name: 'Productivity & Business', tags: ['planning', 'business', 'career', 'productivity'] },
+  {
+    id: 'coaching',
+    name: 'Coaching & Support',
+    tags: ['life coach', 'wellness', 'support', 'mentor'],
+  },
+  {
+    id: 'productivity',
+    name: 'Productivity & Business',
+    tags: ['planning', 'business', 'career', 'productivity'],
+  },
   { id: 'education', name: 'Education & Learning', tags: ['education', 'tutoring', 'language'] },
-  { id: 'wellness', name: 'Wellness & Meditation', tags: ['meditation', 'sleep', 'relaxation', 'fitness'] },
-  { id: 'professional', name: 'Professional Services', tags: ['finance', 'consulting', 'analytics', 'research'] },
+  {
+    id: 'wellness',
+    name: 'Wellness & Meditation',
+    tags: ['meditation', 'sleep', 'relaxation', 'fitness'],
+  },
+  {
+    id: 'professional',
+    name: 'Professional Services',
+    tags: ['finance', 'consulting', 'analytics', 'research'],
+  },
 ];
 
 // ============================================================================
@@ -266,7 +277,7 @@ async function generateVoicePreview(
 const PREVIEW_TEXTS = [
   "Hi there! I'm excited to help you on your journey. Let's get started!",
   "That's a great question. Let me think about the best way to approach this.",
-  "I really appreciate you sharing that with me. How are you feeling about it?",
+  'I really appreciate you sharing that with me. How are you feeling about it?',
   "Remember, progress isn't always linear. Every small step counts.",
 ];
 

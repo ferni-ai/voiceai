@@ -47,12 +47,14 @@ const createMockFirestore = () => {
       delete: vi.fn(),
       commit: vi.fn().mockResolvedValue(undefined),
     })),
-    runTransaction: vi.fn(async (fn) => fn({
-      get: vi.fn().mockResolvedValue({ exists: false, data: () => null }),
-      set: vi.fn(),
-      update: vi.fn(),
-      delete: vi.fn(),
-    })),
+    runTransaction: vi.fn(async (fn) =>
+      fn({
+        get: vi.fn().mockResolvedValue({ exists: false, data: () => null }),
+        set: vi.fn(),
+        update: vi.fn(),
+        delete: vi.fn(),
+      })
+    ),
   };
 };
 
@@ -178,9 +180,11 @@ vi.mock('firebase-admin/app', () => ({
   getApp: vi.fn(() => ({
     name: '[DEFAULT]',
   })),
-  getApps: vi.fn(() => [{
-    name: '[DEFAULT]',
-  }]),
+  getApps: vi.fn(() => [
+    {
+      name: '[DEFAULT]',
+    },
+  ]),
   cert: vi.fn(),
   applicationDefault: vi.fn(),
 }));

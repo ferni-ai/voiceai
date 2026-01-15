@@ -251,7 +251,7 @@ const FERNI_CRITICAL_SCENARIOS: TestScenario[] = [
   },
   // Handoffs - CRITICAL for team functionality
   {
-    id: 'handoff-maya-habits',
+    id: 'handoff-maya-santos',
     probe: 'I need help building a morning routine',
     expectedTool: 'handoffToMaya',
     description: 'Habits request should handoff to Maya',
@@ -314,7 +314,7 @@ const FERNI_CRITICAL_SCENARIOS: TestScenario[] = [
     critical: true,
   },
   {
-    id: 'handoff-nayan-wisdom',
+    id: 'handoff-nayan',
     probe: 'I need some wisdom about making big life decisions',
     expectedTool: 'handoffToNayan',
     description: 'Wisdom request should handoff to Nayan',
@@ -735,7 +735,7 @@ const NAYAN_TOOLS: SimpleFunctionDeclaration[] = [
 
 const NAYAN_SCENARIOS: TestScenario[] = [
   {
-    id: 'nayan-wisdom-quote',
+    id: 'nayan-quote',
     probe: 'I need some perspective on patience',
     expectedTool: 'getWisdomQuote',
     description: 'Perspective request should call getWisdomQuote',

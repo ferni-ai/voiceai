@@ -4,7 +4,7 @@
  * Apply conversation phase personality to SSML output.
  */
 
-import type { ConversationPhase } from '../../intelligence/conversation-state.js';
+import type { ConversationPhase } from '../../intelligence/state/conversation.js';
 import type { SpeechContext } from '../speech-context.js';
 import type { PersonalityTagOptions } from './types.js';
 

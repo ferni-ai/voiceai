@@ -217,7 +217,7 @@ describe('ThreadManager', () => {
         agentId: testAgentId,
         channel: 'voice',
         direction: 'outbound',
-        content: 'I\'d love to help with that!',
+        content: "I'd love to help with that!",
         timestamp: new Date(),
       });
 
@@ -536,7 +536,11 @@ describe('Agent Handoff Flow', () => {
     });
 
     // Handoff to Maya for habits around travel
-    await threadManager.transferOwnership(thread.id, 'maya-santos', 'Workout habits while traveling');
+    await threadManager.transferOwnership(
+      thread.id,
+      'maya-santos',
+      'Workout habits while traveling'
+    );
 
     const context = await threadManager.buildAgentContext(thread.id, 'maya-santos');
 

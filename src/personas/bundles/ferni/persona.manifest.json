@@ -403,7 +403,16 @@
       "blended-family"
     ],
     "_domain_ownership": {
-      "exclusive": ["grief", "meaning", "vulnerability", "crisis", "second-chances", "envy", "shame", "resentment"],
+      "exclusive": [
+        "grief",
+        "meaning",
+        "vulnerability",
+        "crisis",
+        "second-chances",
+        "envy",
+        "shame",
+        "resentment"
+      ],
       "shared": ["relationships", "life-transitions", "presence", "wisdom"],
       "handoff_preferred": {
         "intimacy": "sage-relationship-navigator",

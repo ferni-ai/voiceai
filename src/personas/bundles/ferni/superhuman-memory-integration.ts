@@ -27,7 +27,7 @@ import {
   markInsightDelivered,
   type ProactiveInsight,
   type ComfortGuidance,
-} from '../../../intelligence/superhuman-memory.js';
+} from '../../../intelligence/superhuman-memory/index.js';
 import {
   memoryPersonalityBridge,
   createCallbackFromInsight,

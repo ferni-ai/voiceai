@@ -24,7 +24,7 @@
 
 import { createHash } from 'crypto';
 import { createLogger } from '../../utils/safe-logger.js';
-import { DISTRESS } from '../distress-levels.js';
+import { DISTRESS } from '../detectors/distress.js';
 
 // Import types for local use in this module
 import type {
@@ -1111,7 +1111,8 @@ export async function cleanupAllContextBuilderSessions(): Promise<void> {
 
   // Clear all deep understanding sessions
   try {
-    const { clearAllDeepUnderstandingSessions } = await import('./intelligence/deep-understanding.js');
+    const { clearAllDeepUnderstandingSessions } =
+      await import('./intelligence/deep-understanding.js');
     clearAllDeepUnderstandingSessions();
   } catch {
     /* module not loaded */
@@ -1119,7 +1120,8 @@ export async function cleanupAllContextBuilderSessions(): Promise<void> {
 
   // Clear all conversational superpowers sessions
   try {
-    const { clearAllSuperpowersSessions } = await import('./superhuman/conversational-superpowers.js');
+    const { clearAllSuperpowersSessions } =
+      await import('./superhuman/conversational-superpowers.js');
     clearAllSuperpowersSessions();
   } catch {
     /* module not loaded */

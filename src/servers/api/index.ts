@@ -98,6 +98,7 @@ import { handleTrustExportRoutes } from '../../api/trust-export-routes.js';
 import { handleTrustJourneyRoutes } from '../../api/trust-journey-routes.js';
 import { handleCalendarRoutes } from '../../api/calendar-routes.js';
 import { handleTrustSystemsRoutes } from '../../api/trust-systems-routes.js';
+import { handleSuperhumanMetricsRoutes } from '../../api/superhuman-metrics-routes.js';
 import { handleRelationshipArcRoutes } from '../../api/relationship-arc-routes.js';
 import { handleFeatureFlagsRoutes } from '../../api/feature-flags-routes.js';
 import { handleFeedbackRoutes, isFeedbackRoute } from '../../api/feedback-routes.js';
@@ -795,6 +796,12 @@ const server = http.createServer(async (req, res) => {
     // Trust systems routes
     if (pathname.startsWith('/api/trust/')) {
       const handled = await handleTrustSystemsRoutes(req, res, pathname, parsedUrl);
+      if (handled) return;
+    }
+
+    // Superhuman metrics routes (Better Than Human dashboard)
+    if (pathname.startsWith('/api/superhuman')) {
+      const handled = await handleSuperhumanMetricsRoutes(req, res, pathname, parsedUrl);
       if (handled) return;
     }
 

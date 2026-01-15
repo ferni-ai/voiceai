@@ -17,7 +17,7 @@
  *   sessionId,
  *   userId,
  *   roundtable: {
- *     personas: ['ferni', 'peter-john', 'maya-habits'],
+ *     personas: ['ferni', 'peter-john', 'maya-santos'],
  *     topic: 'Career planning',
  *     collaborationMode: 'discussion',
  *     moderator: 'ferni',

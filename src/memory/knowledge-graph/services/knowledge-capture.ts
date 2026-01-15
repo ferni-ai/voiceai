@@ -130,7 +130,8 @@ function calculateEmotionalContext(
     if (typeof textEmotion.valence === 'number') {
       sentiment = textEmotion.valence;
     } else if (typeof textEmotion.valence === 'string') {
-      sentiment = textEmotion.valence === 'positive' ? 0.5 : textEmotion.valence === 'negative' ? -0.5 : 0;
+      sentiment =
+        textEmotion.valence === 'positive' ? 0.5 : textEmotion.valence === 'negative' ? -0.5 : 0;
     }
     intensity = textEmotion.intensity ?? 0.5;
   }
@@ -179,7 +180,12 @@ function calculateEmotionalContext(
     }
 
     // High energy with fast speaking rate suggests excitement or anxiety
-    if (voiceSignals.energy !== undefined && voiceSignals.energy > 0.7 && voiceSignals.speakingRate && voiceSignals.speakingRate > 1.2) {
+    if (
+      voiceSignals.energy !== undefined &&
+      voiceSignals.energy > 0.7 &&
+      voiceSignals.speakingRate &&
+      voiceSignals.speakingRate > 1.2
+    ) {
       intensity = Math.min(1, intensity + 0.15);
     }
 
@@ -357,16 +363,19 @@ export async function captureTurn(input: TurnCaptureInput): Promise<CaptureResul
         }
         // TODO: Handle other entity types (place, event, goal, etc.)
       } catch (error) {
-        log.warn(
-          { error: String(error), entityName: extracted.name },
-          'Failed to resolve entity'
-        );
+        log.warn({ error: String(error), entityName: extracted.name }, 'Failed to resolve entity');
       }
     }
 
     // 3. Extract facts about resolved entities AND create mentions with facts
     if (resolvedEntities.length > 0) {
-      let extractedFacts: Array<{ entityId?: string; type: string; key: string; value: string; confidence: number }> = [];
+      let extractedFacts: Array<{
+        entityId?: string;
+        type: string;
+        key: string;
+        value: string;
+        confidence: number;
+      }> = [];
 
       // First, extract facts
       try {
@@ -383,7 +392,9 @@ export async function captureTurn(input: TurnCaptureInput): Promise<CaptureResul
 
         extractedFacts = factResult.facts;
         result.facts.count = factResult.facts.length;
-        result.facts.entityIds = [...new Set(factResult.facts.map((f) => f.entityId).filter(Boolean) as string[])];
+        result.facts.entityIds = [
+          ...new Set(factResult.facts.map((f) => f.entityId).filter(Boolean) as string[]),
+        ];
       } catch (error) {
         log.warn({ error: String(error) }, 'Fact extraction failed');
       }
@@ -422,10 +433,7 @@ export async function captureTurn(input: TurnCaptureInput): Promise<CaptureResul
             'Created mention with facts'
           );
         } catch (error) {
-          log.warn(
-            { error: String(error), entityId: resolved.id },
-            'Failed to create mention'
-          );
+          log.warn({ error: String(error), entityId: resolved.id }, 'Failed to create mention');
         }
       }
     }
@@ -455,7 +463,13 @@ export async function captureTurn(input: TurnCaptureInput): Promise<CaptureResul
               type: rel.type as import('../../entity-store/types.js').EdgeType,
               label: rel.label,
               strength: rel.confidence,
-              bidirectional: ['family_of', 'friend_of', 'works_with', 'romantic_with', 'knows'].includes(rel.type),
+              bidirectional: [
+                'family_of',
+                'friend_of',
+                'works_with',
+                'romantic_with',
+                'knows',
+              ].includes(rel.type),
               firstLinked: new Date(),
               lastReinforced: new Date(),
               reinforcementCount: 1,
@@ -486,10 +500,7 @@ export async function captureTurn(input: TurnCaptureInput): Promise<CaptureResul
 
     return result;
   } catch (error) {
-    log.error(
-      { error: String(error), userId: input.userId },
-      'Knowledge capture failed'
-    );
+    log.error({ error: String(error), userId: input.userId }, 'Knowledge capture failed');
     result.metrics.totalTimeMs = Date.now() - startTime;
     return result;
   }
@@ -498,9 +509,7 @@ export async function captureTurn(input: TurnCaptureInput): Promise<CaptureResul
 /**
  * Batch capture for processing multiple turns (e.g., importing history)
  */
-export async function captureBatch(
-  inputs: TurnCaptureInput[]
-): Promise<CaptureResult[]> {
+export async function captureBatch(inputs: TurnCaptureInput[]): Promise<CaptureResult[]> {
   const results: CaptureResult[] = [];
 
   for (const input of inputs) {

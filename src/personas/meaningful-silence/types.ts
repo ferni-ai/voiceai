@@ -4,7 +4,10 @@
  * Types for the meaningful silence response system.
  */
 
-import type { QuestionContext, GeneratedQuestion } from '../../intelligence/dynamic-questions.js';
+import type {
+  QuestionContext,
+  GeneratedQuestion,
+} from '../../intelligence/coaching/dynamic-questions.js';
 
 // ============================================================================
 // CONTEXT TYPES

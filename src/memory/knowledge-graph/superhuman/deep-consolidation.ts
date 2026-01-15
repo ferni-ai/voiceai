@@ -152,12 +152,15 @@ export class DeepConsolidation {
       // Load all user data
       const { entities, mentions, threads, relationships } = await this.loadUserData(userId);
 
-      log.debug({
-        entities: entities.length,
-        mentions: mentions.length,
-        threads: threads.length,
-        relationships: relationships.length,
-      }, 'Data loaded for consolidation');
+      log.debug(
+        {
+          entities: entities.length,
+          mentions: mentions.length,
+          threads: threads.length,
+          relationships: relationships.length,
+        },
+        'Data loaded for consolidation'
+      );
 
       // 1. Detect temporal cycles
       const temporalPatterns = this.detectTemporalCycles(userId, mentions);
@@ -168,7 +171,12 @@ export class DeepConsolidation {
       patterns.push(...causalPatterns);
 
       // 3. Find hidden connections
-      const connectionPatterns = this.findHiddenConnections(userId, entities, mentions, relationships);
+      const connectionPatterns = this.findHiddenConnections(
+        userId,
+        entities,
+        mentions,
+        relationships
+      );
       patterns.push(...connectionPatterns);
 
       // 4. Detect emotional triggers
@@ -206,12 +214,15 @@ export class DeepConsolidation {
 
       const processingTimeMs = Date.now() - startTime;
 
-      log.info({
-        userId,
-        patternsFound: filteredPatterns.length,
-        insightsGenerated: insights.length,
-        processingTimeMs,
-      }, 'Deep consolidation complete');
+      log.info(
+        {
+          userId,
+          patternsFound: filteredPatterns.length,
+          insightsGenerated: insights.length,
+          processingTimeMs,
+        },
+        'Deep consolidation complete'
+      );
 
       return {
         patterns: filteredPatterns.slice(0, this.config.maxPatterns),
@@ -259,12 +270,15 @@ export class DeepConsolidation {
       patterns.push(...triggers.slice(0, 2));
 
       // Quick hidden connections
-      const connections = this.findHiddenConnections(userId, entities.slice(0, 20), mentions.slice(-500), []);
+      const connections = this.findHiddenConnections(
+        userId,
+        entities.slice(0, 20),
+        mentions.slice(-500),
+        []
+      );
       patterns.push(...connections.slice(0, 1));
 
-      return patterns
-        .filter((p) => p.confidence >= 0.5)
-        .slice(0, limit);
+      return patterns.filter((p) => p.confidence >= 0.5).slice(0, limit);
     } catch (error) {
       log.debug({ error: String(error) }, 'Quick pattern detection failed');
       return [];
@@ -291,7 +305,8 @@ export class DeepConsolidation {
       if (dayMentions.length < this.config.minDataPoints) continue;
 
       const avgEmotionIntensity = this.averageEmotionIntensity(dayMentions);
-      const negativeRatio = dayMentions.filter((m) => this.isNegativeEmotion(m.emotion)).length / dayMentions.length;
+      const negativeRatio =
+        dayMentions.filter((m) => this.isNegativeEmotion(m.emotion)).length / dayMentions.length;
 
       if (negativeRatio > 0.6 && avgEmotionIntensity > 0.5) {
         const dayName = this.getDayName(day);
@@ -330,14 +345,16 @@ export class DeepConsolidation {
     const allLateNight = [...lateNight, ...earlyMorning];
 
     if (allLateNight.length >= this.config.minDataPoints) {
-      const negativeRatio = allLateNight.filter((m) => this.isNegativeEmotion(m.emotion)).length / allLateNight.length;
+      const negativeRatio =
+        allLateNight.filter((m) => this.isNegativeEmotion(m.emotion)).length / allLateNight.length;
 
       if (negativeRatio > 0.5) {
         patterns.push({
           id: `temporal-${userId}-late-night`,
           userId,
           type: 'temporal_cycle',
-          description: 'Late nights often bring heavier thoughts. The quiet hours seem to surface difficult feelings.',
+          description:
+            'Late nights often bring heavier thoughts. The quiet hours seem to surface difficult feelings.',
           confidence: Math.min(0.85, negativeRatio * 1.2),
           evidence: {
             occurrences: allLateNight.length,
@@ -348,7 +365,8 @@ export class DeepConsolidation {
           involvedTopics: this.extractTopics(allLateNight),
           detectedAt: new Date(),
           actionable: true,
-          suggestedAction: "Late night thoughts are valid. Consider writing them down or talking through them before they spiral.",
+          suggestedAction:
+            'Late night thoughts are valid. Consider writing them down or talking through them before they spiral.',
         });
       }
     }
@@ -356,7 +374,11 @@ export class DeepConsolidation {
     return patterns;
   }
 
-  private detectCausalChains(userId: string, mentions: Mention[], entities: Entity[]): DeepPattern[] {
+  private detectCausalChains(
+    userId: string,
+    mentions: Mention[],
+    entities: Entity[]
+  ): DeepPattern[] {
     const patterns: DeepPattern[] = [];
 
     // Look for entity A mention → entity B mention within 48 hours
@@ -503,7 +525,8 @@ export class DeepConsolidation {
     const patterns: DeepPattern[] = [];
 
     // Group by entity and track emotional valence
-    const entityEmotions: Map<string, { positive: number; negative: number; total: number }> = new Map();
+    const entityEmotions: Map<string, { positive: number; negative: number; total: number }> =
+      new Map();
 
     for (const mention of mentions) {
       if (!mention.entityId) continue;
@@ -545,7 +568,8 @@ export class DeepConsolidation {
           involvedTopics: [],
           detectedAt: new Date(),
           actionable: true,
-          suggestedAction: "Let's explore what makes this so emotionally charged. There might be something worth processing.",
+          suggestedAction:
+            "Let's explore what makes this so emotionally charged. There might be something worth processing.",
         });
       } else if (positiveRatio > 0.7) {
         patterns.push({
@@ -626,7 +650,11 @@ export class DeepConsolidation {
     return patterns;
   }
 
-  private detectAvoidancePatterns(userId: string, entities: Entity[], mentions: Mention[]): DeepPattern[] {
+  private detectAvoidancePatterns(
+    userId: string,
+    entities: Entity[],
+    mentions: Mention[]
+  ): DeepPattern[] {
     const patterns: DeepPattern[] = [];
 
     // Find entities mentioned once or twice long ago, never again
@@ -677,7 +705,11 @@ export class DeepConsolidation {
     return patterns;
   }
 
-  private detectRelationshipDynamics(userId: string, entities: Entity[], mentions: Mention[]): DeepPattern[] {
+  private detectRelationshipDynamics(
+    userId: string,
+    entities: Entity[],
+    mentions: Mention[]
+  ): DeepPattern[] {
     const patterns: DeepPattern[] = [];
 
     // Focus on person entities
@@ -741,7 +773,10 @@ export class DeepConsolidation {
   // INSIGHT GENERATION
   // ============================================================================
 
-  private generateInsightFromPattern(userId: string, pattern: DeepPattern): ConsolidationInsight | null {
+  private generateInsightFromPattern(
+    userId: string,
+    pattern: DeepPattern
+  ): ConsolidationInsight | null {
     const categoryMap: Record<PatternType, InsightCategory> = {
       temporal_cycle: 'behavioral_insight',
       causal_chain: 'connection_insight',
@@ -869,9 +904,7 @@ export class DeepConsolidation {
 
     // Filter by lookback period
     const cutoff = Date.now() - this.config.lookbackDays * 24 * 60 * 60 * 1000;
-    const filteredMentions = allMentions.filter(
-      (m) => new Date(m.timestamp).getTime() > cutoff
-    );
+    const filteredMentions = allMentions.filter((m) => new Date(m.timestamp).getTime() > cutoff);
 
     return {
       entities,
@@ -886,20 +919,36 @@ export class DeepConsolidation {
   // ============================================================================
 
   private isNegativeEmotion(emotion?: string): boolean {
-    const negative = ['sad', 'angry', 'anxious', 'stressed', 'frustrated', 'hurt', 'worried', 'overwhelmed'];
+    const negative = [
+      'sad',
+      'angry',
+      'anxious',
+      'stressed',
+      'frustrated',
+      'hurt',
+      'worried',
+      'overwhelmed',
+    ];
     return negative.includes(emotion?.toLowerCase() || '');
   }
 
   private isPositiveEmotion(emotion?: string): boolean {
-    const positive = ['happy', 'excited', 'grateful', 'hopeful', 'calm', 'content', 'proud', 'relieved'];
+    const positive = [
+      'happy',
+      'excited',
+      'grateful',
+      'hopeful',
+      'calm',
+      'content',
+      'proud',
+      'relieved',
+    ];
     return positive.includes(emotion?.toLowerCase() || '');
   }
 
   private averageEmotionIntensity(mentions: Mention[]): number {
     if (mentions.length === 0) return 0;
-    return (
-      mentions.reduce((sum, m) => sum + (m.emotionalIntensity || 0.5), 0) / mentions.length
-    );
+    return mentions.reduce((sum, m) => sum + (m.emotionalIntensity || 0.5), 0) / mentions.length;
   }
 
   private getTimespanDays(mentions: Mention[]): number {

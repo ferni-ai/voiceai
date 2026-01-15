@@ -43,7 +43,7 @@ export const SILENCE_THRESHOLDS = {
    * turn-handler.ts fires at 4s - this acts as a backup fallback only.
    * See turn-handler.ts:148 and session-state-handler.ts:451
    */
-  EARLY_ACKNOWLEDGMENT_SECONDS: 5.0,
+  EARLY_ACKNOWLEDGMENT_SECONDS: 3.0,
 
   /**
    * Response intervals for progressive silence handling (seconds)
@@ -53,7 +53,7 @@ export const SILENCE_THRESHOLDS = {
    * Configurable via SILENCE_INTERVALS env var (comma-separated):
    * e.g., SILENCE_INTERVALS=6,15,30 for faster responses
    *
-   * Default: [10, 22, 38] - First response at ~10s, second at ~22s, third at ~38s
+   * Default: [7, 16, 28] - First response at ~7s, second at ~16s, third at ~28s
    * Faster: [6, 15, 30] - More responsive for active conversations
    * Slower: [15, 35, 60] - More patient for contemplative conversations
    */
@@ -65,7 +65,7 @@ export const SILENCE_THRESHOLDS = {
         return parsed;
       }
     }
-    return [10, 22, 38]; // Default: first at 10s, second at 22s, third at 38s
+    return [7, 16, 28]; // Default: first at 7s, second at 16s, third at 28s
   },
 } as const;
 

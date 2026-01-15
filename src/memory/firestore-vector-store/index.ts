@@ -62,11 +62,7 @@ export { RecoveryManager, migrateCacheToFirestore } from './recovery.js';
 export type { RecoveryState, RecoveryCallbacks } from './recovery.js';
 
 // Re-export search cache
-export {
-  VectorSearchCache,
-  getVectorSearchCache,
-  resetVectorSearchCache,
-} from './search-cache.js';
+export { VectorSearchCache, getVectorSearchCache, resetVectorSearchCache } from './search-cache.js';
 
 // Re-export core
 export { FirestoreVectorStore } from './core.js';

@@ -73,7 +73,9 @@ async function buildPersonalityV2Context(input: ContextBuilderInput): Promise<Co
 
     // Convert voice emotion to voice features format (if available)
     // Maps from VoiceEmotionResult (context-builders/types) to VoiceFeatures (personality/domain)
-    const voiceFeatures = input.voiceEmotion ? mapVoiceEmotionToFeatures(input.voiceEmotion) : undefined;
+    const voiceFeatures = input.voiceEmotion
+      ? mapVoiceEmotionToFeatures(input.voiceEmotion)
+      : undefined;
 
     // Build context
     const service = getService();
@@ -88,23 +90,23 @@ async function buildPersonalityV2Context(input: ContextBuilderInput): Promise<Co
 
     // Add the formatted personality context
     if (context.formattedContext && context.formattedContext.trim()) {
-      injections.push(
-        createHintInjection('personality-v2', context.formattedContext)
-      );
+      injections.push(createHintInjection('personality-v2', context.formattedContext));
     }
 
     // Record emotional moment from user message (fire-and-forget)
     if (currentMessage.length > 10) {
       // Don't record tiny messages
-      service.recordMoment({
-        userId,
-        personaId,
-        message: currentMessage,
-        topics,
-        voiceFeatures,
-      }).catch((err) => {
-        log.warn({ error: String(err), userId }, 'Failed to record emotional moment');
-      });
+      service
+        .recordMoment({
+          userId,
+          personaId,
+          message: currentMessage,
+          topics,
+          voiceFeatures,
+        })
+        .catch((err) => {
+          log.warn({ error: String(err), userId }, 'Failed to record emotional moment');
+        });
     }
 
     const durationMs = Date.now() - startTime;
@@ -136,11 +138,11 @@ async function buildPersonalityV2Context(input: ContextBuilderInput): Promise<Co
       log.debug(
         {
           formattedContextPreview: context.formattedContext?.slice(0, 200) + '...',
-          vulnerabilities: context.pendingVulnerabilities.map(v => ({
+          vulnerabilities: context.pendingVulnerabilities.map((v) => ({
             category: v.category,
             needsFollowUp: v.needsFollowUp,
           })),
-          patterns: context.surfaceablePatterns.map(p => ({
+          patterns: context.surfaceablePatterns.map((p) => ({
             type: p.patternType,
             description: p.description,
           })),
@@ -151,12 +153,12 @@ async function buildPersonalityV2Context(input: ContextBuilderInput): Promise<Co
   } catch (error) {
     const durationMs = Date.now() - startTime;
     log.error(
-      { 
-        error: String(error), 
+      {
+        error: String(error),
         durationMs,
         userId: input.services?.userId?.slice(0, 8),
         stack: error instanceof Error ? error.stack : undefined,
-      }, 
+      },
       '❌ Personality v2 context builder failed'
     );
     // Don't throw - personality enhancement is non-critical
@@ -167,15 +169,17 @@ async function buildPersonalityV2Context(input: ContextBuilderInput): Promise<Co
 
 /**
  * Map voice emotion data from context builder format to personality v2 format
- * 
+ *
  * VoiceEmotionResult (from speech pipeline):
  * - emotion, confidence, speechRate, pitch, stressLevel, arousal, valence
  * - May also have prosody sub-object with detailed features
- * 
+ *
  * VoiceFeatures (personality v2 domain):
  * - pitchMean, pitchVariation, speakingRate, energyLevel, jitter, shimmer, voiceQuality, etc.
  */
-function mapVoiceEmotionToFeatures(voiceEmotion: NonNullable<ContextBuilderInput['voiceEmotion']>): {
+function mapVoiceEmotionToFeatures(
+  voiceEmotion: NonNullable<ContextBuilderInput['voiceEmotion']>
+): {
   pitchMean?: number;
   pitchVariation?: number;
   speakingRate?: number;
@@ -194,19 +198,18 @@ function mapVoiceEmotionToFeatures(voiceEmotion: NonNullable<ContextBuilderInput
     pitchMean: voiceEmotion.pitch ?? prosody?.pitchMean,
     pitchVariation: prosody?.pitchVariance,
     speakingRate: voiceEmotion.speechRate ?? prosody?.speechRate,
-    
+
     // Map energy from arousal (0-1 arousal to -10 to 10 energy scale)
-    energyLevel: voiceEmotion.arousal !== undefined 
-      ? (voiceEmotion.arousal * 20) - 10 
-      : prosody?.energyMean,
-    
+    energyLevel:
+      voiceEmotion.arousal !== undefined ? voiceEmotion.arousal * 20 - 10 : prosody?.energyMean,
+
     // Voice quality features
     jitter: prosody?.jitter,
     shimmer: prosody?.shimmer,
-    
+
     // Voice quality from confidence (0-1 scale)
     voiceQuality: voiceEmotion.confidence,
-    
+
     // Timing features
     speechDuration: prosody?.utteranceDuration,
     pauseDuration: prosody?.pauseDuration,
@@ -219,8 +222,14 @@ function mapVoiceEmotionToFeatures(voiceEmotion: NonNullable<ContextBuilderInput
 function extractTopics(message: string): string[] {
   const topicPatterns = [
     { pattern: /\b(work|job|office|boss|colleague|meeting|career)\b/i, topic: 'work' },
-    { pattern: /\b(family|mom|dad|parent|sibling|brother|sister|kid|children)\b/i, topic: 'family' },
-    { pattern: /\b(relationship|partner|boyfriend|girlfriend|spouse|husband|wife|dating)\b/i, topic: 'relationship' },
+    {
+      pattern: /\b(family|mom|dad|parent|sibling|brother|sister|kid|children)\b/i,
+      topic: 'family',
+    },
+    {
+      pattern: /\b(relationship|partner|boyfriend|girlfriend|spouse|husband|wife|dating)\b/i,
+      topic: 'relationship',
+    },
     { pattern: /\b(money|bills|debt|financial|afford|salary|pay)\b/i, topic: 'finances' },
     { pattern: /\b(health|sick|doctor|hospital|diagnosis|pain|tired)\b/i, topic: 'health' },
     { pattern: /\b(friend|friendship|social|lonely)\b/i, topic: 'social' },
@@ -233,9 +242,7 @@ function extractTopics(message: string): string[] {
     { pattern: /\b(habit|routine|morning|evening)\b/i, topic: 'habits' },
   ];
 
-  return topicPatterns
-    .filter(({ pattern }) => pattern.test(message))
-    .map(({ topic }) => topic);
+  return topicPatterns.filter(({ pattern }) => pattern.test(message)).map(({ topic }) => topic);
 }
 
 // ============================================================================
@@ -250,7 +257,8 @@ function extractTopics(message: string): string[] {
 export function registerPersonalityV2Builder(): void {
   registerContextBuilder({
     name: 'personality-v2',
-    description: 'SUPERHUMAN personality intelligence - anticipation, timing, vulnerability, patterns, growth',
+    description:
+      'SUPERHUMAN personality intelligence - anticipation, timing, vulnerability, patterns, growth',
     priority: 80, // High priority
     build: buildPersonalityV2Context,
   });

@@ -13,7 +13,7 @@ import { createLogger } from '../../utils/safe-logger.js';
 import {
   recordDomainSignal,
   type DomainSignal,
-} from '../../intelligence/unified-intelligence-api.js';
+} from '../../intelligence/core/unified-intelligence-api.js';
 
 const log = createLogger({ module: 'domain-signals' });
 

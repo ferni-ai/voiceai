@@ -80,7 +80,11 @@ export interface PersonalityRepository {
   /**
    * Load a personality profile by user ID and persona ID
    */
-  loadProfile(userId: string, personaId: string, options?: ProfileQueryOptions): Promise<PersonalityProfile | null>;
+  loadProfile(
+    userId: string,
+    personaId: string,
+    options?: ProfileQueryOptions
+  ): Promise<PersonalityProfile | null>;
 
   /**
    * Save a personality profile
@@ -135,7 +139,10 @@ export interface PersonalityRepository {
   /**
    * Load vulnerability deposits for a user
    */
-  loadVulnerabilities(userId: string, options?: VulnerabilityQueryOptions): Promise<VulnerabilityDeposit[]>;
+  loadVulnerabilities(
+    userId: string,
+    options?: VulnerabilityQueryOptions
+  ): Promise<VulnerabilityDeposit[]>;
 
   /**
    * Save a vulnerability deposit
@@ -145,7 +152,10 @@ export interface PersonalityRepository {
   /**
    * Find vulnerabilities matching context
    */
-  findMatchingVulnerabilities(userId: string, context: string | string[]): Promise<VulnerabilityDeposit[]>;
+  findMatchingVulnerabilities(
+    userId: string,
+    context: string | string[]
+  ): Promise<VulnerabilityDeposit[]>;
 
   // ============================================================================
   // GROWTH MILESTONE OPERATIONS

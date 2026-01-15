@@ -42,10 +42,10 @@ import {
 import { getReflectionMoments, selectBestReflection } from '../../cross-session-reflection.js';
 
 // Subconscious goals
-import { getSubconsciousSummary } from '../../subconscious-goals.js';
+import { getSubconsciousSummary } from '../../deep-understanding/subconscious.js';
 
 // Life rhythm prediction
-import { predictUserState } from '../../life-rhythm-prediction.js';
+import { predictUserState } from '../../deep-understanding/life-rhythm.js';
 
 const log = createLogger({ module: 'SuperhumanInsights' });
 

@@ -23,7 +23,7 @@ import {
   resetMemoryEngagementEngine,
   buildMemoryEngagementContext,
   type MemoryEngagementEngine,
-} from '../intelligence/memory-engagement.js';
+} from '../intelligence/tracking/memory-engagement.js';
 import {
   getTeamEngagementService,
   resetTeamEngagementService,

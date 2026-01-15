@@ -340,7 +340,7 @@ const BANTER_TEMPLATES: GossipTemplate[] = [
     fromPersona: 'alex-chen',
     aboutPersona: 'jordan-taylor',
     message:
-      "Jordan used seventeen exclamation points in her last message to me. Seventeen. I counted.",
+      'Jordan used seventeen exclamation points in her last message to me. Seventeen. I counted.',
   },
   {
     trigger: 'efficient',
@@ -381,7 +381,7 @@ const QUIRK_TEMPLATES: GossipTemplate[] = [
     fromPersona: 'ferni',
     aboutPersona: 'maya-santos',
     message:
-      "Maya does yoga before every conversation with anyone. She says it helps her listen better. I believe her.",
+      'Maya does yoga before every conversation with anyone. She says it helps her listen better. I believe her.',
   },
   {
     trigger: 'music',
@@ -402,7 +402,7 @@ const QUIRK_TEMPLATES: GossipTemplate[] = [
     fromPersona: 'ferni',
     aboutPersona: 'peter-john',
     message:
-      "Peter has a favorite spreadsheet. Like... a favorite. He showed it to me once with the same energy people show photos of their pets.",
+      'Peter has a favorite spreadsheet. Like... a favorite. He showed it to me once with the same energy people show photos of their pets.',
   },
 ];
 

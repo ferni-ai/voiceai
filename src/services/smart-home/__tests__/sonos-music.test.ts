@@ -30,9 +30,30 @@ describe('Sonos Room Matching', () => {
     const { matchRoomName } = await import('../sonos-music.js');
 
     const groups = [
-      { id: '1', name: 'Living Room', playbackState: 'idle', volume: 50, muted: false, coordinatorId: '1' },
-      { id: '2', name: 'Kitchen', playbackState: 'idle', volume: 50, muted: false, coordinatorId: '2' },
-      { id: '3', name: 'Bedroom', playbackState: 'idle', volume: 50, muted: false, coordinatorId: '3' },
+      {
+        id: '1',
+        name: 'Living Room',
+        playbackState: 'idle',
+        volume: 50,
+        muted: false,
+        coordinatorId: '1',
+      },
+      {
+        id: '2',
+        name: 'Kitchen',
+        playbackState: 'idle',
+        volume: 50,
+        muted: false,
+        coordinatorId: '2',
+      },
+      {
+        id: '3',
+        name: 'Bedroom',
+        playbackState: 'idle',
+        volume: 50,
+        muted: false,
+        coordinatorId: '3',
+      },
     ] as const;
 
     expect(matchRoomName('Living Room', groups as any)?.name).toBe('Living Room');
@@ -44,7 +65,14 @@ describe('Sonos Room Matching', () => {
     const { matchRoomName } = await import('../sonos-music.js');
 
     const groups = [
-      { id: '1', name: 'Living Room', playbackState: 'idle', volume: 50, muted: false, coordinatorId: '1' },
+      {
+        id: '1',
+        name: 'Living Room',
+        playbackState: 'idle',
+        volume: 50,
+        muted: false,
+        coordinatorId: '1',
+      },
     ] as const;
 
     expect(matchRoomName('living room', groups as any)?.name).toBe('Living Room');
@@ -56,8 +84,22 @@ describe('Sonos Room Matching', () => {
     const { matchRoomName } = await import('../sonos-music.js');
 
     const groups = [
-      { id: '1', name: 'Living Room Sonos', playbackState: 'idle', volume: 50, muted: false, coordinatorId: '1' },
-      { id: '2', name: 'Kitchen Speaker', playbackState: 'idle', volume: 50, muted: false, coordinatorId: '2' },
+      {
+        id: '1',
+        name: 'Living Room Sonos',
+        playbackState: 'idle',
+        volume: 50,
+        muted: false,
+        coordinatorId: '1',
+      },
+      {
+        id: '2',
+        name: 'Kitchen Speaker',
+        playbackState: 'idle',
+        volume: 50,
+        muted: false,
+        coordinatorId: '2',
+      },
     ] as const;
 
     expect(matchRoomName('living', groups as any)?.name).toBe('Living Room Sonos');
@@ -68,9 +110,30 @@ describe('Sonos Room Matching', () => {
     const { matchRoomName } = await import('../sonos-music.js');
 
     const groups = [
-      { id: '1', name: 'Living Room', playbackState: 'idle', volume: 50, muted: false, coordinatorId: '1' },
-      { id: '2', name: 'Bedroom', playbackState: 'idle', volume: 50, muted: false, coordinatorId: '2' },
-      { id: '3', name: 'Office', playbackState: 'idle', volume: 50, muted: false, coordinatorId: '3' },
+      {
+        id: '1',
+        name: 'Living Room',
+        playbackState: 'idle',
+        volume: 50,
+        muted: false,
+        coordinatorId: '1',
+      },
+      {
+        id: '2',
+        name: 'Bedroom',
+        playbackState: 'idle',
+        volume: 50,
+        muted: false,
+        coordinatorId: '2',
+      },
+      {
+        id: '3',
+        name: 'Office',
+        playbackState: 'idle',
+        volume: 50,
+        muted: false,
+        coordinatorId: '3',
+      },
     ] as const;
 
     // Living room aliases
@@ -90,7 +153,14 @@ describe('Sonos Room Matching', () => {
     const { matchRoomName } = await import('../sonos-music.js');
 
     const groups = [
-      { id: '1', name: 'Kitchen', playbackState: 'idle', volume: 50, muted: false, coordinatorId: '1' },
+      {
+        id: '1',
+        name: 'Kitchen',
+        playbackState: 'idle',
+        volume: 50,
+        muted: false,
+        coordinatorId: '1',
+      },
     ] as const;
 
     expect(matchRoomName('garage', groups as any)).toBeNull();

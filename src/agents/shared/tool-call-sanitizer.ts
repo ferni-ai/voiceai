@@ -2919,10 +2919,10 @@ export function createSanitizerWithMusicFallback(
 
           // ============================================================================
           // HUMANIZATION: Fill the dead air with natural acknowledgments
-          // 
+          //
           // Any tool that takes >200ms should have verbal acknowledgment to feel human.
           // Think of it like a friend saying "hold on" while checking their phone.
-          // 
+          //
           // Tools that DON'T need acknowledgment:
           // - Music (we want it to play immediately)
           // - Speak/say pseudo-tools (already speaking)
@@ -2930,7 +2930,7 @@ export function createSanitizerWithMusicFallback(
           // ============================================================================
           const silentTools = new Set([
             'playmusic',
-            'pausemusic', 
+            'pausemusic',
             'resumemusic',
             'skiptrack',
             'speak',
@@ -2939,10 +2939,10 @@ export function createSanitizerWithMusicFallback(
             'setvolume',
             'getvolume',
           ]);
-          
+
           const fnLower = jsonCall.fn.toLowerCase();
           const shouldAcknowledge = !silentTools.has(fnLower);
-          
+
           if (shouldAcknowledge) {
             // Use persona-aware acknowledgments with SSML for human-like delivery
             const ack = getSlowToolAcknowledgment(
@@ -2951,7 +2951,11 @@ export function createSanitizerWithMusicFallback(
               toolContext?.userId
             );
             log.info(
-              { fn: jsonCall.fn, ack: ack.replace(/<[^>]+>/g, '').slice(0, 30), personaId: toolContext?.personaId },
+              {
+                fn: jsonCall.fn,
+                ack: ack.replace(/<[^>]+>/g, '').slice(0, 30),
+                personaId: toolContext?.personaId,
+              },
               '🗣️ Injecting human acknowledgment while tool executes'
             );
             controller.enqueue(`${ack} `);
@@ -3317,10 +3321,10 @@ export function createSanitizerWithMusicFallback(
 
         // ============================================================================
         // HUMANIZATION: Fill the dead air with natural acknowledgments
-        // 
+        //
         // Any tool that takes >200ms should have verbal acknowledgment to feel human.
         // Think of it like a friend saying "hold on" while checking their phone.
-        // 
+        //
         // Tools that DON'T need acknowledgment:
         // - Music (we want it to play immediately)
         // - Speak/say pseudo-tools (already speaking)
@@ -3328,7 +3332,7 @@ export function createSanitizerWithMusicFallback(
         // ============================================================================
         const silentTools = new Set([
           'playmusic',
-          'pausemusic', 
+          'pausemusic',
           'resumemusic',
           'skiptrack',
           'speak',
@@ -3337,10 +3341,10 @@ export function createSanitizerWithMusicFallback(
           'setvolume',
           'getvolume',
         ]);
-        
+
         const fnLower = jsonCall.fn.toLowerCase();
         const shouldAcknowledge = !silentTools.has(fnLower);
-        
+
         if (shouldAcknowledge) {
           // Use persona-aware acknowledgments with SSML for human-like delivery
           const ack = getSlowToolAcknowledgment(
@@ -3349,7 +3353,11 @@ export function createSanitizerWithMusicFallback(
             toolContext?.userId
           );
           log.info(
-            { fn: jsonCall.fn, ack: ack.replace(/<[^>]+>/g, '').slice(0, 30), personaId: toolContext?.personaId },
+            {
+              fn: jsonCall.fn,
+              ack: ack.replace(/<[^>]+>/g, '').slice(0, 30),
+              personaId: toolContext?.personaId,
+            },
             '🗣️ Injecting human acknowledgment while tool executes'
           );
           controller.enqueue(`${ack} `);
@@ -3508,7 +3516,12 @@ export function createSanitizerWithMusicFallback(
         /^["'][^"']+["']\s+(by|from|is|was|sounds|feels)\b/i.test(trimmed) || // "Title" by Artist
         /^["'][^"']+["'][.!?,]?\s*$/.test(trimmed); // "Phrase." or "Phrase"
 
-      if (looksLikeJsonContinuation && buffer.length < 80 && !hasContraction && !looksLikeQuotedPhrase) {
+      if (
+        looksLikeJsonContinuation &&
+        buffer.length < 80 &&
+        !hasContraction &&
+        !looksLikeQuotedPhrase
+      ) {
         log.debug(
           { preview: buffer.slice(0, 40) },
           '🗑️ Suppressing JSON/markdown continuation chunk'

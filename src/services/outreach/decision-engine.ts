@@ -1088,7 +1088,11 @@ class OutreachDecisionEngine extends EventEmitter {
           topic: String(trigger.context?.topic || trigger.reason),
           reason: trigger.reason,
           suggestedPersonas: trigger.context?.personas as string[] | undefined,
-          collaborationMode: trigger.context?.mode as 'discussion' | 'brainstorm' | 'support' | undefined,
+          collaborationMode: trigger.context?.mode as
+            | 'discussion'
+            | 'brainstorm'
+            | 'support'
+            | undefined,
           preferredName,
         });
         break;

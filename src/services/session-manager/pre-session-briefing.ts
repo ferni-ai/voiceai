@@ -419,6 +419,46 @@ function formatBriefing(
 // ============================================================================
 
 /**
+ * Create an instant pre-session briefing without async dependencies.
+ * Ensures Ferni has day awareness immediately at session start.
+ */
+export function createInstantPreSessionBriefing(userProfile?: {
+  name?: string;
+  lastConversation?: Date;
+}): PreSessionBriefing {
+  const temporal = getTemporalContext();
+  const cultural = getCulturalContext();
+
+  let userContext: UserContext | undefined;
+  if (userProfile) {
+    userContext = {
+      name: userProfile.name,
+    };
+    if (userProfile.lastConversation) {
+      const daysSince = Math.floor(
+        (Date.now() - userProfile.lastConversation.getTime()) / (24 * 60 * 60 * 1000)
+      );
+      userContext.lastConversation = {
+        when:
+          daysSince === 0
+            ? 'earlier today'
+            : daysSince === 1
+              ? 'yesterday'
+              : `${daysSince} days ago`,
+      };
+    }
+  }
+
+  return {
+    temporal,
+    cultural,
+    userContext,
+    formatted: formatBriefing(temporal, cultural, userContext),
+    generatedAt: new Date(),
+  };
+}
+
+/**
  * Generate a pre-session briefing for Ferni
  *
  * Call this BEFORE the session starts to load context.

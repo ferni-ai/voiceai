@@ -425,7 +425,7 @@ export function formatInsightsForPrompt(insights: GeneratedInsight[]): string {
 
   sections.push('─────────────────────────────────────────────────────────────');
   sections.push("NOTE: Don't force these. Weave in naturally when relevant.");
-  sections.push("      The goal is connection, not showing off what we know.");
+  sections.push('      The goal is connection, not showing off what we know.');
   sections.push('─────────────────────────────────────────────────────────────');
 
   return sections.join('\n');

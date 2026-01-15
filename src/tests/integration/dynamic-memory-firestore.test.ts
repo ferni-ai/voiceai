@@ -36,7 +36,12 @@ describeWithEmulator('Dynamic Memory Firestore Integration', () => {
       const db = getFirestoreDb();
       if (db) {
         // Delete test user's dynamic collections
-        const collections = ['dynamic_entities', 'dynamic_facts', 'dynamic_relationships', 'promoted_entities'];
+        const collections = [
+          'dynamic_entities',
+          'dynamic_facts',
+          'dynamic_relationships',
+          'promoted_entities',
+        ];
         for (const col of collections) {
           const snapshot = await db.collection('bogle_users').doc(testUserId).collection(col).get();
           const batch = db.batch();
@@ -151,7 +156,11 @@ describeWithEmulator('Dynamic Memory Firestore Integration', () => {
       // Add some entities
       const batch = db.batch();
 
-      const entity1 = db.collection('bogle_users').doc(testUserId).collection('dynamic_entities').doc();
+      const entity1 = db
+        .collection('bogle_users')
+        .doc(testUserId)
+        .collection('dynamic_entities')
+        .doc();
       batch.set(entity1, {
         name: 'Sarah',
         type: 'person',
@@ -162,7 +171,11 @@ describeWithEmulator('Dynamic Memory Firestore Integration', () => {
         mentionCount: 3,
       });
 
-      const entity2 = db.collection('bogle_users').doc(testUserId).collection('dynamic_entities').doc();
+      const entity2 = db
+        .collection('bogle_users')
+        .doc(testUserId)
+        .collection('dynamic_entities')
+        .doc();
       batch.set(entity2, {
         name: 'Work',
         type: 'place',
@@ -335,9 +348,8 @@ describe('Dynamic Memory (Mocked)', () => {
 
   it('should handle missing Firestore gracefully', async () => {
     // This test runs without emulator to verify graceful degradation
-    const { configureDynamicMemory } = await import(
-      '../../intelligence/context-builders/memory/dynamic-memory-context.js'
-    );
+    const { configureDynamicMemory } =
+      await import('../../intelligence/context-builders/memory/dynamic-memory-context.js');
 
     // Should not throw
     expect(() => {
@@ -351,9 +363,8 @@ describe('Dynamic Memory (Mocked)', () => {
       getFirestoreDb: () => null,
     }));
 
-    const { buildDynamicMemoryContext } = await import(
-      '../../intelligence/context-builders/memory/dynamic-memory-context.js'
-    );
+    const { buildDynamicMemoryContext } =
+      await import('../../intelligence/context-builders/memory/dynamic-memory-context.js');
 
     const injections = await buildDynamicMemoryContext({
       userId: 'test-user',

@@ -68,7 +68,9 @@ class MockFirestoreDB {
   collection(path: string): MockCollectionRef {
     const self = this;
 
-    const createQuery = (filters: Array<{ field: string; op: string; value: unknown }> = []): MockQuery => ({
+    const createQuery = (
+      filters: Array<{ field: string; op: string; value: unknown }> = []
+    ): MockQuery => ({
       orderBy(_field: string, _direction?: 'asc' | 'desc') {
         return createQuery(filters);
       },
@@ -253,19 +255,26 @@ describe('Cross-Session Memory E2E', () => {
       session1Memory.sharedMoments.push(moment1);
 
       // Save session 1 memory
-      await mockFirestore.collection('relationship_memories').doc(`${userId}_${personaId}`).set(
-        serializeMemory(session1Memory)
-      );
+      await mockFirestore
+        .collection('relationship_memories')
+        .doc(`${userId}_${personaId}`)
+        .set(serializeMemory(session1Memory));
 
       // Verify session 1 was saved
-      const saved1 = await mockFirestore.collection('relationship_memories').doc(`${userId}_${personaId}`).get();
+      const saved1 = await mockFirestore
+        .collection('relationship_memories')
+        .doc(`${userId}_${personaId}`)
+        .get();
       expect(saved1.exists).toBe(true);
       const data1 = saved1.data();
       expect(data1?.totalSessions).toBe(1);
       expect((data1?.sharedMoments as unknown[])?.length).toBe(1);
 
       // === SESSION 2: Returning user - verify memory persists ===
-      const loaded2 = await mockFirestore.collection('relationship_memories').doc(`${userId}_${personaId}`).get();
+      const loaded2 = await mockFirestore
+        .collection('relationship_memories')
+        .doc(`${userId}_${personaId}`)
+        .get();
       expect(loaded2.exists).toBe(true);
 
       const session2Memory = deserializeMemory(loaded2.data()!);
@@ -302,12 +311,16 @@ describe('Cross-Session Memory E2E', () => {
       session2Memory.trustScore = 0.65;
 
       // Save session 2 memory
-      await mockFirestore.collection('relationship_memories').doc(`${userId}_${personaId}`).set(
-        serializeMemory(session2Memory)
-      );
+      await mockFirestore
+        .collection('relationship_memories')
+        .doc(`${userId}_${personaId}`)
+        .set(serializeMemory(session2Memory));
 
       // === SESSION 3: Verify full relationship history ===
-      const loaded3 = await mockFirestore.collection('relationship_memories').doc(`${userId}_${personaId}`).get();
+      const loaded3 = await mockFirestore
+        .collection('relationship_memories')
+        .doc(`${userId}_${personaId}`)
+        .get();
       expect(loaded3.exists).toBe(true);
 
       const session3Memory = deserializeMemory(loaded3.data()!);
@@ -320,12 +333,16 @@ describe('Cross-Session Memory E2E', () => {
       expect(session3Memory.sharedMoments.length).toBe(2);
 
       // Verify moment details
-      const vulnerabilityMoment = session3Memory.sharedMoments.find(m => m.type === 'first_vulnerability');
+      const vulnerabilityMoment = session3Memory.sharedMoments.find(
+        (m) => m.type === 'first_vulnerability'
+      );
       expect(vulnerabilityMoment).toBeDefined();
       expect(vulnerabilityMoment?.callbackCount).toBe(1);
       expect(vulnerabilityMoment?.lastCallback).toBeInstanceOf(Date);
 
-      const breakthroughMoment = session3Memory.sharedMoments.find(m => m.type === 'breakthrough');
+      const breakthroughMoment = session3Memory.sharedMoments.find(
+        (m) => m.type === 'breakthrough'
+      );
       expect(breakthroughMoment).toBeDefined();
       expect(breakthroughMoment?.summary).toContain('perfectionism');
     });
@@ -349,12 +366,16 @@ describe('Cross-Session Memory E2E', () => {
         },
       ];
 
-      await mockFirestore.collection('relationship_memories').doc(`${userId}_${personaId}`).set(
-        serializeMemory(session1Memory)
-      );
+      await mockFirestore
+        .collection('relationship_memories')
+        .doc(`${userId}_${personaId}`)
+        .set(serializeMemory(session1Memory));
 
       // Session 2: User responds positively to callback - promote to inside joke
-      const loaded = await mockFirestore.collection('relationship_memories').doc(`${userId}_${personaId}`).get();
+      const loaded = await mockFirestore
+        .collection('relationship_memories')
+        .doc(`${userId}_${personaId}`)
+        .get();
       const session2Memory = deserializeMemory(loaded.data()!);
 
       // Promote the seed to a full inside joke
@@ -374,12 +395,16 @@ describe('Cross-Session Memory E2E', () => {
       });
       session2Memory.insideJokeSeeds = []; // Remove the promoted seed
 
-      await mockFirestore.collection('relationship_memories').doc(`${userId}_${personaId}`).set(
-        serializeMemory(session2Memory)
-      );
+      await mockFirestore
+        .collection('relationship_memories')
+        .doc(`${userId}_${personaId}`)
+        .set(serializeMemory(session2Memory));
 
       // Session 3: Verify joke persists and can be used
-      const loaded3 = await mockFirestore.collection('relationship_memories').doc(`${userId}_${personaId}`).get();
+      const loaded3 = await mockFirestore
+        .collection('relationship_memories')
+        .doc(`${userId}_${personaId}`)
+        .get();
       const session3Memory = deserializeMemory(loaded3.data()!);
 
       expect(session3Memory.insideJokes.length).toBe(1);
@@ -424,12 +449,16 @@ describe('Cross-Session Memory E2E', () => {
         },
       ];
 
-      await mockFirestore.collection('relationship_memories').doc(`${userId}_${personaId}`).set(
-        serializeMemory(memory)
-      );
+      await mockFirestore
+        .collection('relationship_memories')
+        .doc(`${userId}_${personaId}`)
+        .set(serializeMemory(memory));
 
       // Load and verify
-      const loaded = await mockFirestore.collection('relationship_memories').doc(`${userId}_${personaId}`).get();
+      const loaded = await mockFirestore
+        .collection('relationship_memories')
+        .doc(`${userId}_${personaId}`)
+        .get();
       const loadedMemory = deserializeMemory(loaded.data()!);
 
       expect(loadedMemory.callbackEffectiveness.length).toBe(1);
@@ -457,7 +486,12 @@ describe('Cross-Session Memory E2E', () => {
           'expr-2': { positive: 2, negative: 1, lastUsed: new Date().toISOString() },
         },
         mentionedTopics: [
-          { topic: 'career', count: 5, firstMentioned: new Date().toISOString(), lastMentioned: new Date().toISOString() },
+          {
+            topic: 'career',
+            count: 5,
+            firstMentioned: new Date().toISOString(),
+            lastMentioned: new Date().toISOString(),
+          },
         ],
         vulnerabilityComfort: {
           level: 'high',
@@ -539,7 +573,7 @@ describe('Cross-Session Memory E2E', () => {
       expect(snapshot.docs.length).toBe(2);
 
       // Verify ordering and content
-      const loadedExprs = snapshot.docs.map(d => d.data());
+      const loadedExprs = snapshot.docs.map((d) => d.data());
       expect(loadedExprs[0]?.theme).toBeDefined();
       expect(loadedExprs[0]?.engagementScore).toBeGreaterThanOrEqual(0.85);
     });
@@ -562,11 +596,7 @@ function serializeMemory(memory: RelationshipMemory): Record<string, unknown> {
 }
 
 function deserializeMemory(data: Record<string, unknown>): RelationshipMemory {
-  const dateFields = [
-    'firstConversation',
-    'lastConversation',
-    'updatedAt',
-  ];
+  const dateFields = ['firstConversation', 'lastConversation', 'updatedAt'];
 
   const result = { ...data } as unknown as RelationshipMemory;
 

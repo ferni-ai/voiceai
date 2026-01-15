@@ -13,11 +13,11 @@
 
 import { AsyncEvents } from '../../services/async-events/index.js';
 import { createLogger } from '../../utils/safe-logger.js';
-import type { 
-  EntityMention, 
-  EmotionSignal, 
-  DateSignal, 
-  RelationshipSignal 
+import type {
+  EntityMention,
+  EmotionSignal,
+  DateSignal,
+  RelationshipSignal,
 } from './fast-capture.js';
 
 const log = createLogger({ module: 'DeepExtractionWorker' });
@@ -159,7 +159,7 @@ Return refined extraction with any additions.`;
 
 /**
  * Deep Extraction Worker
- * 
+ *
  * Standalone worker that processes LLM extraction jobs from the async event queue.
  * Does not extend LocalWorker to avoid Pub/Sub dependency.
  */
@@ -189,7 +189,7 @@ export class DeepExtractionWorker {
       this.log.warn('Worker already running');
       return;
     }
-    
+
     this.running = true;
     this.setupEventListener();
     this.log.info('Deep extraction worker started');
@@ -220,7 +220,7 @@ export class DeepExtractionWorker {
     } else {
       this.jobQueue.push(job);
     }
-    
+
     this.extractionStats.totalJobs++;
     this.processQueue();
   }
@@ -234,7 +234,7 @@ export class DeepExtractionWorker {
 
     while (this.jobQueue.length > 0) {
       const job = this.jobQueue.shift()!;
-      
+
       try {
         await this.processJob(job);
         this.extractionStats.completedJobs++;
@@ -249,18 +249,18 @@ export class DeepExtractionWorker {
 
   private async processJob(job: DeepExtractionJob): Promise<void> {
     const startTime = Date.now();
-    
+
     this.log.debug({ jobId: job.jobId, userId: job.userId }, 'Starting deep extraction');
 
     // 1. LLM Entity Extraction
     const entities = await this.extractEntities(job.transcript, job.fastCaptureHints);
-    
+
     // 2. LLM Fact Extraction
     const facts = await this.extractFacts(job.transcript, entities);
-    
+
     // 3. LLM Relationship Extraction
     const relationships = await this.extractRelationships(job.transcript, entities);
-    
+
     // 4. Self-Questioning Refinement (ProMem pattern)
     const refined = await this.selfQuestionRefine({
       entities,
@@ -268,41 +268,48 @@ export class DeepExtractionWorker {
       relationships,
       transcript: job.transcript,
     });
-    
+
     // 5. Calculate importance
     const importanceScore = this.calculateImportance(refined, job.fastCaptureHints);
-    
+
     // 6. Determine if worth persisting
-    const shouldPersist = importanceScore > 0.3 || 
-                          refined.entities.length > 0 ||
-                          refined.facts.length > 0;
-    
+    const shouldPersist =
+      importanceScore > 0.3 || refined.entities.length > 0 || refined.facts.length > 0;
+
     // 7. Write to memory store
     if (shouldPersist) {
-      await this.persistExtraction(job.userId, {
-        ...refined,
-        importanceScore,
-        shouldPersist,
-        categories: job.fastCaptureHints.topicHints,
-      }, job);
+      await this.persistExtraction(
+        job.userId,
+        {
+          ...refined,
+          importanceScore,
+          shouldPersist,
+          categories: job.fastCaptureHints.topicHints,
+        },
+        job
+      );
     }
-    
+
     // Update stats
     const extractionTimeMs = Date.now() - startTime;
-    this.extractionStats.avgExtractionTimeMs = 
-      (this.extractionStats.avgExtractionTimeMs * (this.extractionStats.completedJobs - 1) + extractionTimeMs) / 
+    this.extractionStats.avgExtractionTimeMs =
+      (this.extractionStats.avgExtractionTimeMs * (this.extractionStats.completedJobs - 1) +
+        extractionTimeMs) /
       this.extractionStats.completedJobs;
     this.extractionStats.totalEntitiesExtracted += refined.entities.length;
     this.extractionStats.totalFactsExtracted += refined.facts.length;
-    
-    this.log.info({
-      jobId: job.jobId,
-      extractionTimeMs,
-      entityCount: refined.entities.length,
-      factCount: refined.facts.length,
-      relationshipCount: refined.relationships.length,
-      importanceScore,
-    }, 'Deep extraction complete');
+
+    this.log.info(
+      {
+        jobId: job.jobId,
+        extractionTimeMs,
+        entityCount: refined.entities.length,
+        factCount: refined.facts.length,
+        relationshipCount: refined.relationships.length,
+        importanceScore,
+      },
+      'Deep extraction complete'
+    );
   }
 
   // ============================================================================
@@ -356,7 +363,7 @@ Extract entities as JSON array:`;
         return [];
       }
 
-      const entityList = entities.map(e => `${e.name} (${e.type})`).join('\n');
+      const entityList = entities.map((e) => `${e.name} (${e.type})`).join('\n');
 
       const prompt = `${FACT_EXTRACTION_PROMPT}
 
@@ -394,7 +401,7 @@ Extract facts as JSON array:`;
         return [];
       }
 
-      const entityList = entities.map(e => `${e.name} (${e.type})`).join('\n');
+      const entityList = entities.map((e) => `${e.name} (${e.type})`).join('\n');
 
       const prompt = `${RELATIONSHIP_EXTRACTION_PROMPT}
 
@@ -493,7 +500,7 @@ Return refined extraction as JSON with: entities, facts, relationships arrays:`;
           .doc(userId)
           .collection('dynamic_entities')
           .doc();
-        
+
         batch.set(entityRef, {
           ...entity,
           extractedAt: timestamp,
@@ -505,12 +512,8 @@ Return refined extraction as JSON with: entities, facts, relationships arrays:`;
 
       // Store each fact
       for (const fact of result.facts) {
-        const factRef = db
-          .collection('bogle_users')
-          .doc(userId)
-          .collection('dynamic_facts')
-          .doc();
-        
+        const factRef = db.collection('bogle_users').doc(userId).collection('dynamic_facts').doc();
+
         batch.set(factRef, {
           ...fact,
           extractedAt: timestamp,
@@ -527,7 +530,7 @@ Return refined extraction as JSON with: entities, facts, relationships arrays:`;
           .doc(userId)
           .collection('dynamic_relationships')
           .doc();
-        
+
         batch.set(relRef, {
           ...rel,
           extractedAt: timestamp,
@@ -543,7 +546,7 @@ Return refined extraction as JSON with: entities, facts, relationships arrays:`;
         .doc(userId)
         .collection('extraction_history')
         .doc(job.jobId);
-      
+
       batch.set(metaRef, {
         jobId: job.jobId,
         sessionId: job.sessionId,
@@ -558,12 +561,15 @@ Return refined extraction as JSON with: entities, facts, relationships arrays:`;
       });
 
       await batch.commit();
-      
-      this.log.debug({
-        userId,
-        entityCount: result.entities.length,
-        factCount: result.facts.length,
-      }, 'Persisted extraction results');
+
+      this.log.debug(
+        {
+          userId,
+          entityCount: result.entities.length,
+          factCount: result.facts.length,
+        },
+        'Persisted extraction results'
+      );
     } catch (error) {
       this.log.error({ error: String(error), userId }, 'Failed to persist extraction');
     }
@@ -578,7 +584,7 @@ Return refined extraction as JSON with: entities, facts, relationships arrays:`;
       const { GoogleGenerativeAI } = await import('@google/generative-ai');
       const apiKey = process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY;
       if (!apiKey) return null;
-      
+
       const genAI = new GoogleGenerativeAI(apiKey);
       return genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
     } catch {
@@ -612,7 +618,7 @@ Return refined extraction as JSON with: entities, facts, relationships arrays:`;
     hints: DeepExtractionJob['fastCaptureHints']
   ): ExtractedEntity[] {
     // Convert fast capture hints to entities
-    return hints.mentionedEntities.map(m => ({
+    return hints.mentionedEntities.map((m) => ({
       name: m.name,
       type: m.type as ExtractedEntity['type'],
       attributes: {},
@@ -621,27 +627,31 @@ Return refined extraction as JSON with: entities, facts, relationships arrays:`;
   }
 
   private calculateImportance(
-    result: { entities: ExtractedEntity[]; facts: ExtractedFact[]; relationships: ExtractedRelationship[] },
+    result: {
+      entities: ExtractedEntity[];
+      facts: ExtractedFact[];
+      relationships: ExtractedRelationship[];
+    },
     hints: DeepExtractionJob['fastCaptureHints']
   ): number {
     let score = 0;
-    
+
     // Entity count
     score += Math.min(result.entities.length * 0.1, 0.3);
-    
+
     // Fact count
     score += Math.min(result.facts.length * 0.1, 0.3);
-    
+
     // Relationship count
     score += Math.min(result.relationships.length * 0.15, 0.2);
-    
+
     // Emotional intensity
-    const highEmotion = hints.emotionSignals.some(e => e.intensity === 'high');
+    const highEmotion = hints.emotionSignals.some((e) => e.intensity === 'high');
     if (highEmotion) score += 0.2;
-    
+
     // Date signals (time-sensitive)
     if (hints.dateSignals.length > 0) score += 0.1;
-    
+
     return Math.min(score, 1);
   }
 

@@ -33,7 +33,7 @@ import {
   getDomainEngagementRate,
   getBestEmotionalContext,
   trackSurfacedDomains,
-} from '../../capability-learning.js';
+} from '../../tracking/capabilities.js';
 
 const log = createLogger({ module: 'context:domain-fluency' });
 
@@ -172,7 +172,7 @@ const FERNI_DOMAIN_FLUENCIES: DomainFluency[] = [
   {
     domain: 'Envy & Comparison',
     naturalExpression:
-      "Envy is just information about what you want - we can work with that without judgment",
+      'Envy is just information about what you want - we can work with that without judgment',
     conceptualTriggers: [
       'jealous',
       'envious',
@@ -189,7 +189,7 @@ const FERNI_DOMAIN_FLUENCIES: DomainFluency[] = [
   {
     domain: 'Shame & Self-Worth',
     naturalExpression:
-      "Shame is heavy - but it loses power when we name it. I can sit with that with you",
+      'Shame is heavy - but it loses power when we name it. I can sit with that with you',
     conceptualTriggers: [
       'ashamed',
       'embarrassed',
@@ -275,7 +275,7 @@ const FERNI_DOMAIN_FLUENCIES: DomainFluency[] = [
   {
     domain: 'Midlife Reckoning',
     naturalExpression:
-      "The second half of life has its own questions - different from youth, equally important",
+      'The second half of life has its own questions - different from youth, equally important',
     conceptualTriggers: [
       'midlife',
       'turning 40',
@@ -309,7 +309,7 @@ const FERNI_DOMAIN_FLUENCIES: DomainFluency[] = [
   {
     domain: 'Legacy & What Matters',
     naturalExpression:
-      "What do you want to leave behind? Not just things - but how you made people feel",
+      'What do you want to leave behind? Not just things - but how you made people feel',
     conceptualTriggers: [
       'legacy',
       'what matters',
@@ -346,7 +346,7 @@ const FERNI_DOMAIN_FLUENCIES: DomainFluency[] = [
   {
     domain: 'Faith Transitions',
     naturalExpression:
-      "Faith changes are some of the deepest shifts a person can go through - no judgment here",
+      'Faith changes are some of the deepest shifts a person can go through - no judgment here',
     conceptualTriggers: [
       'lost my faith',
       'leaving church',
@@ -367,7 +367,7 @@ const FERNI_DOMAIN_FLUENCIES: DomainFluency[] = [
   {
     domain: 'Blended Family Navigation',
     naturalExpression:
-      "Blended families have their own beautiful complexity - I can help you navigate it",
+      'Blended families have their own beautiful complexity - I can help you navigate it',
     conceptualTriggers: [
       'stepchildren',
       'stepparent',

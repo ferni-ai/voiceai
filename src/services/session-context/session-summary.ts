@@ -12,6 +12,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { onSessionSummaryChange } from '../data-layer/hooks/better-than-human-hooks.js';
+import { writeSessionContinuity } from '../../memory/dynamic/memory-continuity.js';
 
 const log = createLogger({ module: 'SessionSummary' });
 
@@ -181,6 +182,46 @@ export async function storeSessionSummary(summary: VoiceSessionSummary): Promise
   // Persist to Firestore
   await persistSummaryToFirestore(summary);
   await persistContextToFirestore(context);
+
+  // Dual-write: Update memory threads + anchors in Spanner, memory capsule in Firestore
+  try {
+    const continuityResult = await writeSessionContinuity({
+      sessionId: summary.sessionId,
+      userId: summary.userId,
+      mainTopics: summary.mainTopics,
+      naturalSummary: summary.naturalSummary,
+      insights: summary.insightsGenerated.map((i) => ({
+        type: i.type,
+        content: i.content,
+        confidence: i.confidence,
+      })),
+      endingEmotionalState: summary.endingEmotionalState,
+      emotionalArc:
+        summary.emotionalArc.length > 0
+          ? `Started ${summary.emotionalArc[0]?.emotion || 'neutral'}, ended ${summary.endingEmotionalState}`
+          : undefined,
+      unfinishedTopics: summary.unfinishedTopics,
+      commitmentsMade: summary.commitmentsMade,
+      wasSignificant: summary.wasSignificant,
+      significanceScore: summary.significanceScore,
+      durationSeconds: summary.durationSeconds,
+    });
+
+    log.debug(
+      {
+        sessionId: summary.sessionId,
+        threadsUpdated: continuityResult.threadsUpdated,
+        anchorsCreated: continuityResult.anchorsCreated,
+        capsuleUpdated: continuityResult.capsuleUpdated,
+      },
+      '🔗 Memory continuity updated'
+    );
+  } catch (err) {
+    log.warn(
+      { error: String(err), sessionId: summary.sessionId },
+      'Failed to write memory continuity'
+    );
+  }
 }
 
 /**
@@ -502,13 +543,15 @@ async function persistContextToFirestore(context: ActiveUserContext): Promise<vo
     const admin = await import('firebase-admin');
     const db = admin.default.firestore();
 
+    const { lastVoiceSession: _lastVoiceSession, appBrowsingContext, ...contextBase } = context;
+
     await db
       .collection('bogle_users')
       .doc(context.userId)
       .collection('active_context')
       .doc('current')
       .set({
-        ...context,
+        ...contextBase,
         lastInteractionAt: context.lastInteractionAt.toISOString(),
         emotionalState: {
           ...context.emotionalState,
@@ -518,14 +561,14 @@ async function persistContextToFirestore(context: ActiveUserContext): Promise<vo
           ...u,
           detectedAt: u.detectedAt.toISOString(),
         })),
-        appBrowsingContext: context.appBrowsingContext
+        ...(appBrowsingContext
           ? {
-              ...context.appBrowsingContext,
-              updatedAt: context.appBrowsingContext.updatedAt.toISOString(),
+              appBrowsingContext: {
+                ...appBrowsingContext,
+                updatedAt: appBrowsingContext.updatedAt.toISOString(),
+              },
             }
-          : undefined,
-        // Don't store full lastVoiceSession here (it's in voice_sessions collection)
-        lastVoiceSession: undefined,
+          : {}),
       });
 
     log.debug({ userId: context.userId }, 'Active context persisted to Firestore');

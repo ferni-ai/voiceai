@@ -13,7 +13,7 @@
  */
 
 import type { ContextBuilderInput } from '../../core/types.js';
-import { DISTRESS } from '../../../distress-levels.js';
+import { DISTRESS } from '../../../detectors/distress.js';
 import type {
   BehavioralSignals,
   ToneModifier,

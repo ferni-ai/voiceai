@@ -35,26 +35,25 @@ describe('Phase 1: Session Lifecycle Hooks', () => {
         apps: [{}],
       }));
 
-      const { sessionLifecycle } = await import('../../services/session/session-lifecycle-hooks.js');
+      const { sessionLifecycle } =
+        await import('../../services/session/session-lifecycle-hooks.js');
 
-      await expect(
-        sessionLifecycle.onStart('user-123', 'session-456')
-      ).resolves.not.toThrow();
+      await expect(sessionLifecycle.onStart('user-123', 'session-456')).resolves.not.toThrow();
     });
 
     it('should handle missing userId gracefully', async () => {
-      const { sessionLifecycle } = await import('../../services/session/session-lifecycle-hooks.js');
+      const { sessionLifecycle } =
+        await import('../../services/session/session-lifecycle-hooks.js');
 
       // Should not throw, just log and return
-      await expect(
-        sessionLifecycle.onStart('', 'session-456')
-      ).resolves.not.toThrow();
+      await expect(sessionLifecycle.onStart('', 'session-456')).resolves.not.toThrow();
     });
   });
 
   describe('onSessionEnd', () => {
     it('should record session end with duration', async () => {
-      const { sessionLifecycle } = await import('../../services/session/session-lifecycle-hooks.js');
+      const { sessionLifecycle } =
+        await import('../../services/session/session-lifecycle-hooks.js');
 
       await expect(
         sessionLifecycle.onEnd('user-123', 'session-456', {
@@ -109,9 +108,8 @@ describe('Phase 2: Redis Caching', () => {
 describe('Phase 3: Domain Data Capture', () => {
   describe('Location Capture', () => {
     it('should detect favorite place mentions', async () => {
-      const { locationCaptureDefinition } = await import(
-        '../../intelligence/data-capture/definitions/location.capture.js'
-      );
+      const { locationCaptureDefinition } =
+        await import('../../intelligence/data-capture/definitions/location.capture.js');
 
       // Test trigger detection
       const text = 'My favorite coffee shop is on Main Street';
@@ -124,14 +122,13 @@ describe('Phase 3: Domain Data Capture', () => {
     });
 
     it('should extract place type from text', async () => {
-      const { locationCaptureDefinition } = await import(
-        '../../intelligence/data-capture/definitions/location.capture.js'
-      );
+      const { locationCaptureDefinition } =
+        await import('../../intelligence/data-capture/definitions/location.capture.js');
 
       // Test that restaurant mentions trigger
       const text = 'I love that Thai restaurant downtown';
-      const hasKeyword = locationCaptureDefinition.triggers.keywords?.some(
-        (kw: { word: string }) => text.toLowerCase().includes(kw.word.toLowerCase())
+      const hasKeyword = locationCaptureDefinition.triggers.keywords?.some((kw: { word: string }) =>
+        text.toLowerCase().includes(kw.word.toLowerCase())
       );
       expect(hasKeyword).toBe(true);
     });
@@ -139,9 +136,8 @@ describe('Phase 3: Domain Data Capture', () => {
 
   describe('Pet Capture', () => {
     it('should detect pet mentions', async () => {
-      const { petCaptureDefinition } = await import(
-        '../../intelligence/data-capture/definitions/pets.capture.js'
-      );
+      const { petCaptureDefinition } =
+        await import('../../intelligence/data-capture/definitions/pets.capture.js');
 
       const text = 'My dog Max is feeling better today';
       const hasPhraseTrigger = petCaptureDefinition.triggers.phrases?.some((phrase: string) =>
@@ -151,9 +147,8 @@ describe('Phase 3: Domain Data Capture', () => {
     });
 
     it('should detect pet loss sensitively', async () => {
-      const { petCaptureDefinition } = await import(
-        '../../intelligence/data-capture/definitions/pets.capture.js'
-      );
+      const { petCaptureDefinition } =
+        await import('../../intelligence/data-capture/definitions/pets.capture.js');
 
       const text = 'I lost my cat last week';
       const hasPattern = petCaptureDefinition.triggers.patterns?.some((pattern: RegExp) =>
@@ -166,9 +161,7 @@ describe('Phase 3: Domain Data Capture', () => {
   describe('Crisis Detection', () => {
     it('should have crisis hooks for recording episodes', async () => {
       // Verify crisis hooks are available for recording episodes
-      const crisisHooks = await import(
-        '../../services/data-layer/hooks/crisis-hooks.js'
-      );
+      const crisisHooks = await import('../../services/data-layer/hooks/crisis-hooks.js');
 
       expect(typeof crisisHooks.onCrisisEpisodeChange).toBe('function');
       expect(typeof crisisHooks.onSupportReceivedChange).toBe('function');
@@ -184,9 +177,7 @@ describe('Phase 4: Outreach Integration', () => {
   describe('Decision Engine Suppression', () => {
     it('should have outreach decision engine with suppression capability', async () => {
       // Verify the outreach decision engine is available
-      const decisionEngineModule = await import(
-        '../../services/outreach/decision-engine.js'
-      );
+      const decisionEngineModule = await import('../../services/outreach/decision-engine.js');
 
       // Check that the module exports the decision engine
       expect(decisionEngineModule.OutreachDecisionEngine).toBeDefined();
@@ -212,9 +203,8 @@ describe('Phase 5: Live Superhuman Injections', () => {
     it('should be callable from turn processor', async () => {
       // The live superhuman injections are in src/agents/processors/live-superhuman-injections.ts
       // and are called by turn-processor.ts in Tier 2
-      const { buildLiveSuperhumanInjections } = await import(
-        '../../agents/processors/live-superhuman-injections.js'
-      );
+      const { buildLiveSuperhumanInjections } =
+        await import('../../agents/processors/live-superhuman-injections.js');
 
       expect(typeof buildLiveSuperhumanInjections).toBe('function');
     });
@@ -222,9 +212,8 @@ describe('Phase 5: Live Superhuman Injections', () => {
 
   describe('Emotion and Trajectory Routing Boosts', () => {
     it('should apply emotion boosts to tool matches', async () => {
-      const { applyEmotionBoosts } = await import(
-        '../../tools/semantic-router/emotion-routing-boost.js'
-      );
+      const { applyEmotionBoosts } =
+        await import('../../tools/semantic-router/emotion-routing-boost.js');
 
       const matches = [
         { toolId: 'grief-support', score: 0.7, domain: 'grief' },
@@ -240,9 +229,8 @@ describe('Phase 5: Live Superhuman Injections', () => {
     });
 
     it('should apply trajectory boosts based on emotional arc', async () => {
-      const { applyTrajectoryBoosts } = await import(
-        '../../tools/semantic-router/trajectory-routing-boost.js'
-      );
+      const { applyTrajectoryBoosts } =
+        await import('../../tools/semantic-router/trajectory-routing-boost.js');
 
       // Type defined inline to avoid import issues
       interface EmotionalArc {
@@ -325,9 +313,8 @@ describe('Phase 6: TTL Cleanup', () => {
 describe('Phase 7: Planning Coordination', () => {
   describe('checkPlanningReadiness', () => {
     it('should return a complete assessment', async () => {
-      const { checkPlanningReadiness } = await import(
-        '../../services/superhuman/planning-coordination.js'
-      );
+      const { checkPlanningReadiness } =
+        await import('../../services/superhuman/planning-coordination.js');
 
       const assessment = await checkPlanningReadiness('user-123', 'wedding', '2026-06-15', 10000);
 
@@ -343,9 +330,8 @@ describe('Phase 7: Planning Coordination', () => {
 
   describe('quickReadinessCheck', () => {
     it('should return status and reason', async () => {
-      const { quickReadinessCheck } = await import(
-        '../../services/superhuman/planning-coordination.js'
-      );
+      const { quickReadinessCheck } =
+        await import('../../services/superhuman/planning-coordination.js');
 
       const result = await quickReadinessCheck('user-123', 5000);
 
@@ -356,9 +342,8 @@ describe('Phase 7: Planning Coordination', () => {
 
   describe('checkGoalAlignment', () => {
     it('should check alignment with goals', async () => {
-      const { checkGoalAlignment } = await import(
-        '../../services/superhuman/planning-coordination.js'
-      );
+      const { checkGoalAlignment } =
+        await import('../../services/superhuman/planning-coordination.js');
 
       const result = await checkGoalAlignment(
         'user-123',
@@ -385,9 +370,8 @@ describe('Integration: Full Data Flow', () => {
     // 2. Hook fires → Stores in Firestore
     // 3. Context builder picks up → Injects into LLM
 
-    const { allDataCaptureDefinitions } = await import(
-      '../../intelligence/data-capture/definitions/index.js'
-    );
+    const { allDataCaptureDefinitions } =
+      await import('../../intelligence/data-capture/definitions/index.js');
 
     // Verify all expected capture definitions are registered
     const expectedCategories = [

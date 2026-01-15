@@ -58,7 +58,7 @@ vi.mock('../../services/superhuman/predictive-coaching.js', () => ({
 }));
 
 // Mock community insights
-vi.mock('../../intelligence/community-insights.js', () => ({
+vi.mock('../../intelligence/collective/community-insights.js', () => ({
   getCommunityInsights: vi.fn().mockReturnValue({
     recordEngagementSignal: vi.fn(),
   }),
@@ -66,7 +66,7 @@ vi.mock('../../intelligence/community-insights.js', () => ({
 }));
 
 // Mock agent evolution
-vi.mock('../../intelligence/agent-evolution.js', () => ({
+vi.mock('../../intelligence/collective/agent-evolution.js', () => ({
   getAgentEvolution: vi.fn().mockReturnValue({
     createAdjustmentFromCommunityPattern: vi.fn(),
     updateStoryRankings: vi.fn(),
@@ -136,7 +136,7 @@ import {
   startPredictionsWorker,
 } from '../predictions-worker.js';
 import { saveTrustProfiles, periodicSync } from '../../services/trust-systems/persistence.js';
-import { getCommunityInsights } from '../../intelligence/community-insights.js';
+import { getCommunityInsights } from '../../intelligence/collective/community-insights.js';
 
 // ============================================================================
 // TESTS

@@ -13,9 +13,9 @@
 
 import { getLogger } from '../../utils/safe-logger.js';
 import type { KeyMoment } from '../../types/user-profile.js';
-import type { EmotionResult } from '../emotion-detector.js';
-import type { IntentResult } from '../intent-classifier.js';
-import type { ConversationState } from '../conversation-state.js';
+import type { EmotionResult } from '../detectors/emotion.js';
+import type { IntentResult } from '../detectors/intent.js';
+import type { ConversationState } from '../state/conversation.js';
 
 const log = getLogger();
 

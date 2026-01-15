@@ -138,7 +138,7 @@ const PREFERENCE_PATTERNS: PreferencePattern[] = [
     category: 'time',
     sentiment: 'positive',
     signalStrength: 0.95,
-    extractSubject: (m) => m[1] ? `${m[1].toLowerCase()} person` : null,
+    extractSubject: (m) => (m[1] ? `${m[1].toLowerCase()} person` : null),
   },
   {
     pattern: /i\s+(?:love|prefer|like)\s+(mornings?|evenings?|nights?)/i,
@@ -148,11 +148,12 @@ const PREFERENCE_PATTERNS: PreferencePattern[] = [
     extractSubject: (m) => m[1]?.trim().toLowerCase() || null,
   },
   {
-    pattern: /i(?:'m| am)\s+(?:most\s+)?productive\s+(?:in\s+the\s+)?(morning|afternoon|evening|night)/i,
+    pattern:
+      /i(?:'m| am)\s+(?:most\s+)?productive\s+(?:in\s+the\s+)?(morning|afternoon|evening|night)/i,
     category: 'time',
     sentiment: 'positive',
     signalStrength: 0.9,
-    extractSubject: (m) => m[1] ? `productive ${m[1].toLowerCase()}` : null,
+    extractSubject: (m) => (m[1] ? `productive ${m[1].toLowerCase()}` : null),
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -213,14 +214,14 @@ const PREFERENCE_PATTERNS: PreferencePattern[] = [
     category: 'environment',
     sentiment: 'positive',
     signalStrength: 0.85,
-    extractSubject: (m) => m[1] ? `work better with ${m[1].toLowerCase()}` : null,
+    extractSubject: (m) => (m[1] ? `work better with ${m[1].toLowerCase()}` : null),
   },
   {
     pattern: /i\s+(?:hate|dislike|can't stand)\s+(crowded|noisy|quiet)\s+(?:places?)?/i,
     category: 'environment',
     sentiment: 'negative',
     signalStrength: 0.8,
-    extractSubject: (m) => m[1] ? `${m[1].toLowerCase()} places` : null,
+    extractSubject: (m) => (m[1] ? `${m[1].toLowerCase()} places` : null),
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -313,11 +314,11 @@ export function extractPreferences(transcript: string): ExtractedPreference[] {
       seen.add(key);
 
       // Infer category if generic
-      const category =
-        pattern.category === 'general' ? inferCategory(subject) : pattern.category;
+      const category = pattern.category === 'general' ? inferCategory(subject) : pattern.category;
 
       // Map neutral patterns to positive (behavioral patterns like "I always X" are mildly positive)
-      const finalSentiment: 'positive' | 'negative' = pattern.sentiment === 'neutral' ? 'positive' : pattern.sentiment;
+      const finalSentiment: 'positive' | 'negative' =
+        pattern.sentiment === 'neutral' ? 'positive' : pattern.sentiment;
 
       preferences.push({
         subject,
@@ -366,10 +367,11 @@ export async function storePreference(
       const existingData = existing.docs[0].data() as LearnedPreference;
 
       // Calculate new strength (decays over time, increases with mentions)
-      const daysSinceFirst = (now.getTime() - new Date(existingData.firstMentioned).getTime()) / (1000 * 60 * 60 * 24);
+      const daysSinceFirst =
+        (now.getTime() - new Date(existingData.firstMentioned).getTime()) / (1000 * 60 * 60 * 24);
       const decayFactor = Math.exp(-daysSinceFirst / 365); // Decay over a year
       const mentionBoost = Math.min(0.3, existingData.mentionCount * 0.05);
-      const newStrength = Math.min(1, (existingData.strength * decayFactor) + 0.1 + mentionBoost);
+      const newStrength = Math.min(1, existingData.strength * decayFactor + 0.1 + mentionBoost);
 
       const updated: Partial<LearnedPreference> = {
         strength: newStrength,
@@ -412,12 +414,18 @@ export async function storePreference(
       };
 
       const docRef = await prefsRef.add(newPref);
-      log.info({ userId, subject: preference.subject, category: preference.category }, 'Created new preference');
+      log.info(
+        { userId, subject: preference.subject, category: preference.category },
+        'Created new preference'
+      );
 
       return { ...newPref, id: docRef.id };
     }
   } catch (error) {
-    log.error({ error: String(error), userId, subject: preference.subject }, 'Failed to store preference');
+    log.error(
+      { error: String(error), userId, subject: preference.subject },
+      'Failed to store preference'
+    );
     throw error;
   }
 }
@@ -439,7 +447,10 @@ export async function getLearnedPreferences(
     const db = getFirestoreDb();
     if (!db) return [];
 
-    let query = db.collection('bogle_users').doc(userId).collection('learned_preferences')
+    let query = db
+      .collection('bogle_users')
+      .doc(userId)
+      .collection('learned_preferences')
       .orderBy('strength', 'desc');
 
     if (options.category) {

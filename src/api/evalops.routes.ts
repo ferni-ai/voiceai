@@ -48,7 +48,7 @@ import {
   runScenario,
 } from '../services/evalops/index.js';
 import { createLogger } from '../utils/safe-logger.js';
-import { rateLimit, requireAdmin } from './auth-middleware.js';
+import { rateLimit, requireAuth } from './auth-middleware.js';
 import { handleCorsPreflightIfNeeded, parseBody, sendError, sendJSON } from './helpers.js';
 
 const log = createLogger({ module: 'EvalOps-API' });
@@ -79,8 +79,8 @@ export async function handleEvalOpsRoutes(
     return true;
   }
 
-  // All EvalOps routes require admin access
-  const auth = await requireAdmin(req, res);
+  // All EvalOps routes require admin access (allow dev mode for admin dashboard)
+  const auth = await requireAuth(req, res, { requireAdmin: true, allowDevMode: true });
   if (!auth) return true;
 
   try {

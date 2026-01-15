@@ -614,7 +614,10 @@ Reference past context when relevant, but don't force it. Let the conversation f
       return tools;
     } catch (err) {
       // FIX: Don't return empty - fall back to essential tools!
-      log.error({ personaId: persona.id, error: String(err) }, '❌ Fast path failed - trying essential fallback');
+      log.error(
+        { personaId: persona.id, error: String(err) },
+        '❌ Fast path failed - trying essential fallback'
+      );
       return await loadEssentialToolsFallback();
     }
   };
@@ -661,7 +664,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
           personaId: persona.id,
           handoffCount,
           essentialCount: Object.keys(essentialTools).length,
-          totalCount: Object.keys(allTools).length
+          totalCount: Object.keys(allTools).length,
         },
         '🔄 Essential tools loaded as timeout fallback (handoff + essential domains)'
       );
@@ -674,7 +677,9 @@ Reference past context when relevant, but don't force it. Let the conversation f
         '🚨 CRITICAL: Essential tool loading failed - using EMERGENCY hardcoded tools'
       );
       process.stderr.write(`\n🚨 CRITICAL TOOL FAILURE: ${err}\n`);
-      process.stderr.write('🚨 Using emergency hardcoded tools - agent capabilities severely limited!\n\n');
+      process.stderr.write(
+        '🚨 Using emergency hardcoded tools - agent capabilities severely limited!\n\n'
+      );
 
       // Return emergency toolset - better than nothing!
       return getEmergencyToolset(persona.id);
@@ -773,12 +778,15 @@ Reference past context when relevant, but don't force it. Let the conversation f
             }, toolTimeoutMs)
           ),
         ]);
-        
+
         if (fastResult === null || Object.keys(fastResult).length === 0) {
-          log.info({ personaId: persona.id }, '🔄 Fast path incomplete - loading essential tools fallback');
+          log.info(
+            { personaId: persona.id },
+            '🔄 Fast path incomplete - loading essential tools fallback'
+          );
           return await loadEssentialToolsFallback();
         }
-        
+
         return fastResult;
       }
 
@@ -803,15 +811,17 @@ Reference past context when relevant, but don't force it. Let the conversation f
       // BUG FIX #2: Race condition - loadToolsInner() might return empty {} just before timeout
       //             In that case result !== null but tools are still missing!
       const toolCount = result ? Object.keys(result).length : 0;
-      const hasEssentials = result && (
-        Object.keys(result).some(t => t.toLowerCase().includes('music') || t.toLowerCase().includes('play')) ||
-        Object.keys(result).some(t => t.toLowerCase().includes('handoff'))
-      );
-      
+      const hasEssentials =
+        result &&
+        (Object.keys(result).some(
+          (t) => t.toLowerCase().includes('music') || t.toLowerCase().includes('play')
+        ) ||
+          Object.keys(result).some((t) => t.toLowerCase().includes('handoff')));
+
       if (result === null || toolCount === 0 || !hasEssentials) {
         log.warn(
-          { 
-            personaId: persona.id, 
+          {
+            personaId: persona.id,
             wasNull: result === null,
             toolCount,
             hasEssentials,
@@ -866,9 +876,13 @@ Reference past context when relevant, but don't force it. Let the conversation f
   const toolCount = Object.keys(orchestratorTools).length;
   const toolNames = Object.keys(orchestratorTools);
   const sampleTools = toolNames.slice(0, 10).join(', ');
-  const hasHandoffs = toolNames.some(t => t.toLowerCase().includes('handoff'));
-  const hasMusic = toolNames.some(t => t.toLowerCase().includes('music') || t.toLowerCase().includes('play'));
-  const hasMemory = toolNames.some(t => t.toLowerCase().includes('memory') || t.toLowerCase().includes('recall'));
+  const hasHandoffs = toolNames.some((t) => t.toLowerCase().includes('handoff'));
+  const hasMusic = toolNames.some(
+    (t) => t.toLowerCase().includes('music') || t.toLowerCase().includes('play')
+  );
+  const hasMemory = toolNames.some(
+    (t) => t.toLowerCase().includes('memory') || t.toLowerCase().includes('recall')
+  );
 
   // Log to both structured log AND stderr for visibility
   log.info(
@@ -885,7 +899,9 @@ Reference past context when relevant, but don't force it. Let the conversation f
   );
   process.stderr.write(`\n${'='.repeat(60)}\n`);
   process.stderr.write(`🔧 TOOLS AVAILABLE TO LLM: ${toolCount}\n`);
-  process.stderr.write(`   Handoffs: ${hasHandoffs ? '✅' : '❌'} | Music: ${hasMusic ? '✅' : '❌'} | Memory: ${hasMemory ? '✅' : '❌'}\n`);
+  process.stderr.write(
+    `   Handoffs: ${hasHandoffs ? '✅' : '❌'} | Music: ${hasMusic ? '✅' : '❌'} | Memory: ${hasMemory ? '✅' : '❌'}\n`
+  );
   process.stderr.write(`   Sample: ${sampleTools}\n`);
   process.stderr.write(`${'='.repeat(60)}\n\n`);
 
@@ -1113,7 +1129,8 @@ Reference past context when relevant, but don't force it. Let the conversation f
         // The dynamic loader loads entertainment (music), information (weather), etc.
         // These need to be registered with the agent/OpenAI immediately!
         try {
-          const { updateAgentTools, supportsToolUpdates } = await import('../shared/tool-updater.js');
+          const { updateAgentTools, supportsToolUpdates } =
+            await import('../shared/tool-updater.js');
           if (supportsToolUpdates()) {
             const essentialTools = dynamicToolLoader.getCurrentTools();
             const essentialDomains = dynamicToolLoader.getLoadedDomains();
@@ -1122,12 +1139,17 @@ Reference past context when relevant, but don't force it. Let the conversation f
                 domains: essentialDomains,
               });
               if (updated) {
-                diag.entry(`🔧 [${persona.id}] Essential tools registered with agent (${Object.keys(essentialTools).length} tools from ${essentialDomains.join(', ')})`);
+                diag.entry(
+                  `🔧 [${persona.id}] Essential tools registered with agent (${Object.keys(essentialTools).length} tools from ${essentialDomains.join(', ')})`
+                );
               }
             }
           }
         } catch (toolUpdateError) {
-          log.warn({ error: String(toolUpdateError) }, 'Failed to update agent with essential tools');
+          log.warn(
+            { error: String(toolUpdateError) },
+            'Failed to update agent with essential tools'
+          );
         }
 
         const transcriptHandler = createTranscriptHandler({
@@ -1335,9 +1357,23 @@ Reference past context when relevant, but don't force it. Let the conversation f
       log.debug({ sessionId }, '🧹 [CLEANUP] Cleaning up speech coordination...');
       try {
         cleanupSpeechCoordination(sessionId);
-        log.debug({ sessionId, personaId: persona.id }, '🧹 [CLEANUP] Speech coordination cleaned up');
+        log.debug(
+          { sessionId, personaId: persona.id },
+          '🧹 [CLEANUP] Speech coordination cleaned up'
+        );
       } catch (err) {
         log.warn({ error: String(err) }, '🧹 [CLEANUP] Error cleaning up speech coordination');
+      }
+
+      // FIX: Clean up on-behalf call transcript capture to prevent memory leaks
+      log.debug({ sessionId }, '🧹 [CLEANUP] Cleaning up on-behalf capture...');
+      try {
+        const { cleanupOnBehalfCapture } =
+          await import('../integrations/on-behalf-transcript-capture.js');
+        cleanupOnBehalfCapture(sessionId);
+        log.debug({ sessionId }, '🧹 [CLEANUP] On-behalf capture cleaned up');
+      } catch (err) {
+        log.warn({ error: String(err) }, '🧹 [CLEANUP] Error cleaning up on-behalf capture');
       }
 
       // FIX: Add timeout to session.close() to prevent indefinite hangs during handoff
@@ -1479,10 +1515,7 @@ async function createPersonaTTS(personaId: string) {
     );
   } else {
     // Fallback when voice ID resolution fails
-    log.warn(
-      { personaId },
-      '⚠️ Voice ID resolution failed - using fallback getVoiceId'
-    );
+    log.warn({ personaId }, '⚠️ Voice ID resolution failed - using fallback getVoiceId');
     voiceId = getVoiceId(personaId); // Emergency fallback
   }
 

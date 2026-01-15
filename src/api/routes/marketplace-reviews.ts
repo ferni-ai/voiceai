@@ -301,7 +301,10 @@ export async function handleReviewsRoutes(
 
       // Verify the publisher ID matches the item's publisher
       if (item.publisher.id !== publisherId) {
-        log.warn({ reviewId, publisherId, itemPublisherId: item.publisher.id }, 'Unauthorized publisher response attempt');
+        log.warn(
+          { reviewId, publisherId, itemPublisherId: item.publisher.id },
+          'Unauthorized publisher response attempt'
+        );
         sendJson(res, 403, { error: 'Not authorized to respond to this review' });
         return true;
       }

@@ -1,175 +1,75 @@
 /**
  * Intelligence Module
  *
- * Provides conversational intelligence capabilities:
- * - Emotion detection
- * - Intent classification
- * - Topic tracking
- * - Conversation state management
- * - Session state management
- * - Voice emotion orchestration
- * - Distress level handling
+ * Ferni's brain - the layer that turns data into genuine awareness
+ * and intelligent responses.
  *
- * NEW: Unified Intelligence System (src/intelligence/unified/)
- * - Single entry point for all analysis: analyzeUnified()
- * - Voice/text mismatch as first-class signal
- * - Consolidated humanization
- * - Naturalness feedback loop
+ * ## Architecture
+ *
+ * ```
+ * ┌─────────────────────────────────────────────────────────────────┐
+ * │                 LEVEL 5: PROACTIVE INTELLIGENCE                 │
+ * │  proactive/proactive-engine.ts                                  │
+ * └─────────────────────────────────────────────────────────────────┘
+ *                                ▲
+ * ┌─────────────────────────────────────────────────────────────────┐
+ * │                 LEVEL 4: CROSS-DOMAIN REASONING                 │
+ * │  patterns/cross-domain-correlator.ts                            │
+ * └─────────────────────────────────────────────────────────────────┘
+ *                                ▲
+ * ┌─────────────────────────────────────────────────────────────────┐
+ * │                 LEVEL 2: CONTEXTUAL AWARENESS                   │
+ * │  core/context-assembler.ts                                      │
+ * └─────────────────────────────────────────────────────────────────┘
+ *                                ▲
+ * ┌─────────────────────────────────────────────────────────────────┐
+ * │                 LEVEL 1: DATA FOUNDATION                        │
+ * │  ../services/data-layer/                                        │
+ * └─────────────────────────────────────────────────────────────────┘
+ * ```
  *
  * @module intelligence
  */
 
 // ============================================================================
-// UNIFIED INTELLIGENCE SYSTEM (PREFERRED)
+// CORE INFRASTRUCTURE
+// ============================================================================
+
+export * from './core/index.js';
+
+// ============================================================================
+// UNIFIED ANALYSIS SYSTEM
+// ============================================================================
+
+export * from './unified/index.js';
+
+// ============================================================================
+// DETECTORS - Pure detection functions
+// Selective exports to avoid conflicts with unified/
 // ============================================================================
 
 export {
-  // Main analyzer
-  UnifiedAnalyzer,
-  analyzeUnified,
-  analyze, // Backward-compat alias for analyzeUnified
-  type UnifiedAnalysisInput,
-  type UnifiedAnalysisResult,
-  type EmotionSignal,
-  type IntentSignal,
-  type ContextSignal,
-  type MismatchSignal,
-  type ResponseGuidance,
-} from './unified/unified-analyzer.js';
-
-// ============================================================================
-// UNIFIED INTELLIGENCE API (Levels 2-5)
-// ============================================================================
-
-export {
-  // Session lifecycle
-  initIntelligenceSession,
-  cleanupIntelligence,
-  // Main API
-  getIntelligenceForTurn,
-  // Domain signals
-  recordDomainSignal,
-  // Insight tracking
-  markInsightSurfaced,
-  recordInsightReaction,
-  // Utility exports
-  getDomainSignals,
-  wasInsightSurfaced,
-  getInsightReaction,
-  getAllCorrelations,
-  hasProactiveInsight,
-  getTopProactiveInsight,
-  clearIntelligenceCaches,
-  // Types
-  type SurfaceMoment,
-  type DomainSignal,
-  type ImmediateContext,
-  type ContextWindow,
-  type CrossDomainCorrelation,
-  type ProactiveIntelligenceInsight,
-  type IntelligenceForTurnResult,
-  type IntelligenceOptions,
-} from './unified-intelligence-api.js';
-
-// ============================================================================
-// CONTEXT ASSEMBLER (Level 2) - "Knows what matters RIGHT NOW"
-// ============================================================================
-
-export {
-  assembleContext,
-  selectContextForTurn,
-  formatAssembledContextForPrompt,
-  clearContextCache,
-  invalidateContext,
-  contextAssembler,
-  type AssemblyOptions,
-  type TodayContext,
-  type RecentContext,
-  type RelationshipContext,
-  type CapacityContext,
-} from './context-assembler.js';
-
-// ============================================================================
-// CROSS-DOMAIN CORRELATOR (Level 4) - "Connects dots humans miss"
-// ============================================================================
-
-export {
-  recordDomainSignal as recordCorrelationSignal,
-  getCorrelations,
-  getRelevantCorrelations,
-  markCorrelationSurfaced,
-  formatCorrelationsForPrompt,
-  clearCorrelatorState,
-  getCrossCorrelator,
-  crossDomainCorrelator,
-  type CorrelationDomain,
-  type CorrelationFilterOptions,
-} from './patterns/cross-domain-correlator.js';
-
-// ============================================================================
-// PROACTIVE ENGINE (Level 5) - "Decides WHEN to share insights"
-// ============================================================================
-
-export {
-  checkProactiveTriggers,
-  initProactiveSession,
-  cleanupProactiveSession,
-  getProactivePreferences,
-  updateProactivePreferences,
-  clearProactiveState,
-  proactiveEngine,
-  type InsightCategory,
-  type ProactiveTriggerResult,
-  type ProactivePreferences,
-} from './proactive/proactive-engine.js';
-
-export {
-  // THE superhuman signal
-  VoiceTextMismatchDetector,
-  detectMismatch as detectVoiceTextMismatch,
-  type MismatchResult,
-  type MismatchType,
-  type MismatchGuidance,
-} from './unified/mismatch-detector.js';
-
-export {
-  // Consolidated humanization
-  HumanizationOrchestrator,
-  humanize,
-  type HumanizationInput,
-  type HumanizationResult,
-  type ActiveListeningCue,
-  type EmotionalMirror,
-  type SpontaneousElement,
-} from './unified/humanization-orchestrator.js';
-
-export {
-  // Naturalness feedback
-  NaturalnessFeedbackLoop,
-  recordResponse,
-  recordReaction,
-  getEffectivenessReport,
-  getRecommendations,
-  type ResponseContext as FeedbackResponseContext,
-  type UserReaction as FeedbackUserReaction,
-  type NaturalnessSignal,
-  type BuilderEffectiveness,
-} from './unified/feedback-loop.js';
-
-export {
-  // Debug tools
-  generateNaturalnessReport,
-  logAnalysisSummary,
-  checkNaturalnessIssues,
-  type NaturalnessReport,
-} from './unified/naturalness-debug.js';
-
-// ============================================================================
-// NEW INFRASTRUCTURE (added in refactor)
-// ============================================================================
-
-// Distress Levels - Centralized thresholds for emotional support
-export {
+  // Emotion Detection
+  detectEmotion,
+  EmotionDetector,
+  getEmotionDetector,
+  type EmotionResult,
+  type PrimaryEmotion,
+  type Valence,
+  // Intent Classification
+  classifyIntent,
+  getIntentClassifier,
+  IntentClassifier,
+  type Intent,
+  type IntentResult,
+  // Topic Tracking
+  extractTopics,
+  getTopicTracker,
+  TopicTracker,
+  type Topic,
+  type TopicCategory,
+  type TopicExtractionResult,
+  // Distress Level Detection
   DISTRESS,
   DISTRESS_GUIDANCE,
   formatDistressForPrompt,
@@ -181,172 +81,54 @@ export {
   shouldBeGentle,
   type DistressGuidance,
   type DistressLevel,
-} from './distress-levels.js';
-
-// Session State - Centralized session state management
-export {
-  // Cognitive state helpers
-  addReasoningApproach,
-  addUserMessageForStyleDetection,
-  getActiveReasoningChain,
-  getCognitiveState,
-  // Core state management
-  getCustomState,
-  // Lovable presence helpers
-  getLovableState,
-  // Session flow helpers
-  getSessionFlowState,
-  getSessionState,
-  incrementTurnCount,
-  isInsightOnCooldown,
-  markHabitUsed,
-  markInsightShared,
-  markMemoryReferenced,
-  markQuirkUsed,
-  recordKeyMoment,
-  SessionStateManager,
-  setActiveReasoningChain,
-  setCustomState,
-  updateCognitiveLoad,
-  updateEmotionalTrajectory,
-  updateLovableState,
-  updateSessionFlowState,
-  updateUserCognitiveStyle,
-  updateVoiceEmotion,
-  wasHabitUsed,
-  wasInsightShared,
-  wasMemoryReferenced,
-  wasQuirkUsed,
-  type CognitiveReasoningState,
-  type ConversationFlowState,
-  type EmotionalTrajectory,
-  type LovablePresenceState,
-  type PatternState,
-  // Types
-  type CognitiveLoadState as SessionCognitiveLoadState,
-  type SessionFlowTrackingState,
-  type SessionState,
-  type VoiceEmotionState,
-} from './session-state.js';
-
-// Voice Emotion Orchestrator - Unified voice emotion analysis
-export {
-  analyzeVoiceEmotion,
-  detectEmotionSuppression,
-  formatVoiceEmotionForPrompt,
-  VoiceEmotionOrchestrator,
-  type SuppressionResult,
-  type TextEmotionInput,
-  type VoiceEmotionAnalysis,
-  type VoiceEmotionGuidance,
-  type VoiceEmotionInput,
-} from './voice-emotion-orchestrator.js';
+  // Hedging Language Detection
+  getHedgingDetector,
+  HedgingDetector,
+  resetAllHedgingDetectors,
+  resetHedgingDetector,
+  type HedgingAnalysisResult,
+  type HedgingCategory,
+  type HedgingInstance,
+  // Self-Soothing Detection
+  getSelfSoothingDetector,
+  resetAllSelfSoothingDetectors,
+  resetSelfSoothingDetector,
+  SelfSoothingDetector,
+  type SelfSoothingCategory,
+  type SelfSoothingInstance,
+  type SelfSoothingResult,
+  // Cognitive Load Detection
+  CognitiveLoadDetector,
+  getCognitiveLoadDetector,
+  resetAllCognitiveLoadDetectors,
+  resetCognitiveLoadDetector,
+  type CognitiveLoadIndicators,
+  type CognitiveLoadLevel,
+  type CognitiveLoadObservation,
+  type CognitiveLoadState,
+} from './detectors/index.js';
 
 // ============================================================================
-// CORE INTELLIGENCE
+// STATE MANAGEMENT
 // ============================================================================
 
-// Emotion Detection
-export {
-  detectEmotion,
-  EmotionDetector,
-  getEmotionDetector,
-  type EmotionResult,
-  type PrimaryEmotion,
-  type Valence,
-} from './emotion-detector.js';
+export * from './state/index.js';
 
-// Intent Classification
-export {
-  classifyIntent,
-  getIntentClassifier,
-  IntentClassifier,
-  type Intent,
-  type IntentResult,
-} from './intent-classifier.js';
+// ============================================================================
+// TRACKING & LEARNING
+// Selective exports to avoid conflicts
+// ============================================================================
 
-// Topic Tracking
 export {
-  extractTopics,
-  getTopicTracker,
-  TopicTracker,
-  type Topic,
-  type TopicCategory,
-  type TopicExtractionResult,
-} from './topic-tracker.js';
-
-// Conversation State
-export {
-  ConversationStateMachine,
-  getStateMachine,
-  resetStateMachine,
-  type ConversationPhase,
-  type ConversationState,
-  type PhaseGuidance,
-} from './conversation-state.js';
-
-// Human-Like Behaviors
-export {
-  detectCulturalMoment,
-  detectUserEngagement,
-  getPreferenceGuidance,
-  getProactiveGoalReference,
-  getRunningJokeCallback,
-  getSpontaneousThought,
-  getVoiceProsodyResponse,
-  HumanBehaviors,
-  inferUserPreferences,
-  shouldInjectBackchannel,
-  verifyTopicThreading,
-} from './human-behaviors.js';
-
-// Conversation Quality & Advanced Features
-export {
-  calculatePacingScore,
-  ConversationQuality,
-  createSessionRecoveryState,
-  extractFollowUps,
-  extractSmallDetails,
-  generateFarewellSummary,
-  getDetailCallback,
-  getFollowUpSuggestion,
-  getGracefulErrorResponse,
-  getPersonaPhysicalState,
-  getPhysicalStateInterjection,
-  shouldAttemptRecovery,
-  type ConversationPacingScore,
-  type FarewellSummary,
-  type FollowUpItem,
-  type GracefulError,
-  type PersonaPhysicalState,
-  type SessionRecoveryState,
-  type SmallDetail,
-} from './conversation-quality.js';
-
-// User Learning Engine - Makes Jack smarter over time
-export {
-  getLearningEngine,
-  resetLearningEngine,
-  UserLearningEngine,
-  type ConversationLearningData,
-  type DynamicUserContext,
-  type LearningInsight,
-} from './user-learning-engine.js';
-
-// Response Quality Tracker - Learn what responses work
-export {
+  // Response Quality Tracker
   getResponseQualityTracker,
   removeResponseQualityTracker,
   ResponseQualityTracker,
   type LearnedResponsePreferences,
   type ResponseSignal,
   type ResponseType,
-  type UserReaction as QualityTrackerUserReaction,
   type UserResponseQuality,
-} from './response-quality-tracker.js';
-
-// Conversation Pattern Analyzer - Learn user habits
-export {
+  // Conversation Pattern Analyzer
   ConversationPatternAnalyzer,
   getConversationPatternAnalyzer,
   removeConversationPatternAnalyzer,
@@ -357,21 +139,52 @@ export {
   type LearnedConversationPatterns,
   type OpeningStyle,
   type TimeOfDay,
-} from './conversation-pattern-analyzer.js';
-
-// Proactive Insight Engine - Generate suggestions
-export {
-  getProactiveInsightEngine,
-  ProactiveInsightEngine,
-  removeProactiveInsightEngine,
-  type InsightGenerationResult,
-  type InsightPriority,
-  type InsightType,
-  type ProactiveInsight,
-} from './proactive-insight-engine.js';
-
-// Financial Journey Tracker - Track long-term progress
-export {
+  // Voice Pace Adapter
+  getVoicePaceAdapter,
+  removeVoicePaceAdapter,
+  VoicePaceAdapter,
+  type ConversationTempo,
+  type CurrentPaceState,
+  type LearnedPacePreferences,
+  type PaceCategory,
+  type PaceObservation,
+  // Humor Calibration
+  getHumorCalibration,
+  HumorCalibrationEngine,
+  removeHumorCalibration,
+  resetAllHumorCalibration,
+  type HumorAttempt,
+  type HumorGuidance,
+  type HumorPreferences,
+  type HumorReaction,
+  type HumorType,
+  // Story Preference
+  getStoryPreference,
+  removeStoryPreference,
+  StoryPreferenceEngine,
+  type EmotionalDepth,
+  type StoryAttempt,
+  type StoryGuidance,
+  type StoryLength,
+  type StoryPreferences,
+  type StoryType,
+  // Communication Style
+  CommunicationMirroringEngine,
+  getCommunicationMirroring,
+  removeCommunicationMirroring,
+  type CommunicationStyle,
+  type FormalityLevel,
+  type StyleGuidance,
+  type VocabularyLevel,
+  // Emotional Memory
+  EmotionalMemoryEngine,
+  getEmotionalMemory,
+  removeEmotionalMemory,
+  type EmotionalCheckIn,
+  type EmotionalContext,
+  type EmotionalMoment,
+  type EmotionalPattern,
+  // Financial Journey Tracker
   FinancialJourneyTracker,
   getFinancialJourneyTracker,
   removeFinancialJourneyTracker,
@@ -379,10 +192,7 @@ export {
   type FinancialSnapshot,
   type JourneyMilestone,
   type ProgressTrend,
-} from './financial-journey-tracker.js';
-
-// Cross-Session Threader - Continue topics across sessions
-export {
+  // Cross-Session Threader
   CrossSessionThreader,
   getCrossSessionThreader,
   removeCrossSessionThreader,
@@ -391,107 +201,148 @@ export {
   type SessionEndContext,
   type ThreadOpenReason,
   type ThreadPriority,
-} from './cross-session-threader.js';
+  // Preference Extractor
+  extractPreferences,
+  hasPreferenceContent,
+  type ExtractedPreference,
+  type PreferenceCategory,
+  // Capability Learning
+  trackSurfacedDomains,
+  getRecentlySurfacedDomains,
+  finalizeSessionLearning,
+  onUserEngagedWithCapability,
+  onToolUsedInDomain,
+  onToolExecuted,
+  getMostEffectiveDomains,
+  getBestEmotionalContext,
+  getBestPersonaForDomain,
+  getDomainEngagementRate,
+  getAllPatterns,
+  persistPatterns,
+  loadPatterns,
+  initializeCapabilityLearning,
+  type CapabilityPattern,
+} from './tracking/index.js';
 
-// Voice Pace Adapter - Match user's rhythm
-export {
-  getVoicePaceAdapter,
-  removeVoicePaceAdapter,
-  VoicePaceAdapter,
-  type ConversationTempo,
-  type CurrentPaceState,
-  type EnergyLevel,
-  type LearnedPacePreferences,
-  type PaceCategory,
-  type PaceObservation,
-} from './voice-pace-adapter.js';
-
-// ============================================================================
-// COLLECTIVE LEARNING SYSTEM
-// ============================================================================
-
-// Community Insights - Learn from all users
-export {
-  CommunityInsightsEngine,
-  getCommunityInsights,
-  resetCommunityInsights,
-  type CommunityJourneyPattern,
-  type CommunityResponsePattern,
-  type EffectiveQuestion,
-  type JourneyTransition,
-  type PhraseEffectiveness,
-  type ResponseStrategySignal,
-  type StoryResonance,
-} from './community-insights.js';
-
-// Agent Evolution - Self-improvement from learnings
-export {
-  AgentEvolutionEngine,
-  getAgentEvolution,
-  resetAgentEvolution,
-  type EmergentPattern,
-  type PersonaAdjustment,
-  type PersonaEvolutionState,
-  type PersonaExperiment,
-  type StoryRanking,
-} from './agent-evolution.js';
+// Re-export EnergyLevel with alias to avoid conflict
+export { type EnergyLevel as TrackingEnergyLevel } from './tracking/index.js';
 
 // ============================================================================
-// COACHING INTELLIGENCE - "Better Than Human" Question Generation
+// DEEP UNDERSTANDING - Superhuman capabilities
 // ============================================================================
 
-// Coaching Questions - Memory-grounded, pattern-surfacing, anticipatory
-export {
-  getCoachingQuestion,
-  generateMemoryGroundedQuestion,
-  generatePatternQuestion,
-  generateMirror,
-  getAnticipatoryQuestion,
-  detectPatterns,
-  type MemoryGroundedQuestion,
-  type PatternObservation,
-  type MirrorReflection,
-  type AnticipatedNeed,
-} from './coaching-questions.js';
-
-// Pattern Tracking - Cross-session pattern detection
-export {
-  processTranscriptForPatterns,
-  getUserPatterns,
-  getPatternsToSurface,
-  getPatternForSilence,
-  markPatternSurfaced,
-  generatePatternSurfacingQuestion,
-  type UserPattern,
-  type PatternType,
-  type PatternContext,
-  type PatternObservation as StoredPatternObservation,
-} from './coaching-patterns.js';
-
-// Voice Signals - Anticipatory question triggers
-export {
-  analyzeVoiceSignals,
-  getAnticipatedNeed as getAnticipatedNeedFromSignals,
-  initializeVoiceTracking,
-  recordVoiceTurn,
-  getVoiceSignalsForTurn,
-  clearVoiceHistory,
-  type VoiceSignals,
-  type SignalContext,
-  type AnticipatedNeed as VoiceAnticipatedNeed,
-} from './voice-signals.js';
-
-// Memory Loader - Load memories for coaching questions
-export {
-  loadCoachingMemories,
-  getMemoriesForTopic,
-  getSuggestedFollowUps,
-  type CoachingMemory,
-  type CoachingMemoryContext,
-} from './coaching-memory-loader.js';
+export * from './deep-understanding/index.js';
 
 // ============================================================================
-// CONTEXT BUILDERS - Modular conversation intelligence injection
+// COACHING INTELLIGENCE
+// ============================================================================
+
+export * from './coaching/index.js';
+
+// ============================================================================
+// COLLECTIVE LEARNING
+// ============================================================================
+
+export * from './collective/index.js';
+
+// Alias for scheduler status to match expected export name
+export { getSchedulerStatus as getCollectiveLearningSchedulerStatus } from './collective/index.js';
+export { forceRunAllJobs as forceRunCollectiveLearningJobs } from './collective/index.js';
+
+// ============================================================================
+// PROACTIVE INTELLIGENCE
+// Selective exports to avoid conflicts with core/unified-intelligence-api
+// ============================================================================
+
+export {
+  // Core functions (insight tracking is in core/)
+  checkProactiveTriggers,
+  // Session management
+  initProactiveSession,
+  cleanupProactiveSession,
+  // Preferences
+  getProactivePreferences,
+  updateProactivePreferences,
+  // Cleanup
+  clearProactiveState,
+  // Singleton
+  proactiveEngine,
+  // Types
+  type SurfaceMoment,
+  type InsightCategory,
+  type ProactiveIntelligenceInsight,
+  type ProactiveTriggerResult,
+  type ProactivePreferences,
+} from './proactive/index.js';
+
+// ============================================================================
+// CROSS-DOMAIN PATTERNS
+// Selective exports - recordDomainSignal/getDomainSignals are in core/
+// ============================================================================
+
+export {
+  // Correlation functions
+  getCorrelations,
+  getRelevantCorrelations,
+  markCorrelationSurfaced,
+  formatCorrelationsForPrompt,
+  clearCorrelatorState,
+  // Singleton accessor
+  getCrossCorrelator,
+  crossDomainCorrelator,
+  // Types
+  type CorrelationDomain,
+  type CrossDomainCorrelation,
+  type CorrelationFilterOptions,
+} from './patterns/index.js';
+
+// Re-export recordDomainSignal with alias for pattern-specific use
+export { recordDomainSignal as recordCorrelationSignal } from './patterns/index.js';
+
+// ============================================================================
+// HUMAN BEHAVIORS
+// ============================================================================
+
+export * from './human-behaviors/index.js';
+
+// ============================================================================
+// CONVERSATION QUALITY
+// ============================================================================
+
+export * from './conversation-quality/index.js';
+
+// ============================================================================
+// SUPERHUMAN MEMORY
+// ============================================================================
+
+export * from './superhuman-memory/index.js';
+
+// Alias for insight delivery to match expected export name
+export { markInsightDelivered as markSuperhumanInsightDelivered } from './superhuman-memory/index.js';
+
+// ============================================================================
+// USER LEARNING ENGINE
+// ============================================================================
+
+export * from './user-learning-engine/index.js';
+
+// ============================================================================
+// PROACTIVE INSIGHT ENGINE (per-user insight generation)
+// Distinct from proactive/ which handles timing
+// ============================================================================
+
+export {
+  ProactiveInsightEngine,
+  getProactiveInsightEngine,
+  removeProactiveInsightEngine,
+  type InsightType,
+  type InsightPriority,
+  type ProactiveInsight,
+  type InsightGenerationResult,
+} from './proactive-insight-engine.js';
+
+// ============================================================================
+// CONTEXT BUILDERS
 // ============================================================================
 
 export {
@@ -510,595 +361,11 @@ export {
 } from './context-builders/index.js';
 
 // ============================================================================
-// HUMAN-LEVEL INTERACTION FEATURES
-// ============================================================================
-
-// Humor Calibration - Learn what jokes land
-export {
-  getHumorCalibration,
-  HumorCalibrationEngine,
-  removeHumorCalibration,
-  resetAllHumorCalibration,
-  type HumorAttempt,
-  type HumorGuidance,
-  type HumorPreferences,
-  type HumorReaction,
-  type HumorType,
-} from './humor-calibration.js';
-
-// Story Preference - Track what resonates
-export {
-  getStoryPreference,
-  removeStoryPreference,
-  StoryPreferenceEngine,
-  type EmotionalDepth,
-  type StoryAttempt,
-  type StoryGuidance,
-  type StoryLength,
-  type StoryPreferences,
-  type StoryType,
-  type UserEngagement as StoryUserEngagement,
-} from './story-preference.js';
-
-// Communication Style Mirroring - Match their language
-export {
-  CommunicationMirroringEngine,
-  getCommunicationMirroring,
-  removeCommunicationMirroring,
-  type CommunicationStyle,
-  type FormalityLevel,
-  type EnergyLevel as MirroringEnergyLevel,
-  type StyleGuidance,
-  type VocabularyLevel,
-} from './communication-mirroring.js';
-
-// Emotional Memory - Cross-session emotional continuity
-export {
-  EmotionalMemoryEngine,
-  getEmotionalMemory,
-  removeEmotionalMemory,
-  type EmotionalCheckIn,
-  type EmotionalContext,
-  type EmotionalMoment,
-  type EmotionalPattern,
-} from './emotional-memory.js';
-
-// ============================================================================
-// UNIFIED ANALYZER - Recommended single entry point for complete analysis
-// ============================================================================
-
-// ============================================================================
-// LEGACY UNIFIED ANALYZER (DEPRECATED)
-// ============================================================================
-// The root unified-analyzer.ts has been consolidated into ./unified/unified-analyzer.ts
-// Use analyzeUnified() from './unified/unified-analyzer.js' instead.
-// The following exports were removed:
-// - analyze (now exported from ./unified/ as backward-compat alias)
-// - analyzeSync (was unused - use synchronous emotion detection if needed)
-// - CombinedEmotion, DeepUnderstandingInsights, LegacyUnifiedAnalysisInput,
-//   LegacyUnifiedAnalysisResult, UnifiedBehavioralSignals, UnifiedResponseGuidance
-//   (internal types that were never imported externally)
-
-// ============================================================================
-// COMBINED ANALYSIS
-// ============================================================================
-
-import { getLogger } from '../utils/safe-logger.js';
-import {
-  getStateMachine,
-  resetStateMachine,
-  type ConversationState,
-} from './conversation-state.js';
-import { getEmotionDetector, type EmotionResult } from './emotion-detector.js';
-import { getIntentClassifier, type IntentResult } from './intent-classifier.js';
-import { getTopicTracker, type TopicExtractionResult } from './topic-tracker.js';
-
-/**
- * Combined analysis result
- */
-export interface ConversationAnalysis {
-  emotion: EmotionResult;
-  intent: IntentResult;
-  topics: TopicExtractionResult;
-  state: ConversationState;
-  contextForPrompt: string;
-  suggestedTone: string;
-  priorityFocus: string;
-}
-
-/**
- * Analyze a user message comprehensively
- */
-export function analyzeMessage(
-  message: string,
-  options?: {
-    userName?: string;
-    isReturningUser?: boolean;
-  }
-): ConversationAnalysis {
-  // Get or create components
-  const emotionDetector = getEmotionDetector();
-  const intentClassifier = getIntentClassifier();
-  const topicTracker = getTopicTracker();
-  const stateMachine = getStateMachine(options?.isReturningUser);
-
-  // Run all analyses
-  const emotion = emotionDetector.detect(message);
-  const intent = intentClassifier.classify(message);
-  const topics = topicTracker.extract(message);
-
-  // Update state machine
-  const state = stateMachine.processTurn({
-    userMessage: message,
-    emotion,
-    intent,
-    topics: topics.detected,
-    userName: options?.userName,
-  });
-
-  // Build context for prompt injection
-  const guidance = stateMachine.getGuidance();
-  const contextForPrompt = buildContextForPrompt(emotion, intent, topics, state, guidance);
-
-  // Determine suggested tone
-  const suggestedTone = determineSuggestedTone(emotion, state);
-
-  // Determine priority focus
-  const priorityFocus = determinePriorityFocus(emotion, intent, state);
-
-  getLogger().info(
-    `Analysis: emotion=${emotion.primary}, intent=${intent.primary}, phase=${state.phase}`
-  );
-
-  return {
-    emotion,
-    intent,
-    topics,
-    state,
-    contextForPrompt,
-    suggestedTone,
-    priorityFocus,
-  };
-}
-
-/**
- * Build context string for prompt injection
- */
-function buildContextForPrompt(
-  emotion: EmotionResult,
-  intent: IntentResult,
-  topics: TopicExtractionResult,
-  state: ConversationState,
-  guidance: import('./conversation-state.js').PhaseGuidance
-): string {
-  const sections: string[] = [];
-
-  // Emotional awareness
-  if (emotion.distressLevel > 0.5) {
-    sections.push(
-      `[PRIORITY] User appears distressed (${emotion.primary}, distress: ${emotion.distressLevel.toFixed(2)}). Focus on emotional support first.`
-    );
-  } else if (emotion.valence === 'positive') {
-    sections.push(`[MOOD] User seems ${emotion.primary}. Match their energy.`);
-  }
-
-  // Intent guidance
-  if (intent.requiresEmpathy) {
-    sections.push(`[APPROACH] ${intent.suggestedApproach}`);
-  }
-
-  // Phase guidance
-  sections.push(`[PHASE] ${state.phase} - ${guidance.focus}`);
-
-  // Topic context
-  if (topics.isTopicShift) {
-    sections.push(`[TOPIC SHIFT] User is changing subjects. Acknowledge and follow.`);
-  }
-  if (state.topicsToCircleBack.length > 0 && state.turnCount % 5 === 0) {
-    sections.push(`[CIRCLE BACK] Consider returning to: ${state.topicsToCircleBack[0]}`);
-  }
-
-  return sections.join('\n');
-}
-
-/**
- * Determine suggested tone
- */
-function determineSuggestedTone(emotion: EmotionResult, state: ConversationState): string {
-  // Distress overrides everything
-  if (state.userNeedsSupport || emotion.distressLevel > 0.6) {
-    return 'gentle';
-  }
-
-  // Phase-based
-  switch (state.phase) {
-    case 'greeting':
-    case 'follow_up':
-      return 'warm';
-    case 'supporting':
-      return 'gentle';
-    case 'advising':
-      return 'wise';
-    case 'wrapping_up':
-      return 'warm';
-    default:
-      return emotion.suggestedTone;
-  }
-}
-
-/**
- * Determine priority focus
- */
-function determinePriorityFocus(
-  emotion: EmotionResult,
-  intent: IntentResult,
-  state: ConversationState
-): string {
-  // Emotional support is always priority
-  if (state.userNeedsSupport) {
-    return 'Provide emotional support - acknowledge feelings before anything else';
-  }
-
-  // Intent-based
-  if (intent.requiresEmpathy) {
-    return `Validate their feelings about ${intent.primary}`;
-  }
-
-  if (intent.requiresAction) {
-    return `Help with: ${intent.primary}`;
-  }
-
-  // Phase-based
-  switch (state.phase) {
-    case 'greeting':
-      return 'Make genuine personal connection';
-    case 'warming_up':
-      return 'Get to know them as a person';
-    case 'exploring':
-      return 'Understand their complete picture';
-    case 'advising':
-      return 'Share relevant wisdom';
-    case 'wrapping_up':
-      return 'Leave them feeling supported';
-    default:
-      return 'Listen and respond naturally';
-  }
-}
-
-/**
- * Reset all intelligence components (for new session)
- */
-export function resetIntelligence(isReturningUser = false): void {
-  getEmotionDetector().clearHistory();
-  getTopicTracker().clear();
-  resetStateMachine(isReturningUser);
-  getLogger().info('Intelligence components reset');
-}
-
-// ============================================================================
-// COGNITIVE LOAD DETECTION
-// ============================================================================
-
-export {
-  CognitiveLoadDetector,
-  getCognitiveLoadDetector,
-  resetAllCognitiveLoadDetectors,
-  resetCognitiveLoadDetector,
-  type CognitiveLoadIndicators,
-  type CognitiveLoadLevel,
-  type CognitiveLoadObservation,
-  type CognitiveLoadState,
-} from './cognitive-load.js';
-
-// ============================================================================
-// HEDGING LANGUAGE DETECTION
-// ============================================================================
-
-export {
-  getHedgingDetector,
-  HedgingDetector,
-  resetAllHedgingDetectors,
-  resetHedgingDetector,
-  type HedgingAnalysisResult,
-  type HedgingCategory,
-  type HedgingInstance,
-} from './hedging-detection.js';
-
-// ============================================================================
-// SELF-SOOTHING DETECTION
-// ============================================================================
-
-export {
-  getSelfSoothingDetector,
-  resetAllSelfSoothingDetectors,
-  resetSelfSoothingDetector,
-  SelfSoothingDetector,
-  type SelfSoothingCategory,
-  type SelfSoothingInstance,
-  type SelfSoothingResult,
-} from './self-soothing-detection.js';
-
-// ============================================================================
-// DEEP UNDERSTANDING SYSTEMS - Superhuman Emotional Intelligence
-// ============================================================================
-
-// Silence Intelligence - Understanding what different pauses mean
-export {
-  analyzeSilence,
-  formatSilenceForPrompt,
-  getSilencePattern,
-  importSilencePattern,
-  recordSilence,
-  resetSilenceIntelligence,
-  type SilenceAnalysis,
-  type SilencePattern,
-  type SilenceResponse,
-  type SilenceType,
-} from './silence-intelligence.js';
-
-// Life Rhythm Prediction - Anticipating support needs
-export {
-  addAnniversary,
-  formatPredictionForPrompt,
-  getLifeRhythmProfile,
-  importLifeRhythmProfile,
-  predictUserState,
-  recordConversationObservation,
-  resetLifeRhythmPrediction,
-  type AnniversaryDate,
-  type LifeRhythmProfile,
-  type MonthlyPattern,
-  type RhythmPrediction,
-  type SeasonalPattern,
-  type WeeklyPattern,
-} from './life-rhythm-prediction.js';
-
-// Relational Network Intelligence - Understanding people in their life
-export {
-  analyzeSupportNetwork,
-  detectUnspokenTension,
-  extractPersonMentions,
-  formatRelationalInsightsForPrompt,
-  generateRelationalInsights,
-  getRelationalNetwork,
-  importRelationalNetwork,
-  recordPersonMention,
-  resetRelationalNetwork,
-  type PersonInLife,
-  type RelationalInsight,
-  type RelationalNetwork,
-  type RelationshipQuality,
-  type RelationshipType,
-  type SupportNetwork,
-  type Triangulation,
-  type UnspokenTension,
-} from './relational-network.js';
-
-// Resistance Pattern Detection - What they're avoiding
-export {
-  analyzeResistance,
-  formatResistanceForPrompt,
-  getResistanceProfile,
-  getResistanceSummary,
-  identifyGrowthEdges,
-  importResistanceProfile,
-  resetResistanceDetection,
-  type AvoidedTopic,
-  type DefensePattern,
-  type GrowthEdge,
-  type ResistanceAnalysis,
-  type ResistanceProfile,
-  type SelfProtectiveProfile,
-} from './resistance-detection.js';
-
-// Energy State Inference - Physical/mental capacity
-export {
-  assessEnergyState,
-  formatEnergyForPrompt,
-  getEnergyPattern,
-  importEnergyPattern,
-  markTopicEnergy,
-  resetEnergyStateInference,
-  type EnergyAssessment,
-  type EnergyPattern,
-  type EnergyLevel as EnergyStateLevel,
-  type MentalCapacity,
-  type MentalEnergyState,
-  type PhysicalEnergyState,
-  type SleepQuality,
-} from './energy-state.js';
-
-// Subconscious Goal Detection - What they want but haven't articulated
-export {
-  analyzeSubconscious,
-  formatSubconsciousForPrompt,
-  getSubconsciousProfile,
-  getSubconsciousSummary,
-  importSubconsciousProfile,
-  recordSurfaceReaction,
-  resetSubconsciousGoals,
-  type Contradiction,
-  type EmergingDesire,
-  type GoalCategory,
-  type RecurringPattern,
-  type SubconsciousAnalysis,
-  type SubconsciousProfile,
-} from './subconscious-goals.js';
-
-// Conversational Flow Optimizer - When to go deep vs light
-export {
-  analyzeFlow,
-  formatFlowForPrompt,
-  getFlowProfile,
-  importFlowProfile,
-  resetConversationalFlow,
-  type ConversationDepth,
-  type DepthIndicators,
-  type FlowAnalysis,
-  type FlowDirection,
-  type FlowProfile,
-  type FlowState,
-  type FlowTransition,
-  type UserSignal,
-} from './conversational-flow.js';
-
-// Repair Intelligence - Fixing misunderstandings
-export {
-  detectMisunderstanding,
-  formatRepairForPrompt,
-  generateRepair,
-  getRepairProfile,
-  importRepairProfile,
-  quickRepairCheck,
-  recordAIResponse,
-  recordRepairOutcome,
-  resetRepairIntelligence,
-  type MisunderstandingDetection,
-  type MisunderstandingSeverity,
-  type MisunderstandingType,
-  type RepairApproach,
-  type RepairAttempt,
-  type RepairProfile,
-  type RepairStrategy,
-} from './repair-intelligence.js';
-
-// Hope Trajectory Tracking - Long-term resilience
-export {
-  analyzeHope,
-  formatHopeForPrompt,
-  getHopeProfile,
-  importHopeProfile,
-  resetHopeTrajectory,
-  type HopeAnalysis,
-  type HopeObservation,
-  type HopeProfile,
-  type HopeTrajectory,
-  type TrajectoryDirection,
-  type UrgencyLevel,
-} from './hope-trajectory.js';
-
-// Life Chapter Awareness - Major life phases
-export {
-  analyzeChapter,
-  formatChapterForPrompt,
-  getChapterProfile,
-  importChapterProfile,
-  resetLifeChapterAwareness,
-  type ChapterAnalysis,
-  type ChapterEvidence,
-  type ChapterProfile,
-  type ChapterType,
-  type LifeChapter,
-  type TransitionPhase,
-} from './life-chapter.js';
-
-// Deep Understanding Persistence
-export {
-  periodicSync as deepUnderstandingPeriodicSync,
-  deleteDeepUnderstandingProfiles,
-  exportDeepUnderstandingBundle,
-  importDeepUnderstandingBundle,
-  loadDeepUnderstandingProfiles,
-  onSessionEnd as onDeepUnderstandingSessionEnd,
-  onSessionStart as onDeepUnderstandingSessionStart,
-  saveDeepUnderstandingProfiles,
-  type DeepUnderstandingBundle,
-} from './deep-understanding-persistence.js';
-
-// ============================================================================
-// COLLECTIVE LEARNING INTEGRATION
-// ============================================================================
-
-export {
-  analyzeResponseLength,
-  analyzeResponseType,
-  analyzeUserEngagement,
-  flushLearningSignals,
-  getCollectiveRecommendations,
-  initializeCollectiveLearning,
-  recordBreakthroughForLearning,
-  recordResponseForLearning,
-  recordStoryForLearning,
-  shutdownCollectiveLearning,
-  type BreakthroughSignal,
-  type ConversationSignalContext,
-  type ResponseSignalData,
-  type StoryUsageSignal,
-  type UserReactionSignal,
-} from './collective-learning-integration.js';
-
-// ============================================================================
-// COLLECTIVE LEARNING SCHEDULER
-// ============================================================================
-
-export {
-  forceRunAllJobs as forceRunCollectiveLearningJobs,
-  getSchedulerStatus as getCollectiveLearningSchedulerStatus,
-  startCollectiveLearningScheduler,
-  stopCollectiveLearningScheduler,
-} from './collective-learning-scheduler.js';
-
-// ============================================================================
-// SUPERHUMAN MEMORY - "Better than Human" proactive memory intelligence
-// ============================================================================
-
-export {
-  analyzeVoicePatterns,
-  // Main context builder
-  buildSuperhumanContext,
-  // Date awareness
-  checkUpcomingDates,
-  cleanupDeliveryRecords,
-  // Topic absence
-  detectTopicAbsences,
-  // Growth celebration
-  findCelebratableGrowth,
-  // Inside jokes
-  findSurfaceableJokes,
-  // Comfort patterns
-  getComfortGuidance,
-  // Temporal
-  getTemporalContext,
-  // Delivery tracking
-  markInsightDelivered as markSuperhumanInsightDelivered,
-  // Voice patterns
-  recordVoicePattern,
-  wasRecentlyDelivered,
-  type ComfortGuidance,
-  type SuperhumanContext,
-  // Types (renamed to avoid collision with proactive-insight-engine)
-  type ProactiveInsight as SuperhumanInsight,
-  type TopicAbsenceInsight,
-  type VoicePatternObservation,
-} from './superhuman-memory.js';
-
-export default {
-  analyzeMessage,
-  resetIntelligence,
-};
-
-// ============================================================================
-// SEMANTIC DATA CAPTURE ROUTER ("Better than Human" - passive learning)
-// ============================================================================
-//
-// ⚠️ DEPRECATED: The static definition-based data capture has been replaced by
-// the new dynamic memory extraction system in src/memory/dynamic/
-//
-// NEW SYSTEM:
-//   import { fastCapture } from '../memory/dynamic/index.js';
-//   const result = await fastCapture({ userId, sessionId, transcript, ... });
-//
-// The new system provides:
-// - L1: STM Buffer (in-memory, current session)
-// - L2: Firestore (LLM-extracted entities, facts, relationships)
-// - L3: Spanner Graph (long-term relationship storage)
-//
-// These exports are kept for backwards compatibility ONLY.
+// DATA CAPTURE (DEPRECATED - Use src/memory/dynamic/ instead)
 // ============================================================================
 
 /**
  * @deprecated Use fastCapture from src/memory/dynamic/index.js instead.
- * Contact extraction only - for full entity extraction use fastCapture.
  */
 export { processDataCapture, captureDataBetterThanHuman } from './data-capture/index.js';
 
@@ -1112,3 +379,13 @@ export type {
   DataCaptureContext,
   DataCaptureResult,
 } from './data-capture/types.js';
+
+// ============================================================================
+// MESSAGE ANALYSIS
+// ============================================================================
+
+export {
+  analyzeMessage,
+  resetIntelligence,
+  type ConversationAnalysis,
+} from './core/message-analyzer.js';

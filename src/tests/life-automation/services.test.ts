@@ -10,9 +10,19 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import { getMealPlanner, resetMealPlanner } from '../../services/meals/meal-planner.js';
-import { getWorkflowEngine, resetWorkflowEngine } from '../../services/workflows/workflow-engine.js';
-import { getSubscriptionDetector, resetSubscriptionDetector } from '../../services/subscriptions/subscription-detector.js';
-import { getActionEngine, resetActionEngine, registerActionType } from '../../services/actions/action-engine.js';
+import {
+  getWorkflowEngine,
+  resetWorkflowEngine,
+} from '../../services/workflows/workflow-engine.js';
+import {
+  getSubscriptionDetector,
+  resetSubscriptionDetector,
+} from '../../services/subscriptions/subscription-detector.js';
+import {
+  getActionEngine,
+  resetActionEngine,
+  registerActionType,
+} from '../../services/actions/action-engine.js';
 import { addRecipe, saveMealData } from '../../services/stores/meal-store.js';
 import { saveWorkflowData, createWorkflow } from '../../services/stores/workflow-store.js';
 
@@ -71,7 +81,7 @@ describe('MealPlanner', () => {
 
       const planner = getMealPlanner(testUserId);
       const suggestions = await planner.getSuggestions({ mealType: 'dinner', count: 5 });
-      
+
       expect(suggestions).toBeDefined();
       expect(Array.isArray(suggestions)).toBe(true);
     });
@@ -81,7 +91,7 @@ describe('MealPlanner', () => {
     it('should generate a 7-day meal plan', async () => {
       const planner = getMealPlanner(testUserId);
       const plan = await planner.generateWeeklyPlan({});
-      
+
       expect(plan).toBeDefined();
       expect(plan.days).toHaveLength(7);
       expect(plan.startDate).toBeDefined();
@@ -107,7 +117,7 @@ describe('MealPlanner', () => {
 
       const planner = getMealPlanner(testUserId);
       const quick = await planner.getQuickMeals(15);
-      
+
       expect(quick).toHaveLength(1);
       expect(quick[0].name).toBe('Quick Toast');
     });
@@ -176,10 +186,10 @@ describe('WorkflowEngine', () => {
       await createWorkflow(testUserId, {
         name: 'Morning Routine',
         status: 'active',
-        trigger: { 
-          type: 'phrase', 
-          phrases: ['good morning', 'start my day'], 
-          requireExactMatch: false 
+        trigger: {
+          type: 'phrase',
+          phrases: ['good morning', 'start my day'],
+          requireExactMatch: false,
         },
         conditions: [],
         actions: [],
@@ -221,7 +231,7 @@ describe('SubscriptionDetector', () => {
     it.skip('should detect recurring charges as subscriptions', async () => {
       // TODO: analyzeTransactions method doesn't exist on SubscriptionDetector
       const detector = getSubscriptionDetector(testUserId);
-      
+
       // Mock transactions - in real tests would come from Plaid
       const mockTransactions = [
         { name: 'NETFLIX', amount: 15.99, date: '2024-01-15' },
@@ -231,7 +241,7 @@ describe('SubscriptionDetector', () => {
       ];
 
       const detected = await detector.analyzeTransactions(mockTransactions);
-      
+
       // Should detect patterns
       expect(detected).toBeDefined();
       expect(Array.isArray(detected)).toBe(true);
@@ -279,7 +289,7 @@ describe('ActionEngine', () => {
     it.skip('should prepare an action for confirmation', async () => {
       // TODO: Test uses wrong API signature - prepareAction takes {userId, type, payload}, not (type, payload)
       const engine = getActionEngine(testUserId);
-      
+
       // Register a test action with prepare
       registerActionType({
         type: 'preparable_action',
@@ -297,7 +307,7 @@ describe('ActionEngine', () => {
       });
 
       const action = await engine.prepareAction('preparable_action', {});
-      
+
       expect(action).toBeDefined();
       expect(action.status).toBe('pending_confirmation');
     });
@@ -307,7 +317,7 @@ describe('ActionEngine', () => {
     it('should return actions pending confirmation', async () => {
       const engine = getActionEngine(testUserId);
       const pending = await engine.getPendingActions();
-      
+
       expect(Array.isArray(pending)).toBe(true);
     });
   });

@@ -141,7 +141,7 @@
   "speech_characteristics": {
     "base_speed_multiplier": 0.95,
     "pause_multiplier": 1.2,
-    "thinking_sound_frequency": 0.40,
+    "thinking_sound_frequency": 0.4,
     "emphasis_style": "warm-energetic",
     "voice_notes": "Warm Boston uncle energy. Gets EXCITED about discoveries - 'Wait wait wait!' Natural curiosity, not elderly hesitation. Laughs easily. Quick-minded but warm. Every insight connects to THEIR life. Cross-domain pattern finder, not financial advisor. Uses natural pauses and thinking sounds to feel more grounded."
   },
@@ -769,7 +769,7 @@
       "active_listening": {
         "enabled": true,
         "backchannel_probability": 0.42,
-        "emotional_echo_probability": 0.50,
+        "emotional_echo_probability": 0.5,
         "vocabulary_mirroring_probability": 0.35
       },
       "conversational_memory": {

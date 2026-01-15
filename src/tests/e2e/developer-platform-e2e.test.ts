@@ -15,10 +15,7 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 
 // Test the workflow engine internals
-import {
-  interpolate,
-  evaluateCondition,
-} from '../../services/workflow-engine.js';
+import { interpolate, evaluateCondition } from '../../services/workflow-engine.js';
 
 describe('Developer Platform E2E', () => {
   describe('Workflow Engine - Variable Interpolation', () => {
@@ -36,9 +33,7 @@ describe('Developer Platform E2E', () => {
           email: 'alice@example.com',
         },
       };
-      expect(interpolate(template, variables)).toBe(
-        'User: Alice, Email: alice@example.com'
-      );
+      expect(interpolate(template, variables)).toBe('User: Alice, Email: alice@example.com');
     });
 
     it('should handle missing variables gracefully', () => {
@@ -124,9 +119,8 @@ describe('Developer Platform E2E', () => {
 
   describe('Webhook Signature Generation', () => {
     it('should generate valid HMAC signature', async () => {
-      const { signPayload, verifySignature } = await import(
-        '../../services/developer-webhook-dispatcher.js'
-      );
+      const { signPayload, verifySignature } =
+        await import('../../services/developer-webhook-dispatcher.js');
 
       const secret = 'test-secret-123';
       const payload = {
@@ -148,9 +142,7 @@ describe('Developer Platform E2E', () => {
     });
 
     it('should reject invalid signature', async () => {
-      const { verifySignature } = await import(
-        '../../services/developer-webhook-dispatcher.js'
-      );
+      const { verifySignature } = await import('../../services/developer-webhook-dispatcher.js');
 
       const signature = 't=1704985200,v1=invalid';
       const body = '{}';
@@ -160,9 +152,7 @@ describe('Developer Platform E2E', () => {
     });
 
     it('should reject expired timestamp', async () => {
-      const { verifySignature } = await import(
-        '../../services/developer-webhook-dispatcher.js'
-      );
+      const { verifySignature } = await import('../../services/developer-webhook-dispatcher.js');
 
       // Timestamp from 2024 (way too old)
       const oldTimestamp = 1704985200;
@@ -213,7 +203,7 @@ describe.skip('Developer Platform API Routes (requires server)', () => {
   const API_KEY = process.env.TEST_PUBLISHER_API_KEY || 'pk_test_xxx';
 
   const headers = {
-    'Authorization': `Bearer ${API_KEY}`,
+    Authorization: `Bearer ${API_KEY}`,
     'Content-Type': 'application/json',
   };
 

@@ -28,7 +28,10 @@ import {
   type CognitiveDifferentiation,
   type QuestioningStyle,
 } from '../../personas/cognitive-differentiation.js';
-import { PERSONA_TRAIT_PROFILES, type PersonaVoiceTraits } from '../../personas/dynamic-responses.js';
+import {
+  PERSONA_TRAIT_PROFILES,
+  type PersonaVoiceTraits,
+} from '../../personas/dynamic-responses.js';
 
 const log = getLogger();
 

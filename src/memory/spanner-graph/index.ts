@@ -36,6 +36,12 @@ export {
   type GraphRelationship,
   type EntityWithFacts,
   type RelationshipResult,
+  // Memory continuity types
+  type MemoryThread,
+  type MemoryAnchor,
+  type MemoryAnchorType,
+  // Fact domain type
+  type FactDomain,
 } from './schema.js';
 
 // Client operations
@@ -49,6 +55,14 @@ export {
   getEntitiesByUser,
   getEntityByName,
   closeSpanner,
+  // Memory thread operations
+  upsertMemoryThread,
+  getMemoryThreadsByUser,
+  getMemoryThreadByTheme,
+  // Memory anchor operations
+  insertMemoryAnchor,
+  getMemoryAnchorsByUser,
+  markAnchorRecalled,
 } from './client.js';
 
 // Graph queries
@@ -58,4 +72,9 @@ export {
   getExtendedNetwork,
   findEntitiesWithFactPattern,
   getImportantPeople,
+  // Entity context queries (for "Better than Human" recall)
+  getEntityContext,
+  getRelationshipContext,
+  searchFactsAboutEntity,
+  type EntityContext,
 } from './queries.js';

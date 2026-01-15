@@ -84,12 +84,12 @@ export interface CalendarAwarenessContext {
 type CalendarDetailLevel = 'full' | 'events' | 'awareness' | 'habits' | 'research' | 'wisdom';
 
 const CALENDAR_DETAIL_LEVELS: Record<string, CalendarDetailLevel> = {
-  'alex-chen': 'full',      // Full calendar management (primary)
+  'alex-chen': 'full', // Full calendar management (primary)
   'jordan-taylor': 'events', // Event planning and celebration focus
-  'ferni': 'awareness',      // General awareness for life coaching
-  'maya-patel': 'habits',    // Habit-related schedule awareness
-  'peter-john': 'research',  // Research and focus time scheduling
-  'nayan-kumar': 'wisdom',   // Life rhythm and balance awareness
+  ferni: 'awareness', // General awareness for life coaching
+  'maya-patel': 'habits', // Habit-related schedule awareness
+  'peter-john': 'research', // Research and focus time scheduling
+  'nayan-kumar': 'wisdom', // Life rhythm and balance awareness
 };
 
 // All personas get calendar awareness now
@@ -219,8 +219,14 @@ export async function buildCalendarAwarenessContext(
         // These personas care about wellbeing but aren't calendar specialists
 
         // Meeting starting soon? All lite BTH personas should know
-        if (ambientContext.nextMeeting.event && ambientContext.nextMeeting.minutesUntil !== null && ambientContext.nextMeeting.minutesUntil <= 15) {
-          sections.push(`[TIMING: User has a meeting in ${ambientContext.nextMeeting.minutesUntil} minutes - be mindful of time]`);
+        if (
+          ambientContext.nextMeeting.event &&
+          ambientContext.nextMeeting.minutesUntil !== null &&
+          ambientContext.nextMeeting.minutesUntil <= 15
+        ) {
+          sections.push(
+            `[TIMING: User has a meeting in ${ambientContext.nextMeeting.minutesUntil} minutes - be mindful of time]`
+          );
         }
 
         // Just ended a meeting? Good context for check-ins
@@ -285,7 +291,7 @@ function buildContextInjectionForPersona(
   nextMeetingIn?: number
 ): string | null {
   const detailLevel = CALENDAR_DETAIL_LEVELS[personaId];
-  
+
   switch (detailLevel) {
     case 'full':
       // Alex gets full calendar detail - they're the Chief of Staff
@@ -381,7 +387,9 @@ function buildMayaCalendarContext(overview: DayOverview, nextMeetingIn?: number)
   if (overview.totalMeetings === 0) {
     parts.push('[SCHEDULE: Clear day - great conditions for habit practice and routine building]');
   } else if (overview.isOverloaded) {
-    parts.push('[SCHEDULE: Packed day - habits may be harder. Suggest micro-practices or habit stacking]');
+    parts.push(
+      '[SCHEDULE: Packed day - habits may be harder. Suggest micro-practices or habit stacking]'
+    );
   } else {
     const freeHours = Math.round(overview.freeTimeMinutes / 60);
     if (freeHours >= 2) {

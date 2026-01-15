@@ -225,11 +225,11 @@ export class PredictiveMemory {
       },
       happy: {
         topics: ['celebration', 'gratitude', 'sharing'],
-        phrase: "I love your energy! Want to...",
+        phrase: 'I love your energy! Want to...',
       },
       angry: {
         topics: ['venting', 'understanding', 'resolution'],
-        phrase: "I hear you. What would help most?",
+        phrase: 'I hear you. What would help most?',
       },
       confused: {
         topics: ['clarity', 'options', 'perspective'],
@@ -367,14 +367,17 @@ export class PredictiveMemory {
       const { Firestore } = await import('@google-cloud/firestore');
       const db = new Firestore();
 
-      await db.collection('knowledge_graph')
+      await db
+        .collection('knowledge_graph')
         .doc(userId)
         .collection('prediction_outcomes')
-        .add(cleanForFirestore({
-          predictionId,
-          wasRelevant,
-          recordedAt: new Date(),
-        }));
+        .add(
+          cleanForFirestore({
+            predictionId,
+            wasRelevant,
+            recordedAt: new Date(),
+          })
+        );
     } catch (error) {
       log.debug({ error: String(error) }, 'Failed to record prediction outcome');
     }

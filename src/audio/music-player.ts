@@ -656,18 +656,22 @@ export class CallMusicPlayer {
    *
    * Uses EventEmitter pattern - all registered listeners receive the event.
    */
-  private notifyStateChange(state: MusicState): void {
+  private notifyStateChange(
+    state: MusicState,
+    trackOverride: MusicTrack | null = this.state.currentTrack,
+    isAmbientOverride: boolean = this.state.isAmbientMode
+  ): void {
     log.debug(
       {
         state,
-        track: this.state.currentTrack?.name,
-        isAmbient: this.state.isAmbientMode,
+        track: trackOverride?.name ?? this.state.currentTrack?.name,
+        isAmbient: isAmbientOverride,
       },
       '🎧 Notifying music state change'
     );
 
     // Emit to all listeners via EventEmitter
-    this.events.emit('stateChange', state, this.state.currentTrack, this.state.isAmbientMode);
+    this.events.emit('stateChange', state, trackOverride, isAmbientOverride);
   }
 
   /**
@@ -689,21 +693,24 @@ export class CallMusicPlayer {
     );
 
     if (!this.state.isInitialized || !this.backgroundPlayer) {
-      // 🚨 CRITICAL: Music player not initialized - return false so agent doesn't announce playback!
-      log.error(
-        {
-          timestamp: new Date().toISOString(),
-          track: track.name,
-          isInitialized: this.state.isInitialized,
-          hasBackgroundPlayer: !!this.backgroundPlayer,
-          sessionId: this.sessionId,
-          hasRoom: !!this.room,
-          hasAgentSession: !!this.agentSession,
-          stack: new Error().stack?.split('\n').slice(1, 6).join(' <- '),
-        },
-        '🚨 [DIAG] Cannot play music - player not initialized! Was dispose() called? Check logs for "dispose() CALLED"'
-      );
-      return false;
+      const isReady = await this.waitForInitialization();
+      if (!isReady || !this.state.isInitialized || !this.backgroundPlayer) {
+        // 🚨 CRITICAL: Music player not initialized - return false so agent doesn't announce playback!
+        log.error(
+          {
+            timestamp: new Date().toISOString(),
+            track: track.name,
+            isInitialized: this.state.isInitialized,
+            hasBackgroundPlayer: !!this.backgroundPlayer,
+            sessionId: this.sessionId,
+            hasRoom: !!this.room,
+            hasAgentSession: !!this.agentSession,
+            stack: new Error().stack?.split('\n').slice(1, 6).join(' <- '),
+          },
+          '🚨 [DIAG] Cannot play music - player not initialized! Was dispose() called? Check logs for "dispose() CALLED"'
+        );
+        return false;
+      }
     }
 
     // 🚨 CRITICAL FIX: Check if room is still connected BEFORE attempting playback!
@@ -1757,21 +1764,7 @@ export class CallMusicPlayer {
 
       // ✨ CRITICAL: Notify 'stopped' state so frontend hides the Now Playing UI
       // This MUST happen even if endedTrack is null (defensive)
-      if (this.onMusicStateChangeCallback) {
-        log.debug(
-          {
-            hasCallback: true,
-            track: endedTrack?.name,
-          },
-          '🎧 Calling onMusicStateChangeCallback with stopped'
-        );
-        this.onMusicStateChangeCallback('stopped', endedTrack, wasAmbient);
-      } else {
-        // This should never happen in normal operation
-        log.warn(
-          '🎧 No onMusicStateChangeCallback set - frontend will not be notified of track end!'
-        );
-      }
+      this.notifyStateChange('stopped', endedTrack, wasAmbient);
     }
   }
 
@@ -2096,7 +2089,7 @@ export class CallMusicPlayer {
     // This ensures the frontend Now Playing UI receives the stop signal
     // even during disconnect cleanup. The safety timer is a fallback,
     // but proactive notification is the "superhuman" standard.
-    if (this.state.isPlaying && this.onMusicStateChangeCallback) {
+    if (this.state.isPlaying) {
       const stoppedTrack = this.state.currentTrack;
       const wasAmbient = this.state.isAmbientMode;
       log.info(
@@ -2104,7 +2097,7 @@ export class CallMusicPlayer {
         '🎧 [DISPOSE] Sending final stopped state before cleanup'
       );
       try {
-        this.onMusicStateChangeCallback('stopped', stoppedTrack, wasAmbient);
+        this.notifyStateChange('stopped', stoppedTrack, wasAmbient);
       } catch (err) {
         // Best-effort - don't let callback errors block cleanup
         log.debug(

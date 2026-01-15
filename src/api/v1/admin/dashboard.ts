@@ -152,7 +152,7 @@ export async function handleAdminDashboardRoutes(
     // ========================================================================
     if (subPath === '/capability-patterns' && method === 'GET') {
       const { getAllPatterns, getMostEffectiveDomains } =
-        await import('../../../intelligence/capability-learning.js');
+        await import('../../../intelligence/tracking/capabilities.js');
 
       const allPatterns = getAllPatterns();
       const topPatterns = getMostEffectiveDomains(10);

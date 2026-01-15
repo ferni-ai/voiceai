@@ -666,7 +666,7 @@ async function applySsmlTagging(
 
   try {
     const currentPhase = services.getPromptContext()
-      .phase as import('../../intelligence/conversation-state.js').ConversationPhase;
+      .phase as import('../../intelligence/state/conversation.js').ConversationPhase;
     const speechContext = services.getSpeechContext();
 
     if (currentPhase && speechContext) {

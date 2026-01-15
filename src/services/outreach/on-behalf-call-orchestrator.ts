@@ -265,11 +265,7 @@ class OnBehalfCallOrchestrator extends EventEmitter {
       call.status = 'ringing';
 
       // Initialize transcript capture for superhuman analysis
-      initializeTranscriptCapture(
-        callId,
-        contact.name,
-        contact.relationship
-      );
+      initializeTranscriptCapture(callId, contact.name, contact.relationship);
       log.debug({ callId }, '📝 Transcript capture initialized');
 
       activeCallsStore.set(callId, call);
@@ -797,9 +793,89 @@ class OnBehalfCallOrchestrator extends EventEmitter {
             },
             '✨ Superhuman call analysis complete'
           );
+
+          // =========================================================================
+          // RELATIONSHIP HEALTH TRACKING - Monitor quality over time
+          // =========================================================================
+          if (call.request.resolvedContact?.phone) {
+            try {
+              const { recordCallQuality, extractCallQualityFromAnalysis } =
+                await import('./relationship-health-tracker.js');
+
+              const qualityMetrics = extractCallQualityFromAnalysis(
+                call.id,
+                durationSeconds,
+                superhumanResult.insights
+              );
+
+              await recordCallQuality(
+                call.request.userId,
+                call.request.resolvedContact.phone,
+                qualityMetrics,
+                {
+                  name: call.request.resolvedContact.name,
+                  relationship: call.request.resolvedContact.relationship,
+                }
+              );
+
+              log.debug({ callId: call.id }, '📊 Recorded relationship health metrics');
+            } catch (healthError) {
+              log.debug(
+                { error: String(healthError) },
+                'Relationship health tracking failed (non-blocking)'
+              );
+            }
+          }
         }
       } catch (error) {
-        log.warn({ error: String(error), callId: call.id }, 'Superhuman analysis failed (non-blocking)');
+        log.warn(
+          { error: String(error), callId: call.id },
+          'Superhuman analysis failed (non-blocking)'
+        );
+      }
+    }
+
+    // =========================================================================
+    // SMART CALLBACK QUEUE - Auto-retry failed calls at optimal times
+    // =========================================================================
+    if (call.status === 'no_answer' || call.status === 'busy' || call.status === 'voicemail') {
+      try {
+        const { queueCallbackRetry } = await import('./smart-callback-queue.js');
+
+        const retryQueued = await queueCallbackRetry(
+          call.request.userId,
+          call.id,
+          call.request.contactQuery,
+          call.request.resolvedContact?.name,
+          call.request.resolvedContact?.phone,
+          call.request.purpose,
+          undefined, // Message will be regenerated on retry
+          call.status as 'no_answer' | 'busy' | 'voicemail'
+        );
+
+        if (retryQueued) {
+          log.info(
+            {
+              callId: call.id,
+              status: call.status,
+              nextRetry: retryQueued.scheduledFor,
+              attemptCount: retryQueued.attemptCount,
+            },
+            '📅 Auto-scheduled callback retry'
+          );
+        }
+      } catch (error) {
+        log.debug({ error: String(error) }, 'Failed to queue callback retry (non-blocking)');
+      }
+    }
+
+    // Record successful call for reachability learning
+    if (call.status === 'completed' && call.request.resolvedContact?.phone) {
+      try {
+        const { recordSuccessfulCall } = await import('./smart-callback-queue.js');
+        await recordSuccessfulCall(call.request.userId, call.request.resolvedContact.phone);
+      } catch {
+        // Non-critical
       }
     }
 
