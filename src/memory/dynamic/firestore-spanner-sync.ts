@@ -170,6 +170,7 @@ async function syncFactToSpanner(fact: SyncableFact): Promise<boolean> {
       factType: fact.factType as 'attribute' | 'event' | 'relationship' | 'state' | 'preference',
       key: fact.key,
       value: fact.value,
+      domain: 'general', // Default domain for synced facts
       confidence: fact.confidence,
       sourceSession: undefined,
       extractedAt: new Date(fact.extractedAt),

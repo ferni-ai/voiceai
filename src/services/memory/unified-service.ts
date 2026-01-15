@@ -27,7 +27,7 @@ import {
   type MemoryOrchestrator,
   type OrchestratedMemory,
   type RecallContext,
-} from '../memory/index.js';
+} from '../../memory/index.js';
 import {
   getLearningEngine,
   type LearningEngine,
@@ -146,7 +146,7 @@ export interface SimpleRecallContext {
 }
 
 // Re-export RecallContext type for convenience
-export type { RecallContext } from '../memory/index.js';
+export type { RecallContext } from '../../memory/index.js';
 
 /**
  * Simple memory write for tools

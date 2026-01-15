@@ -142,7 +142,12 @@ export type ToolDomain =
   | 'vehicle' // Maintenance schedules, registration alerts
   | 'workflows' // Custom automations, IFTTT-style triggers
   // CEO Coaching Domain
-  | 'ceo-coaching'; // CEO personal coaching: briefings, wins, energy, priorities, decisions
+  | 'ceo-coaching' // CEO personal coaching: briefings, wins, energy, priorities, decisions
+  // Intelligence Domains
+  | 'event-intelligence' // Event intelligence: context-aware event management
+  | 'habit-intelligence' // Habit intelligence: behavioral insights, pattern detection
+  | 'pattern-analytics' // Pattern analytics: behavioral patterns, insights
+  | 'wisdom-intelligence'; // Wisdom intelligence: philosophical insights, life wisdom
 
 /**
  * All available tool domains
@@ -275,6 +280,11 @@ export const ALL_TOOL_DOMAINS: readonly ToolDomain[] = [
   'workflows',
   // CEO Coaching
   'ceo-coaching',
+  // Intelligence Domains
+  'event-intelligence',
+  'habit-intelligence',
+  'pattern-analytics',
+  'wisdom-intelligence',
 ] as const;
 
 // ============================================================================
@@ -421,6 +431,11 @@ export const DOMAIN_TO_CATEGORY: Record<ToolDomain, ToolCategory> = {
   routines: 'lifestyle', // Ferni's care routines - "What I Do For You"
   // CEO Coaching
   'ceo-coaching': 'productivity', // CEO personal coaching: briefings, wins, priorities, decisions
+  // Intelligence Domains
+  'event-intelligence': 'productivity', // Event intelligence: context-aware event management
+  'habit-intelligence': 'lifestyle', // Habit intelligence: behavioral insights, pattern detection
+  'pattern-analytics': 'information', // Pattern analytics: behavioral patterns, insights
+  'wisdom-intelligence': 'information', // Wisdom intelligence: philosophical insights, life wisdom
 };
 
 // ============================================================================

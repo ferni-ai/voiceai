@@ -41,6 +41,8 @@ export interface FastCaptureResult {
   dateSignals: DateSignal[];
   /** Relationship signals */
   relationshipSignals: RelationshipSignal[];
+  /** Account linking signals (email, app mentions) */
+  linkingSignals: LinkingSignal[];
   /** Job ID for async deep extraction */
   asyncJobId: string | null;
   /** Processing time in ms */
@@ -70,6 +72,13 @@ export interface RelationshipSignal {
   subject: string;
   relationship: string;
   object: string;
+  confidence: number;
+}
+
+export interface LinkingSignal {
+  type: 'email_mention' | 'app_mention' | 'web_mention' | 'account_mention';
+  value: string | null;
+  context: string;
   confidence: number;
 }
 
@@ -149,6 +158,27 @@ const TOPIC_PATTERNS: Array<{ pattern: RegExp; topic: string }> = [
   { pattern: /\b(hobby|creative|art|music|writing|project)\b/i, topic: 'creative' },
 ];
 
+/** Account linking trigger patterns */
+const LINKING_PATTERNS: Array<{
+  pattern: RegExp;
+  type: 'email_mention' | 'app_mention' | 'web_mention' | 'account_mention';
+  extractGroup?: number;
+}> = [
+  // Email mentions
+  { pattern: /my\s+email\s+is\s+([\w.+-]+@[\w.-]+\.\w{2,})/i, type: 'email_mention', extractGroup: 1 },
+  { pattern: /email\s+(?:me\s+)?at\s+([\w.+-]+@[\w.-]+\.\w{2,})/i, type: 'email_mention', extractGroup: 1 },
+  { pattern: /([\w.+-]+@[\w.-]+\.\w{2,})/i, type: 'email_mention', extractGroup: 1 }, // Plain email mention
+  
+  // App/web account mentions
+  { pattern: /i\s+(?:also\s+)?use\s+the\s+(?:ferni\s+)?app/i, type: 'app_mention' },
+  { pattern: /i\s+have\s+an?\s+(?:ferni\s+)?account/i, type: 'account_mention' },
+  { pattern: /i'm\s+(?:also\s+)?(?:on|using)\s+(?:the\s+)?(?:ferni\s+)?(?:app|website)/i, type: 'app_mention' },
+  { pattern: /we'?ve\s+(?:talked|chatted|spoken)\s+(?:on\s+)?(?:the\s+)?(?:website|web|app)/i, type: 'web_mention' },
+  { pattern: /i\s+(?:usually\s+)?(?:use|call)\s+(?:you\s+)?(?:from\s+)?(?:the\s+)?(?:website|web|app)/i, type: 'web_mention' },
+  { pattern: /my\s+(?:phone\s+)?number\s+is\s+different/i, type: 'account_mention' },
+  { pattern: /this\s+is\s+(?:my|a)\s+(?:new|different)\s+(?:phone|number)/i, type: 'account_mention' },
+];
+
 // ============================================================================
 // FAST CAPTURE IMPLEMENTATION
 // ============================================================================
@@ -168,12 +198,14 @@ export async function fastCapture(input: FastCaptureInput): Promise<FastCaptureR
     topicHints,
     dateSignals,
     relationshipSignals,
+    linkingSignals,
   ] = await Promise.all([
     detectEntityMentions(transcript),
     detectEmotionSignals(transcript, voiceEmotion),
     detectTopicHints(transcript),
     detectDateSignals(transcript),
     detectRelationshipSignals(transcript),
+    detectLinkingSignals(transcript),
   ]);
   
   const captureTimeMs = Date.now() - startTime;
@@ -183,7 +215,8 @@ export async function fastCapture(input: FastCaptureInput): Promise<FastCaptureR
   const hasSignals = mentionedEntities.length > 0 || 
                      emotionSignals.some(e => e.intensity !== 'low') ||
                      dateSignals.length > 0 ||
-                     relationshipSignals.length > 0;
+                     relationshipSignals.length > 0 ||
+                     linkingSignals.length > 0;
   
   if (hasSignals && transcript.length > 20) {
     asyncJobId = await queueDeepExtraction({
@@ -200,6 +233,7 @@ export async function fastCapture(input: FastCaptureInput): Promise<FastCaptureR
         topicHints,
         dateSignals,
         relationshipSignals,
+        linkingSignals,
       },
     });
   }
@@ -226,6 +260,7 @@ export async function fastCapture(input: FastCaptureInput): Promise<FastCaptureR
     topicHints,
     dateSignals,
     relationshipSignals,
+    linkingSignals,
     asyncJobId,
     captureTimeMs,
   };
@@ -351,6 +386,40 @@ function detectRelationshipSignals(transcript: string): RelationshipSignal[] {
   return signals;
 }
 
+function detectLinkingSignals(transcript: string): LinkingSignal[] {
+  const signals: LinkingSignal[] = [];
+  
+  for (const { pattern, type, extractGroup } of LINKING_PATTERNS) {
+    const match = transcript.match(pattern);
+    if (match) {
+      // For email patterns, extract the email if a group is specified
+      const value = extractGroup && match[extractGroup] ? match[extractGroup] : null;
+      
+      // Skip plain email pattern if we already have a more specific match
+      if (type === 'email_mention' && signals.some(s => s.type === 'email_mention' && s.value)) {
+        continue;
+      }
+      
+      signals.push({
+        type,
+        value,
+        context: extractContext(transcript, match[0]),
+        confidence: type === 'email_mention' && value ? 0.95 : 0.7,
+      });
+    }
+  }
+  
+  // Log when linking signals detected (important for account merging)
+  if (signals.length > 0) {
+    log.info(
+      { signalCount: signals.length, types: signals.map(s => s.type) },
+      '🔗 Account linking signals detected'
+    );
+  }
+  
+  return signals;
+}
+
 // ============================================================================
 // HELPERS
 // ============================================================================
@@ -392,6 +461,7 @@ interface DeepExtractionJob {
     topicHints: string[];
     dateSignals: DateSignal[];
     relationshipSignals: RelationshipSignal[];
+    linkingSignals: LinkingSignal[];
   };
 }
 

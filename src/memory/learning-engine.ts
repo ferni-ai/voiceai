@@ -748,6 +748,50 @@ export class LearningEngine {
   }
 
   // ==========================================================================
+  // PENDING EVENT QUERIES
+  // ==========================================================================
+
+  /**
+   * Get pending event IDs for a user
+   * Used by unified-memory-service to expose pending events
+   */
+  getPendingEventIds(userId: string): string[] {
+    const eventIds: string[] = [];
+    for (const [eventId, event] of this.pendingEvents) {
+      if (event.userId === userId) {
+        eventIds.push(eventId);
+      }
+    }
+    return eventIds;
+  }
+
+  /**
+   * Get the most recent pending surfacing event for a user
+   * Returns null if no pending events exist for the user
+   */
+  getMostRecentPendingEvent(userId: string): {
+    id: string;
+    memoryTopics: string[];
+  } | null {
+    let mostRecent: SurfacingEvent | null = null;
+    
+    for (const event of this.pendingEvents.values()) {
+      if (event.userId === userId) {
+        if (!mostRecent || event.surfacedAt > mostRecent.surfacedAt) {
+          mostRecent = event;
+        }
+      }
+    }
+    
+    if (!mostRecent) return null;
+    
+    return {
+      id: mostRecent.id,
+      memoryTopics: mostRecent.memoryTopics,
+    };
+  }
+
+  // ==========================================================================
   // PENDING EVENTS CLEANUP
   // ==========================================================================
 

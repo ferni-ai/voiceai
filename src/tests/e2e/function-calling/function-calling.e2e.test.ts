@@ -439,7 +439,7 @@ describe('Tool Descriptions', () => {
 
       // Check descriptions include examples
       const playMusicDesc = getToolDescription('playMusic');
-      expect(playMusicDesc).toContain('Play music');
+      expect(playMusicDesc.toLowerCase()).toContain('play music');
 
       const queryParam = getParameterDescription('playMusic', 'query');
       // Enhanced descriptions include examples inline (e.g., "('Bohemian Rhapsody')")

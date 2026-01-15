@@ -928,6 +928,33 @@ export async function autoRegisterAllDomains(): Promise<void> {
       loader: async () =>
         import('../domains/workflows/index.js').then(async (m) => m.getToolDefinitions()),
     },
+    // === CEO COACHING ===
+    {
+      name: 'ceo-coaching' as ToolDomain,
+      loader: async () =>
+        import('../domains/ceo-coaching/index.js').then(async (m) => m.getToolDefinitions()),
+    },
+    // === INTELLIGENCE DOMAINS ===
+    {
+      name: 'event-intelligence' as ToolDomain,
+      loader: async () =>
+        import('../domains/event-intelligence/index.js').then(async (m) => m.getToolDefinitions()),
+    },
+    {
+      name: 'habit-intelligence' as ToolDomain,
+      loader: async () =>
+        import('../domains/habit-intelligence/index.js').then(async (m) => m.getToolDefinitions()),
+    },
+    {
+      name: 'pattern-analytics' as ToolDomain,
+      loader: async () =>
+        import('../domains/pattern-analytics/index.js').then(async (m) => m.getToolDefinitions()),
+    },
+    {
+      name: 'wisdom-intelligence' as ToolDomain,
+      loader: async () =>
+        import('../domains/wisdom-intelligence/index.js').then(async (m) => m.getToolDefinitions()),
+    },
   ];
 
   for (const { name, loader } of domains) {

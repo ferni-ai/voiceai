@@ -106,3 +106,18 @@ export {
   resetMetrics,
   type DynamicMemoryMetrics,
 } from './metrics.js';
+
+// Voice Context Capture (Phase 11: Better Than Human)
+export {
+  voiceCaptureEnhanced,
+  extractVoiceContext,
+  calculateVoiceWeight,
+  getVoiceContextForTurn,
+  getRecentVoiceContexts,
+  setVoiceCaptureConfig,
+  getVoiceCaptureConfig,
+  type VoiceCaptureInput,
+  type VoiceContextData,
+  type VoiceCaptureResult,
+  type VoiceCaptureConfig,
+} from './voice-context-capture.js';
