@@ -346,6 +346,13 @@ export interface TurnProcessorResult {
     /** Length guidance for response */
     lengthGuidance: 'shorter' | 'normal' | 'longer';
   };
+  /** 🧠 Learning Engine: Surfaced memory tracking for reaction recording */
+  surfacedMemory?: {
+    /** Event ID for recording reaction */
+    eventId: string;
+    /** Topics from the surfaced memory (for topic change detection) */
+    memoryTopics: string[];
+  };
   /** 🚨 SAFETY: Crisis detection result - CANNOT be ignored */
   crisis?: CrisisDetection;
   /**

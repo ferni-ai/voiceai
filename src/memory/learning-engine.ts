@@ -327,6 +327,54 @@ export class LearningEngine {
     return 'acknowledged';
   }
 
+  /**
+   * Get all pending surfacing event IDs for a user
+   * Used to check if we need to record reactions
+   */
+  getPendingEventIds(userId: string): string[] {
+    const events: string[] = [];
+    for (const [eventId, event] of this.pendingEvents) {
+      if (event.userId === userId) {
+        events.push(eventId);
+      }
+    }
+    return events;
+  }
+
+  /**
+   * Get the most recent pending event for a user
+   */
+  getMostRecentPendingEvent(userId: string): SurfacingEvent | null {
+    let mostRecent: SurfacingEvent | null = null;
+    let mostRecentTime = 0;
+
+    for (const event of this.pendingEvents.values()) {
+      if (event.userId === userId && event.surfacedAt.getTime() > mostRecentTime) {
+        mostRecent = event;
+        mostRecentTime = event.surfacedAt.getTime();
+      }
+    }
+
+    return mostRecent;
+  }
+
+  /**
+   * Get user learnings (full data structure)
+   */
+  async getUserLearnings(userId: string): Promise<UserLearnings | null> {
+    let learnings = this.userLearnings.get(userId);
+
+    if (!learnings) {
+      const loaded = await this.loadLearnings(userId);
+      if (loaded) {
+        learnings = loaded;
+        this.userLearnings.set(userId, learnings);
+      }
+    }
+
+    return learnings ?? null;
+  }
+
   // ==========================================================================
   // LEARNING FROM EVENTS
   // ==========================================================================
@@ -887,8 +935,111 @@ export function resetLearningEngine(): void {
   defaultLearningEngine = null;
 }
 
+// ============================================================================
+// STANDALONE HELPERS
+// ============================================================================
+
+/**
+ * Patterns that indicate gratitude for memory surfacing
+ */
+const GRATITUDE_PATTERNS = [
+  /you remember/i,
+  /thanks? for remembering/i,
+  /can't believe you remember/i,
+  /you actually remember/i,
+  /that's? right/i,
+  /wow.{0,20}remember/i,
+  /i forgot.{0,30}you remember/i,
+  /good memory/i,
+  /how.{0,10}you (know|remember)/i,
+];
+
+/**
+ * Patterns that indicate discomfort with surfaced memory
+ */
+const DISCOMFORT_PATTERNS = [
+  /don't.{0,10}(want to|wanna) talk about/i,
+  /let's? not/i,
+  /change the subject/i,
+  /can we.{0,10}(move on|talk about something else)/i,
+  /rather not/i,
+  /too painful/i,
+  /not ready/i,
+  /please.{0,10}stop/i,
+  /that's? (too much|hard|difficult)/i,
+];
+
+/**
+ * Detect if user expressed gratitude for memory surfacing
+ */
+export function detectGratitude(transcript: string): boolean {
+  return GRATITUDE_PATTERNS.some((pattern) => pattern.test(transcript));
+}
+
+/**
+ * Detect if user expressed discomfort with memory surfacing
+ */
+export function detectDiscomfort(transcript: string): boolean {
+  return DISCOMFORT_PATTERNS.some((pattern) => pattern.test(transcript));
+}
+
+/**
+ * Detect if user changed topic (simplified heuristic)
+ * Full implementation would compare with surfaced memory topics
+ */
+export function detectTopicChange(currentTranscript: string, previousTopic?: string): boolean {
+  if (!previousTopic) return false;
+
+  // Very basic: if the previous topic word doesn't appear in current transcript
+  const topicWords = previousTopic.toLowerCase().split(/\s+/);
+  const transcriptLower = currentTranscript.toLowerCase();
+
+  // If none of the topic words appear, likely a topic change
+  return !topicWords.some((word) => word.length > 3 && transcriptLower.includes(word));
+}
+
+/**
+ * Infer reaction from transcript using pattern matching
+ * This is a standalone utility that can be called without a LearningEngine instance
+ */
+export function inferReactionFromTranscript(
+  transcript: string,
+  options?: {
+    previousTopic?: string;
+    previousWordCount?: number;
+  }
+): MemoryReaction {
+  // Check discomfort first (highest priority)
+  if (detectDiscomfort(transcript)) {
+    return 'negative';
+  }
+
+  // Check gratitude
+  if (detectGratitude(transcript)) {
+    return 'grateful';
+  }
+
+  // Check topic change
+  if (options?.previousTopic && detectTopicChange(transcript, options.previousTopic)) {
+    return 'ignored';
+  }
+
+  // Check engagement by response length
+  const wordCount = transcript.trim().split(/\s+/).length;
+
+  if (wordCount > 20) {
+    return 'engaged';
+  }
+
+  return 'acknowledged';
+}
+
 export default {
   LearningEngine,
   getLearningEngine,
   resetLearningEngine,
+  inferReactionFromTranscript,
+  detectGratitude,
+  detectDiscomfort,
+  detectTopicChange,
 };

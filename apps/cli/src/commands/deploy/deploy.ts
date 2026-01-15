@@ -1336,6 +1336,18 @@ Test with:
   });
 }
 
+async function deployOutreach(options: DeployOptions): Promise<boolean> {
+  log.step('DEPLOYING OUTREACH SYSTEM (Proactive Check-ins)');
+
+  try {
+    const { deployOutreach: deployOutreachFn } = await import('./deploy-outreach.js');
+    return await deployOutreachFn({ dryRun: options.dryRun });
+  } catch (error) {
+    log.error(`Outreach deployment failed: ${error}`);
+    return false;
+  }
+}
+
 async function deployIntelligence(options: DeployOptions): Promise<boolean> {
   log.step('DEPLOYING INTELLIGENCE WORKER (Pattern Detection, Predictive Analytics)');
 
@@ -1544,6 +1556,7 @@ ${colors.bold}Targets:${colors.reset}
   ${colors.green}joel${colors.reset}       Deploy Joel Dickson (agent + UI)
   ${colors.green}evolution${colors.reset}  Deploy evolution scheduler Cloud Function
   ${colors.green}workers${colors.reset}    Deploy async workers to Cloud Run (outreach processing)
+  ${colors.green}outreach${colors.reset}   Deploy outreach system (Cloud Function + Scheduler)
   ${colors.green}all${colors.reset}        Deploy everything (agent, ui, frontend, landing)
 
 ${colors.bold}Options:${colors.reset}
@@ -1655,6 +1668,10 @@ ${colors.cyan}╚═════════════════════
 
     case 'intelligence':
       success = await deployIntelligence(options);
+      break;
+
+    case 'outreach':
+      success = await deployOutreach(options);
       break;
 
     case 'all':

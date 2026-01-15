@@ -159,6 +159,32 @@ export async function handleEndSession(options: EndSessionOptions): Promise<void
     }
   }
 
+  // 🧠 MEMORY CONSOLIDATION: Consolidate related memories
+  // "Better Than Human" - We don't need 8 separate memories about the same topic,
+  // we consolidate into richer, more meaningful representations
+  if (validatedUserId) {
+    try {
+      const { consolidateUserMemories } = await import('../../memory/memory-lifecycle.js');
+      const consolidationResult = await consolidateUserMemories(validatedUserId);
+      if (consolidationResult.consolidated > 0) {
+        log.info(
+          {
+            sessionId,
+            userId: validatedUserId,
+            consolidated: consolidationResult.consolidated,
+            processed: consolidationResult.processed,
+          },
+          '🧠 Memory consolidation completed'
+        );
+      }
+    } catch (consolidationError) {
+      log.warn(
+        { error: String(consolidationError), sessionId },
+        'Memory consolidation failed (non-fatal)'
+      );
+    }
+  }
+
   // Remove from active sessions
   activeSessions.delete(sessionId);
 

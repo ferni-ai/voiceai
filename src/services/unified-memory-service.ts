@@ -1385,6 +1385,37 @@ export class UnifiedMemoryService {
 
     return 'neutral';
   }
+
+  // ============================================================================
+  // LEARNING ENGINE ACCESS (for external functions)
+  // ============================================================================
+
+  /**
+   * Get pending surfacing event IDs for a user
+   */
+  getPendingSurfacingEventIds(userId: string): string[] {
+    return this.learningEngine.getPendingEventIds(userId);
+  }
+
+  /**
+   * Get the most recent pending surfacing event for a user
+   */
+  getMostRecentPendingSurfacingEvent(userId: string): {
+    id: string;
+    memoryTopics: string[];
+  } | null {
+    return this.learningEngine.getMostRecentPendingEvent(userId);
+  }
+
+  /**
+   * Record a reaction to a surfaced memory
+   */
+  async recordMemoryReactionViaLearningEngine(
+    eventId: string,
+    reaction: 'engaged' | 'acknowledged' | 'ignored' | 'negative' | 'grateful'
+  ): Promise<void> {
+    await this.learningEngine.recordReaction(eventId, reaction);
+  }
 }
 
 // ============================================================================
@@ -1408,6 +1439,43 @@ export function getUnifiedMemoryService(): UnifiedMemoryService {
  */
 export function resetUnifiedMemoryService(): void {
   instance = null;
+}
+
+/**
+ * Get pending surfacing event IDs for a user
+ * Used by transcript handler to record reactions
+ */
+export function getPendingSurfacingEventIds(userId: string): string[] {
+  const service = getUnifiedMemoryService();
+  return service.getPendingSurfacingEventIds(userId);
+}
+
+/**
+ * Get the most recent pending surfacing event for a user
+ */
+export function getMostRecentPendingSurfacingEvent(userId: string): {
+  eventId: string;
+  memoryTopics: string[];
+} | null {
+  const service = getUnifiedMemoryService();
+  const event = service.getMostRecentPendingSurfacingEvent(userId);
+  if (!event) return null;
+  return {
+    eventId: event.id,
+    memoryTopics: event.memoryTopics,
+  };
+}
+
+/**
+ * Record a reaction to a surfaced memory
+ * Called by transcript handler when user responds after memory surfacing
+ */
+export async function recordMemoryReaction(
+  eventId: string,
+  reaction: 'engaged' | 'acknowledged' | 'ignored' | 'negative' | 'grateful'
+): Promise<void> {
+  const service = getUnifiedMemoryService();
+  await service.recordMemoryReactionViaLearningEngine(eventId, reaction);
 }
 
 // ============================================================================
