@@ -25,6 +25,7 @@ import { createLogger } from '../utils/logger.js';
 import { t } from '../i18n/index.js';
 import { escapeHtml } from './engagement-components.js';
 import { practiceExperienceUI } from './practice-experience.ui.js';
+import { connectionService } from '../services/connection.service.js';
 import type { Command } from './commands.ui.js';
 
 const log = createLogger('Sanctuary');
@@ -895,25 +896,44 @@ class SanctuaryUI {
       return;
     }
 
+    // Check if voice is connected
+    const roomState = connectionService.getRoomState();
+    const isVoiceConnected = roomState.isConnected;
+
     log.info('Practice selected', {
       practiceId,
       name: practice.name,
+      voiceConnected: isVoiceConnected,
     });
 
     // Close sanctuary first
     this.close();
 
-    // Always launch the practice experience so typing is available.
-    // If voice is connected, the experience will offer a switch-to-voice option.
-    log.info('Launching practice experience', { name: practice.name });
-    practiceExperienceUI.startPractice({
-      id: practice.id,
-      name: practice.name,
-      description: practice.description,
-      category: practice.category,
-      prompt: practice.prompt,
-      icon: practice.icon,
-    });
+    if (isVoiceConnected) {
+      // Voice is connected - use voice mode
+      // Fire callback for voice handoff
+      if (this.onPracticeSelected) {
+        this.onPracticeSelected(practice);
+      }
+
+      // Dispatch event for voice agent to pick up
+      window.dispatchEvent(
+        new CustomEvent('ferni:start-practice', {
+          detail: { practiceId, prompt, practice },
+        })
+      );
+    } else {
+      // Voice not connected - launch self-directed practice experience
+      log.info('Launching self-directed practice', { name: practice.name });
+      practiceExperienceUI.startPractice({
+        id: practice.id,
+        name: practice.name,
+        description: practice.description,
+        category: practice.category,
+        prompt: practice.prompt,
+        icon: practice.icon,
+      });
+    }
   }
 
   // ============================================================================

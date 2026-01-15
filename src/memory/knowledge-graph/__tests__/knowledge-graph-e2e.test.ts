@@ -41,11 +41,9 @@ vi.mock('@google-cloud/firestore', () => {
   });
 
   createMockCollectionRef = (collectionPath: string) => ({
-    doc: vi
-      .fn()
-      .mockImplementation((docId?: string) =>
-        createMockDocRef(`${collectionPath}/${docId || uuidv4()}`)
-      ),
+    doc: vi.fn().mockImplementation((docId?: string) =>
+      createMockDocRef(`${collectionPath}/${docId || uuidv4()}`)
+    ),
     add: vi.fn().mockImplementation(async (data: unknown) => {
       const id = uuidv4();
       mockDocs.set(`${collectionPath}/${id}`, data);
@@ -89,16 +87,15 @@ vi.mock('@google/generative-ai', () => {
       return {
         generateContent: vi.fn().mockResolvedValue({
           response: {
-            text: () =>
-              JSON.stringify([
-                {
-                  name: 'Mike',
-                  type: 'person',
-                  relationship: 'brother',
-                  confidence: 0.9,
-                  sourceText: 'my brother Mike',
-                },
-              ]),
+            text: () => JSON.stringify([
+              {
+                name: 'Mike',
+                type: 'person',
+                relationship: 'brother',
+                confidence: 0.9,
+                sourceText: 'my brother Mike',
+              },
+            ]),
           },
         }),
       };
@@ -123,7 +120,10 @@ import {
   type TurnCaptureInput,
 } from '../services/knowledge-capture.js';
 
-import { executeNaturalQuery, detectQueryType } from '../services/natural-language-query.js';
+import {
+  executeNaturalQuery,
+  detectQueryType,
+} from '../services/natural-language-query.js';
 
 import {
   createInsight,
@@ -174,7 +174,7 @@ describe('Knowledge Graph E2E Tests', () => {
       });
 
       it('should extract family relationships', () => {
-        const transcript = "My mom called yesterday about my sister's wedding";
+        const transcript = 'My mom called yesterday about my sister\'s wedding';
         const entities = extractEntitiesRuleBased(transcript);
 
         const mom = entities.find((e) => e.relationship === 'mother');
@@ -230,10 +230,7 @@ describe('Knowledge Graph E2E Tests', () => {
           turnNumber: 1,
         };
 
-        const result = await extractEntities(
-          'My brother Mike is having surgery next week',
-          context
-        );
+        const result = await extractEntities('My brother Mike is having surgery next week', context);
 
         expect(result.entities.length).toBeGreaterThan(0);
         expect(result.modelUsed).toBeDefined();
@@ -305,7 +302,10 @@ describe('Knowledge Graph E2E Tests', () => {
     });
 
     it('should detect open loops queries', () => {
-      const queries = ["What were we talking about that we didn't finish?", 'Any open threads?'];
+      const queries = [
+        "What were we talking about that we didn't finish?",
+        'Any open threads?',
+      ];
 
       for (const query of queries) {
         const result = detectQueryType(query);
@@ -429,15 +429,19 @@ describe('Knowledge Graph E2E Tests', () => {
     });
 
     it('should find or create thread', async () => {
-      const thread = await findOrCreateThread(TEST_USER_ID, 'Health goals', {
-        sessionId: TEST_SESSION_ID,
-        timestamp: new Date(),
-        date: new Date(),
-        summary: 'Discussed exercise routine',
-        emotionalArc: 'motivated',
-        keyMoments: [],
-        turnRange: [1, 3],
-      });
+      const thread = await findOrCreateThread(
+        TEST_USER_ID,
+        'Health goals',
+        {
+          sessionId: TEST_SESSION_ID,
+          timestamp: new Date(),
+          date: new Date(),
+          summary: 'Discussed exercise routine',
+          emotionalArc: 'motivated',
+          keyMoments: [],
+          turnRange: [1, 3],
+        }
+      );
 
       expect(thread).toBeDefined();
       expect(thread.topic).toBe('Health goals');
@@ -450,7 +454,10 @@ describe('Knowledge Graph E2E Tests', () => {
 
   describe('Natural Language Query', () => {
     it('should execute entity profile query', async () => {
-      const result = await executeNaturalQuery(TEST_USER_ID, 'What do we know about Mike?');
+      const result = await executeNaturalQuery(
+        TEST_USER_ID,
+        'What do we know about Mike?'
+      );
 
       expect(result.queryType).toBe('entity_profile');
       expect(result.formattedResponse).toBeDefined();
@@ -458,14 +465,20 @@ describe('Knowledge Graph E2E Tests', () => {
     });
 
     it('should execute temporal query', async () => {
-      const result = await executeNaturalQuery(TEST_USER_ID, 'When did I last talk about my mom?');
+      const result = await executeNaturalQuery(
+        TEST_USER_ID,
+        'When did I last talk about my mom?'
+      );
 
       expect(result.queryType).toBe('temporal');
       expect(result.formattedResponse).toBeDefined();
     });
 
     it('should execute open loops query', async () => {
-      const result = await executeNaturalQuery(TEST_USER_ID, 'Any open threads?');
+      const result = await executeNaturalQuery(
+        TEST_USER_ID,
+        'Any open threads?'
+      );
 
       expect(result.queryType).toBe('open_loops');
       expect(result.formattedResponse).toBeDefined();
@@ -563,7 +576,10 @@ describe('Knowledge Graph E2E Tests', () => {
       expect(captureResult).toBeDefined();
 
       // Step 2: Query for entity
-      const queryResult = await executeNaturalQuery(TEST_USER_ID, 'What do we know about my mom?');
+      const queryResult = await executeNaturalQuery(
+        TEST_USER_ID,
+        'What do we know about my mom?'
+      );
 
       expect(queryResult.queryType).toBe('entity_profile');
       expect(queryResult.formattedResponse).toBeDefined();
@@ -588,15 +604,19 @@ describe('Knowledge Graph E2E Tests', () => {
       }
 
       // Step 4: Create thread for ongoing topic
-      const thread = await findOrCreateThread(TEST_USER_ID, "Mom's health", {
-        sessionId: TEST_SESSION_ID,
-        timestamp: new Date(),
-        date: new Date(),
-        summary: 'Discussed doctor appointment',
-        emotionalArc: 'concerned',
-        keyMoments: ['Appointment is Tuesday'],
-        turnRange: [10, 10],
-      });
+      const thread = await findOrCreateThread(
+        TEST_USER_ID,
+        "Mom's health",
+        {
+          sessionId: TEST_SESSION_ID,
+          timestamp: new Date(),
+          date: new Date(),
+          summary: 'Discussed doctor appointment',
+          emotionalArc: 'concerned',
+          keyMoments: ['Appointment is Tuesday'],
+          turnRange: [10, 10],
+        }
+      );
 
       expect(thread.topic).toBe("Mom's health");
 
@@ -606,7 +626,7 @@ describe('Knowledge Graph E2E Tests', () => {
       // Step 6: Query for open loops
       const openLoops = await executeNaturalQuery(
         TEST_USER_ID,
-        "What were we talking about that we didn't finish?"
+        'What were we talking about that we didn\'t finish?'
       );
 
       expect(openLoops.queryType).toBe('open_loops');

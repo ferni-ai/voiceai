@@ -19,10 +19,10 @@
  */
 
 import { log, type llm } from '@livekit/agents';
-import { getGracefulErrorResponse } from '../../intelligence/tracking/conversation-quality.js';
+import { getGracefulErrorResponse } from '../../intelligence/conversation-quality.js';
 import type { BundleRuntimeEngine } from '../../personas/bundles/index.js';
 import type { PersonaConfig } from '../../personas/types.js';
-import { diag } from '../../services/observability/diagnostic-logger.js';
+import { diag } from '../../services/diagnostic-logger.js';
 import type { SessionServices } from '../../services/index.js';
 import { getContextAwareThinkingFiller } from '../../speech/persona-phrases.js';
 import type { SessionStateManager } from '../session/session-state.js';
@@ -95,9 +95,6 @@ import {
 // "Better Than Human" dynamic memory capture - LLM-powered extraction
 import { fastCapture } from '../../memory/dynamic/index.js';
 
-// Memory Continuity - Async Spanner enrichment after first turn
-import { enrichFromSpanner } from '../../memory/dynamic/session-continuity-cache.js';
-
 // Redis cache for real-time state (emotional state, voice biomarkers)
 import { getRedisCache } from '../../memory/redis-cache.js';
 
@@ -144,9 +141,6 @@ export interface TurnHandlerContext {
     // Greeting awareness: Tell LLM what greeting was spoken
     greetingText?: string;
     greetingInjected?: boolean;
-    // Learning Engine: Track surfaced memory for reaction recording
-    lastSurfacedMemoryEventId?: string;
-    lastSurfacedMemoryTopics?: string[];
   };
   /** Voice emotion result (optional, from voice agent) */
   voiceEmotion?: {
@@ -996,10 +990,14 @@ You are their lifeline right now. Be fully present.`,
     // Inject recent feedback context so agent can naturally adjust its style
     // ================================================================
     try {
-      const { buildFeedbackContext } =
-        await import('../../intelligence/context-builders/feedback-context.js');
+      const { buildFeedbackContext } = await import(
+        '../../intelligence/context-builders/feedback-context.js'
+      );
 
-      const feedbackContext = await buildFeedbackContext(services.userId || '', services.sessionId);
+      const feedbackContext = await buildFeedbackContext(
+        services.userId || '',
+        services.sessionId
+      );
 
       if (feedbackContext.context && feedbackContext.summary.needsAdjustment) {
         result.context.injections.push({
@@ -1106,21 +1104,6 @@ You are their lifeline right now. Be fully present.`,
 
       // Store in userData for potential use in response quality tracking
       (userData as Record<string, unknown>).lastTrustContext = result.trustContext;
-    }
-
-    // ================================================================
-    // 🧠 LEARNING ENGINE: Track surfaced memory for reaction recording
-    // If we surfaced a memory this turn, store the event ID so the
-    // transcript handler can record the user's reaction on their next message.
-    // This enables "Better Than Human" adaptive memory surfacing.
-    // ================================================================
-    if (result.surfacedMemory) {
-      userData.lastSurfacedMemoryEventId = result.surfacedMemory.eventId;
-      userData.lastSurfacedMemoryTopics = result.surfacedMemory.memoryTopics;
-      diag.debug('🧠 Learning Engine: Tracking surfaced memory for reaction', {
-        eventId: result.surfacedMemory.eventId,
-        topics: result.surfacedMemory.memoryTopics,
-      });
     }
 
     // ================================================================
@@ -1401,14 +1384,11 @@ Just respond naturally to what the user said.`,
       // ================================================================
       try {
         if (services.userId) {
-          const {
-            getAmbientCalendarContext,
-            shouldInterruptForCalendar,
-            generateAmbientContextInjection,
-          } = await import('../../services/calendar/ambient-calendar-awareness.js');
-
+          const { getAmbientCalendarContext, shouldInterruptForCalendar, generateAmbientContextInjection } = 
+            await import('../../services/calendar/ambient-calendar-awareness.js');
+          
           const ambientContext = await getAmbientCalendarContext(services.userId);
-
+          
           if (shouldInterruptForCalendar(ambientContext)) {
             const urgentContextText = generateAmbientContextInjection(ambientContext);
             if (urgentContextText) {
@@ -1424,10 +1404,7 @@ Just respond naturally to what the user said.`,
           }
         }
       } catch (calendarErr) {
-        logger.debug(
-          { error: String(calendarErr) },
-          '📅 Calendar ambient check failed (non-fatal)'
-        );
+        logger.debug({ error: String(calendarErr) }, '📅 Calendar ambient check failed (non-fatal)');
       }
     } catch (extHookErr) {
       logger.warn({ error: String(extHookErr) }, 'Extensibility hook failed (non-fatal)');
@@ -1563,31 +1540,34 @@ IMPORTANT:
       // ================================================================
       if (services.userId) {
         const captureUserId = services.userId; // Capture for closure
-        fireAndForget(async () => {
-          const captureResult = await fastCapture({
-            userId: captureUserId,
-            sessionId: services.sessionId,
-            turnNumber,
-            transcript: userText,
-            voiceEmotion: result.analysis.analysis.emotion?.primary,
-            personaId: persona.id, // For multi-persona data attribution
-          });
-
-          // 🧠 CRITICAL: Record to STM buffer for session context
-          // This enables wasEntityMentioned(), buildSTMContext(), and session-end promotion
-          const { recordTurn } = await import('../../memory/dynamic/index.js');
-          recordTurn(services.sessionId, captureUserId, captureResult, userText, turnNumber);
-
-          if (captureResult.mentionedEntities.length > 0 || captureResult.asyncJobId) {
-            diag.debug('Dynamic memory capture completed', {
-              entityCount: captureResult.mentionedEntities.length,
-              topicCount: captureResult.topicHints.length,
-              emotionCount: captureResult.emotionSignals.length,
-              asyncJobId: captureResult.asyncJobId,
-              captureTimeMs: captureResult.captureTimeMs,
+        fireAndForget(
+          async () => {
+            const captureResult = await fastCapture({
+              userId: captureUserId,
+              sessionId: services.sessionId,
+              turnNumber,
+              transcript: userText,
+              voiceEmotion: result.analysis.analysis.emotion?.primary,
+              personaId: persona.id, // For multi-persona data attribution
             });
-          }
-        }, 'dynamic-memory-capture');
+
+            // 🧠 CRITICAL: Record to STM buffer for session context
+            // This enables wasEntityMentioned(), buildSTMContext(), and session-end promotion
+            const { recordTurn } = await import('../../memory/dynamic/index.js');
+            recordTurn(services.sessionId, captureUserId, captureResult, userText, turnNumber);
+
+            if (captureResult.mentionedEntities.length > 0 || captureResult.asyncJobId) {
+              diag.debug('Dynamic memory capture completed', {
+                entityCount: captureResult.mentionedEntities.length,
+                topicCount: captureResult.topicHints.length,
+                emotionCount: captureResult.emotionSignals.length,
+                asyncJobId: captureResult.asyncJobId,
+                captureTimeMs: captureResult.captureTimeMs,
+              });
+            }
+          },
+          'dynamic-memory-capture'
+        );
       }
     }
 
@@ -1601,17 +1581,6 @@ IMPORTANT:
         bottleneck: turnMetrics.bottleneck.component,
         tier: turnMetrics.tier,
       });
-    }
-
-    // ================================================================
-    // 🔗 MEMORY CONTINUITY: Trigger async Spanner enrichment after first turn
-    // First turn uses fast Firestore capsule; subsequent turns benefit from
-    // deeper Spanner thread state and anchors for "Better than Human" recall
-    // ================================================================
-    if (turnNumber === 1 && services.userId) {
-      fireAndForget(async () => {
-        await enrichFromSpanner(services.sessionId, services.userId!, userText);
-      }, 'spanner-enrichment');
     }
 
     logger.info(

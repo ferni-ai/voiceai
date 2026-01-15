@@ -18,7 +18,7 @@ import {
   type ContextBuilderInput,
   type ContextInjection,
 } from '../index.js';
-import { getCrossSessionThreader } from '../../tracking/cross-session.js';
+import { getCrossSessionThreader } from '../../cross-session-threader.js';
 
 const log = createLogger({ module: 'CrossSessionThreading' });
 

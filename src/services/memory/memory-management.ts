@@ -13,8 +13,8 @@
  */
 
 import { getGCPProjectId } from '../../config/environment.js';
-import { cosineSimilarity } from '../memory/embeddings.js';
-import { getDefaultStore, type MemoryStore } from '../memory/index.js';
+import { cosineSimilarity } from '../../memory/embeddings.js';
+import { getDefaultStore, type MemoryStore } from '../../memory/index.js';
 import type { ConversationSummary, UserProfile, VoiceSketch } from '../../types/user-profile.js';
 import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
 import { getLogger } from '../../utils/safe-logger.js';
@@ -714,7 +714,7 @@ export async function pruneMemorySystem(
 
     // 3. Prune low-value vectors
     try {
-      const { getFirestoreVectorStore } = await import('../memory/firestore-vector-store.js');
+      const { getFirestoreVectorStore } = await import('../../memory/firestore-vector-store.js');
       const vectorStore = getFirestoreVectorStore();
 
       if (vectorStore.isInitialized) {

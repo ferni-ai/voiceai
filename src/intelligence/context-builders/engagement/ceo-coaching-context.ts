@@ -28,12 +28,7 @@ import {
   getRecentGratitude,
   getActiveBlockers,
 } from '../../../tools/domains/ceo-coaching/storage.js';
-import type {
-  CEOCoachingState,
-  CEOEnergy,
-  CEOBlocker,
-  CEOGratitude,
-} from '../../../tools/domains/ceo-coaching/types.js';
+import type { CEOCoachingState, CEOEnergy, CEOBlocker, CEOGratitude } from '../../../tools/domains/ceo-coaching/types.js';
 
 const log = getLogger();
 
@@ -63,7 +58,9 @@ const GRATITUDE_GAP_DAYS = 5; // Days without gratitude before nudging
 /**
  * Build CEO coaching context for conversation injection
  */
-async function buildCEOCoachingContext(input: ContextBuilderInput): Promise<ContextInjection[]> {
+async function buildCEOCoachingContext(
+  input: ContextBuilderInput
+): Promise<ContextInjection[]> {
   const injections: ContextInjection[] = [];
   const userId = input.services.userId || input.services.sessionId;
   const turnCount = input.userData.turnCount || 1;
@@ -140,8 +137,12 @@ async function buildCEOCoachingContext(input: ContextBuilderInput): Promise<Cont
       },
       'Built CEO coaching context'
     );
+
   } catch (error) {
-    log.error({ error: String(error), userId }, 'Failed to build CEO coaching context');
+    log.error(
+      { error: String(error), userId },
+      'Failed to build CEO coaching context'
+    );
   }
 
   return injections;
@@ -189,13 +190,11 @@ function buildContextSections(state: CEOCoachingState, turnCount: number): strin
 
 function buildWinsSection(state: CEOCoachingState): string {
   const wins = state.recentWins.slice(0, MAX_WINS_TO_SHOW);
-  const winsText = wins
-    .map((w) => {
-      const daysAgo = getDaysAgo(w.date);
-      const timing = daysAgo === 0 ? 'today' : daysAgo === 1 ? 'yesterday' : `${daysAgo} days ago`;
-      return `"${w.text}" (${timing})`;
-    })
-    .join(', ');
+  const winsText = wins.map(w => {
+    const daysAgo = getDaysAgo(w.date);
+    const timing = daysAgo === 0 ? 'today' : daysAgo === 1 ? 'yesterday' : `${daysAgo} days ago`;
+    return `"${w.text}" (${timing})`;
+  }).join(', ');
 
   return `Recent wins: ${winsText}. Consider celebrating or following up on these achievements.`;
 }
@@ -216,7 +215,7 @@ function buildBlockersSection(state: CEOCoachingState): string {
 
 function buildDecisionsSection(state: CEOCoachingState): string {
   const decisions = state.pendingDecisions.slice(0, MAX_DECISIONS_TO_SHOW);
-  const decisionList = decisions.map((d) => `"${d.description}"`).join(', ');
+  const decisionList = decisions.map(d => `"${d.description}"`).join(', ');
 
   return `Pending decisions: ${decisionList}. Gently prompt if ready to make a call.`;
 }
@@ -285,7 +284,10 @@ function buildFocusSessionContext(session: {
  * These are the "Better Than Human" moments where Ferni notices things
  * a human coach might miss.
  */
-async function buildProactiveNudges(userId: string, state: CEOCoachingState): Promise<string[]> {
+async function buildProactiveNudges(
+  userId: string,
+  state: CEOCoachingState
+): Promise<string[]> {
   const nudges: string[] = [];
 
   try {
@@ -346,11 +348,9 @@ async function detectLowEnergyStreak(userId: string): Promise<string | null> {
   }
 
   if (consecutiveLowDays >= LOW_ENERGY_STREAK_DAYS) {
-    return (
-      `🔋 COACHING NUDGE: ${consecutiveLowDays} consecutive days of low energy (≤${LOW_ENERGY_THRESHOLD}/10). ` +
+    return `🔋 COACHING NUDGE: ${consecutiveLowDays} consecutive days of low energy (≤${LOW_ENERGY_THRESHOLD}/10). ` +
       `Gently check in: "I've noticed your energy has been lower lately. What's been going on?" ` +
-      `Consider suggesting: rest, reduced commitments, or exploring root causes.`
-    );
+      `Consider suggesting: rest, reduced commitments, or exploring root causes.`;
   }
 
   return null;
@@ -375,14 +375,14 @@ async function detectStaleBlockers(userId: string): Promise<string | null> {
   }
 
   if (staleBlockers.length > 0) {
-    const blockerList = staleBlockers.map((b) => `"${b.text}" (${b.days} days)`).join(', ');
+    const blockerList = staleBlockers
+      .map(b => `"${b.text}" (${b.days} days)`)
+      .join(', ');
 
-    return (
-      `🚧 COACHING NUDGE: Stale blockers detected: ${blockerList}. ` +
+    return `🚧 COACHING NUDGE: Stale blockers detected: ${blockerList}. ` +
       `These have been stuck for ${STALE_BLOCKER_DAYS}+ days. ` +
       `Ask: "That blocker about [X] has been around a while. What would it take to unblock it?" ` +
-      `Consider: Is it still relevant? Can it be broken down? Who else could help?`
-    );
+      `Consider: Is it still relevant? Can it be broken down? Who else could help?`;
   }
 
   return null;
@@ -391,7 +391,10 @@ async function detectStaleBlockers(userId: string): Promise<string | null> {
 /**
  * Detect if user hasn't practiced gratitude recently
  */
-async function detectGratitudeGap(userId: string, state: CEOCoachingState): Promise<string | null> {
+async function detectGratitudeGap(
+  userId: string,
+  state: CEOCoachingState
+): Promise<string | null> {
   // If they have recent gratitude, check the date
   if (state.recentGratitude.length > 0) {
     const lastGratitude = state.recentGratitude[0];
@@ -399,19 +402,15 @@ async function detectGratitudeGap(userId: string, state: CEOCoachingState): Prom
     const daysSince = Math.floor((Date.now() - lastDate.getTime()) / (1000 * 60 * 60 * 24));
 
     if (daysSince >= GRATITUDE_GAP_DAYS) {
-      return (
-        `🙏 COACHING NUDGE: No gratitude logged in ${daysSince} days. ` +
+      return `🙏 COACHING NUDGE: No gratitude logged in ${daysSince} days. ` +
         `Gratitude practice builds resilience. ` +
-        `Gentle prompt: "What's one thing that went well recently, even something small?"`
-      );
+        `Gentle prompt: "What's one thing that went well recently, even something small?"`;
     }
   } else {
     // No gratitude entries at all - introduce the practice
-    return (
-      `🙏 COACHING NUDGE: User hasn't started gratitude practice yet. ` +
+    return `🙏 COACHING NUDGE: User hasn't started gratitude practice yet. ` +
       `When appropriate, introduce it naturally: ` +
-      `"One thing that helps a lot of leaders is a quick gratitude moment. Interested?"`
-    );
+      `"One thing that helps a lot of leaders is a quick gratitude moment. Interested?"`;
   }
 
   return null;

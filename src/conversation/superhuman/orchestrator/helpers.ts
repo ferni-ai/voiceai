@@ -42,7 +42,9 @@ export function assessUserEnergy(message: string): 'high' | 'medium' | 'low' {
   if (highEnergy.test(message)) return 'high';
   if (lowEnergy.test(message)) return 'low';
 
-  const wordCount = RUST_COUNTING_AVAILABLE ? countWordsRust(message) : message.split(/\s+/).length;
+  const wordCount = RUST_COUNTING_AVAILABLE
+    ? countWordsRust(message)
+    : message.split(/\s+/).length;
   if (wordCount < 5) return 'low';
   if (wordCount > 50) return 'high';
 

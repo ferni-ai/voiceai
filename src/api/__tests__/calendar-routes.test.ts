@@ -137,7 +137,10 @@ describe('Calendar Routes API', () => {
         email: 'user@example.com',
       });
 
-      const result = await mockCalendarService.handleOAuthCallback('test-user', 'auth-code-123');
+      const result = await mockCalendarService.handleOAuthCallback(
+        'test-user',
+        'auth-code-123'
+      );
 
       expect(result.success).toBe(true);
     });
@@ -214,7 +217,9 @@ describe('Calendar Routes API', () => {
     });
 
     it('should require summary', async () => {
-      mockCalendarService.createEvent.mockRejectedValue(new Error('Summary is required'));
+      mockCalendarService.createEvent.mockRejectedValue(
+        new Error('Summary is required')
+      );
 
       await expect(
         mockCalendarService.createEvent('test-user', {
@@ -232,9 +237,11 @@ describe('Calendar Routes API', () => {
         summary: 'Updated Meeting',
       });
 
-      const event = await mockCalendarService.updateEvent('test-user', 'event-123', {
-        summary: 'Updated Meeting',
-      });
+      const event = await mockCalendarService.updateEvent(
+        'test-user',
+        'event-123',
+        { summary: 'Updated Meeting' }
+      );
 
       expect(event.summary).toBe('Updated Meeting');
     });
@@ -312,15 +319,19 @@ describe('Calendar Routes API', () => {
         new Error('Token has been expired or revoked')
       );
 
-      await expect(mockCalendarService.listEvents('test-user', {})).rejects.toThrow(
-        'Token has been expired'
-      );
+      await expect(
+        mockCalendarService.listEvents('test-user', {})
+      ).rejects.toThrow('Token has been expired');
     });
 
     it('should handle rate limiting', async () => {
-      mockCalendarService.listEvents.mockRejectedValue(new Error('Rate Limit Exceeded'));
+      mockCalendarService.listEvents.mockRejectedValue(
+        new Error('Rate Limit Exceeded')
+      );
 
-      await expect(mockCalendarService.listEvents('test-user', {})).rejects.toThrow('Rate Limit');
+      await expect(
+        mockCalendarService.listEvents('test-user', {})
+      ).rejects.toThrow('Rate Limit');
     });
   });
 });

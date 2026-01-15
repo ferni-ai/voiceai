@@ -32,25 +32,6 @@ import { RecoveryManager, migrateCacheToFirestore } from './recovery.js';
 import { getVectorSearchCache, type VectorSearchCache } from './search-cache.js';
 
 const log = getLogger();
-const DEFAULT_TOP_K = 5;
-const MAX_FIRESTORE_LIMIT = 1000;
-
-function normalizeTopK(requestedTopK?: number): number {
-  if (requestedTopK === undefined || !Number.isFinite(requestedTopK)) {
-    return DEFAULT_TOP_K;
-  }
-
-  const floored = Math.floor(requestedTopK);
-  if (floored <= 0) {
-    return DEFAULT_TOP_K;
-  }
-
-  return Math.min(floored, MAX_FIRESTORE_LIMIT);
-}
-
-function getSearchLimit(topK: number): number {
-  return Math.min(MAX_FIRESTORE_LIMIT, Math.max(1, topK * 2));
-}
 
 /**
  * FirestoreVectorStore - Production vector storage with Firestore backend.
@@ -351,43 +332,27 @@ export class FirestoreVectorStore implements VectorStoreContract {
   ): Promise<VectorSearchResult[]> {
     await this.ensureInitialized();
 
-    const trimmedQuery = query.trim();
-    if (trimmedQuery.length === 0) {
-      return [];
-    }
-
-    const topK = normalizeTopK(options?.topK);
+    const topK = options?.topK || 5;
     const minScore = options?.minScore || 0;
 
     let queryEmbedding: number[];
     try {
-      queryEmbedding = await embed(trimmedQuery);
+      queryEmbedding = await embed(query);
     } catch (error) {
       log.warn({ error: String(error) }, 'Failed to generate query embedding');
       return [];
     }
 
     // Check search cache first (exact or fuzzy match)
-    const cachedResults = this.searchCache.get(query, queryEmbedding, options?.filter, {
-      topK,
-      minScore,
-    });
+    const cachedResults = this.searchCache.get(query, queryEmbedding, options?.filter, { topK, minScore });
     if (cachedResults) {
       return cachedResults;
     }
 
     if (this.useFallback || !this.db) {
-      const fallbackResults = this.fallbackCache.search(
-        queryEmbedding,
-        topK,
-        options?.filter,
-        minScore
-      );
+      const fallbackResults = this.fallbackCache.search(queryEmbedding, topK, options?.filter, minScore);
       // Cache fallback results too
-      this.searchCache.set(query, queryEmbedding, fallbackResults, options?.filter, {
-        topK,
-        minScore,
-      });
+      this.searchCache.set(query, queryEmbedding, fallbackResults, options?.filter, { topK, minScore });
       return fallbackResults;
     }
 
@@ -417,7 +382,7 @@ export class FirestoreVectorStore implements VectorStoreContract {
         const searchQuery = (baseQuery as CollectionReference).findNearest!({
           vectorField: 'embedding',
           queryVector: queryEmbedding,
-          limit: getSearchLimit(topK),
+          limit: topK * 2,
           distanceMeasure: 'COSINE',
         });
 
@@ -476,16 +441,8 @@ export class FirestoreVectorStore implements VectorStoreContract {
       log.warn({ error: String(error) }, 'Firestore search failed, using fallback');
     }
 
-    const fallbackResults = this.fallbackCache.search(
-      queryEmbedding,
-      topK,
-      options?.filter,
-      minScore
-    );
-    this.searchCache.set(query, queryEmbedding, fallbackResults, options?.filter, {
-      topK,
-      minScore,
-    });
+    const fallbackResults = this.fallbackCache.search(queryEmbedding, topK, options?.filter, minScore);
+    this.searchCache.set(query, queryEmbedding, fallbackResults, options?.filter, { topK, minScore });
     return fallbackResults;
   }
 
@@ -502,30 +459,19 @@ export class FirestoreVectorStore implements VectorStoreContract {
   ): Promise<VectorSearchResult[]> {
     await this.ensureInitialized();
 
-    const topK = normalizeTopK(options?.topK);
+    const topK = options?.topK || 5;
     const minScore = options?.minScore || 0;
 
     // Check cache (uses embedding-based fuzzy matching since no query text)
     const cacheKey = '[embedding]'; // Placeholder - fuzzy matching uses embedding
-    const cachedResults = this.searchCache.get(cacheKey, queryEmbedding, options?.filter, {
-      topK,
-      minScore,
-    });
+    const cachedResults = this.searchCache.get(cacheKey, queryEmbedding, options?.filter, { topK, minScore });
     if (cachedResults) {
       return cachedResults;
     }
 
     if (this.useFallback || !this.db) {
-      const fallbackResults = this.fallbackCache.search(
-        queryEmbedding,
-        topK,
-        options?.filter,
-        minScore
-      );
-      this.searchCache.set(cacheKey, queryEmbedding, fallbackResults, options?.filter, {
-        topK,
-        minScore,
-      });
+      const fallbackResults = this.fallbackCache.search(queryEmbedding, topK, options?.filter, minScore);
+      this.searchCache.set(cacheKey, queryEmbedding, fallbackResults, options?.filter, { topK, minScore });
       return fallbackResults;
     }
 
@@ -537,7 +483,7 @@ export class FirestoreVectorStore implements VectorStoreContract {
         const searchQuery = collRef.findNearest({
           vectorField: 'embedding',
           queryVector: queryEmbedding,
-          limit: getSearchLimit(topK),
+          limit: topK * 2,
           distanceMeasure: 'COSINE',
         });
 
@@ -587,26 +533,15 @@ export class FirestoreVectorStore implements VectorStoreContract {
           score: topKResult.similarities[i],
         }));
 
-        this.searchCache.set(cacheKey, queryEmbedding, results, options?.filter, {
-          topK,
-          minScore,
-        });
+        this.searchCache.set(cacheKey, queryEmbedding, results, options?.filter, { topK, minScore });
         return results;
       }
     } catch (error) {
       log.warn({ error: String(error) }, 'searchByEmbedding failed');
     }
 
-    const fallbackResults = this.fallbackCache.search(
-      queryEmbedding,
-      topK,
-      options?.filter,
-      minScore
-    );
-    this.searchCache.set(cacheKey, queryEmbedding, fallbackResults, options?.filter, {
-      topK,
-      minScore,
-    });
+    const fallbackResults = this.fallbackCache.search(queryEmbedding, topK, options?.filter, minScore);
+    this.searchCache.set(cacheKey, queryEmbedding, fallbackResults, options?.filter, { topK, minScore });
     return fallbackResults;
   }
 

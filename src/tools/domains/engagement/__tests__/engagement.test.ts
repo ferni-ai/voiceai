@@ -62,7 +62,7 @@ vi.mock('../../shared/index.js', () => ({
 }));
 
 // Mock daily rituals service
-vi.mock('../../../../services/scheduling/daily-rituals.js', () => ({
+vi.mock('../../../../services/daily-rituals.js', () => ({
   getDailyRitualsService: () => ({
     getRitualOpening: vi.fn(() => 'Good morning! How is your sky looking today?'),
     recordCompletion: vi.fn(() => ({ newStreak: 1, isNewRecord: false })),

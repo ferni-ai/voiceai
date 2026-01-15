@@ -5,13 +5,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import {
-  DJController,
-  getDJController,
-  resetDJController,
-  type DJState,
-  type DJControllerState,
-} from '../dj-controller.js';
+import { DJController, getDJController, resetDJController, type DJState, type DJControllerState } from '../dj-controller.js';
 
 describe('DJController', () => {
   let controller: DJController;
@@ -59,12 +53,7 @@ describe('DJController', () => {
   // ==========================================================================
 
   describe('state transitions', () => {
-    const mockTrack = {
-      name: 'Test Song',
-      artist: 'Test Artist',
-      duration: 180000,
-      uri: 'spotify:track:test',
-    };
+    const mockTrack = { name: 'Test Song', artist: 'Test Artist', duration: 180000, uri: 'spotify:track:test' };
 
     it('should transition from idle to playing on PLAY_TRACK', () => {
       controller.dispatch({ type: 'PLAY_TRACK', track: mockTrack, isAmbient: false });

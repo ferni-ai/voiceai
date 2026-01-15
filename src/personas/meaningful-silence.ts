@@ -22,7 +22,7 @@ import {
   stopAmbientMusic as stopAmbient,
 } from '../audio/ambient-music.js';
 import { getMusicPlayer } from '../audio/index.js';
-import { getMusicConversationStarter, getSpontaneousMusicOffer } from '../services/music/dj-service.js';
+import { getMusicConversationStarter, getSpontaneousMusicOffer } from '../services/dj-service.js';
 import type { PersonaConfig, StoryConfig } from './types.js';
 import { getCanonicalPersonaId } from './voice-registry.js';
 // Dynamic question generation - Better than Human approach
@@ -30,12 +30,12 @@ import {
   generateQuestion,
   type GeneratedQuestion,
   type QuestionContext,
-} from '../intelligence/coaching/dynamic-questions.js';
+} from '../intelligence/dynamic-questions.js';
 // Coaching-level questions - memory-grounded, pattern-surfacing, anticipatory
-import { getCoachingQuestion } from '../intelligence/coaching/questions.js';
+import { getCoachingQuestion } from '../intelligence/coaching-questions.js';
 import { getLogger } from '../utils/safe-logger.js';
 // Dynamic persona content loading
-import { loadSilenceResponses, type SilenceResponses } from '../services/persona-service/persona-content-loader.js';
+import { loadSilenceResponses, type SilenceResponses } from '../services/persona-content-loader.js';
 // Trait-based dynamic responses (usage-tracked, avoids repetition)
 import { getDynamicSilenceResponseByPersonaId } from './dynamic-responses.js';
 // Dynamic presence expressions (replaces static "sitting with" phrases)

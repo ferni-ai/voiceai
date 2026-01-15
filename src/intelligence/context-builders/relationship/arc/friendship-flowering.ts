@@ -23,11 +23,7 @@
  */
 
 import type { ContextBuilder, ContextBuilderInput, ContextInjection } from '../../index.js';
-import {
-  registerContextBuilder,
-  createStandardInjection,
-  createHintInjection,
-} from '../../index.js';
+import { registerContextBuilder, createStandardInjection, createHintInjection } from '../../index.js';
 import { BuilderCategory } from '../../core/categories.js';
 import { createLogger } from '../../../../utils/safe-logger.js';
 import { loadRelationshipArcData, getUnreferencedMomentsAsync } from './storage.js';

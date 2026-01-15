@@ -134,7 +134,7 @@ export function getContextStats(): { users: number; entries: number } {
  */
 export async function registerWithSessionDataManager(): Promise<void> {
   try {
-    const { getSessionDataManager } = await import('../session-manager/session-data-manager.js');
+    const { getSessionDataManager } = await import('../session-data-manager.js');
     getSessionDataManager().registerService({
       name: 'CrossPersonaContext',
       clearUserData: clearUserContext,

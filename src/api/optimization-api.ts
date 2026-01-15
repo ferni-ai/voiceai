@@ -6,7 +6,7 @@
  */
 
 import { getLogger } from '../utils/safe-logger.js';
-import { optimizationPersistence } from '../services/performance/optimization-persistence.js';
+import { optimizationPersistence } from '../services/optimization-persistence.js';
 import { toolUsageAnalytics } from '../services/analytics/tool-usage-analytics.js';
 import { toolRegistry } from '../tools/registry/index.js';
 import { abTestingService } from '../tools/ab-testing.js';

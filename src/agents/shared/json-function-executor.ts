@@ -98,16 +98,7 @@ function recordSemanticExecution(params: {
  */
 function extractTargetFromArgs(args: Record<string, unknown>): string | undefined {
   // Check common arg names for contact/target info
-  const targetKeys = [
-    'contact',
-    'contactName',
-    'recipient',
-    'to',
-    'target',
-    'name',
-    'phone',
-    'email',
-  ];
+  const targetKeys = ['contact', 'contactName', 'recipient', 'to', 'target', 'name', 'phone', 'email'];
   for (const key of targetKeys) {
     if (typeof args[key] === 'string' && args[key]) {
       return args[key] as string;
@@ -137,7 +128,7 @@ function extractDomainFromTool(toolName: string): string {
 
   const toolLower = toolName.toLowerCase();
   for (const [domain, patterns] of Object.entries(domainPatterns)) {
-    if (patterns.some((p) => toolLower.includes(p) || toolLower === p)) {
+    if (patterns.some(p => toolLower.includes(p) || toolLower === p)) {
       return domain;
     }
   }
@@ -1997,7 +1988,7 @@ async function routeToTool(
       }
 
       // Use the sendEmail service
-      const { sendEmail } = await import('../../services/communication/communication-service.js');
+      const { sendEmail } = await import('../../services/communication-service.js');
 
       const result = await sendEmail(
         contact.email,
@@ -2868,9 +2859,7 @@ async function routeToTool(
 
   // Also output to stderr for maximum visibility in production logs
   process.stderr.write(`\n⚠️ UNKNOWN TOOL: "${fn}" with args: ${JSON.stringify(args)}\n`);
-  process.stderr.write(
-    `   User: ${ctx.userId || 'unknown'}, Persona: ${ctx.personaId || 'unknown'}\n`
-  );
+  process.stderr.write(`   User: ${ctx.userId || 'unknown'}, Persona: ${ctx.personaId || 'unknown'}\n`);
   process.stderr.write(`   → If this is a valid tool, add route in json-function-executor.ts\n\n`);
 
   // Return a human-friendly response that can be spoken by TTS

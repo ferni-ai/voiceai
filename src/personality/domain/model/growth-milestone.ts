@@ -240,7 +240,7 @@ export class GrowthMilestone {
    */
   get latestProgress(): GrowthEvidence | null {
     return this._progressEvidence.length > 0
-      ? (this._progressEvidence[this._progressEvidence.length - 1] ?? null)
+      ? this._progressEvidence[this._progressEvidence.length - 1] ?? null
       : null;
   }
 
@@ -472,11 +472,7 @@ export class GrowthMilestone {
     if (!this.isReadyToCelebrate) return '';
 
     const significanceEmoji =
-      this._significance === 'breakthrough'
-        ? '🌟'
-        : this._significance === 'significant'
-          ? '✨'
-          : '🌱';
+      this._significance === 'breakthrough' ? '🌟' : this._significance === 'significant' ? '✨' : '🌱';
 
     return [
       `[${significanceEmoji} GROWTH CELEBRATION - SUPERHUMAN MEMORY]`,

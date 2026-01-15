@@ -28,7 +28,7 @@ import {
   setUserOverride,
   TRUST_FLAGS,
   type TrustFlagId,
-} from '../services/deployment/feature-flags.js';
+} from '../services/feature-flags.js';
 
 const log = createLogger({ module: 'FeatureFlagsRoutes' });
 

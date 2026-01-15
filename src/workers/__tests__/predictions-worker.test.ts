@@ -39,7 +39,7 @@ vi.mock('../../services/superhuman/observations.js', () => ({
 }));
 
 // Mock coaching patterns
-vi.mock('../../intelligence/coaching/patterns.js', () => ({
+vi.mock('../../intelligence/coaching-patterns.js', () => ({
   recordPattern: vi.fn().mockResolvedValue(undefined),
 }));
 

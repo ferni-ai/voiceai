@@ -10,8 +10,8 @@
  * @module services/data-layer/store-hooks
  */
 
-import { embed } from '../memory/embeddings.js';
-import { getFirestoreVectorStore } from '../memory/firestore-vector-store/index.js';
+import { embed } from '../../memory/embeddings.js';
+import { getFirestoreVectorStore } from '../../memory/firestore-vector-store/index.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { getIndexingPolicy, shouldIndex, getEntityPolicy } from './indexing-policy.js';
 import { trackIndexingError, trackIndexingOperation } from './observability.js';

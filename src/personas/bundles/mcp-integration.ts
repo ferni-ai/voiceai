@@ -26,7 +26,7 @@ import type { BundleMCPConfig, BundleMCPServer } from './types/commands.js';
 import {
   loadDeveloperMCPServers,
   type MCPServerConfig,
-} from '../../services/integrations/developer-mcp-registry.js';
+} from '../../services/developer-mcp-registry.js';
 
 const log = getLogger();
 
@@ -60,7 +60,10 @@ function convertAPIServerToBundleFormat(apiServer: MCPServerConfig): BundleMCPSe
  * @param publisherId - Publisher ID (required for API servers)
  * @param personaId - Optional persona ID to filter by
  */
-async function loadAPIServers(publisherId: string, personaId?: string): Promise<BundleMCPServer[]> {
+async function loadAPIServers(
+  publisherId: string,
+  personaId?: string
+): Promise<BundleMCPServer[]> {
   try {
     const apiServers = await loadDeveloperMCPServers(publisherId, personaId);
 
@@ -276,7 +279,9 @@ export async function buildMCPTools(
 ): Promise<Record<string, unknown>> {
   // Extract personaId for logging
   const personaId =
-    typeof personaIdOrOptions === 'string' ? personaIdOrOptions : personaIdOrOptions.personaId;
+    typeof personaIdOrOptions === 'string'
+      ? personaIdOrOptions
+      : personaIdOrOptions.personaId;
 
   const mcpToolDefs = await loadMCPToolsForPersona(personaIdOrOptions, bundlePathDeprecated);
 

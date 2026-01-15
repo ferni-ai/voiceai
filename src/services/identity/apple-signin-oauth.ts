@@ -168,9 +168,7 @@ export function getAppleAuthorizationUrl(userId: string, returnUrl?: string): st
   }
 
   // State includes userId and optional return URL
-  const state = Buffer.from(JSON.stringify({ userId, returnUrl: returnUrl || '/' })).toString(
-    'base64'
-  );
+  const state = Buffer.from(JSON.stringify({ userId, returnUrl: returnUrl || '/' })).toString('base64');
 
   const params = new URLSearchParams({
     client_id: clientId,

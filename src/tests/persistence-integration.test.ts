@@ -205,7 +205,7 @@ describe('Service Persistence Integration', () => {
   describe('Push Notifications', () => {
     it('should persist subscriptions', async () => {
       const { getPushNotificationsService, resetPushNotificationsService } =
-        await import('../services/outreach/push-notifications.js');
+        await import('../services/push-notifications.js');
 
       const service = getPushNotificationsService();
       await service.registerSubscription({
@@ -280,7 +280,7 @@ describe('Service Persistence Integration', () => {
         getCommunicationMirroring,
         initializeCommunicationMirroringPersistence,
         shutdownCommunicationMirroringPersistence,
-      } = await import('../intelligence/tracking/communication-style.js');
+      } = await import('../intelligence/communication-mirroring.js');
 
       await initializeCommunicationMirroringPersistence();
 

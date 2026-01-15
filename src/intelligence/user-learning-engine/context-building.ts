@@ -14,9 +14,9 @@
  */
 
 import type { UserProfile, KeyMoment, EmotionalPattern } from '../../types/user-profile.js';
-import { inferUserPreferences, getPreferenceGuidance } from '../human-behaviors/index.js';
+import { inferUserPreferences, getPreferenceGuidance } from '../human-behaviors.js';
 import type { LearningInsight, DynamicUserContext } from './types.js';
-import type { SmallDetail } from '../tracking/conversation-quality.js';
+import type { SmallDetail } from '../conversation-quality.js';
 
 /**
  * Build dynamic context for prompt enrichment

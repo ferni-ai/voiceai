@@ -17,7 +17,7 @@
 import {
   buildProactiveMemoryContext,
   type SurfacingContext,
-} from '../../../services/memory/proactive-memory-surfacing.js';
+} from '../../../services/proactive-memory-surfacing.js';
 import {
   getUnifiedMemoryService,
   type SimpleRecallContext,

@@ -6,19 +6,19 @@
 
 import { getLogger } from '../../utils/safe-logger.js';
 import type { UserProfile, KeyMoment, EmotionalPattern } from '../../types/user-profile.js';
-import type { EmotionResult } from '../detectors/emotion.js';
-import type { IntentResult } from '../detectors/intent.js';
-import type { ConversationState } from '../state/conversation.js';
-import { inferUserPreferences, getPreferenceGuidance } from '../human-behaviors/index.js';
-import { getCommunityInsights } from '../collective/community-insights.js';
-import { getAgentEvolution } from '../collective/agent-evolution.js';
+import type { EmotionResult } from '../emotion-detector.js';
+import type { IntentResult } from '../intent-classifier.js';
+import type { ConversationState } from '../conversation-state.js';
+import { inferUserPreferences, getPreferenceGuidance } from '../human-behaviors.js';
+import { getCommunityInsights } from '../community-insights.js';
+import { getAgentEvolution } from '../agent-evolution.js';
 import {
   extractSmallDetails,
   type SmallDetail,
   type FarewellSummary,
   generateFarewellSummary,
   type FollowUpItem,
-} from '../tracking/conversation-quality.js';
+} from '../conversation-quality.js';
 
 // Import types from types file
 import type {

@@ -742,6 +742,7 @@ export async function getPredictiveIntelligenceContext(
       sections.push('');
       sections.push(prepContext);
     }
+
   } catch (error) {
     log.debug({ error, userId }, 'Failed to build predictive intelligence context');
   }

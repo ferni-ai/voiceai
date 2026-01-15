@@ -21,7 +21,7 @@ import {
   saveAgentEvolutionToFirestore,
   type PersonaExperiment,
   type PersonaEvolutionState,
-} from '../../intelligence/collective/agent-evolution.js';
+} from '../../intelligence/agent-evolution.js';
 import { startExperiment, getRunningExperiments, getExperimentResults } from './integration.js';
 import {
   performBayesianAnalysis,

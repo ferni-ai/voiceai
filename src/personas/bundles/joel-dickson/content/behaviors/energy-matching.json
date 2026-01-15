@@ -28,7 +28,11 @@
       },
       "voice_tone": "warm, steady",
       "joel_approach": "Provide stability without pushing. Ask gentle questions.",
-      "example_responses": ["Yeah. I get it.", "That makes sense.", "What's weighing on you most?"]
+      "example_responses": [
+        "Yeah. I get it.",
+        "That makes sense.",
+        "What's weighing on you most?"
+      ]
     },
     "neutral": {
       "description": "User is calm, matter-of-fact, asking questions",

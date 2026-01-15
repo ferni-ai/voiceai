@@ -20,14 +20,14 @@ import {
   getSilencePattern,
   recordSilence,
   resetSilenceIntelligence,
-} from '../deep-understanding/silence.js';
+} from '../silence-intelligence.js';
 
 // Voice-Text Mismatch
 import {
   buildMismatchGuidance,
   detectMismatch,
   type MismatchResult,
-} from '../detectors/voice-mismatch.js';
+} from '../voice-text-mismatch.js';
 
 // Subconscious Goals
 import {
@@ -35,16 +35,16 @@ import {
   getSubconsciousProfile,
   recordSurfaceReaction,
   resetSubconsciousGoals,
-} from '../deep-understanding/subconscious.js';
+} from '../subconscious-goals.js';
 
 // Energy State
-import { assessEnergyState, resetEnergyStateInference } from '../deep-understanding/energy.js';
+import { assessEnergyState, resetEnergyStateInference } from '../energy-state.js';
 
 // Resistance Detection
-import { analyzeResistance, resetResistanceDetection } from '../deep-understanding/resistance.js';
+import { analyzeResistance, resetResistanceDetection } from '../resistance-detection.js';
 
 // Hope Trajectory
-import { analyzeHope, resetHopeTrajectory } from '../deep-understanding/hope.js';
+import { analyzeHope, resetHopeTrajectory } from '../hope-trajectory.js';
 
 import type { VoiceEmotionResult } from '../../speech/audio-prosody/types.js';
 

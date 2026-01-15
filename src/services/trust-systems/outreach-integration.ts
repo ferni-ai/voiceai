@@ -128,42 +128,6 @@ const userPreferences = new Map<string, OutreachPreferences>();
 // ============================================================================
 
 /**
- * Persist outreach item to Firestore for Cloud Function pickup
- * This enables the distributed outreach scheduler to process items
- */
-async function persistToFirestore(userId: string, item: OutreachItem): Promise<void> {
-  try {
-    const { getFirestoreDb } = await import('../../utils/firestore-utils.js');
-    const db = getFirestoreDb();
-    if (!db) {
-      log.debug({ userId, itemId: item.id }, 'Firestore not available, skipping persist');
-      return;
-    }
-
-    await db
-      .collection('bogle_users')
-      .doc(userId)
-      .collection('outreach_queue')
-      .doc(item.id)
-      .set(
-        cleanForFirestore({
-          ...item,
-          sent: false,
-          createdAt: new Date(),
-        })
-      );
-
-    log.debug({ userId, itemId: item.id }, '📬 Persisted outreach to Firestore');
-  } catch (error) {
-    // Non-critical - in-memory queue still works for immediate delivery
-    log.debug(
-      { userId, itemId: item.id, error: String(error) },
-      'Failed to persist to Firestore (non-fatal)'
-    );
-  }
-}
-
-/**
  * Queue a "thinking of you" moment for delivery
  */
 export function queueThinkingOfYou(userId: string, moment: ThinkingOfYouMoment): OutreachItem {
@@ -190,11 +154,6 @@ export function queueThinkingOfYou(userId: string, moment: ThinkingOfYouMoment):
   const userQueue = outreachQueue.get(userId) || [];
   userQueue.push(item);
   outreachQueue.set(userId, userQueue);
-
-  // Also persist to Firestore for Cloud Function pickup
-  void persistToFirestore(userId, item).catch(() => {
-    // Already logged in persistToFirestore
-  });
 
   log.debug({ userId, itemId: item.id, type: moment.type, personaId }, '📬 Queued outreach');
 
@@ -232,9 +191,6 @@ export function queueCelebration(
   userQueue.push(item);
   outreachQueue.set(userId, userQueue);
 
-  // Also persist to Firestore for Cloud Function pickup
-  void persistToFirestore(userId, item).catch(() => {});
-
   log.debug({ userId, itemId: item.id, type: 'celebration', personaId }, '📬 Queued celebration');
 
   return item;
@@ -268,9 +224,6 @@ export function queueGrowthReflection(userId: string, reflection: GrowthReflecti
   const userQueue = outreachQueue.get(userId) || [];
   userQueue.push(item);
   outreachQueue.set(userId, userQueue);
-
-  // Also persist to Firestore for Cloud Function pickup
-  void persistToFirestore(userId, item).catch(() => {});
 
   log.debug(
     { userId, itemId: item.id, type: 'growth_reflection', personaId },
@@ -483,7 +436,7 @@ async function sendMessage(item: OutreachItem, method: 'voice' | 'sms' | 'push')
         const formatted = formatSmsMessage(personaId, item.message, formatContext);
 
         // Use the communication service for SMS
-        const { sendSMS } = await import('../communication/communication-service.js');
+        const { sendSMS } = await import('../communication-service.js');
         const result = await sendSMS(phone, formatted.message);
         const success = !result.includes('trouble') && !result.includes('error');
         if (success) {

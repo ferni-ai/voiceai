@@ -514,11 +514,11 @@
     --color-bg-glass: rgba(230, 195, 160, 0.08);
     --color-bg-overlay: rgba(88, 72, 64, 0.95);
 
-    /* Text - WCAG AA compliant (4.5:1+ on #70605a elevated bg) */
+    /* Text */
     --color-text-primary: #faf6f0;
     --color-text-secondary: #f0ebe4;
     --color-text-muted: #e8e2da;
-    --color-text-dimmed: #e0d8ce;
+    --color-text-dimmed: #ddd6cc;
     --color-text-inverse: #2a2420;
 
     /* Accent */
@@ -567,11 +567,11 @@
   --color-bg-glass: rgba(230, 195, 160, 0.08);
   --color-bg-overlay: rgba(88, 72, 64, 0.95);
 
-  /* Text - WCAG AA compliant (4.5:1+ on #70605a elevated bg) */
+  /* Text */
   --color-text-primary: #faf6f0;
   --color-text-secondary: #f0ebe4;
   --color-text-muted: #e8e2da;
-  --color-text-dimmed: #e0d8ce;
+  --color-text-dimmed: #ddd6cc;
   --color-text-inverse: #2a2420;
 
   /* Accent */

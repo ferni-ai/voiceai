@@ -12,7 +12,7 @@
 
 import { getLogger } from '../../utils/safe-logger.js';
 import type { UserProfile } from '../../types/user-profile.js';
-import { inferUserPreferences, getPreferenceGuidance } from '../human-behaviors/index.js';
+import { inferUserPreferences, getPreferenceGuidance } from '../human-behaviors.js';
 import type { LearningInsight, PreferenceUpdates } from './types.js';
 
 const log = getLogger();

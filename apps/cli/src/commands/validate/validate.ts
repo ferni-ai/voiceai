@@ -87,12 +87,6 @@ const VALIDATIONS: Record<string, ValidationTask> = {
     script: 'scripts/verify-persistence.ts',
     category: 'core',
   },
-  'admin-dashboards': {
-    name: 'Admin Dashboards',
-    description: 'Validate all 21 admin dashboard APIs are working E2E',
-    script: 'apps/cli/src/commands/validate/validate-admin-dashboards.ts',
-    category: 'feature',
-  },
 };
 
 // ============================================================================
@@ -241,13 +235,12 @@ ${colors.bold}Usage:${colors.reset}
   npm run validate <command>
 
 ${colors.bold}Commands:${colors.reset}
-  ${colors.green}voices${colors.reset}            Validate voice IDs for all personas
-  ${colors.green}humanization${colors.reset}      Validate humanization pipeline
-  ${colors.green}integrations${colors.reset}      Validate external service integrations
-  ${colors.green}persistence${colors.reset}       Verify Firestore persistence
-  ${colors.green}admin-dashboards${colors.reset}  Validate all 21 admin dashboard APIs
-  ${colors.green}all${colors.reset}               Run all validations
-  ${colors.green}list${colors.reset}              Show all available validations
+  ${colors.green}voices${colors.reset}         Validate voice IDs for all personas
+  ${colors.green}humanization${colors.reset}   Validate humanization pipeline
+  ${colors.green}integrations${colors.reset}   Validate external service integrations
+  ${colors.green}persistence${colors.reset}    Verify Firestore persistence
+  ${colors.green}all${colors.reset}            Run all validations
+  ${colors.green}list${colors.reset}           Show all available validations
 
 ${colors.bold}Options:${colors.reset}
   --help, -h     Show this help

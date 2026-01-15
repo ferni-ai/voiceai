@@ -33,7 +33,7 @@ import { getLogger } from '../../../utils/safe-logger.js';
 import { getToolDescription } from '../../utils/tool-descriptions.js';
 
 // Cross-persona intelligence for team coordination
-import { addCrossPersonaInsight } from '../../../services/cross-persona/cross-persona-insights.js';
+import { addCrossPersonaInsight } from '../../../services/cross-persona-insights.js';
 
 const log = getLogger();
 

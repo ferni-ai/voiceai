@@ -36,16 +36,16 @@ import {
   extractPreferences,
   hasPreferenceContent,
   type ExtractedPreference,
-} from '../../intelligence/tracking/preferences.js';
+} from '../../intelligence/preference-extractor.js';
 import {
   extractMemorableMoments,
   mergeMemorableMoments,
   type SilenceContext,
 } from '../../personas/meaningful-silence.js';
 import type { PersonaConfig } from '../../personas/types.js';
-import type { ConversationManager } from '../../services/conversation-thread/conversation-manager.js';
-import { diag } from '../../services/observability/diagnostic-logger.js';
-import { checkTrialStatus } from '../../services/monetization/first-taste-trial.js';
+import type { ConversationManager } from '../../services/conversation-manager.js';
+import { diag } from '../../services/diagnostic-logger.js';
+import { checkTrialStatus } from '../../services/first-taste-trial.js';
 import type { SessionServices } from '../../services/index.js';
 import {
   recordCacheAttempt,
@@ -326,9 +326,6 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
       if (isLikelyNoise(event.transcript)) {
         return; // Skip this partial - it's noise
       }
-
-      // Store the latest partial for fast recovery if the final transcript stalls
-      userData.lastPartialTranscript = event.transcript;
 
       // ===============================================
       // 🧠 HUMAN TURN INTELLIGENCE (Partial)
@@ -753,8 +750,7 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
         const userId = userData.userId;
         void (async () => {
           try {
-            const { getWorkflowEngine } =
-              await import('../../services/workflows/workflow-engine.js');
+            const { getWorkflowEngine } = await import('../../services/workflows/workflow-engine.js');
             const engine = getWorkflowEngine(userId);
             const triggered = await engine.handlePhraseTrigger(cleanedTranscript);
             if (triggered) {
@@ -973,7 +969,6 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
       // Fire and forget - async but we don't await in the sync handler
       void processFinalTranscript({
         event,
-        cleanedTranscript,
         room,
         session,
         services,
@@ -1120,75 +1115,14 @@ export function getCachedResponseIfAvailable(
   }
 }
 
-// ============================================================================
-// NEWS FOLLOW-UP HANDLING
-// ============================================================================
-
-const NEWS_FOLLOWUP_EXPIRY_MS = 5 * 60 * 1000;
-const NEWS_READ_PATTERNS = [
-  /^(read|tell|share)\s+(them|it|the news|the headlines)\b/i,
-  /^(go ahead|yes|yeah|yep|please|sure)\b.*(read|share|tell)?/i,
-  /^(just\s+)?(read|say)\s+(it|them)\b/i,
-  /^(give me|tell me)\s+(the\s+)?(headlines|news)\b/i,
-];
-const NEWS_SUMMARY_PATTERNS = [
-  /^(quick|short)\s+(summary|version)\b/i,
-  /^(give me|just)\s+(the\s+)?(highlights|summary|gist)\b/i,
-  /^(highlights|summary)\s*(please)?$/i,
-];
-const NEWS_SKIP_PATTERNS = [/^(not now|later|skip|never mind|no thanks)\b/i];
-
-function handlePendingNewsFollowup(
-  transcript: string,
-  userData: UserData,
-  sessionId: string
-): boolean {
-  const pending = userData.pendingNewsResponse;
-  if (!pending) {
-    return false;
-  }
-
-  if (Date.now() - pending.createdAt > NEWS_FOLLOWUP_EXPIRY_MS) {
-    userData.pendingNewsResponse = undefined;
-    return false;
-  }
-
-  const normalized = transcript.trim();
-  const wantsRead = NEWS_READ_PATTERNS.some((pattern) => pattern.test(normalized));
-  const wantsSummary = NEWS_SUMMARY_PATTERNS.some((pattern) => pattern.test(normalized));
-  const wantsSkip = NEWS_SKIP_PATTERNS.some((pattern) => pattern.test(normalized));
-
-  if (!wantsRead && !wantsSummary && !wantsSkip) {
-    return false;
-  }
-
-  if (wantsSkip) {
-    userData.pendingNewsResponse = undefined;
-    void coordinatedSay(
-      sessionId,
-      'Got it. If you want headlines later, just say check the news.',
-      {
-        allowInterruptions: true,
-      }
-    );
-    return true;
-  }
-
-  const response = pending.response;
-  userData.pendingNewsResponse = undefined;
-  void coordinatedSay(sessionId, response, { allowInterruptions: true });
-  return true;
-}
-
 /**
  * Process final transcript with all necessary processing steps
  */
 async function processFinalTranscript(
-  ctx: TranscriptHandlerContext & { event: TranscriptEvent; cleanedTranscript: string }
+  ctx: TranscriptHandlerContext & { event: TranscriptEvent }
 ): Promise<void> {
   const {
     event,
-    cleanedTranscript,
     session,
     services,
     sessionPersona,
@@ -1291,13 +1225,6 @@ async function processFinalTranscript(
   }
 
   // ===============================================
-  // 📰 NEWS FOLLOW-UP: Read or summarize on request
-  // ===============================================
-  if (handlePendingNewsFollowup(cleanedTranscript, userData, sessionId)) {
-    return;
-  }
-
-  // ===============================================
   // 🎯 DIRECT TOOL ROUTING (Surgical Pre-LLM Execution)
   // HIGH-CONFIDENCE ONLY: Music, weather, handoff - obvious intents
   // This fixes the "Gemini returns nothing" bug for clear tool requests
@@ -1334,29 +1261,12 @@ async function processFinalTranscript(
           // 2. LLM (OpenAI native function calling or JSON workaround) also tries to call same tool
           if (directResult.toolId) {
             try {
-              const { markToolExecutedBySemanticRouter } =
-                await import('../shared/tool-call-sanitizer.js');
+              const { markToolExecutedBySemanticRouter } = await import(
+                '../shared/tool-call-sanitizer.js'
+              );
               markToolExecutedBySemanticRouter(sessionId, directResult.toolId);
             } catch {
               // Non-critical - deduplication is defensive
-            }
-          }
-
-          if (directResult.speechResponse) {
-            if (directResult.intent === 'news') {
-              userData.pendingNewsResponse = {
-                response: directResult.speechResponse,
-                createdAt: Date.now(),
-              };
-              void coordinatedSay(
-                sessionId,
-                'I pulled the headlines. Want a quick summary, or should I read them out?',
-                { allowInterruptions: true }
-              );
-            } else {
-              void coordinatedSay(sessionId, directResult.speechResponse, {
-                allowInterruptions: true,
-              });
             }
           }
 
@@ -1544,50 +1454,6 @@ async function processFinalTranscript(
       newMoments,
       total: silenceContext.memorableMoments.length,
     });
-  }
-
-  // ===============================================
-  // 🧠 LEARNING ENGINE: Record reaction to surfaced memory
-  // If we surfaced a memory recently, infer user's reaction from their response
-  // This enables "Better Than Human" adaptive memory surfacing
-  // ===============================================
-  if (userId && userData.lastSurfacedMemoryEventId) {
-    fireAndForget(async () => {
-      try {
-        const { getMostRecentPendingSurfacingEvent, recordMemoryReaction } =
-          await import('../../services/unified-memory-service.js');
-        const { inferReactionFromTranscript, detectTopicChange } =
-          await import('../../memory/learning-engine.js');
-
-        const pendingEvent = getMostRecentPendingSurfacingEvent(userId);
-        if (pendingEvent && pendingEvent.eventId === userData.lastSurfacedMemoryEventId) {
-          // Infer reaction based on transcript content and topic
-          const previousTopic = userData.lastSurfacedMemoryTopics?.[0];
-          const reaction = inferReactionFromTranscript(event.transcript, {
-            previousTopic,
-          });
-
-          // Record the reaction for learning
-          await recordMemoryReaction(pendingEvent.eventId, reaction);
-
-          diag.state('🧠 Learning Engine: Recorded memory reaction', {
-            eventId: pendingEvent.eventId,
-            reaction,
-            previousTopic,
-            transcript: event.transcript.slice(0, 50),
-          });
-        }
-      } catch (error) {
-        // Non-critical - learning engine is optional
-        diag.debug('Learning engine reaction recording failed (non-blocking)', {
-          error: String(error),
-        });
-      }
-
-      // Clear the surfaced memory tracking for next turn
-      userData.lastSurfacedMemoryEventId = undefined;
-      userData.lastSurfacedMemoryTopics = undefined;
-    }, 'learning-engine-reaction');
   }
 
   // Update context with last user message
@@ -1965,7 +1831,7 @@ function processDJSessionFlow(transcript: string, userData: UserData): void {
     // Topic tracking is now handled by emotional-arc.ts and conversation-state.ts
     // which provide more sophisticated analysis than keyword matching
     const transcriptLower = transcript.toLowerCase();
-
+    
     // Simple topic detection for debugging (actual tracking done elsewhere)
     const topicKeywords: Record<string, string[]> = {
       work: ['work', 'job', 'boss', 'meeting', 'project', 'deadline', 'office'],

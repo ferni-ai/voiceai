@@ -325,10 +325,7 @@ export interface ActionTypeConfig {
   /** Rollback function (if canRollback) */
   rollback?: ActionExecutor;
   /** Prepare function to get estimates/validation */
-  prepare?: (
-    payload: ActionPayload,
-    context: ActionExecutionContext
-  ) => Promise<{
+  prepare?: (payload: ActionPayload, context: ActionExecutionContext) => Promise<{
     valid: boolean;
     error?: string;
     enrichedPayload?: ActionPayload;

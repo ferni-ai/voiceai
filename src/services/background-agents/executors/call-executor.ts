@@ -156,11 +156,15 @@ export async function queueCall(request: CallRequest): Promise<string> {
 // CALL IMPLEMENTATION
 // ============================================================================
 
-async function makeConversationalCall(request: CallRequest, callId: string): Promise<CallResult> {
+async function makeConversationalCall(
+  request: CallRequest,
+  callId: string
+): Promise<CallResult> {
   try {
     // Try to use the existing conversational call service
-    const { makeConversationalCall: makeCall, isConversationalCallingConfigured } =
-      await import('../../voice/conversational-call.service.js');
+    const { makeConversationalCall: makeCall, isConversationalCallingConfigured } = await import(
+      '../../voice/conversational-call.service.js'
+    );
 
     if (isConversationalCallingConfigured()) {
       log.info({ contact: request.contactName }, 'Using conversational call service');
@@ -172,10 +176,9 @@ async function makeConversationalCall(request: CallRequest, callId: string): Pro
         phone: request.contactPhone || '',
         recipientName: request.contactName,
         purpose: request.objective,
-        context:
-          request.context || request.script
-            ? { message: request.context, script: request.script }
-            : undefined,
+        context: request.context || request.script
+          ? { message: request.context, script: request.script }
+          : undefined,
         timeoutSeconds: request.maxDuration,
       })) as {
         success: boolean;
@@ -194,8 +197,7 @@ async function makeConversationalCall(request: CallRequest, callId: string): Pro
         success: result.success,
         callId: result.callId || callId,
         contactName: request.contactName,
-        status:
-          (result.status as CallResult['status']) || (result.success ? 'completed' : 'failed'),
+        status: (result.status as CallResult['status']) || (result.success ? 'completed' : 'failed'),
         outcome: result.outcome || result.summary || 'Call completed',
         objectiveAchieved: result.objectiveAchieved ?? result.success,
         callbackRequired: result.callbackRequired ?? false,

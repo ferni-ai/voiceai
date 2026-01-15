@@ -281,7 +281,7 @@ describe('Cross-Persona Insights Flow', () => {
   describe('Insight Recording and Retrieval', () => {
     it('should record and retrieve insights', async () => {
       const { recordInsight, getInsightsForPersona, clearExpiredInsights } =
-        await import('../services/cross-persona/cross-persona-insights.js');
+        await import('../services/cross-persona-insights.js');
 
       const userId = `flow-test-${Date.now()}`;
 
@@ -299,7 +299,7 @@ describe('Cross-Persona Insights Flow', () => {
     });
 
     it('should generate team status summary', async () => {
-      const { generateTeamStatus } = await import('../services/cross-persona/cross-persona-insights.js');
+      const { generateTeamStatus } = await import('../services/cross-persona-insights.js');
 
       const userId = `team-status-${Date.now()}`;
       const status = await generateTeamStatus(userId);
@@ -311,7 +311,7 @@ describe('Cross-Persona Insights Flow', () => {
 
     it('should build handoff briefing', async () => {
       const { buildInsightBriefingForHandoff } =
-        await import('../services/cross-persona/cross-persona-insights.js');
+        await import('../services/cross-persona-insights.js');
 
       const userId = `handoff-${Date.now()}`;
       const briefing = await buildInsightBriefingForHandoff(userId, 'peter');
@@ -324,7 +324,7 @@ describe('Cross-Persona Insights Flow', () => {
 
   describe('Insight Scanning', () => {
     it('should scan for cross-persona insights', async () => {
-      const { scanForCrossPersonaInsights } = await import('../services/cross-persona/cross-persona-insights.js');
+      const { scanForCrossPersonaInsights } = await import('../services/cross-persona-insights.js');
 
       const userId = `scan-test-${Date.now()}`;
 
@@ -420,7 +420,7 @@ describe('Context Builder Integration with Superhuman', () => {
   describe('Nayan Wisdom Insights', () => {
     it('should include superhuman context in briefing', async () => {
       const { buildNayanWisdomInsightsContext } =
-        await import('../intelligence/context-builders/personas/nayan-wisdom-insights/index.js');
+        await import('../intelligence/context-builders/personas/nayan-wisdom-insights.js');
 
       const input = createMockInput('nayan-patel', `nayan-test-${Date.now()}`);
       const result = await buildNayanWisdomInsightsContext(input as never);
@@ -480,7 +480,7 @@ describe('Performance Benchmarks', () => {
 
   it('should build Nayan context within time limit', async () => {
     const { buildNayanWisdomInsightsContext } =
-      await import('../intelligence/context-builders/personas/nayan-wisdom-insights/index.js');
+      await import('../intelligence/context-builders/personas/nayan-wisdom-insights.js');
 
     const input = {
       services: { personaId: 'nayan-patel', userId: 'perf-test', sessionId: 'perf-session' },
@@ -571,7 +571,7 @@ describe('Ferni Coordinator Intelligence', () => {
 
 describe('E2E Insight Flow', () => {
   it('should broadcast high-priority insights when added', async () => {
-    const { addCrossPersonaInsight } = await import('../services/cross-persona/cross-persona-insights.js');
+    const { addCrossPersonaInsight } = await import('../services/cross-persona-insights.js');
     const { insightsBroadcast } = await import('../services/insights-broadcast.js');
 
     const userId = `e2e-test-${Date.now()}`;
@@ -610,7 +610,7 @@ describe('E2E Insight Flow', () => {
   });
 
   it('should NOT broadcast low-priority insights', async () => {
-    const { addCrossPersonaInsight } = await import('../services/cross-persona/cross-persona-insights.js');
+    const { addCrossPersonaInsight } = await import('../services/cross-persona-insights.js');
     const { insightsBroadcast } = await import('../services/insights-broadcast.js');
 
     const userId = `e2e-low-${Date.now()}`;
@@ -649,7 +649,7 @@ describe('E2E Insight Flow', () => {
   });
 
   it('should broadcast proactive insights regardless of priority', async () => {
-    const { addCrossPersonaInsight } = await import('../services/cross-persona/cross-persona-insights.js');
+    const { addCrossPersonaInsight } = await import('../services/cross-persona-insights.js');
     const { insightsBroadcast } = await import('../services/insights-broadcast.js');
 
     const userId = `e2e-proactive-${Date.now()}`;

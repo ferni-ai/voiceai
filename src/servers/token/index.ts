@@ -29,7 +29,7 @@ import {
   registerDDoSAlertCallback,
   startDDoSMonitoring,
 } from '../../utils/ddos-protection.js';
-import { notifyDDoSAlert } from '../../services/integrations/slack-notifications.js';
+import { notifyDDoSAlert } from '../../services/slack-notifications.js';
 
 // Shared utilities
 import { setCorsHeaders, handleCorsPreflightRequest } from '../shared/cors.js';

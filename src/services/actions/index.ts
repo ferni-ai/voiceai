@@ -41,7 +41,11 @@ export {
 } from './action-engine.js';
 
 // Action Store
-export { ActionStore, getActionStore, resetActionStore } from './action-store.js';
+export {
+  ActionStore,
+  getActionStore,
+  resetActionStore,
+} from './action-store.js';
 
 // Action Retry Service
 export {

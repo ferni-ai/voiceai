@@ -56,7 +56,7 @@ export interface DataMessage {
 export type { RoomRef as RoomReference } from '../realtime/frontend-publisher.js';
 
 // Re-export DiagnosticLogger from diagnostic-logger (canonical source)
-export type { DiagnosticLogger } from '../../services/observability/diagnostic-logger.js';
+export type { DiagnosticLogger } from '../../services/diagnostic-logger.js';
 
 /**
  * Health check result

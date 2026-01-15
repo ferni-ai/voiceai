@@ -56,7 +56,7 @@ import {
 
 // Types
 import type { VoiceEmotionResult } from '../speech/audio-prosody.js';
-import type { EmotionResult } from '../intelligence/detectors/emotion.js';
+import type { EmotionResult } from '../intelligence/emotion-detector.js';
 import type { PersonaConfig } from '../personas/types.js';
 
 // ============================================================================

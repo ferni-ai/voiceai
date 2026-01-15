@@ -16,14 +16,6 @@
         "play music",
         "Playing music",
         "playing music",
-        "play some music",
-        "Play some music",
-        "put on some music",
-        "Put on some music",
-        "throw on some music",
-        "Throw on some music",
-        "i want to hear music",
-        "I want to hear music",
         "searchMusic",
         "search music",
         "Searching music",
@@ -47,11 +39,7 @@
         "skipSong",
         "skip song",
         "whatsPlaying",
-        "whats playing",
-        "play something",
-        "Play something",
-        "some tunes",
-        "Some tunes"
+        "whats playing"
       ]
     },
 
@@ -89,16 +77,6 @@
       "patterns": [
         "getWeather",
         "get weather",
-        "check the weather",
-        "Check the weather",
-        "how cold is it",
-        "How cold is it",
-        "how hot is it",
-        "How hot is it",
-        "is it raining",
-        "Is it raining",
-        "gonna rain",
-        "going to rain",
         "getWeatherForecast",
         "searchNews",
         "search news",
@@ -109,22 +87,8 @@
         "checking news",
         "headlines",
         "Headlines",
-        "whats happening",
-        "what's happening",
-        "What's happening",
-        "catch me up",
-        "Catch me up",
-        "update me",
-        "Update me",
         "getCurrentTime",
         "get current time",
-        "what time is it",
-        "What time is it",
-        "tell me the time",
-        "Tell me the time",
-        "time in",
-        "Time in",
-        "timeInCity",
         "getMarketSummary"
       ]
     },
@@ -136,16 +100,6 @@
         "handoff to",
         "transferTo",
         "transfer to",
-        "talk to",
-        "Talk to",
-        "speak with",
-        "Speak with",
-        "switch to",
-        "Switch to",
-        "can i talk to",
-        "Can I talk to",
-        "bring in",
-        "Bring in",
         "handoffToMaya",
         "handoffToAlex",
         "handoffToPeter",
@@ -818,214 +772,6 @@
         "whats happening",
         "What is happening"
       ]
-    },
-
-    "search": {
-      "description": "Web search and lookup tools",
-      "patterns": [
-        "searchWeb",
-        "search web",
-        "search for",
-        "Search for",
-        "look up",
-        "Look up",
-        "find out about",
-        "Find out about",
-        "what is",
-        "What is",
-        "who is",
-        "Who is",
-        "define",
-        "Define",
-        "meaning of",
-        "Meaning of",
-        "searchWikipedia",
-        "search wikipedia",
-        "defineTerm",
-        "define term"
-      ]
-    },
-
-    "timers": {
-      "description": "Timer and countdown tools",
-      "patterns": [
-        "setTimer",
-        "set timer",
-        "Set timer",
-        "set a timer",
-        "Set a timer",
-        "start a timer",
-        "Start a timer",
-        "timer for",
-        "Timer for",
-        "minute timer",
-        "Minute timer",
-        "countdown",
-        "Countdown"
-      ]
-    },
-
-    "reminders": {
-      "description": "Reminder and notification tools",
-      "patterns": [
-        "setReminder",
-        "set reminder",
-        "Set reminder",
-        "remind me",
-        "Remind me",
-        "reminder to",
-        "Reminder to",
-        "don't let me forget",
-        "Don't let me forget",
-        "getReminders",
-        "get reminders",
-        "cancelReminder",
-        "cancel reminder"
-      ]
-    },
-
-    "habits": {
-      "description": "Habit tracking and coaching tools",
-      "patterns": [
-        "trackHabit",
-        "track habit",
-        "Track habit",
-        "i did my",
-        "I did my",
-        "i completed",
-        "I completed",
-        "log habit",
-        "Log habit",
-        "record habit",
-        "Record habit",
-        "check off",
-        "Check off",
-        "mark as done",
-        "Mark as done",
-        "i meditated",
-        "I meditated",
-        "i exercised",
-        "I exercised",
-        "i worked out",
-        "I worked out"
-      ]
-    },
-
-    "calendar": {
-      "description": "Calendar and scheduling tools",
-      "patterns": [
-        "getCalendarToday",
-        "get calendar today",
-        "getCalendarWeek",
-        "get calendar week",
-        "what's on my calendar",
-        "What's on my calendar",
-        "my schedule",
-        "My schedule",
-        "any meetings",
-        "Any meetings",
-        "do I have anything",
-        "Do I have anything",
-        "show my calendar",
-        "Show my calendar",
-        "check my calendar",
-        "Check my calendar"
-      ]
-    },
-
-    "musicControl": {
-      "description": "Music playback control tools",
-      "patterns": [
-        "pauseMusic",
-        "pause music",
-        "Pause music",
-        "pause the music",
-        "Pause the music",
-        "resumeMusic",
-        "resume music",
-        "Resume music",
-        "unpause",
-        "Unpause",
-        "keep playing",
-        "Keep playing",
-        "stopMusic",
-        "stop music",
-        "Stop music",
-        "stop the music",
-        "Stop the music",
-        "turn off music",
-        "Turn off music",
-        "no more music",
-        "No more music"
-      ]
-    },
-
-    "contacts": {
-      "description": "Contact and calling tools",
-      "patterns": [
-        "reachOut",
-        "reach out",
-        "Reach out",
-        "call",
-        "Call",
-        "text",
-        "Text",
-        "message",
-        "Message",
-        "phone",
-        "Phone",
-        "contact",
-        "Contact",
-        "send a text",
-        "Send a text",
-        "make a call",
-        "Make a call"
-      ]
-    },
-
-    "notes": {
-      "description": "Note-taking and memory tools",
-      "patterns": [
-        "quickNote",
-        "quick note",
-        "Quick note",
-        "take a note",
-        "Take a note",
-        "save a note",
-        "Save a note",
-        "remember",
-        "Remember",
-        "note:",
-        "Note:",
-        "jot down",
-        "Jot down",
-        "write down",
-        "Write down"
-      ]
-    },
-
-    "smartHome": {
-      "description": "Smart home control tools",
-      "patterns": [
-        "controlLight",
-        "control light",
-        "Control light",
-        "setThermostat",
-        "set thermostat",
-        "Set thermostat",
-        "turn on",
-        "Turn on",
-        "turn off",
-        "Turn off",
-        "lights on",
-        "Lights on",
-        "lights off",
-        "Lights off",
-        "temperature",
-        "Temperature",
-        "degrees",
-        "Degrees"
-      ]
     }
   },
 
@@ -1040,10 +786,6 @@
     "getfinancialsnews",
     "getstocknews",
     "gettechnews",
-    "getmarketsummary",
-    "searchweb",
-    "searchwikipedia",
-    "defineterm",
-    "timeincity"
+    "getmarketsummary"
   ]
 }

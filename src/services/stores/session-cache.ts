@@ -57,7 +57,7 @@ export interface CacheConfig {
 export class SessionCache<T = unknown> {
   private memoryCache = new Map<string, CacheEntry<T>>();
   private redisCache: ReturnType<
-    typeof import('../memory/redis-cache.js').getRedisCache
+    typeof import('../../memory/redis-cache.js').getRedisCache
   > | null = null;
   private stats: CacheStats = {
     hits: 0,
@@ -91,7 +91,7 @@ export class SessionCache<T = unknown> {
     }
 
     try {
-      const { getRedisCache } = await import('../memory/redis-cache.js');
+      const { getRedisCache } = await import('../../memory/redis-cache.js');
       this.redisCache = getRedisCache();
       await this.redisCache.initialize();
       this.stats.redisConnected = true;

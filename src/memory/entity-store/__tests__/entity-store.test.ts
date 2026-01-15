@@ -10,7 +10,10 @@ import { v4 as uuidv4 } from 'uuid';
 // Test subjects
 import { EntityStore, getEntityStore, initializeEntityStore as initStore } from '../store.js';
 import { graphRAGRetrieve, GraphRAGRetriever } from '../graph-rag.js';
-import { ProactiveSurfacingEngine, getProactiveSurfacingEngine } from '../proactive-surfacing.js';
+import {
+  ProactiveSurfacingEngine,
+  getProactiveSurfacingEngine,
+} from '../proactive-surfacing.js';
 import {
   capturePersonEntity,
   captureCommitmentEntity,
@@ -167,7 +170,11 @@ describe('Entity Store', () => {
       createdEntities.push(entity.id);
 
       // Resolve by same name
-      const { entity: resolved, isNew } = await store.resolveEntity(TEST_USER_ID, 'Mom', 'person');
+      const { entity: resolved, isNew } = await store.resolveEntity(
+        TEST_USER_ID,
+        'Mom',
+        'person'
+      );
 
       expect(isNew).toBe(false);
       expect(resolved.id).toBe(entity.id);
@@ -192,7 +199,11 @@ describe('Entity Store', () => {
       createdEntities.push(entity.id);
 
       // Resolve by alias
-      const { entity: resolved, isNew } = await store.resolveEntity(TEST_USER_ID, 'dad', 'person');
+      const { entity: resolved, isNew } = await store.resolveEntity(
+        TEST_USER_ID,
+        'dad',
+        'person'
+      );
 
       expect(isNew).toBe(false);
       expect(resolved.id).toBe(entity.id);
@@ -203,9 +214,12 @@ describe('Entity Store', () => {
 
       const uniqueName = `NewPerson_${uuidv4().substring(0, 8)}`;
 
-      const { entity, isNew } = await store.resolveEntity(TEST_USER_ID, uniqueName, 'person', {
-        relationship: 'colleague',
-      });
+      const { entity, isNew } = await store.resolveEntity(
+        TEST_USER_ID,
+        uniqueName,
+        'person',
+        { relationship: 'colleague' }
+      );
       createdEntities.push(entity.id);
 
       expect(isNew).toBe(true);
@@ -241,9 +255,12 @@ describe('Entity Store', () => {
       createdEntities.push(event.id);
 
       // Create relationship
-      const relationship = await store.createRelationship(event.id, person.id, 'involves', {
-        context: 'Birthday party for Alice',
-      });
+      const relationship = await store.createRelationship(
+        event.id,
+        person.id,
+        'involves',
+        { context: 'Birthday party for Alice' }
+      );
 
       expect(relationship).toBeDefined();
       expect(relationship.fromEntity).toBe(event.id);
@@ -263,19 +280,14 @@ describe('Entity Store', () => {
       } as PersonAttributes);
       createdEntities.push(person.id);
 
-      const commitment = await store.createEntity(
-        TEST_USER_ID,
-        'commitment',
-        'Help Bob with project',
-        {
-          _type: 'commitment',
-          commitmentType: 'promise',
-          status: 'active',
-          relatedPeople: [],
-          accountability: 'self',
-          originalStatement: 'I promised to help Bob with the project',
-        } as CommitmentAttributes
-      );
+      const commitment = await store.createEntity(TEST_USER_ID, 'commitment', 'Help Bob with project', {
+        _type: 'commitment',
+        commitmentType: 'promise',
+        status: 'active',
+        relatedPeople: [],
+        accountability: 'self',
+        originalStatement: 'I promised to help Bob with the project',
+      } as CommitmentAttributes);
       createdEntities.push(commitment.id);
 
       // Create relationship
@@ -384,23 +396,20 @@ describe('Entity Store', () => {
       await store.createRelationship(event.id, person.id, 'involves');
 
       // Search for person - should also find related event
-      const result = await graphRAGRetrieve(
-        TEST_USER_ID,
-        'my sister Carol',
-        {},
-        {
-          topK: 10,
-          expandGraph: true,
-          maxGraphHops: 1,
-        }
-      );
+      const result = await graphRAGRetrieve(TEST_USER_ID, 'my sister Carol', {}, {
+        topK: 10,
+        expandGraph: true,
+        maxGraphHops: 1,
+      });
 
       // Graph-RAG results depend on embedding search working
       expect(result.entities).toBeDefined();
       // If we found entities, check graph expansion
       if (result.entities.length > 0) {
         // Should find both person and event via graph expansion
-        const hasEvent = result.entities.some((r) => r.entity.canonicalName.includes('Wedding'));
+        const hasEvent = result.entities.some(
+          (r) => r.entity.canonicalName.includes('Wedding')
+        );
         // May or may not find via expansion depending on scoring
         // Just log for debugging
         if (!hasEvent) {
@@ -549,12 +558,17 @@ describe('Entity Store Performance', () => {
     // Create 10 entities
     const entities: Entity[] = [];
     for (let i = 0; i < 10; i++) {
-      const entity = await store.createEntity(TEST_USER_ID, 'person', `BatchPerson_${i}`, {
-        _type: 'person',
-        relationship: 'contact',
-        relationshipCategory: 'acquaintance',
-        sentiment: 0.5,
-      } as PersonAttributes);
+      const entity = await store.createEntity(
+        TEST_USER_ID,
+        'person',
+        `BatchPerson_${i}`,
+        {
+          _type: 'person',
+          relationship: 'contact',
+          relationshipCategory: 'acquaintance',
+          sentiment: 0.5,
+        } as PersonAttributes
+      );
       entities.push(entity);
       createdEntities.push(entity.id);
     }
@@ -574,7 +588,9 @@ describe('Entity Store Performance', () => {
       await store.deleteEntity(entity.id);
     }
     // Remove from createdEntities since we cleaned up
-    createdEntities = createdEntities.filter((id) => !entities.some((e) => e.id === id));
+    createdEntities = createdEntities.filter(
+      (id) => !entities.some((e) => e.id === id)
+    );
 
     // Performance expectations
     expect(createTime).toBeLessThan(30000); // 30s for 10 entities

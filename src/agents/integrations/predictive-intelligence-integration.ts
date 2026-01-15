@@ -58,7 +58,7 @@ import {
 import {
   detectPatternsInTranscript,
   type PatternType as CoachingPatternType,
-} from '../../intelligence/coaching/patterns.js';
+} from '../../intelligence/coaching-patterns.js';
 
 // Async events for scaled processing
 import { AsyncEvents } from '../../services/async-events/index.js';
@@ -267,20 +267,14 @@ export async function processForPredictiveIntelligence(
     // 0.5. EMBEDDING INTELLIGENCE - Record turn for vector-powered learning
     // ========================================================================
     // Fire-and-forget: Update conversation trajectory and embedding-based learning
-    void conversationTrajectory
-      .recordTurn(sessionId, {
-        text: message,
-        speaker: 'user',
-        emotionalValence: emotionIntensity
-          ? emotion?.includes('positive')
-            ? emotionIntensity
-            : -emotionIntensity
-          : 0,
-        topicDepth: undefined, // Will be estimated internally
-      })
-      .catch((err) => {
-        log.debug({ error: String(err), userId }, 'Embedding turn recording failed (non-fatal)');
-      });
+    void conversationTrajectory.recordTurn(sessionId, {
+      text: message,
+      speaker: 'user',
+      emotionalValence: emotionIntensity ? (emotion?.includes('positive') ? emotionIntensity : -emotionIntensity) : 0,
+      topicDepth: undefined, // Will be estimated internally
+    }).catch((err) => {
+      log.debug({ error: String(err), userId }, 'Embedding turn recording failed (non-fatal)');
+    });
 
     // ========================================================================
     // 1. PREDICTIVE COACHING - Record temporal/emotional patterns
@@ -524,8 +518,9 @@ export async function getPredictiveContextForTurn(
 
     // 🧠 BETTER THAN HUMAN v4: Get superhuman predictive context
     try {
-      const { getSuperhumanPredictiveContext } =
-        await import('../../intelligence/predictive/index.js');
+      const { getSuperhumanPredictiveContext } = await import(
+        '../../intelligence/predictive/index.js'
+      );
       const superhumanContext = getSuperhumanPredictiveContext(userId, {});
       if (superhumanContext && superhumanContext.length > 0) {
         sections.push('');

@@ -21,104 +21,6 @@ import type {
 const log = createLogger({ module: 'entity-store:integration' });
 
 // ============================================================================
-// SENTIMENT ANALYSIS
-// ============================================================================
-
-/**
- * Analyze sentiment from transcript and detected emotion
- * Returns a score from -1 (very negative) to 1 (very positive)
- */
-function analyzeSentimentFromContext(
-  transcript: string,
-  emotion?: { primary?: string; valence?: string; intensity?: number }
-): number {
-  let score = 0;
-
-  // Use detected emotion as primary signal
-  if (emotion) {
-    // Map valence to base score
-    if (emotion.valence === 'positive') {
-      score = 0.3;
-    } else if (emotion.valence === 'negative') {
-      score = -0.3;
-    }
-
-    // Adjust by intensity
-    if (emotion.intensity) {
-      score *= 1 + emotion.intensity;
-    }
-
-    // Specific emotion adjustments
-    const positiveEmotions = ['happy', 'excited', 'grateful', 'hopeful', 'loving', 'proud'];
-    const negativeEmotions = [
-      'sad',
-      'angry',
-      'frustrated',
-      'anxious',
-      'worried',
-      'upset',
-      'disappointed',
-    ];
-
-    if (emotion.primary) {
-      if (positiveEmotions.includes(emotion.primary.toLowerCase())) {
-        score = Math.max(score, 0.4);
-      } else if (negativeEmotions.includes(emotion.primary.toLowerCase())) {
-        score = Math.min(score, -0.4);
-      }
-    }
-  }
-
-  // Fallback: Simple keyword analysis if no emotion data
-  if (score === 0) {
-    const lower = transcript.toLowerCase();
-
-    const positiveWords = [
-      'love',
-      'great',
-      'amazing',
-      'wonderful',
-      'happy',
-      'excited',
-      'good',
-      'best',
-      'fantastic',
-    ];
-    const negativeWords = [
-      'hate',
-      'terrible',
-      'awful',
-      'worried',
-      'scared',
-      'angry',
-      'upset',
-      'frustrated',
-      'bad',
-      'worst',
-    ];
-
-    let positiveCount = 0;
-    let negativeCount = 0;
-
-    for (const word of positiveWords) {
-      if (lower.includes(word)) positiveCount++;
-    }
-    for (const word of negativeWords) {
-      if (lower.includes(word)) negativeCount++;
-    }
-
-    if (positiveCount > negativeCount) {
-      score = Math.min(positiveCount * 0.2, 0.6);
-    } else if (negativeCount > positiveCount) {
-      score = Math.max(negativeCount * -0.2, -0.6);
-    }
-  }
-
-  // Clamp to [-1, 1]
-  return Math.max(-1, Math.min(1, score));
-}
-
-// ============================================================================
 // INITIALIZATION STATE
 // ============================================================================
 
@@ -152,10 +54,7 @@ export async function initializeEntityStore(): Promise<void> {
     log.info('Entity store initialized');
   } catch (error) {
     initializationError = String(error);
-    log.warn(
-      { error: initializationError },
-      'Entity store initialization failed - will use legacy collections'
-    );
+    log.warn({ error: initializationError }, 'Entity store initialization failed - will use legacy collections');
   }
 }
 
@@ -200,7 +99,7 @@ export async function capturePersonEntity(
     personaId: context.personaId,
     timestamp: new Date(),
     mentionType: inferMentionType(context.transcript, input),
-    sentiment: analyzeSentimentFromContext(context.transcript, context.emotion),
+    sentiment: 0, // TODO: Sentiment analysis
     emotionalIntensity: context.emotion?.intensity || 0.5,
     topics: extractTopics(context.transcript),
     facts: extractFacts(input, context),
@@ -243,7 +142,9 @@ function inferMentionType(transcript: string, input: PersonCaptureInput): Mentio
   }
 
   // Check for planning
-  if (/\b(meeting|call|see|visit|meet up|hang out|tomorrow|next week|this weekend)\b/.test(lower)) {
+  if (
+    /\b(meeting|call|see|visit|meet up|hang out|tomorrow|next week|this weekend)\b/.test(lower)
+  ) {
     return 'planning';
   }
 
@@ -372,20 +273,9 @@ export async function captureMultiplePeople(
 // ============================================================================
 
 /**
- * Error thrown when entity store is not ready
- */
-export class EntityStoreNotReadyError extends Error {
-  constructor() {
-    super('Entity store not initialized. Contacts cannot be resolved.');
-    this.name = 'EntityStoreNotReadyError';
-  }
-}
-
-/**
  * Find a contact for telephony (call/text)
  *
- * This is the ONLY way to resolve contacts for phone calls.
- * Throws EntityStoreNotReadyError if the store isn't initialized.
+ * This replaces the fragmented contact lookup used by telephony tools.
  */
 export async function findContactForTelephony(
   userId: string,
@@ -396,7 +286,8 @@ export async function findContactForTelephony(
   relationship?: string;
 } | null> {
   if (!isEntityStoreReady()) {
-    throw new EntityStoreNotReadyError();
+    // Fall back to legacy lookup
+    return null;
   }
 
   const { findEntityByAlias, searchEntities } = await import('./storage.js');
@@ -576,10 +467,9 @@ export async function retrieveMemoriesUnified(
         id: entity.id,
         type: entity.type,
         lastSeen: entity.lastMentionedAt
-          ? typeof (entity.lastMentionedAt as unknown as { toDate?: () => Date }).toDate ===
-            'function'
+          ? (typeof (entity.lastMentionedAt as unknown as { toDate?: () => Date }).toDate === 'function'
             ? (entity.lastMentionedAt as unknown as { toDate: () => Date }).toDate().toISOString()
-            : (entity.lastMentionedAt as Date).toISOString()
+            : (entity.lastMentionedAt as Date).toISOString())
           : new Date().toISOString(),
         emotionalWeight: entity.emotionalWeight || 0.5,
         salienceScore: entity.salience || 0.5,
@@ -587,7 +477,7 @@ export async function retrieveMemoriesUnified(
         relationship: entity.relationship,
         specificRelation: entity.specificRelation,
       },
-      score: 1 - index * 0.1, // Simple scoring based on search order
+      score: 1 - (index * 0.1), // Simple scoring based on search order
       scoreBreakdown: {
         semantic: 0.7,
         temporal: 0.6,
@@ -725,10 +615,7 @@ export async function captureCommitmentEntity(
     originalStatement: data.commitment,
   });
 
-  log.info(
-    { userId, entityId: entity.id, commitment: data.commitment },
-    '✨ Captured commitment entity'
-  );
+  log.info({ userId, entityId: entity.id, commitment: data.commitment }, '✨ Captured commitment entity');
 
   return {
     entity,

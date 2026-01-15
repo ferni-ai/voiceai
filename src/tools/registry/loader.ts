@@ -824,39 +824,39 @@ export async function autoRegisterAllDomains(): Promise<void> {
         import('../domains/routines/index.js').then(async (m) => m.getToolDefinitions()),
     },
 
-    // === WISDOM INTELLIGENCE DOMAIN (Superhuman Wisdom) ===
+    // === NAYAN'S SUPERHUMAN WISDOM DOMAIN ===
     {
-      name: 'wisdom-intelligence' as ToolDomain,
+      name: 'nayan-wisdom' as ToolDomain,
       loader: async () =>
-        import('../domains/wisdom-intelligence/index.js').then(async (m) => m.getToolDefinitions()),
+        import('../domains/nayan-wisdom/index.js').then(async (m) => m.getToolDefinitions()),
     },
 
-    // === HABIT INTELLIGENCE DOMAIN (Superhuman Habit Coaching) ===
+    // === MAYA'S SUPERHUMAN COACHING DOMAIN ===
     {
-      name: 'habit-intelligence' as ToolDomain,
+      name: 'maya-coaching' as ToolDomain,
       loader: async () =>
-        import('../domains/habit-intelligence/index.js').then(async (m) => m.getToolDefinitions()),
+        import('../domains/maya-coaching/index.js').then(async (m) => m.getToolDefinitions()),
     },
 
-    // === SUPERHUMAN COMMUNICATION DOMAIN ===
+    // === ALEX'S SUPERHUMAN COMMUNICATION DOMAIN ===
     {
       name: 'superhuman-communication' as ToolDomain,
       loader: async () =>
         import('../domains/communication/superhuman-tools/llm-tools.js').then((m) => m.getToolDefinitions()),
     },
 
-    // === EVENT INTELLIGENCE DOMAIN (Superhuman Event Planning) ===
+    // === JORDAN'S SUPERHUMAN PLANNING DOMAIN ===
     {
-      name: 'event-intelligence' as ToolDomain,
+      name: 'jordan-planning' as ToolDomain,
       loader: async () =>
-        import('../domains/event-intelligence/index.js').then(async (m) => m.getToolDefinitions()),
+        import('../domains/jordan-planning/index.js').then(async (m) => m.getToolDefinitions()),
     },
 
-    // === PATTERN ANALYTICS DOMAIN (Superhuman Pattern Recognition) ===
+    // === PETER'S SUPERHUMAN ANALYTICS DOMAIN ===
     {
-      name: 'pattern-analytics' as ToolDomain,
+      name: 'peter-analytics' as ToolDomain,
       loader: async (): Promise<ToolDefinition[]> => {
-        const m = await import('../domains/pattern-analytics/index.js');
+        const m = await import('../domains/peter-analytics/index.js');
         return m.getToolDefinitions();
       },
     },
@@ -927,13 +927,6 @@ export async function autoRegisterAllDomains(): Promise<void> {
       name: 'workflows' as ToolDomain,
       loader: async () =>
         import('../domains/workflows/index.js').then(async (m) => m.getToolDefinitions()),
-    },
-
-    // === CEO COACHING DOMAIN (Personal productivity for leaders) ===
-    {
-      name: 'ceo-coaching' as ToolDomain,
-      loader: async () =>
-        import('../domains/ceo-coaching/index.js').then(async (m) => m.getToolDefinitions()),
     },
   ];
 

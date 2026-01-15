@@ -6,7 +6,7 @@
  */
 
 import type { ContextManager, PromptContext } from '../context/index.js';
-import type { OpenThread } from '../intelligence/tracking/cross-session.js';
+import type { OpenThread } from '../intelligence/cross-session-threader.js';
 import type {
   CommunicationMirroringEngine,
   ConversationAnalysis,

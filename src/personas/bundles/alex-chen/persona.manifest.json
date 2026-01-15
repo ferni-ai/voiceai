@@ -486,7 +486,7 @@
     "overrides": {
       "disfluency": {
         "enabled": true,
-        "frequency": 0.1
+        "frequency": 0.10
       },
       "hedging": {
         "enabled": true,
@@ -494,9 +494,9 @@
       },
       "active_listening": {
         "enabled": true,
-        "backchannel_probability": 0.4,
+        "backchannel_probability": 0.40,
         "emotional_echo_probability": 0.48,
-        "vocabulary_mirroring_probability": 0.3
+        "vocabulary_mirroring_probability": 0.30
       },
       "conversational_memory": {
         "enabled": true,
@@ -508,7 +508,7 @@
       "reduction": 0.6
     },
     "context_modifiers": {
-      "serious_topics_reduction": 0.4,
+      "serious_topics_reduction": 0.40,
       "personal_sharing_warmth_boost": 1.5,
       "high_emotion_breathing_boost": 1.4
     }

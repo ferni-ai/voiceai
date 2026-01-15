@@ -21,7 +21,7 @@ import {
   type HumanizationContext,
 } from '../../../conversation/index.js';
 import { createLogger } from '../../../utils/safe-logger.js';
-import { DISTRESS } from '../../detectors/distress.js';
+import { DISTRESS } from '../../distress-levels.js';
 import { createInjection, type ContextBuilderInput, type ContextInjection } from '../index.js';
 
 const log = createLogger({ module: 'context:conversation-humanizing' });

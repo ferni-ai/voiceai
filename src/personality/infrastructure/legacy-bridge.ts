@@ -15,18 +15,10 @@
  */
 
 import { PersonalityService, createPersonalityService } from '../v2/index.js';
-import {
-  TimingCalculator,
-  type TimingAnalysis,
-  type UserIntent,
-  type SuggestedResponse,
-} from '../domain/services/timing-calculator.js';
+import { TimingCalculator, type TimingAnalysis, type UserIntent, type SuggestedResponse } from '../domain/services/timing-calculator.js';
 import { VulnerabilityScorer } from '../domain/services/vulnerability-scorer.js';
 import { AnticipationEngine } from '../domain/services/anticipation-engine.js';
-import type {
-  RelationshipStage,
-  ShareDepth,
-} from '../domain/model/value-objects/relationship-depth.js';
+import type { RelationshipStage, ShareDepth } from '../domain/model/value-objects/relationship-depth.js';
 import type { PrimaryEmotion } from '../domain/model/value-objects/emotional-state.js';
 import { getFirestorePersonalityRepository } from './firestore-personality-repository.js';
 import { getVoiceAnalyzerAdapter } from './adapters/voice-analyzer-adapter.js';
@@ -222,17 +214,13 @@ export function formatPatternForPrompt(pattern: { insight: string; confidence: n
  *
  * @deprecated Use GrowthMilestone.formatForPrompt
  */
-export function formatGrowthForPrompt(growth: {
-  celebration: string;
-  significance: string;
-}): string {
-  const emoji =
-    growth.significance === 'breakthrough'
-      ? '🌟'
-      : growth.significance === 'significant'
-        ? '✨'
-        : '🌱';
-  return [`[${emoji} GROWTH CELEBRATION]`, '', growth.celebration].join('\n');
+export function formatGrowthForPrompt(growth: { celebration: string; significance: string }): string {
+  const emoji = growth.significance === 'breakthrough' ? '🌟' : growth.significance === 'significant' ? '✨' : '🌱';
+  return [
+    `[${emoji} GROWTH CELEBRATION]`,
+    '',
+    growth.celebration,
+  ].join('\n');
 }
 
 // ============================================================================

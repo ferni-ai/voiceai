@@ -13,7 +13,7 @@ import {
   endConversation,
   cleanupStaleConversations,
   getActiveSessionIds,
-} from '../../services/conversation-thread/conversation-state.js';
+} from '../../services/conversation-state.js';
 
 describe('ConversationStateManager', () => {
   let manager: ConversationStateManager;

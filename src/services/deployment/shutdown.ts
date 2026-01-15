@@ -31,7 +31,7 @@ export async function shutdownServices(): Promise<void> {
 
   // Clear history trackers
   try {
-    const { clearAllHistoryTrackers } = await import('../memory/history.js');
+    const { clearAllHistoryTrackers } = await import('../../memory/history.js');
     clearAllHistoryTrackers();
     getLogger().info('Cleared history trackers');
   } catch (error) {
@@ -49,7 +49,7 @@ export async function shutdownServices(): Promise<void> {
 
   // Shutdown memory system
   try {
-    const { shutdownMemorySystem } = await import('../memory/index.js');
+    const { shutdownMemorySystem } = await import('../../memory/index.js');
     await shutdownMemorySystem();
   } catch (error) {
     getLogger().warn({ error }, 'Error shutting down memory system');

@@ -9,7 +9,7 @@
  */
 
 import type { UserProfile, KeyMoment } from '../../types/user-profile.js';
-import type { SmallDetail } from '../tracking/conversation-quality.js';
+import type { SmallDetail } from '../conversation-quality.js';
 
 /**
  * Generate proactive insights - natural suggestions based on what we've learned

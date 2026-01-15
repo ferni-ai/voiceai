@@ -264,7 +264,7 @@ describe('Tool Domain Registry', () => {
 
     const ids = allTools.map((t) => t.id);
     const uniqueIds = new Set(ids);
-
+    
     expect(uniqueIds.size).toBe(ids.length);
   });
 
@@ -272,9 +272,7 @@ describe('Tool Domain Registry', () => {
     // Commerce tools should have shopping/subscription related tags
     const commerceTools = getCommerceToolDefinitions();
     const commerceTags = commerceTools.flatMap((t) => t.tags);
-    expect(commerceTags.some((t) => ['grocery', 'subscription', 'shopping'].includes(t))).toBe(
-      true
-    );
+    expect(commerceTags.some((t) => ['grocery', 'subscription', 'shopping'].includes(t))).toBe(true);
 
     // Document tools should have document-related tags
     const docTools = getDocumentToolDefinitions();

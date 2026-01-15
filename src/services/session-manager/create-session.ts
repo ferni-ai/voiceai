@@ -20,7 +20,7 @@ import type { UserProfile } from '../../types/user-profile.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import { stripSSML } from '../../utils/text-utils.js';
 // 🦀 Rust-accelerated word counting
-import { countWordsRust, isTokenCountingAvailable } from '../memory/rust-accelerator.js';
+import { countWordsRust, isTokenCountingAvailable } from '../../memory/rust-accelerator.js';
 
 const log = getLogger();
 const RUST_COUNTING_AVAILABLE = isTokenCountingAvailable();
@@ -497,7 +497,7 @@ export async function createSessionServices(
       // MEMORY INDEX WARMING - Build index at session START for returning users
       // This ensures semantic retrieval works from turn 1, not just after indexing
       // ========================================================================
-      let primingMemories: Array<import('../memory/advanced-retrieval.js').MemoryItem> = [];
+      let primingMemories: Array<import('../../memory/advanced-retrieval.js').MemoryItem> = [];
       try {
         // Build memory index from user profile (fast if already built)
         buildMemoryIndex(validatedUserId, userProfile);

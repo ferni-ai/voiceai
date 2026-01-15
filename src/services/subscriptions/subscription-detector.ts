@@ -50,83 +50,83 @@ export interface DetectedSubscription {
 
 const KNOWN_SUBSCRIPTIONS: Record<string, { category: SubscriptionCategory; name?: string }> = {
   // Streaming
-  netflix: { category: 'streaming', name: 'Netflix' },
-  hulu: { category: 'streaming', name: 'Hulu' },
+  'netflix': { category: 'streaming', name: 'Netflix' },
+  'hulu': { category: 'streaming', name: 'Hulu' },
   'disney+': { category: 'streaming', name: 'Disney+' },
   'hbo max': { category: 'streaming', name: 'HBO Max' },
   'paramount+': { category: 'streaming', name: 'Paramount+' },
-  peacock: { category: 'streaming', name: 'Peacock' },
+  'peacock': { category: 'streaming', name: 'Peacock' },
   'apple tv': { category: 'streaming', name: 'Apple TV+' },
   'prime video': { category: 'streaming', name: 'Prime Video' },
   'youtube premium': { category: 'streaming', name: 'YouTube Premium' },
-  spotify: { category: 'streaming', name: 'Spotify' },
+  'spotify': { category: 'streaming', name: 'Spotify' },
   'apple music': { category: 'streaming', name: 'Apple Music' },
-  pandora: { category: 'streaming', name: 'Pandora' },
-  audible: { category: 'streaming', name: 'Audible' },
-
+  'pandora': { category: 'streaming', name: 'Pandora' },
+  'audible': { category: 'streaming', name: 'Audible' },
+  
   // Software
-  adobe: { category: 'software', name: 'Adobe Creative Cloud' },
+  'adobe': { category: 'software', name: 'Adobe Creative Cloud' },
   'microsoft 365': { category: 'software', name: 'Microsoft 365' },
   'office 365': { category: 'software', name: 'Microsoft 365' },
-  dropbox: { category: 'software', name: 'Dropbox' },
+  'dropbox': { category: 'software', name: 'Dropbox' },
   'google one': { category: 'storage', name: 'Google One' },
-  icloud: { category: 'storage', name: 'iCloud+' },
-  notion: { category: 'software', name: 'Notion' },
-  evernote: { category: 'software', name: 'Evernote' },
+  'icloud': { category: 'storage', name: 'iCloud+' },
+  'notion': { category: 'software', name: 'Notion' },
+  'evernote': { category: 'software', name: 'Evernote' },
   '1password': { category: 'software', name: '1Password' },
-  lastpass: { category: 'software', name: 'LastPass' },
-  nordvpn: { category: 'software', name: 'NordVPN' },
-  expressvpn: { category: 'software', name: 'ExpressVPN' },
-
+  'lastpass': { category: 'software', name: 'LastPass' },
+  'nordvpn': { category: 'software', name: 'NordVPN' },
+  'expressvpn': { category: 'software', name: 'ExpressVPN' },
+  
   // Gaming
-  xbox: { category: 'gaming', name: 'Xbox Game Pass' },
-  playstation: { category: 'gaming', name: 'PlayStation Plus' },
-  nintendo: { category: 'gaming', name: 'Nintendo Switch Online' },
+  'xbox': { category: 'gaming', name: 'Xbox Game Pass' },
+  'playstation': { category: 'gaming', name: 'PlayStation Plus' },
+  'nintendo': { category: 'gaming', name: 'Nintendo Switch Online' },
   'ea play': { category: 'gaming', name: 'EA Play' },
-
+  
   // News
   'new york times': { category: 'news', name: 'New York Times' },
   'washington post': { category: 'news', name: 'Washington Post' },
   'wall street journal': { category: 'news', name: 'Wall Street Journal' },
   'the atlantic': { category: 'news', name: 'The Atlantic' },
-  economist: { category: 'news', name: 'The Economist' },
-
+  'economist': { category: 'news', name: 'The Economist' },
+  
   // Fitness
-  peloton: { category: 'fitness', name: 'Peloton' },
+  'peloton': { category: 'fitness', name: 'Peloton' },
   'planet fitness': { category: 'fitness', name: 'Planet Fitness' },
   'la fitness': { category: 'fitness', name: 'LA Fitness' },
-  equinox: { category: 'fitness', name: 'Equinox' },
+  'equinox': { category: 'fitness', name: 'Equinox' },
   'orange theory': { category: 'fitness', name: 'Orangetheory' },
-  classpass: { category: 'fitness', name: 'ClassPass' },
-  strava: { category: 'fitness', name: 'Strava' },
-  headspace: { category: 'fitness', name: 'Headspace' },
-  calm: { category: 'fitness', name: 'Calm' },
-
+  'classpass': { category: 'fitness', name: 'ClassPass' },
+  'strava': { category: 'fitness', name: 'Strava' },
+  'headspace': { category: 'fitness', name: 'Headspace' },
+  'calm': { category: 'fitness', name: 'Calm' },
+  
   // Food
-  doordash: { category: 'food', name: 'DoorDash DashPass' },
+  'doordash': { category: 'food', name: 'DoorDash DashPass' },
   'uber eats': { category: 'food', name: 'Uber One' },
-  grubhub: { category: 'food', name: 'Grubhub+' },
-  instacart: { category: 'food', name: 'Instacart+' },
+  'grubhub': { category: 'food', name: 'Grubhub+' },
+  'instacart': { category: 'food', name: 'Instacart+' },
   'hello fresh': { category: 'food', name: 'HelloFresh' },
   'blue apron': { category: 'food', name: 'Blue Apron' },
-
+  
   // Shopping
   'amazon prime': { category: 'shopping', name: 'Amazon Prime' },
   'walmart+': { category: 'shopping', name: 'Walmart+' },
-  costco: { category: 'membership', name: 'Costco' },
+  'costco': { category: 'membership', name: 'Costco' },
   'sams club': { category: 'membership', name: "Sam's Club" },
-
+  
   // Finance
-  ynab: { category: 'finance', name: 'YNAB' },
-  mint: { category: 'finance', name: 'Mint' },
-  turbotax: { category: 'finance', name: 'TurboTax' },
-
+  'ynab': { category: 'finance', name: 'YNAB' },
+  'mint': { category: 'finance', name: 'Mint' },
+  'turbotax': { category: 'finance', name: 'TurboTax' },
+  
   // Education
-  coursera: { category: 'education', name: 'Coursera' },
-  udemy: { category: 'education', name: 'Udemy' },
+  'coursera': { category: 'education', name: 'Coursera' },
+  'udemy': { category: 'education', name: 'Udemy' },
   'linkedin learning': { category: 'education', name: 'LinkedIn Learning' },
-  masterclass: { category: 'education', name: 'MasterClass' },
-  duolingo: { category: 'education', name: 'Duolingo Plus' },
+  'masterclass': { category: 'education', name: 'MasterClass' },
+  'duolingo': { category: 'education', name: 'Duolingo Plus' },
 };
 
 // ============================================================================
@@ -150,22 +150,22 @@ export class SubscriptionDetector {
   async detectSubscriptions(transactions: PlaidTransaction[]): Promise<DetectedSubscription[]> {
     // Group transactions by merchant
     const merchantGroups = this.groupByMerchant(transactions);
-
+    
     // Analyze each merchant for recurring patterns
     const detected: DetectedSubscription[] = [];
-
+    
     for (const [merchantKey, merchantTransactions] of Object.entries(merchantGroups)) {
       const subscription = this.analyzeRecurringPattern(merchantKey, merchantTransactions);
       if (subscription) {
         detected.push(subscription);
       }
     }
-
+    
     // Sort by confidence
     detected.sort((a, b) => b.confidence - a.confidence);
-
+    
     log.info({ userId: this.userId, detected: detected.length }, 'Subscriptions detected');
-
+    
     return detected;
   }
 
@@ -174,20 +174,20 @@ export class SubscriptionDetector {
    */
   private groupByMerchant(transactions: PlaidTransaction[]): Record<string, PlaidTransaction[]> {
     const groups: Record<string, PlaidTransaction[]> = {};
-
+    
     for (const tx of transactions) {
       // Skip pending and positive (refund) transactions
       if (tx.pending || tx.amount <= 0) continue;
-
+      
       const normalizedMerchant = this.normalizeMerchantName(tx.merchantName || tx.name);
       if (!normalizedMerchant) continue;
-
+      
       if (!groups[normalizedMerchant]) {
         groups[normalizedMerchant] = [];
       }
       groups[normalizedMerchant].push(tx);
     }
-
+    
     return groups;
   }
 
@@ -211,12 +211,12 @@ export class SubscriptionDetector {
   ): DetectedSubscription | null {
     // Need at least 2 transactions to detect pattern
     if (transactions.length < 2) return null;
-
+    
     // Sort by date
     const sorted = [...transactions].sort(
       (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
     );
-
+    
     // Analyze intervals between transactions
     const intervals: number[] = [];
     for (let i = 1; i < sorted.length; i++) {
@@ -226,28 +226,28 @@ export class SubscriptionDetector {
       );
       intervals.push(days);
     }
-
+    
     // Detect frequency
     const { frequency, confidence: intervalConfidence } = this.detectFrequency(intervals);
     if (!frequency || intervalConfidence < 0.5) return null;
-
+    
     // Check amount consistency
     const amounts = sorted.map((t) => t.amount);
     const avgAmount = amounts.reduce((a, b) => a + b, 0) / amounts.length;
     const amountVariance = Math.max(...amounts) - Math.min(...amounts);
     const amountConfidence = amountVariance < avgAmount * 0.1 ? 1 : 0.7; // Allow 10% variance
-
+    
     // Calculate overall confidence
     const confidence = (intervalConfidence + amountConfidence) / 2;
     if (confidence < 0.6) return null;
-
+    
     // Get category
     const category = this.getCategory(merchantName);
-
+    
     // Calculate next expected date
     const lastDate = new Date(sorted[sorted.length - 1].date);
     const nextExpectedDate = this.calculateNextDate(lastDate, frequency);
-
+    
     return {
       merchantName: this.getDisplayName(merchantName),
       amount: Math.round(avgAmount * 100) / 100,
@@ -271,16 +271,16 @@ export class SubscriptionDetector {
     if (intervals.length === 0) {
       return { frequency: null, confidence: 0 };
     }
-
+    
     const avgInterval = intervals.reduce((a, b) => a + b, 0) / intervals.length;
     const variance = Math.sqrt(
       intervals.reduce((sum, i) => sum + Math.pow(i - avgInterval, 2), 0) / intervals.length
     );
-
+    
     // Determine frequency based on average interval
     let frequency: SubscriptionFrequency | null = null;
     let targetInterval = 0;
-
+    
     if (avgInterval >= 5 && avgInterval <= 9) {
       frequency = 'weekly';
       targetInterval = 7;
@@ -294,15 +294,15 @@ export class SubscriptionDetector {
       frequency = 'annual';
       targetInterval = 365;
     }
-
+    
     if (!frequency) {
       return { frequency: null, confidence: 0 };
     }
-
+    
     // Calculate confidence based on variance from target
     const deviation = Math.abs(avgInterval - targetInterval) / targetInterval;
     const confidence = Math.max(0, 1 - deviation - (variance / targetInterval) * 0.5);
-
+    
     return { frequency, confidence };
   }
 
@@ -311,13 +311,13 @@ export class SubscriptionDetector {
    */
   private getCategory(merchantName: string): SubscriptionCategory {
     const normalized = this.normalizeMerchantName(merchantName);
-
+    
     for (const [key, info] of Object.entries(KNOWN_SUBSCRIPTIONS)) {
       if (normalized.includes(key)) {
         return info.category;
       }
     }
-
+    
     return 'other';
   }
 
@@ -326,13 +326,13 @@ export class SubscriptionDetector {
    */
   private getDisplayName(merchantName: string): string {
     const normalized = this.normalizeMerchantName(merchantName);
-
+    
     for (const [key, info] of Object.entries(KNOWN_SUBSCRIPTIONS)) {
       if (normalized.includes(key) && info.name) {
         return info.name;
       }
     }
-
+    
     // Capitalize first letter of each word
     return merchantName
       .split(' ')
@@ -345,7 +345,7 @@ export class SubscriptionDetector {
    */
   private calculateNextDate(lastDate: Date, frequency: SubscriptionFrequency): Date {
     const next = new Date(lastDate);
-
+    
     switch (frequency) {
       case 'weekly':
         next.setDate(next.getDate() + 7);
@@ -360,7 +360,7 @@ export class SubscriptionDetector {
         next.setFullYear(next.getFullYear() + 1);
         break;
     }
-
+    
     return next;
   }
 
@@ -376,10 +376,10 @@ export class SubscriptionDetector {
     minConfidence: number = 0.7
   ): Promise<Subscription[]> {
     const imported: Subscription[] = [];
-
+    
     for (const sub of detected) {
       if (sub.confidence < minConfidence) continue;
-
+      
       try {
         const subscription = await addSubscription(this.userId, {
           name: sub.merchantName,
@@ -396,7 +396,7 @@ export class SubscriptionDetector {
           autoRenew: true,
           tags: [],
         });
-
+        
         imported.push(subscription);
       } catch (error) {
         log.error(
@@ -405,9 +405,9 @@ export class SubscriptionDetector {
         );
       }
     }
-
+    
     log.info({ userId: this.userId, imported: imported.length }, 'Subscriptions imported');
-
+    
     return imported;
   }
 
@@ -427,14 +427,14 @@ export class SubscriptionDetector {
   } {
     let monthlyTotal = 0;
     const byCategory: Record<string, number> = {};
-
+    
     for (const sub of detected) {
       const monthly = this.toMonthlyAmount(sub.amount, sub.frequency);
       monthlyTotal += monthly;
-
+      
       byCategory[sub.category] = (byCategory[sub.category] || 0) + monthly;
     }
-
+    
     return {
       totalDetected: detected.length,
       highConfidence: detected.filter((d) => d.confidence >= 0.8).length,

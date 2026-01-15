@@ -532,10 +532,7 @@ export async function findBestTimeFor(
     try {
       const { getMeetingPatterns } = await import('./meeting-pattern-learning.js');
       patterns = await getMeetingPatterns(userId);
-      log.debug(
-        { userId, learnedFromEvents: patterns.learnedFromEventCount },
-        'Loaded meeting patterns for scheduling'
-      );
+      log.debug({ userId, learnedFromEvents: patterns.learnedFromEventCount }, 'Loaded meeting patterns for scheduling');
     } catch {
       log.debug({ userId }, 'Could not load meeting patterns, using defaults');
     }

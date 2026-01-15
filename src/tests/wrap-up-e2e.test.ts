@@ -41,7 +41,7 @@ vi.mock('../utils/safe-logger.js', () => {
 
 // Mock frontend signal
 const mockSendFrontendSignal = vi.fn(async () => true);
-vi.mock('../services/pubsub/frontend-signal.js', () => ({
+vi.mock('../services/frontend-signal.js', () => ({
   sendFrontendSignal: mockSendFrontendSignal,
   isFrontendSignalReady: () => true,
 }));
@@ -91,7 +91,7 @@ import {
   ConversationStateManager,
   getConversationState,
   endConversation,
-} from '../services/conversation-thread/conversation-state.js';
+} from '../services/conversation-state.js';
 import type { ContextBuilderInput } from '../intelligence/context-builders/index.js';
 
 // ============================================================================

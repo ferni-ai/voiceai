@@ -19,7 +19,7 @@ import {
   verifyUser,
   type VoiceProfile,
 } from '../../services/voice/voice-enrollment.js';
-import { isNeuralEmbeddingAvailable } from '../../services/memory/voice-memory-enhanced.js';
+import { isNeuralEmbeddingAvailable } from '../../services/voice-memory-enhanced.js';
 import {
   deleteVoiceProfile,
   getVoiceProfileStats,

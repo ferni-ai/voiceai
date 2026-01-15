@@ -28,7 +28,7 @@ vi.mock('../persona-behavior-manager.js', () => ({
   loadPersonaBehaviors: vi.fn().mockResolvedValue({}),
 }));
 
-import { type Holiday, type Season, type CulturalContext } from '../context-awareness/cultural-awareness.js';
+import { type Holiday, type Season, type CulturalContext } from '../cultural-awareness.js';
 
 describe('CulturalAwareness', () => {
   describe('Holiday type', () => {

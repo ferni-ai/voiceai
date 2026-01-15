@@ -88,18 +88,7 @@ const RESPONSE_SCHEMA = {
       name: { type: 'string', description: 'Name or identifier of the entity' },
       type: {
         type: 'string',
-        enum: [
-          'person',
-          'place',
-          'event',
-          'concept',
-          'goal',
-          'commitment',
-          'dream',
-          'value',
-          'pattern',
-          'memory',
-        ],
+        enum: ['person', 'place', 'event', 'concept', 'goal', 'commitment', 'dream', 'value', 'pattern', 'memory'],
       },
       relationship: { type: 'string', description: 'Relationship to user (for people)' },
       attributes: {
@@ -200,19 +189,12 @@ Extract all entities as JSON array:`;
           sourceText: e.sourceText ? String(e.sourceText).trim() : transcript.slice(0, 100),
         }));
     } catch (parseError) {
-      log.warn(
-        { parseError: String(parseError), text },
-        'Failed to parse entity extraction response'
-      );
+      log.warn({ parseError: String(parseError), text }, 'Failed to parse entity extraction response');
       entities = extractEntitiesRuleBased(transcript);
     }
 
     log.debug(
-      {
-        userId: context.userId,
-        entityCount: entities.length,
-        processingTimeMs: Date.now() - startTime,
-      },
+      { userId: context.userId, entityCount: entities.length, processingTimeMs: Date.now() - startTime },
       'Extracted entities via LLM'
     );
 
@@ -237,16 +219,7 @@ Extract all entities as JSON array:`;
  */
 function validateEntityType(type: string): EntityType {
   const validTypes: EntityType[] = [
-    'person',
-    'place',
-    'event',
-    'concept',
-    'goal',
-    'commitment',
-    'dream',
-    'value',
-    'pattern',
-    'memory',
+    'person', 'place', 'event', 'concept', 'goal', 'commitment', 'dream', 'value', 'pattern', 'memory',
   ];
   return validTypes.includes(type as EntityType) ? (type as EntityType) : 'concept';
 }
@@ -257,66 +230,22 @@ function validateEntityType(type: string): EntityType {
 
 const RELATIONSHIP_PATTERNS = [
   // Family
-  {
-    pattern: /\b(my|the)\s+(mother|mom|mama|mum)\b/i,
-    type: 'person' as EntityType,
-    relationship: 'mother',
-  },
-  {
-    pattern: /\b(my|the)\s+(father|dad|papa|daddy)\b/i,
-    type: 'person' as EntityType,
-    relationship: 'father',
-  },
-  {
-    pattern: /\b(my|the)\s+(brother|bro)\b/i,
-    type: 'person' as EntityType,
-    relationship: 'brother',
-  },
+  { pattern: /\b(my|the)\s+(mother|mom|mama|mum)\b/i, type: 'person' as EntityType, relationship: 'mother' },
+  { pattern: /\b(my|the)\s+(father|dad|papa|daddy)\b/i, type: 'person' as EntityType, relationship: 'father' },
+  { pattern: /\b(my|the)\s+(brother|bro)\b/i, type: 'person' as EntityType, relationship: 'brother' },
   { pattern: /\b(my|the)\s+(sister|sis)\b/i, type: 'person' as EntityType, relationship: 'sister' },
-  {
-    pattern: /\b(my|the)\s+(wife|husband|partner|spouse)\b/i,
-    type: 'person' as EntityType,
-    relationship: 'partner',
-  },
-  {
-    pattern: /\b(my|the)\s+(son|daughter|kid|child)\b/i,
-    type: 'person' as EntityType,
-    relationship: 'child',
-  },
-  {
-    pattern: /\b(my|the)\s+(grandma|grandmother|grandpa|grandfather)\b/i,
-    type: 'person' as EntityType,
-    relationship: 'grandparent',
-  },
+  { pattern: /\b(my|the)\s+(wife|husband|partner|spouse)\b/i, type: 'person' as EntityType, relationship: 'partner' },
+  { pattern: /\b(my|the)\s+(son|daughter|kid|child)\b/i, type: 'person' as EntityType, relationship: 'child' },
+  { pattern: /\b(my|the)\s+(grandma|grandmother|grandpa|grandfather)\b/i, type: 'person' as EntityType, relationship: 'grandparent' },
 
   // Professional
-  {
-    pattern: /\b(my|the)\s+(boss|manager|supervisor)\b/i,
-    type: 'person' as EntityType,
-    relationship: 'boss',
-  },
-  {
-    pattern: /\b(my|the)\s+(coworker|colleague|teammate)\b/i,
-    type: 'person' as EntityType,
-    relationship: 'colleague',
-  },
-  {
-    pattern: /\b(my|the)\s+(doctor|therapist|counselor)\b/i,
-    type: 'person' as EntityType,
-    relationship: 'professional',
-  },
+  { pattern: /\b(my|the)\s+(boss|manager|supervisor)\b/i, type: 'person' as EntityType, relationship: 'boss' },
+  { pattern: /\b(my|the)\s+(coworker|colleague|teammate)\b/i, type: 'person' as EntityType, relationship: 'colleague' },
+  { pattern: /\b(my|the)\s+(doctor|therapist|counselor)\b/i, type: 'person' as EntityType, relationship: 'professional' },
 
   // Friends
-  {
-    pattern: /\b(my|a)\s+(friend|buddy|pal)\b/i,
-    type: 'person' as EntityType,
-    relationship: 'friend',
-  },
-  {
-    pattern: /\b(my|the)\s+(best\s+friend)\b/i,
-    type: 'person' as EntityType,
-    relationship: 'best friend',
-  },
+  { pattern: /\b(my|a)\s+(friend|buddy|pal)\b/i, type: 'person' as EntityType, relationship: 'friend' },
+  { pattern: /\b(my|the)\s+(best\s+friend)\b/i, type: 'person' as EntityType, relationship: 'best friend' },
 
   // Events
   { pattern: /\b(meeting|appointment|interview)\b/i, type: 'event' as EntityType },
@@ -365,23 +294,7 @@ function extractEntitiesRuleBased(transcript: string): ExtractedEntity[] {
   const nameMatches = transcript.match(NAME_PATTERN) || [];
   for (const name of nameMatches) {
     // Skip common false positives
-    if (
-      [
-        'I',
-        'The',
-        'A',
-        'An',
-        'This',
-        'That',
-        'Monday',
-        'Tuesday',
-        'Wednesday',
-        'Thursday',
-        'Friday',
-        'Saturday',
-        'Sunday',
-      ].includes(name)
-    ) {
+    if (['I', 'The', 'A', 'An', 'This', 'That', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].includes(name)) {
       continue;
     }
     const key = `person:${name.toLowerCase()}`;

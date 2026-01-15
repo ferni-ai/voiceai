@@ -15,7 +15,7 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
-import { diag } from '../observability/diagnostic-logger.js';
+import { diag } from '../diagnostic-logger.js';
 
 // ============================================================================
 // TYPES

@@ -169,10 +169,7 @@ export class ActionTracker {
   /**
    * Start execution of an action (when tool begins running).
    */
-  async startExecution(
-    actionId: string,
-    options: StartExecutionOptions
-  ): Promise<FerniAction | null> {
+  async startExecution(actionId: string, options: StartExecutionOptions): Promise<FerniAction | null> {
     const action = await this.getAction(actionId);
     if (!action) {
       log.warn({ actionId }, 'Action not found for execution start');
@@ -445,10 +442,7 @@ export class ActionTracker {
       if (toolLower.includes('email') && action.type === 'email') {
         return action;
       }
-      if (
-        (toolLower.includes('calendar') || toolLower.includes('event')) &&
-        action.type === 'calendar'
-      ) {
+      if ((toolLower.includes('calendar') || toolLower.includes('event')) && action.type === 'calendar') {
         return action;
       }
       if (toolLower.includes('reminder') && action.type === 'reminder') {

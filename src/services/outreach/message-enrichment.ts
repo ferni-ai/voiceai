@@ -15,7 +15,7 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
-import { callLLM } from '../llm/llm-utils.js';
+import { callLLM } from '../llm-utils.js';
 import type { RelationshipStage } from './persona-voice-generator.js';
 import {
   classifyIntent,

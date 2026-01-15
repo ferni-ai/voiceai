@@ -103,10 +103,7 @@ export {
 } from '../domain/model/personality-profile.js';
 
 // Domain Services
-export {
-  AnticipationEngine,
-  type AnticipationContext,
-} from '../domain/services/anticipation-engine.js';
+export { AnticipationEngine, type AnticipationContext } from '../domain/services/anticipation-engine.js';
 export {
   TimingCalculator,
   type UserIntent,
@@ -114,10 +111,7 @@ export {
   type TimingAnalysis,
   type MessageMetadata,
 } from '../domain/services/timing-calculator.js';
-export {
-  VulnerabilityScorer,
-  type VulnerabilityDetectionResult,
-} from '../domain/services/vulnerability-scorer.js';
+export { VulnerabilityScorer, type VulnerabilityDetectionResult } from '../domain/services/vulnerability-scorer.js';
 
 // Domain Interfaces (Ports)
 export type {
@@ -203,16 +197,8 @@ export {
 // SERVICE FACADE
 // ============================================================================
 
-import {
-  BuildPersonalityContext,
-  type BuildPersonalityContextInput,
-  type PersonalityContextOutput,
-} from '../application/build-personality-context.js';
-import {
-  RecordEmotionalMoment,
-  type RecordEmotionalMomentInput,
-  type RecordEmotionalMomentOutput,
-} from '../application/record-emotional-moment.js';
+import { BuildPersonalityContext, type BuildPersonalityContextInput, type PersonalityContextOutput } from '../application/build-personality-context.js';
+import { RecordEmotionalMoment, type RecordEmotionalMomentInput, type RecordEmotionalMomentOutput } from '../application/record-emotional-moment.js';
 import type { PersonalityRepository } from '../domain/interfaces/personality-repository.js';
 import type { VoiceAnalyzer } from '../domain/interfaces/voice-analyzer.js';
 import type { EmotionDetector } from '../domain/interfaces/emotion-detector.js';

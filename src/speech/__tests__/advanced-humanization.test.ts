@@ -9,7 +9,7 @@
  */
 
 import { beforeEach, describe, expect, it } from 'vitest';
-import type { EmotionResult } from '../../intelligence/detectors/emotion.js';
+import type { EmotionResult } from '../../intelligence/emotion-detector.js';
 import {
   addBreathGroupPauses,
   ALL_CARTESIA_EMOTIONS,

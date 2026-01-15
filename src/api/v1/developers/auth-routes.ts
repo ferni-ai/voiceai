@@ -58,8 +58,7 @@ interface DeveloperSession {
 // ============================================================================
 
 // Firebase Auth instance (lazy loaded)
-let firebaseAuthInstance: Awaited<ReturnType<typeof import('firebase-admin/auth').getAuth>> | null =
-  null;
+let firebaseAuthInstance: Awaited<ReturnType<typeof import('firebase-admin/auth').getAuth>> | null = null;
 let authInitPromise: Promise<void> | null = null;
 
 /**
@@ -77,8 +76,7 @@ async function getFirebaseAuth() {
   authInitPromise = (async () => {
     try {
       // Import firebase-admin modules separately for ESM compatibility
-      const { initializeApp, getApps, cert, applicationDefault } =
-        await import('firebase-admin/app');
+      const { initializeApp, getApps, cert, applicationDefault } = await import('firebase-admin/app');
       const { getAuth } = await import('firebase-admin/auth');
 
       // Initialize if not already done
@@ -220,11 +218,7 @@ async function linkFirebaseToPublisher(
     // Link Firebase UID to existing publisher
     const doc = emailSnapshot.docs[0];
     // Use set with merge to update existing document
-    await (
-      db.collection('publishers').doc(doc.id) as unknown as {
-        set: (data: Record<string, unknown>, options: { merge: boolean }) => Promise<void>;
-      }
-    ).set({ firebaseUid }, { merge: true });
+    await (db.collection('publishers').doc(doc.id) as unknown as { set: (data: Record<string, unknown>, options: { merge: boolean }) => Promise<void> }).set({ firebaseUid }, { merge: true });
 
     const data = doc.data();
     if (!data) throw new Error('Publisher data missing');
@@ -237,10 +231,7 @@ async function linkFirebaseToPublisher(
       createdAt: toDate(data.createdAt),
     };
 
-    log.info(
-      { publisherId: publisher.id, firebaseUid },
-      'Linked Firebase UID to existing publisher'
-    );
+    log.info({ publisherId: publisher.id, firebaseUid }, 'Linked Firebase UID to existing publisher');
     return { publisher, isNew: false };
   }
 
@@ -248,15 +239,12 @@ async function linkFirebaseToPublisher(
   const { publisher, apiKey } = await registerPublisher(email, name);
 
   // Add Firebase UID
-  await db
-    .collection('publishers')
-    .doc(publisher.id)
-    .set(cleanForFirestore({ firebaseUid }), { merge: true });
-
-  log.info(
-    { publisherId: publisher.id, firebaseUid, email },
-    'Created new publisher from Firebase auth'
+  await db.collection('publishers').doc(publisher.id).set(
+    cleanForFirestore({ firebaseUid }),
+    { merge: true }
   );
+
+  log.info({ publisherId: publisher.id, firebaseUid, email }, 'Created new publisher from Firebase auth');
   return { publisher, isNew: true, apiKey };
 }
 
@@ -330,7 +318,10 @@ export async function handleDeveloperAuthRoutes(
         })),
       };
 
-      log.info({ publisherId: publisher.id, isNew, authProvider }, 'Developer authenticated');
+      log.info(
+        { publisherId: publisher.id, isNew, authProvider },
+        'Developer authenticated'
+      );
 
       sendJSON(res, {
         success: true,

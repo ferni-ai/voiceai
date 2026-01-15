@@ -64,7 +64,7 @@ const mockRitualsService = {
   recordCompletionAsync: vi.fn(),
 };
 
-vi.mock('../services/scheduling/daily-rituals.js', () => ({
+vi.mock('../services/daily-rituals.js', () => ({
   getDailyRitualsService: vi.fn(() => mockRitualsService),
   PERSONA_RITUALS: {
     'ferni-sky-check': { personaId: 'ferni', name: 'Sky Check' },

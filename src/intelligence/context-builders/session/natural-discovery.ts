@@ -139,7 +139,7 @@ const RELATIONSHIP_DISCOVERY_PROMPTS: DiscoveryPrompt[] = [
 const GROWTH_CELEBRATION_PROMPTS: DiscoveryPrompt[] = [
   {
     topic: 'growth',
-    trigger: "shares something they wouldn't have before",
+    trigger: 'shares something they wouldn\'t have before',
     prompt: `When they share something vulnerable or new, notice the growth: "You know... I don't think you would've shared that with me a month ago. What changed?"`,
     timing: 'deep_conversation',
   },
@@ -158,7 +158,7 @@ const GROWTH_CELEBRATION_PROMPTS: DiscoveryPrompt[] = [
 function getDiscoveryState(input: ContextBuilderInput): DiscoveryState {
   const profile = input.userProfile;
   const userData = input.userData;
-
+  
   // Default state
   const state: DiscoveryState = {
     hasDreams: false,
@@ -174,25 +174,17 @@ function getDiscoveryState(input: ContextBuilderInput): DiscoveryState {
   if (profile) {
     // Dreams - check humanMemory or personal journey
     const humanMemory = profile.humanMemory as Record<string, unknown> | undefined;
-    state.hasDreams = !!(
-      humanMemory?.dreams &&
-      Array.isArray(humanMemory.dreams) &&
-      (humanMemory.dreams as unknown[]).length > 0
-    );
-
+    state.hasDreams = !!(humanMemory?.dreams && Array.isArray(humanMemory.dreams) && (humanMemory.dreams as unknown[]).length > 0);
+    
     // Values - check humanMemory
-    state.hasValues = !!(
-      humanMemory?.values &&
-      Array.isArray(humanMemory.values) &&
-      (humanMemory.values as unknown[]).length > 0
-    );
-
+    state.hasValues = !!(humanMemory?.values && Array.isArray(humanMemory.values) && (humanMemory.values as unknown[]).length > 0);
+    
     // Goals - check profile goals
     state.hasGoals = !!(profile.goals && Array.isArray(profile.goals) && profile.goals.length > 0);
-
+    
     // Capacity - check energy patterns in humanMemory
     state.hasCapacityData = !!(humanMemory?.energyPatterns || humanMemory?.capacityNotes);
-
+    
     // Relationships - check if user has mentioned people (via relationship network subcollection)
     // This is a heuristic - we assume relationship data exists if totalConversations > 10
     // because the relationship network builder will have captured mentioned names by then
@@ -209,17 +201,15 @@ function getDiscoveryState(input: ContextBuilderInput): DiscoveryState {
 function selectDiscoveryPrompts(state: DiscoveryState): DiscoveryPrompt[] {
   const prompts: DiscoveryPrompt[] = [];
   const isEarly = state.conversationCount < 5;
-  const rapportBuilt =
-    state.conversationCount >= 5 || state.relationshipStage !== 'new_acquaintance';
-  const deepRelationship =
-    state.conversationCount >= 15 ||
+  const rapportBuilt = state.conversationCount >= 5 || state.relationshipStage !== 'new_acquaintance';
+  const deepRelationship = state.conversationCount >= 15 || 
     ['trusted_companion', 'inner_circle'].includes(state.relationshipStage);
 
   // Only suggest discovery for areas we don't have data yet
   // And only appropriate prompts for the relationship stage
 
   if (!state.hasDreams) {
-    const dreamPrompts = DREAM_DISCOVERY_PROMPTS.filter((p) => {
+    const dreamPrompts = DREAM_DISCOVERY_PROMPTS.filter(p => {
       if (p.timing === 'early') return isEarly;
       if (p.timing === 'rapport_built') return rapportBuilt;
       if (p.timing === 'deep_conversation') return deepRelationship;
@@ -231,7 +221,7 @@ function selectDiscoveryPrompts(state: DiscoveryState): DiscoveryPrompt[] {
   }
 
   if (!state.hasValues) {
-    const valuePrompts = VALUES_DISCOVERY_PROMPTS.filter((p) => {
+    const valuePrompts = VALUES_DISCOVERY_PROMPTS.filter(p => {
       if (p.timing === 'rapport_built') return rapportBuilt;
       if (p.timing === 'deep_conversation') return deepRelationship;
       return true;
@@ -242,7 +232,7 @@ function selectDiscoveryPrompts(state: DiscoveryState): DiscoveryPrompt[] {
   }
 
   if (!state.hasGoals) {
-    const goalPrompts = GOALS_DISCOVERY_PROMPTS.filter((p) => {
+    const goalPrompts = GOALS_DISCOVERY_PROMPTS.filter(p => {
       if (p.timing === 'rapport_built') return rapportBuilt;
       return true;
     });
@@ -252,13 +242,11 @@ function selectDiscoveryPrompts(state: DiscoveryState): DiscoveryPrompt[] {
   }
 
   if (!state.hasCapacityData && rapportBuilt) {
-    prompts.push(
-      CAPACITY_DISCOVERY_PROMPTS[Math.floor(Math.random() * CAPACITY_DISCOVERY_PROMPTS.length)]
-    );
+    prompts.push(CAPACITY_DISCOVERY_PROMPTS[Math.floor(Math.random() * CAPACITY_DISCOVERY_PROMPTS.length)]);
   }
 
   if (!state.hasRelationshipData) {
-    const relPrompts = RELATIONSHIP_DISCOVERY_PROMPTS.filter((p) => {
+    const relPrompts = RELATIONSHIP_DISCOVERY_PROMPTS.filter(p => {
       if (p.timing === 'deep_conversation') return deepRelationship;
       return true;
     });
@@ -269,7 +257,7 @@ function selectDiscoveryPrompts(state: DiscoveryState): DiscoveryPrompt[] {
 
   // Always include growth celebration prompts after some rapport
   if (rapportBuilt) {
-    const growthPrompts = GROWTH_CELEBRATION_PROMPTS.filter((p) => {
+    const growthPrompts = GROWTH_CELEBRATION_PROMPTS.filter(p => {
       if (p.timing === 'deep_conversation') return deepRelationship;
       return true;
     });
@@ -290,9 +278,9 @@ function formatDiscoveryContext(prompts: DiscoveryPrompt[], state: DiscoveryStat
   if (prompts.length === 0) return '';
 
   const lines: string[] = [
-    "[NATURAL DISCOVERY - What you're still learning about them]",
+    '[NATURAL DISCOVERY - What you\'re still learning about them]',
     '',
-    "These aren't tasks to complete—they're opportunities to understand them better.",
+    'These aren\'t tasks to complete—they\'re opportunities to understand them better.',
     'Only explore these when the conversation naturally opens the door.',
     '',
   ];
@@ -301,7 +289,7 @@ function formatDiscoveryContext(prompts: DiscoveryPrompt[], state: DiscoveryStat
   const missing: string[] = [];
   if (!state.hasDreams) missing.push('what they dream about');
   if (!state.hasValues) missing.push('what they value most');
-  if (!state.hasGoals) missing.push("what they're working toward");
+  if (!state.hasGoals) missing.push('what they\'re working toward');
   if (!state.hasCapacityData) missing.push('how full their plate is');
   if (!state.hasRelationshipData) missing.push('who the important people in their life are');
 
@@ -316,9 +304,7 @@ function formatDiscoveryContext(prompts: DiscoveryPrompt[], state: DiscoveryStat
   }
 
   lines.push('');
-  lines.push(
-    'Remember: This is relationship building, not data collection. Let it unfold naturally.'
-  );
+  lines.push('Remember: This is relationship building, not data collection. Let it unfold naturally.');
 
   return lines.join('\n');
 }
@@ -327,9 +313,7 @@ function formatDiscoveryContext(prompts: DiscoveryPrompt[], state: DiscoveryStat
 // CONTEXT BUILDER
 // ============================================================================
 
-async function buildNaturalDiscoveryContext(
-  input: ContextBuilderInput
-): Promise<ContextInjection[]> {
+async function buildNaturalDiscoveryContext(input: ContextBuilderInput): Promise<ContextInjection[]> {
   const userId = input.services?.userId;
 
   if (!userId) return [];
@@ -346,19 +330,17 @@ async function buildNaturalDiscoveryContext(
     const content = formatDiscoveryContext(prompts, state);
 
     log.debug(
-      { userId, promptCount: prompts.length, topics: prompts.map((p) => p.topic) },
+      { userId, promptCount: prompts.length, topics: prompts.map(p => p.topic) },
       'Natural discovery context built'
     );
 
-    return [
-      {
-        id: 'natural-discovery',
-        source: 'natural-discovery',
-        content,
-        priority: 'standard',
-        category: 'behavioral',
-      },
-    ];
+    return [{
+      id: 'natural-discovery',
+      source: 'natural-discovery',
+      content,
+      priority: 'standard',
+      category: 'behavioral',
+    }];
   } catch (error) {
     log.warn({ error: String(error), userId }, 'Failed to build natural discovery context');
     return [];
@@ -371,8 +353,7 @@ async function buildNaturalDiscoveryContext(
 
 registerContextBuilder({
   name: 'natural-discovery',
-  description:
-    'Suggests natural ways to learn about dreams, values, and goals through conversation',
+  description: 'Suggests natural ways to learn about dreams, values, and goals through conversation',
   category: BuilderCategory.CONTEXT,
   priority: 50,
   build: buildNaturalDiscoveryContext,

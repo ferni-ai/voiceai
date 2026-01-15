@@ -107,12 +107,7 @@ describe('Conversation Threads API', () => {
       const res = createMockResponse();
       const parsedUrl = new URL('http://localhost/api/conversations/threads');
 
-      const handled = await handleConversationThreadsRoutes(
-        req,
-        res,
-        '/api/conversations/threads',
-        parsedUrl
-      );
+      const handled = await handleConversationThreadsRoutes(req, res, '/api/conversations/threads', parsedUrl);
 
       expect(handled).toBe(true);
     });
@@ -124,12 +119,7 @@ describe('Conversation Threads API', () => {
       const res = createMockResponse();
       const parsedUrl = new URL('http://localhost/api/conversations/threads?userId=test-user-123');
 
-      const handled = await handleConversationThreadsRoutes(
-        req,
-        res,
-        '/api/conversations/threads',
-        parsedUrl
-      );
+      const handled = await handleConversationThreadsRoutes(req, res, '/api/conversations/threads', parsedUrl);
 
       expect(handled).toBe(true);
     });
@@ -139,16 +129,9 @@ describe('Conversation Threads API', () => {
 
       const req = createMockRequest({ method: 'GET' });
       const res = createMockResponse();
-      const parsedUrl = new URL(
-        'http://localhost/api/conversations/threads?userId=test-user&status=open'
-      );
+      const parsedUrl = new URL('http://localhost/api/conversations/threads?userId=test-user&status=open');
 
-      const handled = await handleConversationThreadsRoutes(
-        req,
-        res,
-        '/api/conversations/threads',
-        parsedUrl
-      );
+      const handled = await handleConversationThreadsRoutes(req, res, '/api/conversations/threads', parsedUrl);
 
       expect(handled).toBe(true);
     });
@@ -169,12 +152,7 @@ describe('Conversation Threads API', () => {
       const res = createMockResponse();
       const parsedUrl = new URL('http://localhost/api/conversations/threads?userId=test-user');
 
-      const handled = await handleConversationThreadsRoutes(
-        req,
-        res,
-        '/api/conversations/threads',
-        parsedUrl
-      );
+      const handled = await handleConversationThreadsRoutes(req, res, '/api/conversations/threads', parsedUrl);
 
       expect(handled).toBe(true);
     });
@@ -189,12 +167,7 @@ describe('Conversation Threads API', () => {
       const res = createMockResponse();
       const parsedUrl = new URL('http://localhost/api/conversations/threads?userId=test-user');
 
-      const handled = await handleConversationThreadsRoutes(
-        req,
-        res,
-        '/api/conversations/threads',
-        parsedUrl
-      );
+      const handled = await handleConversationThreadsRoutes(req, res, '/api/conversations/threads', parsedUrl);
 
       expect(handled).toBe(true);
     });
@@ -211,9 +184,7 @@ describe('Conversation Threads API', () => {
 
       const req = createMockRequest({ method: 'PATCH' });
       const res = createMockResponse();
-      const parsedUrl = new URL(
-        'http://localhost/api/conversations/threads/thread-123?userId=test-user'
-      );
+      const parsedUrl = new URL('http://localhost/api/conversations/threads/thread-123?userId=test-user');
 
       const handled = await handleConversationThreadsRoutes(
         req,

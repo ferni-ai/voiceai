@@ -501,10 +501,7 @@ async function findExistingMemory(
     const doc = snapshot.docs[0];
     return { id: doc.id, ...doc.data() } as MemoryHighlight;
   } catch (error) {
-    log.warn(
-      { error: String(error), userId, sourceType, sourceId },
-      'Failed to find existing memory'
-    );
+    log.warn({ error: String(error), userId, sourceType, sourceId }, 'Failed to find existing memory');
     return null;
   }
 }

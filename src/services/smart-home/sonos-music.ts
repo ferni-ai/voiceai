@@ -151,17 +151,19 @@ export function matchRoomName(query: string, groups: SonosGroup[]): SonosGroup |
   // Common room name aliases
   const aliases: Record<string, string[]> = {
     'living room': ['living', 'lounge', 'main room', 'front room', 'family room'],
-    bedroom: ['bed', 'master', 'master bedroom'],
-    kitchen: ['kitchen', 'cooking'],
-    office: ['office', 'study', 'work', 'desk'],
-    bathroom: ['bath', 'bathroom', 'shower'],
+    'bedroom': ['bed', 'master', 'master bedroom'],
+    'kitchen': ['kitchen', 'cooking'],
+    'office': ['office', 'study', 'work', 'desk'],
+    'bathroom': ['bath', 'bathroom', 'shower'],
     'dining room': ['dining', 'dinner'],
-    patio: ['patio', 'deck', 'outdoor', 'backyard', 'garden'],
-    basement: ['basement', 'downstairs', 'rec room'],
+    'patio': ['patio', 'deck', 'outdoor', 'backyard', 'garden'],
+    'basement': ['basement', 'downstairs', 'rec room'],
   };
 
   // First, try exact match
-  const exactMatch = groups.find((g) => g.name.toLowerCase() === normalizedQuery);
+  const exactMatch = groups.find(
+    (g) => g.name.toLowerCase() === normalizedQuery
+  );
   if (exactMatch) return exactMatch;
 
   // Try substring match
@@ -174,11 +176,17 @@ export function matchRoomName(query: string, groups: SonosGroup[]): SonosGroup |
 
   // Try alias matching
   for (const [canonical, aliasList] of Object.entries(aliases)) {
-    if (normalizedQuery.includes(canonical) || aliasList.some((a) => normalizedQuery.includes(a))) {
+    if (
+      normalizedQuery.includes(canonical) ||
+      aliasList.some((a) => normalizedQuery.includes(a))
+    ) {
       // Find a group that matches any alias
       const aliasMatch = groups.find((g) => {
         const groupLower = g.name.toLowerCase();
-        return groupLower.includes(canonical) || aliasList.some((a) => groupLower.includes(a));
+        return (
+          groupLower.includes(canonical) ||
+          aliasList.some((a) => groupLower.includes(a))
+        );
       });
       if (aliasMatch) return aliasMatch;
     }
@@ -191,7 +199,9 @@ export function matchRoomName(query: string, groups: SonosGroup[]): SonosGroup |
 /**
  * Get all available rooms/groups for a user
  */
-export async function getAvailableRooms(credentials: SonosCredentials): Promise<SonosRoomConfig[]> {
+export async function getAvailableRooms(
+  credentials: SonosCredentials
+): Promise<SonosRoomConfig[]> {
   try {
     const households = await getHouseholds(credentials);
     const rooms: SonosRoomConfig[] = [];
@@ -315,7 +325,10 @@ export async function playSonosFavorite(
         householdId: household.id,
       });
 
-      log.info({ favorite: favorite.name, room: targetGroup.name }, '🔊 Playing Sonos favorite');
+      log.info(
+        { favorite: favorite.name, room: targetGroup.name },
+        '🔊 Playing Sonos favorite'
+      );
 
       return {
         success: true,
@@ -477,10 +490,9 @@ export async function playSonosMusic(
 
       // No good match - provide helpful suggestions
       const suggestions = getSuggestions(query, favorites);
-      const suggestionText =
-        suggestions.length > 0
-          ? `Try asking for: ${suggestions.join(', ')}`
-          : 'Try adding some favorites in the Sonos app!';
+      const suggestionText = suggestions.length > 0
+        ? `Try asking for: ${suggestions.join(', ')}`
+        : 'Try adding some favorites in the Sonos app!';
 
       return {
         success: false,
@@ -500,7 +512,7 @@ export async function playSonosMusic(
       if (error.statusCode === 401) {
         return {
           success: false,
-          message: 'Your Sonos connection needs to be refreshed. Try reconnecting in settings?',
+          message: "Your Sonos connection needs to be refreshed. Try reconnecting in settings?",
         };
       }
       if (error.statusCode === 503) {
@@ -527,39 +539,11 @@ export async function playSonosMusic(
  */
 const MUSIC_VOCABULARY: Record<string, string[]> = {
   // Genres
-  jazz: [
-    'jazz',
-    'smooth jazz',
-    'bebop',
-    'blue note',
-    'coltrane',
-    'miles davis',
-    'swing',
-    'bossa nova',
-  ],
-  chill: [
-    'chill',
-    'relax',
-    'ambient',
-    'calm',
-    'peaceful',
-    'spa',
-    'lounge',
-    'downtempo',
-    'chillout',
-  ],
+  jazz: ['jazz', 'smooth jazz', 'bebop', 'blue note', 'coltrane', 'miles davis', 'swing', 'bossa nova'],
+  chill: ['chill', 'relax', 'ambient', 'calm', 'peaceful', 'spa', 'lounge', 'downtempo', 'chillout'],
   rock: ['rock', 'classic rock', 'alternative', 'indie', 'hard rock', 'punk', 'grunge'],
   pop: ['pop', 'hits', 'top 40', 'chart', 'billboard', 'radio hits', 'mainstream'],
-  classical: [
-    'classical',
-    'orchestra',
-    'symphony',
-    'piano',
-    'beethoven',
-    'mozart',
-    'bach',
-    'chopin',
-  ],
+  classical: ['classical', 'orchestra', 'symphony', 'piano', 'beethoven', 'mozart', 'bach', 'chopin'],
   focus: ['focus', 'study', 'concentration', 'work', 'instrumental', 'deep work', 'productivity'],
   party: ['party', 'dance', 'edm', 'club', 'upbeat', 'house', 'techno', 'disco'],
   workout: ['workout', 'gym', 'running', 'energy', 'pump', 'fitness', 'exercise', 'cardio'],
@@ -843,7 +827,9 @@ export async function getSonosNowPlaying(
       };
     }
 
-    const trackInfo = track.artist ? `"${track.name}" by ${track.artist}` : `"${track.name}"`;
+    const trackInfo = track.artist
+      ? `"${track.name}" by ${track.artist}`
+      : `"${track.name}"`;
 
     return {
       success: true,
@@ -858,7 +844,7 @@ export async function getSonosNowPlaying(
     log.error({ error }, '🔊 Failed to get Sonos now playing');
     return {
       success: false,
-      message: "Had trouble checking what's playing.",
+      message: 'Had trouble checking what\'s playing.',
     };
   }
 }
@@ -923,7 +909,9 @@ async function resolveRoom(
 
     return {
       success: false,
-      message: roomName ? `Couldn't find a room matching "${roomName}".` : 'No Sonos rooms found.',
+      message: roomName
+        ? `Couldn't find a room matching "${roomName}".`
+        : 'No Sonos rooms found.',
     };
   } catch (error) {
     // Provide specific error messages

@@ -33,7 +33,7 @@ import {
   calculateConsistency,
   type HealthTrend,
 } from '../../services/trust-systems/relationship-health.js';
-import { getInsightsForPersona } from '../../services/cross-persona/cross-persona-insights.js';
+import { getInsightsForPersona } from '../../services/cross-persona-insights.js';
 
 const log = createLogger({ module: 'RelationshipHealthAPI' });
 

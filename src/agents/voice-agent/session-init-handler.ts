@@ -22,19 +22,19 @@ import { resetAllConversationState } from '../../conversation/index.js';
 import { onDeepUnderstandingSessionStart as loadDeepUnderstandingProfiles } from '../../intelligence/index.js';
 import type { PersonaConfig } from '../../personas/types.js';
 import type { AgentId } from '../../services/agent-bus.js';
-import { getConversationState } from '../../services/conversation-thread/conversation-state.js';
-import { diag } from '../../services/observability/diagnostic-logger.js';
+import { getConversationState } from '../../services/conversation-state.js';
+import { diag } from '../../services/diagnostic-logger.js';
 import {
   checkTrialStatus,
   isEligibleForTrial,
   startTrial,
   type TrialCheckResult,
-} from '../../services/monetization/first-taste-trial.js';
+} from '../../services/first-taste-trial.js';
 import { createSessionServices, type SessionServices } from '../../services/index.js';
 import {
   createFirestoreSuperhumanStore,
   loadSuperhumanData,
-} from '../../services/analytics/superhuman-persistence.js';
+} from '../../services/superhuman-persistence.js';
 import { onSessionStart as loadTrustProfiles } from '../../services/trust-systems/index.js';
 import { resetCatchphraseTracking } from '../../speech/response-naturalness.js';
 import { abTestingService } from '../../tools/ab-testing.js';
@@ -44,7 +44,7 @@ import { patternAnalyzer } from '../../tools/optimization/pattern-analyzer.js';
 import { startPeriodicSync } from './periodic-sync-handler.js';
 
 // Capability learning - load patterns on startup
-import { loadPatterns as loadCapabilityPatterns } from '../../intelligence/tracking/capabilities.js';
+import { loadPatterns as loadCapabilityPatterns } from '../../intelligence/capability-learning.js';
 // Safe fire-and-forget pattern for non-critical async operations
 import { fireAndForget } from '../../utils/safe-fire-and-forget.js';
 // Better Than Human - 9 new superhuman services
@@ -68,9 +68,6 @@ import {
 // Embedding cache precomputation for fast semantic search
 import { precomputeUserMemoryEmbeddings } from '../../memory/embedding-cache.js';
 
-// Memory Continuity - Fast first-turn hydration from Firestore capsule
-import { getMemoryCapsule, type MemoryCapsule } from '../../memory/dynamic/memory-continuity.js';
-
 // NEW: Unified Intelligence System (Levels 2-5)
 import { initializeIntelligence } from '../integrations/unified-intelligence-integration.js';
 
@@ -78,7 +75,7 @@ import { initializeIntelligence } from '../integrations/unified-intelligence-int
 import { prewarmBuildersInBackground } from '../../intelligence/context-builders/core/loader.js';
 
 // Redis session warmup - pre-warm caches for fast first-turn response
-import { warmSessionCaches, warmHandoffCaches } from '../../services/session-manager/session-warmup.js';
+import { warmSessionCaches, warmHandoffCaches } from '../../services/session-warmup.js';
 
 // Developer Platform: Webhook integration for marketplace personas
 import { onSessionStarted as dispatchSessionStartedWebhook } from '../integrations/developer-webhook-integration.js';
@@ -116,7 +113,7 @@ import { getContextCarrier } from '../../tools/context-carrier.js';
 // Proactive Memory Surfacing - Resets proactive surfacing state
 
 // Session Lifecycle Hooks - presence tracking, correction context, outreach suppression
-import { sessionLifecycle } from '../../services/session-manager/session-lifecycle-hooks.js';
+import { sessionLifecycle } from '../../services/session/session-lifecycle-hooks.js';
 
 // Interval Manager - for session heartbeat
 import { registerInterval, clearNamedInterval } from '../../utils/interval-manager.js';
@@ -411,31 +408,6 @@ export async function initializeSession(ctx: SessionInitContext): Promise<Sessio
           })
         ),
 
-        // ⚡ MEMORY CONTINUITY: Fast first-turn hydration from Firestore capsule
-        // Loads rolling summary, active threads, anchors, and pending topics
-        // Spanner data will be fetched async after session start for deeper context
-        (async () => {
-          try {
-            const capsule = await getMemoryCapsule(userId);
-            if (capsule) {
-              // Store capsule in session context for context builders
-              (globalThis as Record<string, unknown>)[`memoryCapsule_${sessionId}`] = capsule;
-              diag.session('💊 Memory capsule hydrated', {
-                userId,
-                threads: capsule.activeThreads?.length || 0,
-                anchors: capsule.topAnchors?.length || 0,
-                pendingTopics: capsule.pendingTopics?.length || 0,
-              });
-            } else {
-              diag.debug('No memory capsule found for user', { userId });
-            }
-          } catch (capsuleErr) {
-            diag.warn('Memory capsule hydration failed (non-fatal)', {
-              error: String(capsuleErr),
-            });
-          }
-        })(),
-
         // 🧠 MEMORY ENHANCEMENT: Load between-session thinking records
         // "I've been thinking about what you said..." - Continuous Presence
         (async () => {
@@ -628,64 +600,7 @@ export async function initializeSession(ctx: SessionInitContext): Promise<Sessio
                 const profile = services.userProfile;
                 if (!profile) return;
 
-                // ======================================================================
-                // 🧠 COMMITMENT KEEPER: Load follow-ups from Better Than Human service
-                // This is the "Never forget what you said you'd do" capability
-                // ======================================================================
-                try {
-                  const { getFollowUpsForUser, loadUserCommitments } =
-                    await import('../../services/superhuman/commitment-keeper.js');
-                  const followUps = await getFollowUpsForUser(userId);
-                  const commitments = await loadUserCommitments(userId);
-
-                  // Filter to commitments that need surfacing
-                  const urgentFollowUps = followUps.filter((f) => f.shouldSurface);
-                  if (urgentFollowUps.length > 0) {
-                    // Store in session state for context injection
-                    (globalThis as Record<string, unknown>)[`_commitmentFollowUps_${sessionId}`] =
-                      urgentFollowUps;
-
-                    diag.session('🧠 Commitment Keeper: Follow-ups ready for surfacing', {
-                      userId,
-                      urgentCount: urgentFollowUps.length,
-                      totalCommitments: commitments.length,
-                      types: urgentFollowUps.map((f) => f.tone),
-                    });
-                  }
-                } catch (commitmentErr) {
-                  diag.debug('Commitment Keeper load failed (non-fatal)', {
-                    error: String(commitmentErr),
-                  });
-                }
-
-                // ======================================================================
-                // 💚 OUR SONGS: Load shared musical memories for callback
-                // "Remember when this song was playing?"
-                // ======================================================================
-                try {
-                  const { loadOurSongsFromStorage, getProactiveRememberWhen } =
-                    await import('../../services/trust-systems/our-songs.js');
-                  await loadOurSongsFromStorage(userId);
-
-                  // Check if there's a proactive "remember when" moment to share
-                  const rememberWhen = getProactiveRememberWhen(userId);
-                  if (rememberWhen) {
-                    (globalThis as Record<string, unknown>)[`_ourSongsRememberWhen_${sessionId}`] =
-                      rememberWhen;
-
-                    diag.session('💚 Our Songs: Memory ready for callback', {
-                      userId,
-                      song: rememberWhen.memory.song.name,
-                      context: rememberWhen.memory.moment.context.slice(0, 50),
-                    });
-                  }
-                } catch (ourSongsErr) {
-                  diag.debug('Our Songs load failed (non-fatal)', {
-                    error: String(ourSongsErr),
-                  });
-                }
-
-                // Check for open commitments that need follow-up (legacy profile-based)
+                // Check for open commitments that need follow-up
                 const openCommitments = profile.openCommitments?.filter(
                   (c) => c.status === 'open' || c.status === 'in_progress'
                 );
@@ -741,10 +656,12 @@ export async function initializeSession(ctx: SessionInitContext): Promise<Sessio
         userId
           ? (async () => {
               try {
-                const { getPatternPrediction } =
-                  await import('../../services/superhuman/semantic-intelligence/temporal-patterns.js');
-                const { getEmotionalContext } =
-                  await import('../../services/superhuman/semantic-intelligence/emotional-trajectories.js');
+                const { getPatternPrediction } = await import(
+                  '../../services/superhuman/semantic-intelligence/temporal-patterns.js'
+                );
+                const { getEmotionalContext } = await import(
+                  '../../services/superhuman/semantic-intelligence/emotional-trajectories.js'
+                );
 
                 // Get temporal pattern prediction
                 const patternPrediction = await getPatternPrediction(userId);
@@ -1082,9 +999,8 @@ export async function initializeSession(ctx: SessionInitContext): Promise<Sessio
   // because expectedLanguage defaults to 'en' in the transcript validator
   if (userId) {
     // IMMEDIATE: Check if userProfile already has language preference (avoids race condition)
-    const profileLang = (
-      services.userProfile?.preferences as { spokenLanguage?: string } | undefined
-    )?.spokenLanguage;
+    const profileLang = (services.userProfile?.preferences as { spokenLanguage?: string } | undefined)
+      ?.spokenLanguage;
     if (profileLang) {
       userData.preferredLanguage = profileLang;
       diag.session('🌍 User language loaded from cached profile', {

@@ -48,7 +48,7 @@ async function storeResult(result: BackgroundResult): Promise<void> {
     if (db) {
       // Clean undefined values for Firestore
       const cleanResult = JSON.parse(JSON.stringify(result));
-
+      
       await db
         .collection('bogle_users')
         .doc(result.userId)
@@ -56,10 +56,7 @@ async function storeResult(result: BackgroundResult): Promise<void> {
         .doc(result.id)
         .set(cleanResult);
 
-      log.info(
-        { userId: result.userId, resultId: result.id, type: result.type },
-        'Result stored in Firestore'
-      );
+      log.info({ userId: result.userId, resultId: result.id, type: result.type }, 'Result stored in Firestore');
     } else {
       // Fallback to in-memory
       const existing = resultStore.get(result.userId) || [];
@@ -70,10 +67,7 @@ async function storeResult(result: BackgroundResult): Promise<void> {
     // Store in memory as fallback
     const existing = resultStore.get(result.userId) || [];
     resultStore.set(result.userId, [...existing, result]);
-    log.warn(
-      { error: String(error), resultId: result.id },
-      'Firestore unavailable, stored in memory'
-    );
+    log.warn({ error: String(error), resultId: result.id }, 'Firestore unavailable, stored in memory');
   }
 }
 
@@ -83,9 +77,9 @@ async function storeResult(result: BackgroundResult): Promise<void> {
 export async function getPendingResults(
   userId: string,
   options: {
-    maxAge?: number; // Max age in hours (default 24)
-    limit?: number; // Max results to return
-    types?: BackgroundResultType[]; // Filter by type
+    maxAge?: number;  // Max age in hours (default 24)
+    limit?: number;   // Max results to return
+    types?: BackgroundResultType[];  // Filter by type
   } = {}
 ): Promise<BackgroundResult[]> {
   const { maxAge = 24, limit = 10, types } = options;
@@ -113,20 +107,20 @@ export async function getPendingResults(
       .collection('background_results')
       .where('capturedAt', '>=', cutoff.toISOString())
       .orderBy('capturedAt', 'desc')
-      .limit(limit * 2) // Get more, then filter
+      .limit(limit * 2)  // Get more, then filter
       .get();
 
     const results: BackgroundResult[] = [];
 
     snapshot.forEach((doc) => {
       const data = doc.data() as BackgroundResult;
-
+      
       // Filter out delivered results
       if (data.delivered === true) return;
-
+      
       // Filter by type if specified
       if (types && types.length > 0 && !types.includes(data.type)) return;
-
+      
       results.push(data);
     });
 
@@ -150,7 +144,7 @@ function getMemoryResults(
 ): BackgroundResult[] {
   const cutoff = new Date();
   cutoff.setHours(cutoff.getHours() - maxAge);
-
+  
   const all = resultStore.get(userId) || [];
   const filtered = all.filter((r) => {
     if (r.delivered) return false;
@@ -158,7 +152,7 @@ function getMemoryResults(
     if (types && types.length > 0 && !types.includes(r.type)) return false;
     return true;
   });
-
+  
   return sortResultsForDisplay(filtered).slice(0, limit);
 }
 
@@ -212,10 +206,7 @@ export async function markResultsDelivered(
       }
     }
 
-    log.debug(
-      { userId, count: resultIds.length, method: deliveryMethod },
-      'Marked results as delivered'
-    );
+    log.debug({ userId, count: resultIds.length, method: deliveryMethod }, 'Marked results as delivered');
   } catch (error) {
     log.warn({ error: String(error), userId }, 'Failed to mark results as delivered');
   }
@@ -228,7 +219,10 @@ export async function markResultsDelivered(
 /**
  * Send result to active LiveKit session
  */
-async function sendToActiveSession(sessionId: string, result: BackgroundResult): Promise<boolean> {
+async function sendToActiveSession(
+  sessionId: string,
+  result: BackgroundResult
+): Promise<boolean> {
   try {
     const livekitSdk = await import('livekit-server-sdk').catch(() => null);
 
@@ -307,7 +301,7 @@ async function sendPushNotification(result: BackgroundResult): Promise<void> {
         status: result.status,
       },
       priority: result.priority === 'urgent' ? 'high' : 'normal',
-      clickAction: '/activity', // Navigate to activity history
+      clickAction: '/activity',  // Navigate to activity history
     });
 
     log.info({ userId: result.userId, resultId: result.id }, 'Push notification sent');
@@ -321,8 +315,7 @@ async function sendPushNotification(result: BackgroundResult): Promise<void> {
  */
 async function sendEmailNotification(result: BackgroundResult): Promise<void> {
   try {
-    const { sendEmail, isEmailDeliveryAvailable } =
-      await import('../outreach/delivery/email-delivery.js');
+    const { sendEmail, isEmailDeliveryAvailable } = await import('../outreach/delivery/email-delivery.js');
 
     if (!isEmailDeliveryAvailable()) {
       return;
@@ -359,14 +352,18 @@ async function sendEmailNotification(result: BackgroundResult): Promise<void> {
 
 function buildPushTitle(result: BackgroundResult): string {
   const contact = result.contactName ? ` with ${result.contactName}` : '';
-
+  
   switch (result.type) {
     case 'on_behalf_call':
-      return result.status === 'success' ? `✓ Call${contact} complete` : `📞 Call update${contact}`;
+      return result.status === 'success' 
+        ? `✓ Call${contact} complete`
+        : `📞 Call update${contact}`;
     case 'research_complete':
       return `🔍 Research complete`;
     case 'reservation_made':
-      return result.status === 'success' ? `✓ Reservation confirmed` : `📅 Reservation update`;
+      return result.status === 'success'
+        ? `✓ Reservation confirmed`
+        : `📅 Reservation update`;
     case 'follow_up_sent':
       return `📧 Follow-up sent${contact}`;
     case 'reminder_triggered':
@@ -380,10 +377,12 @@ function buildPushTitle(result: BackgroundResult): string {
 
 function buildEmailSubject(result: BackgroundResult): string {
   const contact = result.contactName ? ` - ${result.contactName}` : '';
-
+  
   switch (result.type) {
     case 'on_behalf_call':
-      return result.status === 'success' ? `Call complete${contact}` : `Call update${contact}`;
+      return result.status === 'success'
+        ? `Call complete${contact}`
+        : `Call update${contact}`;
     case 'research_complete':
       return `Research results ready`;
     case 'reservation_made':
@@ -397,14 +396,14 @@ function buildEmailSubject(result: BackgroundResult): string {
 
 function buildEmailBody(result: BackgroundResult): string {
   const lines: string[] = [];
-
+  
   lines.push(`Hey! Just wanted to let you know about something I did for you.\n`);
   lines.push(`**${result.summary}**\n`);
-
+  
   if (result.details) {
     lines.push(`${result.details}\n`);
   }
-
+  
   if (result.actionItems && result.actionItems.length > 0) {
     lines.push(`**Action items:**`);
     for (const item of result.actionItems) {
@@ -412,13 +411,13 @@ function buildEmailBody(result: BackgroundResult): string {
     }
     lines.push('');
   }
-
+  
   if (result.requiresCallback && result.callbackTime) {
     lines.push(`**Heads up:** They'd like you to call back around ${result.callbackTime}\n`);
   }
-
+  
   lines.push(`*Completed: ${new Date(result.capturedAt).toLocaleString()}*`);
-
+  
   return lines.join('\n');
 }
 
@@ -453,23 +452,25 @@ async function getUserEmail(userId: string): Promise<string | null> {
  * 3. Sending push/email notifications (if disconnected)
  * 4. Ensuring the user will be told about it on reconnect
  */
-export async function captureBackgroundResult(params: {
-  userId: string;
-  type: BackgroundResultType;
-  status: OutcomeStatus;
-  summary: string;
-  priority?: ResultPriority;
-  initiatedBy: string;
-  sessionId?: string; // Original session ID for LiveKit injection
-  contactName?: string;
-  contactId?: string;
-  details?: string;
-  actionItems?: string[];
-  requiresCallback?: boolean;
-  callbackTime?: string;
-  relatedTaskId?: string;
-  specificData?: Record<string, unknown>;
-}): Promise<BackgroundResult> {
+export async function captureBackgroundResult(
+  params: {
+    userId: string;
+    type: BackgroundResultType;
+    status: OutcomeStatus;
+    summary: string;
+    priority?: ResultPriority;
+    initiatedBy: string;
+    sessionId?: string;  // Original session ID for LiveKit injection
+    contactName?: string;
+    contactId?: string;
+    details?: string;
+    actionItems?: string[];
+    requiresCallback?: boolean;
+    callbackTime?: string;
+    relatedTaskId?: string;
+    specificData?: Record<string, unknown>;
+  }
+): Promise<BackgroundResult> {
   const result = createBackgroundResult({
     userId: params.userId,
     type: params.type,
@@ -519,7 +520,10 @@ export async function captureBackgroundResult(params: {
       await markResultsDelivered(result.userId, [result.id], 'voice');
     }
 
-    log.info({ resultId: result.id, sentToActive }, 'Background result captured successfully');
+    log.info(
+      { resultId: result.id, sentToActive },
+      'Background result captured successfully'
+    );
 
     return result;
   } catch (error) {
@@ -540,7 +544,7 @@ export async function captureBackgroundResult(params: {
  */
 export async function buildPendingResultsContext(userId: string): Promise<string | null> {
   const results = await getPendingResults(userId, {
-    maxAge: 48, // 48 hours
+    maxAge: 48,  // 48 hours
     limit: 8,
   });
 
@@ -552,43 +556,37 @@ export async function buildPendingResultsContext(userId: string): Promise<string
     '',
     '## 📋 WHILE THEY WERE AWAY (Tell the user!)',
     '',
-    'Background tasks completed while they were away. Share these updates naturally - like a friend reporting back on errands they ran for you.',
+    "Background tasks completed while they were away. Share these updates naturally - like a friend reporting back on errands they ran for you.",
     '',
   ];
 
   for (const result of results) {
     const icon = getResultIcon(result.type);
-    const priority =
-      result.priority === 'urgent'
-        ? ' ⚠️ URGENT'
-        : result.priority === 'high'
-          ? ' ⭐ Important'
-          : '';
-
+    const priority = result.priority === 'urgent' ? ' ⚠️ URGENT' : 
+                     result.priority === 'high' ? ' ⭐ Important' : '';
+    
     lines.push(`### ${icon} ${result.type.replace(/_/g, ' ')}${priority}`);
     lines.push(`**${result.summary}**`);
-
+    
     if (result.details) {
       lines.push(result.details);
     }
-
+    
     if (result.requiresCallback) {
-      lines.push(
-        `⚠️ They want a callback${result.callbackTime ? ` around ${result.callbackTime}` : ''}`
-      );
+      lines.push(`⚠️ They want a callback${result.callbackTime ? ` around ${result.callbackTime}` : ''}`);
     }
-
+    
     if (result.actionItems && result.actionItems.length > 0) {
       lines.push(`📝 Action items: ${result.actionItems.join(', ')}`);
     }
-
+    
     lines.push('');
   }
 
   lines.push('**How to share:**');
   lines.push('- Weave naturally into your greeting');
-  lines.push('- Start with the most important/urgent items');
-  lines.push('- Be conversational: "Oh! While you were away, I..."');
+  lines.push("- Start with the most important/urgent items");
+  lines.push("- Be conversational: \"Oh! While you were away, I...\"");
   lines.push('');
 
   // Mark as delivered (fire and forget)

@@ -27,7 +27,7 @@ import {
   getVoiceId,
 } from '../../personas/voice-registry.js';
 import type { AgentId } from '../../services/agent-bus.js';
-import { isFullTeamUnlocked } from '../../services/monetization/team-unlocks.js';
+import { isFullTeamUnlocked } from '../../services/team-unlocks.js';
 // FIX BUG #1: Import trust context builder for handoffs
 import { getLogger } from '../../utils/safe-logger.js';
 import {
@@ -38,7 +38,7 @@ import {
 import {
   buildInsightBriefingForHandoff,
   formatInsightBriefingForPrompt,
-} from '../../services/cross-persona/cross-persona-insights.js';
+} from '../../services/cross-persona-insights.js';
 import { createHandoffEvent } from './types.js';
 import { HANDOFF_TIMING } from '../../config/handoff-timing.js';
 // Persona Affinity Tracking - "Better Than Human" smart routing

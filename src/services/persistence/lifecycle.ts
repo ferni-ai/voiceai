@@ -105,7 +105,7 @@ async function getServices(): Promise<ServiceConfig[]> {
     const {
       initializeCommunicationMirroringPersistence,
       shutdownCommunicationMirroringPersistence,
-    } = await import('../../intelligence/tracking/communication-style.js');
+    } = await import('../../intelligence/communication-mirroring.js');
     services.push({
       name: 'communication-mirroring',
       initialize: initializeCommunicationMirroringPersistence,
@@ -185,7 +185,7 @@ async function getServices(): Promise<ServiceConfig[]> {
   // Agent Evolution
   try {
     const { initializeAgentEvolution, saveAgentEvolutionToFirestore } =
-      await import('../../intelligence/collective/agent-evolution.js');
+      await import('../../intelligence/agent-evolution.js');
     services.push({
       name: 'agent-evolution',
       initialize: async () => {

@@ -8,8 +8,8 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
-import { getCommunityInsights } from '../collective/community-insights.js';
-import { getAgentEvolution } from '../collective/agent-evolution.js';
+import { getCommunityInsights } from '../community-insights.js';
+import { getAgentEvolution } from '../agent-evolution.js';
 import type { KeyMoment, EmotionalPattern } from '../../types/user-profile.js';
 
 const log = getLogger();

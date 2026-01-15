@@ -640,17 +640,17 @@
     "overrides": {
       "disfluency": {
         "enabled": true,
-        "frequency": 0.1
+        "frequency": 0.10
       },
       "active_listening": {
         "enabled": true,
-        "backchannel_probability": 0.4,
-        "emotional_echo_probability": 0.5,
+        "backchannel_probability": 0.40,
+        "emotional_echo_probability": 0.50,
         "vocabulary_mirroring_probability": 0.35
       },
       "conversational_memory": {
         "enabled": true,
-        "callback_probability": 0.3
+        "callback_probability": 0.30
       }
     },
     "warmup": {

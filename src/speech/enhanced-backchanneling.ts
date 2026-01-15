@@ -21,7 +21,7 @@
  * @see ./backchanneling/index.ts for unified API
  */
 
-import type { EmotionResult } from '../intelligence/detectors/emotion.js';
+import type { EmotionResult } from '../intelligence/emotion-detector.js';
 import { createLogger } from '../utils/safe-logger.js';
 
 // Import from persona-phrases (single source of truth)

@@ -14,7 +14,7 @@
  * not like logging into a bank.
  */
 
-import { getDefaultStore } from '../memory/index.js';
+import { getDefaultStore } from '../../memory/index.js';
 import type { UserProfile, VoiceSketch } from '../../types/user-profile.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import {

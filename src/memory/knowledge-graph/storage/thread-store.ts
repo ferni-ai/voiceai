@@ -101,7 +101,10 @@ export async function createThread(
 
   await ref.doc(id).set(cleanForFirestore(fullThread));
 
-  log.info({ userId, threadId: id, topic: thread.topic }, '✨ Created thread');
+  log.info(
+    { userId, threadId: id, topic: thread.topic },
+    '✨ Created thread'
+  );
 
   return fullThread;
 }
@@ -220,7 +223,9 @@ export async function resolveOpenQuestion(
   // If no more open questions or actions, mark as resolved
   const pendingActions = Array.isArray(thread.pendingActions) ? thread.pendingActions : [];
   const newStatus: ThreadStatus =
-    updatedQuestions.length === 0 && pendingActions.length === 0 ? 'resolved' : thread.status;
+    updatedQuestions.length === 0 && pendingActions.length === 0
+      ? 'resolved'
+      : thread.status;
 
   await docRef.update({
     openQuestions: updatedQuestions,
@@ -286,7 +291,9 @@ export async function getActiveThreads(
   if (options?.includeOpen) statuses.push('open');
   if (options?.includeRecurring) statuses.push('recurring');
 
-  let query = ref.where('status', 'in', statuses).orderBy('lastUpdatedAt', 'desc');
+  let query = ref
+    .where('status', 'in', statuses)
+    .orderBy('lastUpdatedAt', 'desc');
 
   if (options?.limit) {
     query = query.limit(options.limit);
@@ -299,7 +306,10 @@ export async function getActiveThreads(
 /**
  * Get threads that have open loops (unresolved questions/actions)
  */
-export async function getOpenLoopThreads(userId: string, limit = 10): Promise<Thread[]> {
+export async function getOpenLoopThreads(
+  userId: string,
+  limit = 10
+): Promise<Thread[]> {
   const ref = await getThreadsRef(userId);
   if (!ref) return [];
 
@@ -390,7 +400,8 @@ export async function findOrCreateThread(
       normalizedTopic.includes(thread.topic.toLowerCase()) ||
       thread.relatedTopics.some(
         (rt) =>
-          rt.toLowerCase().includes(normalizedTopic) || normalizedTopic.includes(rt.toLowerCase())
+          rt.toLowerCase().includes(normalizedTopic) ||
+          normalizedTopic.includes(rt.toLowerCase())
       )
     ) {
       // Found matching thread - add session

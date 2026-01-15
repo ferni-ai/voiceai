@@ -175,7 +175,7 @@ function formatBirthdayTrigger(context: ProactiveSessionContext): string {
 
   return `[PROACTIVE CHECK-IN: ${isToday ? "It's their birthday!" : 'Birthday coming up'}]
 
-This is a celebration call! ${isToday ? 'Today is their birthday.' : `Their birthday is coming up (${context.relatedDate?.description}).`}
+This is a celebration call! ${isToday ? "Today is their birthday." : `Their birthday is coming up (${context.relatedDate?.description}).`}
 
 OPENER STYLE: celebratory
 
@@ -274,8 +274,9 @@ export const proactiveSessionContextBuilder: ContextBuilder = {
     // Fallback: Check conversation context bridge for recent outreach
     if (!context && userId) {
       try {
-        const { getConversationBridgeContext } =
-          await import('../../../services/outreach/conversation-context-bridge.js');
+        const { getConversationBridgeContext } = await import(
+          '../../../services/outreach/conversation-context-bridge.js'
+        );
         const bridgeContext = await getConversationBridgeContext(userId);
 
         if (bridgeContext && bridgeContext.isDirectResponse) {

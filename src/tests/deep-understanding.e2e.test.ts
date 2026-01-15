@@ -21,45 +21,33 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Intelligence systems
-import {
-  analyzeSilence,
-  resetSilenceIntelligence,
-} from '../intelligence/deep-understanding/silence.js';
+import { analyzeSilence, resetSilenceIntelligence } from '../intelligence/silence-intelligence.js';
 import {
   predictUserState,
   recordConversationObservation,
   resetLifeRhythmPrediction,
-} from '../intelligence/deep-understanding/life-rhythm.js';
+} from '../intelligence/life-rhythm-prediction.js';
 import {
   extractPersonMentions,
   recordPersonMention,
   resetRelationalNetwork,
   getRelationalNetwork,
-} from '../intelligence/deep-understanding/relationships.js';
+} from '../intelligence/relational-network.js';
 import {
   analyzeResistance,
   resetResistanceDetection,
-} from '../intelligence/deep-understanding/resistance.js';
-import {
-  assessEnergyState,
-  resetEnergyStateInference,
-} from '../intelligence/deep-understanding/energy.js';
-import {
-  analyzeSubconscious,
-  resetSubconsciousGoals,
-} from '../intelligence/deep-understanding/subconscious.js';
-import { analyzeFlow, resetConversationalFlow } from '../intelligence/deep-understanding/flow.js';
+} from '../intelligence/resistance-detection.js';
+import { assessEnergyState, resetEnergyStateInference } from '../intelligence/energy-state.js';
+import { analyzeSubconscious, resetSubconsciousGoals } from '../intelligence/subconscious-goals.js';
+import { analyzeFlow, resetConversationalFlow } from '../intelligence/conversational-flow.js';
 import {
   detectMisunderstanding,
   generateRepair,
   recordAIResponse,
   resetRepairIntelligence,
-} from '../intelligence/deep-understanding/repair.js';
-import { analyzeHope, resetHopeTrajectory } from '../intelligence/deep-understanding/hope.js';
-import {
-  analyzeChapter,
-  resetLifeChapterAwareness,
-} from '../intelligence/deep-understanding/life-chapter.js';
+} from '../intelligence/repair-intelligence.js';
+import { analyzeHope, resetHopeTrajectory } from '../intelligence/hope-trajectory.js';
+import { analyzeChapter, resetLifeChapterAwareness } from '../intelligence/life-chapter.js';
 
 // Context builder
 import {

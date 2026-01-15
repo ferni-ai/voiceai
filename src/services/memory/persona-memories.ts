@@ -20,7 +20,7 @@
  * persist across sessions via Firestore/PostgreSQL.
  */
 
-import { getDefaultStore } from '../memory/index.js';
+import { getDefaultStore } from '../../memory/index.js';
 import type { UserProfile } from '../../types/user-profile.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
@@ -29,90 +29,16 @@ import { cleanForFirestore } from '../../utils/firestore-utils.js';
 // TYPES
 // ============================================================================
 
-/**
- * Memory storage persona IDs (internal/legacy keys).
- * These are used as storage keys for backward compatibility.
- *
- * NOTE: For user-facing code, use canonical IDs from personas/id-mapping.ts
- * and convert using the mapping utilities.
- */
-export type MemoryPersonaId =
-  | 'jack-b' // Storage key for Ferni memories
-  | 'nayan-patel' // Storage key for Nayan memories (historical: was "Bogle")
-  | 'peter-john' // Storage key for Peter memories
-  | 'spend-save' // Storage key for Maya memories
-  | 'event-planner' // Storage key for Jordan memories
-  | 'comm-specialist'; // Storage key for Alex memories
-
-/** @deprecated Use MemoryPersonaId instead */
-export type PersonaId = MemoryPersonaId;
-
-/**
- * Canonical short names for personas (user-friendly).
- * These match what users know the personas as.
- */
-export type CanonicalPersonaName = 'ferni' | 'peter' | 'maya' | 'jordan' | 'alex' | 'nayan';
-
-/**
- * Maps canonical persona names to internal storage keys.
- * Use this when converting user-facing names to storage keys.
- */
-export const CANONICAL_TO_STORAGE_KEY: Record<CanonicalPersonaName, MemoryPersonaId> = {
-  ferni: 'jack-b',
-  peter: 'peter-john',
-  maya: 'spend-save',
-  jordan: 'event-planner',
-  alex: 'comm-specialist',
-  nayan: 'nayan-patel',
-};
-
-/**
- * Maps storage keys back to canonical persona names.
- */
-export const STORAGE_KEY_TO_CANONICAL: Record<MemoryPersonaId, CanonicalPersonaName> = {
-  'jack-b': 'ferni',
-  'peter-john': 'peter',
-  'spend-save': 'maya',
-  'event-planner': 'jordan',
-  'comm-specialist': 'alex',
-  'nayan-patel': 'nayan',
-};
-
-/**
- * Convert a canonical persona name to the internal storage key.
- * @example toStorageKey('ferni') // returns 'jack-b'
- */
-export function toStorageKey(canonical: CanonicalPersonaName): MemoryPersonaId {
-  return CANONICAL_TO_STORAGE_KEY[canonical];
-}
-
-/**
- * Convert a storage key to the canonical persona name.
- * @example toCanonicalName('jack-b') // returns 'ferni'
- */
-export function toCanonicalName(storageKey: MemoryPersonaId): CanonicalPersonaName {
-  return STORAGE_KEY_TO_CANONICAL[storageKey];
-}
-
-/**
- * Check if a string is a valid canonical persona name.
- */
-export function isCanonicalName(name: string): name is CanonicalPersonaName {
-  return name in CANONICAL_TO_STORAGE_KEY;
-}
-
-/**
- * Check if a string is a valid storage key.
- */
-export function isStorageKey(key: string): key is MemoryPersonaId {
-  return key in STORAGE_KEY_TO_CANONICAL;
-}
+export type PersonaId =
+  | 'jack-b'
+  | 'nayan-patel'
+  | 'peter-john'
+  | 'spend-save'
+  | 'event-planner'
+  | 'comm-specialist';
 
 // Map persona IDs to profile field names
-const PERSONA_FIELD_MAP: Record<
-  MemoryPersonaId,
-  keyof NonNullable<UserProfile['personaMemories']>
-> = {
+const PERSONA_FIELD_MAP: Record<PersonaId, keyof NonNullable<UserProfile['personaMemories']>> = {
   'jack-b': 'jackie',
   'nayan-patel': 'bogle',
   'peter-john': 'peter',
@@ -140,7 +66,7 @@ interface BasePersonaMemoryEntry {
 export interface Memory {
   id: string;
   userId: string;
-  personaId: MemoryPersonaId;
+  personaId: PersonaId;
 
   // What's being remembered
   type: string; // Persona-specific types
@@ -328,7 +254,7 @@ export function getMemoriesCacheStats(): { users: number; entries: number } {
  */
 export async function registerWithSessionDataManager(): Promise<void> {
   try {
-    const { getSessionDataManager } = await import('../session-manager/session-data-manager.js');
+    const { getSessionDataManager } = await import('../session-data-manager.js');
     getSessionDataManager().registerService({
       name: 'PersonaMemories',
       clearUserData: clearUserMemoriesCache,
@@ -465,7 +391,7 @@ export async function saveMemoriesForUser(userId: string): Promise<void> {
  */
 export async function remember<T extends Memory>(
   userId: string,
-  personaId: MemoryPersonaId,
+  personaId: PersonaId,
   data: Omit<T, 'id' | 'userId' | 'personaId' | 'timesReferenced' | 'createdAt' | 'updatedAt'>
 ): Promise<T> {
   await loadMemoriesForUser(userId);
@@ -512,7 +438,7 @@ export async function remember<T extends Memory>(
  */
 export async function recall(
   userId: string,
-  personaId: MemoryPersonaId,
+  personaId: PersonaId,
   options?: {
     type?: string;
     sentiment?: Memory['sentiment'];
@@ -572,7 +498,7 @@ export async function recall(
  */
 export async function findMemory(
   userId: string,
-  personaId: MemoryPersonaId,
+  personaId: PersonaId,
   nameOrTicker: string
 ): Promise<Memory | null> {
   await loadMemoriesForUser(userId);

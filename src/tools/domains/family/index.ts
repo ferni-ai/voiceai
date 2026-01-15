@@ -996,33 +996,6 @@ import {
   requestCheckInToolDef,
 } from './family-sharing-tool.js';
 
-// Import family network status tool
-import {
-  familyNetworkStatusTool,
-  getFamilyNetworkStatus,
-  familyNetworkStatusSchema,
-} from './family-network-status.js';
-
-// Import special dates tools
-import {
-  rememberSpecialDate,
-  getSpecialDates,
-  rememberSpecialDateSchema,
-  listSpecialDatesSchema,
-} from './special-dates-tool.js';
-
-// Import relationship health tool
-import {
-  checkRelationshipHealth,
-  checkRelationshipHealthSchema,
-} from './relationship-health-tool.js';
-
-// Import best time tool
-import {
-  getBestTimeToCall,
-  getBestTimeSchema,
-} from './best-time-tool.js';
-
 const familyTools: ToolDefinition[] = [
   // Parenting
   coachParentingChallengeDef,
@@ -1047,99 +1020,6 @@ const familyTools: ToolDefinition[] = [
   // Family Sharing (sponsor to family)
   shareWithFamilyToolDef,
   requestCheckInToolDef,
-  // Family Network Status ("How's everyone doing?")
-  {
-    id: 'getFamilyNetworkStatus',
-    name: 'Get Family Network Status',
-    description:
-      'Get an overview of family connections - who you\'ve talked to, who needs attention. Ask "How is everyone in my family?"',
-    domain: 'family',
-    tags: ['family', 'network', 'status', 'overview', 'superhuman'],
-    create: (ctx: ToolContext) => ({
-      name: 'getFamilyNetworkStatus',
-      description: familyNetworkStatusTool.description,
-      schema: familyNetworkStatusSchema,
-      execute: async (params: unknown) =>
-        getFamilyNetworkStatus(
-          params as Parameters<typeof getFamilyNetworkStatus>[0],
-          { userId: ctx.userId }
-        ),
-    }),
-  },
-  // Special Dates - Birthdays & Anniversaries
-  {
-    id: 'rememberSpecialDate',
-    name: 'Remember Special Date',
-    description:
-      'Remember a birthday, anniversary, or special date. "Mom\'s birthday is March 15"',
-    domain: 'family',
-    tags: ['family', 'birthday', 'anniversary', 'dates', 'superhuman'],
-    create: (ctx: ToolContext) => ({
-      name: 'rememberSpecialDate',
-      description: 'Remember a birthday, anniversary, or special date',
-      schema: rememberSpecialDateSchema,
-      execute: async (params: unknown) =>
-        rememberSpecialDate(
-          params as Parameters<typeof rememberSpecialDate>[0],
-          { userId: ctx.userId }
-        ),
-    }),
-  },
-  {
-    id: 'listSpecialDates',
-    name: 'List Special Dates',
-    description: 'List saved birthdays and anniversaries. "What birthdays are coming up?"',
-    domain: 'family',
-    tags: ['family', 'birthday', 'anniversary', 'dates', 'list'],
-    create: (ctx: ToolContext) => ({
-      name: 'listSpecialDates',
-      description: 'List special dates',
-      schema: listSpecialDatesSchema,
-      execute: async (params: unknown) =>
-        getSpecialDates(
-          params as Parameters<typeof getSpecialDates>[0],
-          { userId: ctx.userId }
-        ),
-    }),
-  },
-  // Relationship Health Tracking
-  {
-    id: 'checkRelationshipHealth',
-    name: 'Check Relationship Health',
-    description:
-      'Check the health of family relationships based on call history. "How\'s my relationship with mom?"',
-    domain: 'family',
-    tags: ['family', 'relationship', 'health', 'tracking', 'superhuman'],
-    create: (ctx: ToolContext) => ({
-      name: 'checkRelationshipHealth',
-      description: 'Check relationship health based on call history',
-      schema: checkRelationshipHealthSchema,
-      execute: async (params: unknown) =>
-        checkRelationshipHealth(
-          params as Parameters<typeof checkRelationshipHealth>[0],
-          { userId: ctx.userId }
-        ),
-    }),
-  },
-  // Best Time to Call
-  {
-    id: 'getBestTimeToCall',
-    name: 'Get Best Time to Call',
-    description:
-      'Find the best time to reach a contact based on call history. "When should I call mom?"',
-    domain: 'family',
-    tags: ['family', 'timing', 'reachability', 'learning', 'superhuman'],
-    create: (ctx: ToolContext) => ({
-      name: 'getBestTimeToCall',
-      description: 'Find best time to reach a contact',
-      schema: getBestTimeSchema,
-      execute: async (params: unknown) =>
-        getBestTimeToCall(
-          params as Parameters<typeof getBestTimeToCall>[0],
-          { userId: ctx.userId }
-        ),
-    }),
-  },
 ];
 
 // ============================================================================

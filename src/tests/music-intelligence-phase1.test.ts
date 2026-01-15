@@ -26,8 +26,7 @@ describe('Phase 1.4: Emotion-Reactive Music', () => {
 
   beforeEach(async () => {
     vi.resetModules();
-    const module =
-      await import('../intelligence/context-builders/engagement/music-emotion-offers.js');
+    const module = await import('../intelligence/context-builders/engagement/music-emotion-offers.js');
     detectEmotionFromText = module.detectEmotionFromText;
     resetMusicOfferState = module.resetMusicOfferState;
     trackMusicOfferAccepted = module.trackMusicOfferAccepted;

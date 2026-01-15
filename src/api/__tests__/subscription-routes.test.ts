@@ -20,7 +20,7 @@ const mockStripeService = {
   verifyWebhook: vi.fn(),
 };
 
-vi.mock('../../services/integrations/stripe-subscription.js', () => mockStripeService);
+vi.mock('../../services/stripe-subscription.js', () => mockStripeService);
 
 // Mock trial service
 const mockTrialService = {
@@ -71,8 +71,7 @@ describe('Subscription Routes API', () => {
 
   describe('GET /api/subscription/status', () => {
     it('should return 401 without authentication', async () => {
-      const { handleSubscriptionRequest, routeSubscriptionRequest } =
-        await import('../subscription-routes.js');
+      const { handleSubscriptionRequest, routeSubscriptionRequest } = await import('../subscription-routes.js');
 
       const ctx = createRequestContext({
         method: 'GET',

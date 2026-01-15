@@ -19,7 +19,7 @@ import {
   type TopicCategory,
   type Topic,
   type TopicExtractionResult,
-} from '../intelligence/detectors/topic.js';
+} from '../intelligence/topic-tracker.js';
 
 // ============================================================================
 // TESTS

@@ -33,7 +33,7 @@ import {
 } from '../life-coaching-shared/user-profile.js';
 
 // Cross-persona intelligence for team coordination
-import { addCrossPersonaInsight } from '../../../services/cross-persona/cross-persona-insights.js';
+import { addCrossPersonaInsight } from '../../../services/cross-persona-insights.js';
 import { assessSafety, getCrisisResponse } from '../life-coaching-shared/safety-guards.js';
 import { ANGER_FRAMEWORKS, COPING_TECHNIQUES } from '../life-coaching-shared/content-databases.js';
 

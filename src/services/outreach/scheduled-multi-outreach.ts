@@ -374,10 +374,7 @@ export async function cleanupOldOutreach(
     snapshot.docs.forEach((doc) => batch.delete(doc.ref));
     await batch.commit();
 
-    log.info(
-      { userId, deleted: snapshot.size, olderThanDays },
-      'Cleaned up old scheduled outreach'
-    );
+    log.info({ userId, deleted: snapshot.size, olderThanDays }, 'Cleaned up old scheduled outreach');
     return snapshot.size;
   } catch (error) {
     log.error({ error: String(error), userId }, 'Failed to cleanup old outreach');

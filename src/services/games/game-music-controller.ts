@@ -26,7 +26,7 @@ interface GameMusicConfig {
 function getGameMusicConfig(gameType: string): GameMusicConfig {
   const configs: Record<string, GameMusicConfig> = {
     'name-that-tune': { genres: ['pop', 'rock', 'classic'], tempo: 'medium', intensity: 0.7 },
-    trivia: { genres: ['electronic', 'upbeat'], tempo: 'medium', intensity: 0.6 },
+    'trivia': { genres: ['electronic', 'upbeat'], tempo: 'medium', intensity: 0.6 },
     'word-games': { genres: ['lo-fi', 'chill'], tempo: 'slow', intensity: 0.4 },
     default: { genres: ['instrumental', 'ambient'], tempo: 'medium', intensity: 0.5 },
   };

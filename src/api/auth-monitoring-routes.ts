@@ -9,7 +9,7 @@
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
-import { getRecentEvents, getSecurityMetrics } from '../services/identity/security-events.js';
+import { getRecentEvents, getSecurityMetrics } from '../services/security-events.js';
 import { createLogger } from '../utils/safe-logger.js';
 import { requireAdmin } from './auth-middleware.js';
 import { sendError, sendJSON } from './helpers.js';

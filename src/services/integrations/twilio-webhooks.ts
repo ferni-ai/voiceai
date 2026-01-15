@@ -14,7 +14,7 @@
  */
 
 import { EventEmitter } from 'events';
-import { getRedisCache } from '../memory/redis-cache.js';
+import { getRedisCache } from '../../memory/redis-cache.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import { getAppointmentFollowUpService } from './scheduling/appointment-followup.js';
 

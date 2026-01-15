@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { EmotionDetector } from '../intelligence/detectors/emotion.js';
+import { EmotionDetector } from '../intelligence/emotion-detector.js';
 
 describe('Emotion Detector - Distress Detection Tests', () => {
   let detector: EmotionDetector;

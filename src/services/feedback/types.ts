@@ -215,25 +215,19 @@ export interface UserFeedbackStats {
   /** Average response time (ms) */
   avgResponseTimeMs: number;
   /** Stats by persona */
-  byPersona: Record<
-    string,
-    {
-      prompts: number;
-      resonated: number;
-      helpful: number;
-      tooMuch: number;
-      offTrack: number;
-    }
-  >;
+  byPersona: Record<string, {
+    prompts: number;
+    resonated: number;
+    helpful: number;
+    tooMuch: number;
+    offTrack: number;
+  }>;
   /** Stats by trigger type */
-  byTrigger: Record<
-    FeedbackTrigger,
-    {
-      prompts: number;
-      responses: number;
-      positiveRate: number;
-    }
-  >;
+  byTrigger: Record<FeedbackTrigger, {
+    prompts: number;
+    responses: number;
+    positiveRate: number;
+  }>;
   /** Last updated */
   lastUpdated: Date;
 }

@@ -367,8 +367,8 @@ async function buildDynamicMemoryContext(input: ContextBuilderInput): Promise<Co
     }
 
     // Add hints for highly relevant entities mentioned in current message
-    const currentMentions = entities.filter((e) =>
-      userText.toLowerCase().includes(e.name.toLowerCase())
+    const currentMentions = entities.filter(
+      (e) => userText.toLowerCase().includes(e.name.toLowerCase())
     );
 
     if (currentMentions.length > 0) {

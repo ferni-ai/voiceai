@@ -213,81 +213,17 @@ export function extractNames(transcript: string): Array<{ name: string; context:
 
   // Common words to skip (not names)
   const skipWords = new Set([
-    'the',
-    'a',
-    'an',
-    'this',
-    'that',
-    'it',
-    'my',
-    'we',
-    'they',
-    'he',
-    'she',
-    'you',
-    'i',
-    'with',
-    'said',
-    'told',
-    'asked',
-    'met',
-    'saw',
-    'called',
-    'texted',
-    'spoke',
-    'today',
-    'yesterday',
-    'tomorrow',
-    'monday',
-    'tuesday',
-    'wednesday',
-    'thursday',
-    'friday',
-    'saturday',
-    'sunday',
-    'morning',
-    'afternoon',
-    'evening',
-    'night',
-    'week',
-    'month',
-    'year',
-    'then',
-    'when',
-    'where',
-    'what',
-    'who',
-    'how',
-    'why',
-    'but',
-    'and',
-    'or',
-    'so',
-    'just',
-    'really',
-    'very',
-    'here',
-    'there',
-    'now',
-    'later',
-    'soon',
-    'again',
-    'next',
-    'last',
-    'first',
-    'good',
-    'great',
-    'nice',
-    'new',
-    'old',
-    'some',
-    'many',
-    'few',
+    'the', 'a', 'an', 'this', 'that', 'it', 'my', 'we', 'they', 'he', 'she', 'you', 'i',
+    'with', 'said', 'told', 'asked', 'met', 'saw', 'called', 'texted', 'spoke',
+    'today', 'yesterday', 'tomorrow', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday',
+    'morning', 'afternoon', 'evening', 'night', 'week', 'month', 'year',
+    'then', 'when', 'where', 'what', 'who', 'how', 'why', 'but', 'and', 'or', 'so',
+    'just', 'really', 'very', 'here', 'there', 'now', 'later', 'soon', 'again', 'next',
+    'last', 'first', 'good', 'great', 'nice', 'new', 'old', 'some', 'many', 'few',
   ]);
 
   // 3. Extract names in "talked to X" patterns (with or without "I" prefix)
-  const talkPattern =
-    /\b(?:i\s+)?(?:talked to|spoke with|saw|met with|called|texted)\s+([A-Z][a-z]+)/gi;
+  const talkPattern = /\b(?:i\s+)?(?:talked to|spoke with|saw|met with|called|texted)\s+([A-Z][a-z]+)/gi;
   while ((match = talkPattern.exec(transcript)) !== null) {
     const name = match[1];
     if (!skipWords.has(name.toLowerCase()) && !seen.has(name.toLowerCase())) {
@@ -298,8 +234,7 @@ export function extractNames(transcript: string): Array<{ name: string; context:
 
   // 3b. Extract names from "X's name is Y" patterns: "My mom's name is Betty" (NOT "my name is X" - user intro)
   // Only match when there's a possessive before "name" to avoid extracting user's own name
-  const nameIsPattern =
-    /\b(?:mom|mother|dad|father|sister|brother|wife|husband|partner|friend|boss|colleague)'?s?\s+name\s+is\s+([A-Z][a-z]+)/gi;
+  const nameIsPattern = /\b(?:mom|mother|dad|father|sister|brother|wife|husband|partner|friend|boss|colleague)'?s?\s+name\s+is\s+([A-Z][a-z]+)/gi;
   while ((match = nameIsPattern.exec(transcript)) !== null) {
     const name = match[1];
     if (!skipWords.has(name.toLowerCase()) && !seen.has(name.toLowerCase())) {
@@ -319,8 +254,7 @@ export function extractNames(transcript: string): Array<{ name: string; context:
   }
 
   // 3d. Extract names from "X, my Y" patterns: "Alex, my mentor, recommended"
-  const xMyYPattern =
-    /\b([A-Z][a-z]+),?\s+my\s+(?:friend|mentor|boss|colleague|sister|brother|mom|dad)/gi;
+  const xMyYPattern = /\b([A-Z][a-z]+),?\s+my\s+(?:friend|mentor|boss|colleague|sister|brother|mom|dad)/gi;
   while ((match = xMyYPattern.exec(transcript)) !== null) {
     const name = match[1];
     if (!skipWords.has(name.toLowerCase()) && !seen.has(name.toLowerCase())) {
@@ -330,8 +264,7 @@ export function extractNames(transcript: string): Array<{ name: string; context:
   }
 
   // 4. Extract names in "X said/told me" patterns
-  const saidPattern =
-    /\b([A-Z][a-z]+)\s+(?:said|told me|called me|texted me|asked me|thinks|thought|suggested|mentioned|wants|wanted)/gi;
+  const saidPattern = /\b([A-Z][a-z]+)\s+(?:said|told me|called me|texted me|asked me|thinks|thought|suggested|mentioned|wants|wanted)/gi;
   while ((match = saidPattern.exec(transcript)) !== null) {
     const name = match[1];
     if (!skipWords.has(name.toLowerCase()) && !seen.has(name.toLowerCase())) {
@@ -341,8 +274,7 @@ export function extractNames(transcript: string): Array<{ name: string; context:
   }
 
   // 5. Extract names in "X is my Y" patterns: "Sarah is my best friend"
-  const isMyPattern =
-    /\b([A-Z][a-z]+)\s+is\s+my\s+(?:best\s+)?(?:friend|mom|dad|sister|brother|boss|colleague|mentor|wife|husband|partner)/gi;
+  const isMyPattern = /\b([A-Z][a-z]+)\s+is\s+my\s+(?:best\s+)?(?:friend|mom|dad|sister|brother|boss|colleague|mentor|wife|husband|partner)/gi;
   while ((match = isMyPattern.exec(transcript)) !== null) {
     const name = match[1];
     if (!skipWords.has(name.toLowerCase()) && !seen.has(name.toLowerCase())) {
@@ -352,8 +284,7 @@ export function extractNames(transcript: string): Array<{ name: string; context:
   }
 
   // 6. Extract names in "with X" context: "I went with John", "meeting with Sarah"
-  const withPattern =
-    /\b(?:with|and)\s+([A-Z][a-z]+)(?:\s+(?:today|yesterday|tomorrow|at|to|for)|\b)/gi;
+  const withPattern = /\b(?:with|and)\s+([A-Z][a-z]+)(?:\s+(?:today|yesterday|tomorrow|at|to|for)|\b)/gi;
   while ((match = withPattern.exec(transcript)) !== null) {
     const name = match[1];
     if (!skipWords.has(name.toLowerCase()) && !seen.has(name.toLowerCase())) {

@@ -1,14 +1,8 @@
 /**
  * Memory System Interfaces (Clean Architecture)
  *
- * This is the CANONICAL IMPORT POINT for all memory system types.
  * Defines contracts for all memory subsystems.
  * Enables dependency injection, testing, and loose coupling.
- *
- * ARCHITECTURE:
- * - entity-store/types.ts: Core entity types (Person, Place, Event, etc.)
- * - knowledge-graph/types.ts: Graph types (Relationship, Fact, Correlation)
- * - This file: Service interfaces and orchestration contracts
  *
  * Philosophy: The memory system should feel like a caring friend's mind -
  * naturally surfacing relevant context without feeling like a database query.
@@ -18,100 +12,6 @@
 
 import type { UserProfile, ConversationSummary, KeyMoment } from '../../types/user-profile.js';
 import type { HumanMemory } from '../../types/human-memory.js';
-
-// ============================================================================
-// RE-EXPORTS: ENTITY STORE TYPES (Core Entity System)
-// ============================================================================
-
-export type {
-  // Core entity types
-  Entity,
-  EntityType,
-  EntitySource,
-  EntityAttributes,
-  EntityProperties,
-  ContactInfo,
-  TemporalContext,
-  // Type-specific attributes
-  PersonAttributes,
-  PlaceAttributes,
-  EventAttributes,
-  CommitmentAttributes,
-  ValueAttributes,
-  DreamAttributes,
-  PatternAttributes,
-  PreferenceAttributes,
-  MemoryAttributes,
-  TopicAttributes,
-  EmotionAttributes,
-  GoalAttributes,
-  // Relationships
-  RelationshipType as EntityRelationshipType,
-  FamilyRelation,
-  EdgeType,
-  EntityRelationship,
-  // Mentions
-  EntityMention as EntityStoreMention,
-  Mention,
-  MentionType,
-  ExtractedFact,
-  // Search
-  EntitySearchOptions,
-  EntitySearchResult,
-  EntityQuery as EntityStoreQuery,
-  EntityQueryResult as EntityStoreQueryResult,
-  // Capture
-  PersonCaptureInput,
-  CaptureContext,
-  CaptureResult,
-  // Surfacing
-  SurfacingOpportunity,
-  // Consolidation
-  ConsolidationReport,
-  // Migration
-  MigrationResult,
-  LegacyContact,
-  LegacyRelationshipPerson,
-} from '../entity-store/types.js';
-
-export { createEntity, entityToText, tokenize } from '../entity-store/types.js';
-
-// ============================================================================
-// RE-EXPORTS: KNOWLEDGE GRAPH TYPES (Graph Intelligence)
-// ============================================================================
-
-export type {
-  // Relationship and fact types
-  Relationship,
-  RelationshipType as KGRelationshipType,
-  Fact,
-  FactSource,
-  // Temporal
-  TemporalMention,
-  // Correlation
-  Correlation,
-  CorrelationType,
-  // Query types
-  EntityQuery as KGEntityQuery,
-  EntityQueryResult as KGEntityQueryResult,
-  EntityProfile,
-  // Consolidation
-  ConsolidationResult,
-  DecayConfig as KGDecayConfig,
-  // Surfacing
-  SurfacingRecommendation,
-  SurfacingReason,
-  // Insights
-  InsightType,
-  Insight,
-  // Threads
-  ThreadStatus,
-  ThreadSession,
-  Thread,
-  // Input types
-  MentionInput,
-  EntityMentionInput,
-} from '../knowledge-graph/types.js';
 
 // ============================================================================
 // CORE MEMORY TYPES

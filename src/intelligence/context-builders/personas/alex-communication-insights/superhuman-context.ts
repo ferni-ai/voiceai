@@ -147,7 +147,9 @@ export async function buildAlexSuperhumanContext(
  * Build quick superhuman context for ongoing turns.
  * Lightweight - only most actionable items.
  */
-export async function buildAlexQuickSuperhumanContext(userId: string): Promise<string> {
+export async function buildAlexQuickSuperhumanContext(
+  userId: string
+): Promise<string> {
   try {
     return await buildQuickCommunicationContext(userId);
   } catch (error) {
@@ -246,10 +248,7 @@ export async function processTranscriptForSuperhuman(
       }
     }
   } catch (error) {
-    log.warn(
-      { error: String(error), userId },
-      'Failed to process transcript for superhuman insights'
-    );
+    log.warn({ error: String(error), userId }, 'Failed to process transcript for superhuman insights');
   }
 
   return results;

@@ -346,10 +346,11 @@ async function handleGetNotificationPreferences(
   userId: string
 ): Promise<void> {
   try {
-    const { getNotificationPreferences } =
-      await import('../../services/calendar/notification-preferences.js');
+    const { getNotificationPreferences } = await import(
+      '../../services/calendar/notification-preferences.js'
+    );
     const preferences = await getNotificationPreferences(userId);
-
+    
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ preferences }));
   } catch (error) {
@@ -366,17 +367,18 @@ async function handleSetNotificationPreferences(
   try {
     const body = await parseBody<{ setting: string; enabled: boolean }>(req);
     const { setting, enabled } = body;
-
+    
     if (!setting || typeof enabled !== 'boolean') {
       res.writeHead(400, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: 'setting and enabled are required' }));
       return;
     }
-
-    const { setNotificationPreference } =
-      await import('../../services/calendar/notification-preferences.js');
+    
+    const { setNotificationPreference } = await import(
+      '../../services/calendar/notification-preferences.js'
+    );
     await setNotificationPreference(userId, setting, enabled);
-
+    
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ success: true }));
   } catch (error) {

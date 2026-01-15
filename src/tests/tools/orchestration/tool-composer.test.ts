@@ -12,7 +12,7 @@ import {
   TOOL_CHAINS,
   type ComposedResult,
 } from '../../../tools/orchestrator/tool-composer.js';
-import { endConversation } from '../../../services/conversation-thread/conversation-state.js';
+import { endConversation } from '../../../services/conversation-state.js';
 
 describe('ToolComposer', () => {
   let composer: ToolComposer;

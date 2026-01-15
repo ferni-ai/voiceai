@@ -122,7 +122,7 @@ describe('Live Superhuman Injections', () => {
 
 describe('Voice-Text Mismatch Detection', () => {
   it('detects masking "I\'m fine" with negative voice', async () => {
-    const { detectMismatch } = await import('../intelligence/detectors/voice-mismatch.js');
+    const { detectMismatch } = await import('../intelligence/voice-text-mismatch.js');
 
     const result = detectMismatch(
       "I'm fine, everything's okay",
@@ -143,7 +143,7 @@ describe('Voice-Text Mismatch Detection', () => {
   });
 
   it('uses hybrid confidence scoring for low voice confidence', async () => {
-    const { detectMismatch } = await import('../intelligence/detectors/voice-mismatch.js');
+    const { detectMismatch } = await import('../intelligence/voice-text-mismatch.js');
 
     // Low voice confidence but strong text signals
     const result = detectMismatch(
@@ -164,7 +164,7 @@ describe('Voice-Text Mismatch Detection', () => {
   });
 
   it('does not false positive on neutral conversation', async () => {
-    const { detectMismatch } = await import('../intelligence/detectors/voice-mismatch.js');
+    const { detectMismatch } = await import('../intelligence/voice-text-mismatch.js');
 
     const result = detectMismatch(
       'I went to the grocery store today',
@@ -327,7 +327,7 @@ describe('BTH Pipeline Performance', () => {
   });
 
   it('mismatch detection completes under 5ms', async () => {
-    const { detectMismatch } = await import('../intelligence/detectors/voice-mismatch.js');
+    const { detectMismatch } = await import('../intelligence/voice-text-mismatch.js');
 
     const start = Date.now();
     detectMismatch(
@@ -359,7 +359,7 @@ describe('BTH End-to-End Flow', () => {
 
     const { buildLiveSuperhumanInjections } =
       await import('../agents/processors/live-superhuman-injections.js');
-    const { detectMismatch } = await import('../intelligence/detectors/voice-mismatch.js');
+    const { detectMismatch } = await import('../intelligence/voice-text-mismatch.js');
 
     // Simulate user saying "I'm fine" with distressed voice
     const userText = "I'm fine, just a bit tired";

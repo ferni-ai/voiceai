@@ -17,7 +17,7 @@ import {
   isAlreadyMigrated,
   migrateUserData,
   validateMigrationRequest,
-} from '../services/identity/user-migration.js';
+} from '../services/user-migration.js';
 import { createLogger } from '../utils/safe-logger.js';
 import { rateLimit } from './auth-middleware.js';
 import { parseBody, sendError, sendJSON } from './helpers.js';

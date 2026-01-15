@@ -76,7 +76,7 @@ export interface AcknowledgmentContext {
 
 // ============================================================================
 // HUMANIZATION: Sound like a real person, not a voice assistant
-//
+// 
 // Philosophy:
 // 1. Use SSML to add texture (pauses, speed, emotion)
 // 2. Natural conversational sounds, not meta-commentary
@@ -179,11 +179,7 @@ const DEFAULT_ACKNOWLEDGMENTS: Record<string, PersonaAcknowledgments> = {
         'Based on what I recall.<break time="200ms"/>',
       ],
     },
-    fillers: [
-      'Hmm.<break time="300ms"/>',
-      'Interesting.<break time="200ms"/>',
-      'So.<break time="200ms"/>',
-    ],
+    fillers: ['Hmm.<break time="300ms"/>', 'Interesting.<break time="200ms"/>', 'So.<break time="200ms"/>'],
     pauseMarker: '<break time="200ms"/>',
   },
   maya: {
@@ -223,11 +219,7 @@ const DEFAULT_ACKNOWLEDGMENTS: Record<string, PersonaAcknowledgments> = {
         'Looking at your growth.<break time="200ms"/>',
       ],
     },
-    fillers: [
-      'Mmm.<break time="200ms"/>',
-      'Yeah.<break time="200ms"/>',
-      'Okay.<break time="200ms"/>',
-    ],
+    fillers: ['Mmm.<break time="200ms"/>', 'Yeah.<break time="200ms"/>', 'Okay.<break time="200ms"/>'],
     pauseMarker: '<break time="200ms"/>',
   },
   alex: {
@@ -243,14 +235,23 @@ const DEFAULT_ACKNOWLEDGMENTS: Record<string, PersonaAcknowledgments> = {
         'One moment.<break time="200ms"/>',
         '<emotion value="curious"/>Good question.<break time="150ms"/>Checking.',
       ],
-      calculating: ['<break time="150ms"/>Running the numbers.', 'One sec.<break time="200ms"/>'],
+      calculating: [
+        '<break time="150ms"/>Running the numbers.',
+        'One sec.<break time="200ms"/>',
+      ],
       creating: [
         '<break time="150ms"/>Drafting that.',
         'Working on it.<break time="200ms"/>',
         'One moment.<break time="150ms"/>',
       ],
-      connecting: ['<break time="150ms"/>Connecting.', 'Almost there.<break time="200ms"/>'],
-      remembering: ['<break time="150ms"/>Checking that.', 'One sec.<break time="200ms"/>'],
+      connecting: [
+        '<break time="150ms"/>Connecting.',
+        'Almost there.<break time="200ms"/>',
+      ],
+      remembering: [
+        '<break time="150ms"/>Checking that.',
+        'One sec.<break time="200ms"/>',
+      ],
     },
     fillers: ['Hmm.<break time="200ms"/>', 'Okay.<break time="200ms"/>'],
     pauseMarker: '<break time="200ms"/>',
@@ -268,13 +269,19 @@ const DEFAULT_ACKNOWLEDGMENTS: Record<string, PersonaAcknowledgments> = {
         '<break time="150ms"/>Looking that up.',
         'One moment.<break time="200ms"/>',
       ],
-      calculating: ['<break time="150ms"/>Crunching the numbers.', 'One sec.<break time="200ms"/>'],
+      calculating: [
+        '<break time="150ms"/>Crunching the numbers.',
+        'One sec.<break time="200ms"/>',
+      ],
       creating: [
         '<emotion value="enthusiastic"/>Oh, this is exciting!<break time="200ms"/>Working on it.',
         '<break time="150ms"/>Putting it together.',
         'One moment.<break time="200ms"/>',
       ],
-      connecting: ['<break time="150ms"/>Connecting.', 'Almost there!<break time="200ms"/>'],
+      connecting: [
+        '<break time="150ms"/>Connecting.',
+        'Almost there!<break time="200ms"/>',
+      ],
       remembering: [
         '<emotion value="enthusiastic"/>Oh yes!<break time="200ms"/>',
         '<break time="150ms"/>I remember.',
@@ -303,16 +310,16 @@ const DEFAULT_ACKNOWLEDGMENTS: Record<string, PersonaAcknowledgments> = {
         '<break time="200ms"/>Crafting a response.',
         '<speed ratio="0.95"/>One moment.<break time="200ms"/>',
       ],
-      connecting: ['<break time="200ms"/>Connecting.', 'One moment.<break time="200ms"/>'],
+      connecting: [
+        '<break time="200ms"/>Connecting.',
+        'One moment.<break time="200ms"/>',
+      ],
       remembering: [
         '<emotion value="affectionate"/><break time="200ms"/>Ah, yes.',
         '<speed ratio="0.95"/>I recall.<break time="200ms"/>',
       ],
     },
-    fillers: [
-      '<break time="300ms"/>Hmm.<break time="200ms"/>',
-      '<break time="200ms"/>Indeed.<break time="200ms"/>',
-    ],
+    fillers: ['<break time="300ms"/>Hmm.<break time="200ms"/>', '<break time="200ms"/>Indeed.<break time="200ms"/>'],
     pauseMarker: '<break time="250ms"/>',
   },
 };
@@ -547,7 +554,7 @@ async function loadPersonaBundleAcknowledgments(
   }
 
   try {
-    const { loadPersonaBehaviors } = await import('../../services/persona-service/persona-content-loader.js');
+    const { loadPersonaBehaviors } = await import('../../services/persona-content-loader.js');
     const behaviors = await loadPersonaBehaviors(personaId);
 
     if (!behaviors) {

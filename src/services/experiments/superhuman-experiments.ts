@@ -211,7 +211,9 @@ export async function updateExperimentMetadata(
     .collection(COLLECTION_EXPERIMENTS)
     .doc(experimentId)
     .update({
-      ...Object.fromEntries(Object.entries(updates).map(([k, v]) => [`metadata.${k}`, v])),
+      ...Object.fromEntries(
+        Object.entries(updates).map(([k, v]) => [`metadata.${k}`, v])
+      ),
       updatedAt: Date.now(),
     });
 
@@ -284,9 +286,9 @@ export async function enrollUser(
     // Contextual selection with Thompson Sampling as base weights
     const contextualVariants: ContextualVariant[] = experiment.variants.map((v) => ({
       id: v.id,
-      baseWeight:
-        getExpectedRate(experiment.banditState.arms.find((a) => a.id === v.id) || createArm(v.id)) *
-        100,
+      baseWeight: getExpectedRate(
+        experiment.banditState.arms.find((a) => a.id === v.id) || createArm(v.id)
+      ) * 100,
       contextConditions: v.contextConditions as ContextualVariant['contextConditions'],
     }));
 
@@ -375,10 +377,7 @@ export async function recordUserConversion(
   const timeSinceLastCheck = Date.now() - experiment.banditState.lastWinnerCheck;
   const shouldCheckWinner = timeSinceLastCheck > 60 * 60 * 1000; // Every hour
 
-  if (
-    shouldCheckWinner &&
-    experiment.banditState.totalPulls >= experiment.settings.minimumSamples
-  ) {
+  if (shouldCheckWinner && experiment.banditState.totalPulls >= experiment.settings.minimumSamples) {
     winnerCheck = detectWinner(
       updatedArms,
       experiment.settings.confidenceThreshold,
@@ -405,9 +404,7 @@ export async function recordUserConversion(
       .update({
         'banditState.arms': updatedArms,
         'banditState.totalPulls': experiment.banditState.totalPulls + 1,
-        'banditState.lastWinnerCheck': shouldCheckWinner
-          ? Date.now()
-          : experiment.banditState.lastWinnerCheck,
+        'banditState.lastWinnerCheck': shouldCheckWinner ? Date.now() : experiment.banditState.lastWinnerCheck,
         'banditState.winnerDetection': winnerCheck || experiment.banditState.winnerDetection,
         updatedAt: Date.now(),
       });
@@ -433,11 +430,17 @@ interface Enrollment {
   enrolledAt: number;
 }
 
-async function getEnrollment(experimentId: string, userId: string): Promise<Enrollment | null> {
+async function getEnrollment(
+  experimentId: string,
+  userId: string
+): Promise<Enrollment | null> {
   const db = getFirestoreDb();
   if (!db) return null;
 
-  const doc = await db.collection(COLLECTION_ENROLLMENTS).doc(`${experimentId}:${userId}`).get();
+  const doc = await db
+    .collection(COLLECTION_ENROLLMENTS)
+    .doc(`${experimentId}:${userId}`)
+    .get();
 
   if (!doc.exists) return null;
   return doc.data() as Enrollment;
@@ -451,12 +454,15 @@ async function saveEnrollment(
   const db = getFirestoreDb();
   if (!db) return;
 
-  await db.collection(COLLECTION_ENROLLMENTS).doc(`${experimentId}:${userId}`).set({
-    experimentId,
-    userId,
-    variantId,
-    enrolledAt: Date.now(),
-  });
+  await db
+    .collection(COLLECTION_ENROLLMENTS)
+    .doc(`${experimentId}:${userId}`)
+    .set({
+      experimentId,
+      userId,
+      variantId,
+      enrolledAt: Date.now(),
+    });
 }
 
 async function updateBanditExposure(experimentId: string, variantId: string): Promise<void> {
@@ -499,7 +505,10 @@ async function saveOutcome(outcome: ExperimentOutcome): Promise<void> {
 /**
  * Graduate an experiment - promote the winner
  */
-export async function graduateExperiment(experimentId: string, winnerId: string): Promise<void> {
+export async function graduateExperiment(
+  experimentId: string,
+  winnerId: string
+): Promise<void> {
   const db = getFirestoreDb();
   if (!db) return;
 
@@ -591,9 +600,7 @@ export async function updateLearningState(): Promise<CrossExperimentLearningStat
   const outcomes: ExperimentOutcome[] = [];
   if (db) {
     const snapshot = await db.collection(COLLECTION_OUTCOMES).get();
-    snapshot.forEach((doc: FirebaseFirestore.DocumentSnapshot) =>
-      outcomes.push(doc.data() as ExperimentOutcome)
-    );
+    snapshot.forEach((doc: FirebaseFirestore.DocumentSnapshot) => outcomes.push(doc.data() as ExperimentOutcome));
   }
 
   // Get experiment IDs
@@ -645,12 +652,15 @@ export async function getTransferPriors(
   // Get historical outcomes
   const snapshot = await db.collection(COLLECTION_OUTCOMES).get();
   const outcomes: ExperimentOutcome[] = [];
-  snapshot.forEach((doc: FirebaseFirestore.DocumentSnapshot) =>
-    outcomes.push(doc.data() as ExperimentOutcome)
-  );
+  snapshot.forEach((doc: FirebaseFirestore.DocumentSnapshot) => outcomes.push(doc.data() as ExperimentOutcome));
 
   // Generate priors
-  return generateTransferPriors(experimentId, variantIds, learningState.correlations, outcomes);
+  return generateTransferPriors(
+    experimentId,
+    variantIds,
+    learningState.correlations,
+    outcomes
+  );
 }
 
 // ============================================================================

@@ -28,12 +28,7 @@ export interface LyftWebhookEvent {
 }
 
 export interface LyftWebhookHandlers {
-  onStatusChange?: (
-    userId: string,
-    rideId: string,
-    status: LyftRideStatus,
-    ride?: LyftRide
-  ) => Promise<void>;
+  onStatusChange?: (userId: string, rideId: string, status: LyftRideStatus, ride?: LyftRide) => Promise<void>;
   onReceiptReady?: (userId: string, rideId: string, receipt: LyftRideReceipt) => Promise<void>;
 }
 
@@ -44,13 +39,19 @@ export interface LyftWebhookHandlers {
 /**
  * Verify Lyft webhook signature
  */
-function verifySignature(payload: string, signature: string, secret: string): boolean {
+function verifySignature(
+  payload: string,
+  signature: string,
+  secret: string
+): boolean {
   if (!signature || !secret) {
     return false;
   }
 
   try {
-    const expectedSignature = createHmac('sha256', secret).update(payload).digest('hex');
+    const expectedSignature = createHmac('sha256', secret)
+      .update(payload)
+      .digest('hex');
 
     // Use timing-safe comparison
     const signatureBuffer = Buffer.from(signature, 'hex');
@@ -89,7 +90,10 @@ async function processLyftWebhook(
 ): Promise<{ success: boolean; message: string }> {
   const { event: eventType, event_id, ride_id, status, user_id } = event;
 
-  log.debug({ eventId: event_id, eventType, rideId: ride_id }, 'Processing Lyft webhook');
+  log.debug(
+    { eventId: event_id, eventType, rideId: ride_id },
+    'Processing Lyft webhook'
+  );
 
   try {
     switch (eventType) {
@@ -228,8 +232,8 @@ export async function defaultStatusChangeHandler(
     pending: 'Finding you a Lyft driver...',
     accepted: 'A driver accepted your ride!',
     arrived: 'Your Lyft has arrived.',
-    pickedUp: "You're on your way!",
-    droppedOff: "You've arrived! Hope you enjoyed the ride.",
+    pickedUp: 'You\'re on your way!',
+    droppedOff: 'You\'ve arrived! Hope you enjoyed the ride.',
     canceled: 'Your Lyft was cancelled.',
     unknown: 'Checking your ride status...',
   };

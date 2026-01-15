@@ -32,7 +32,7 @@ import {
   importFromVCard,
   importFromCSV,
   type Contact,
-} from '../services/identity/contacts.js';
+} from '../services/contacts.js';
 
 // Mock the logger
 vi.mock('../utils/safe-logger.js', () => ({

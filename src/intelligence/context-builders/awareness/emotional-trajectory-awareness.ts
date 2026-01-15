@@ -55,8 +55,9 @@ async function loadEmotionalTrajectory(userId: string): Promise<EmotionalTraject
     let trajectory: EmotionalTrajectory | null = null;
 
     try {
-      const { getEmotionalTrajectory } =
-        await import('../../../services/superhuman/semantic-intelligence/emotional-semantics.js');
+      const { getEmotionalTrajectory } = await import(
+        '../../../services/superhuman/semantic-intelligence/emotional-semantics.js'
+      );
       const semanticTrajectory = await getEmotionalTrajectory(userId);
 
       if (semanticTrajectory) {
@@ -79,7 +80,10 @@ async function loadEmotionalTrajectory(userId: string): Promise<EmotionalTraject
     if (cachedState && trajectory) {
       trajectory.currentMood = cachedState.primary || trajectory.currentMood;
       // Use intensity as a proxy for distress (high intensity often correlates with distress)
-      trajectory.distressLevel = Math.max(trajectory.distressLevel, cachedState.intensity || 0);
+      trajectory.distressLevel = Math.max(
+        trajectory.distressLevel,
+        cachedState.intensity || 0
+      );
     } else if (cachedState && !trajectory) {
       // Only have real-time state, no trajectory
       trajectory = {

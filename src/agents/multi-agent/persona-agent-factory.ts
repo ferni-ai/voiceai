@@ -8,7 +8,7 @@
  */
 
 import type { JobContext } from '@livekit/agents';
-import { diag } from '../../services/observability/diagnostic-logger.js';
+import { diag } from '../../services/diagnostic-logger.js';
 import type { SessionServices } from '../../services/types.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import { getPersonaAsyncCached } from '../shared/handoff/cached-modules.js';
@@ -44,7 +44,7 @@ export interface PersonaAgentFactoryConfig {
   /** User ID */
   userId?: string;
   /** Conversation manager for tracking state */
-  conversationManager?: import('../../services/conversation-thread/conversation-manager.js').ConversationManager;
+  conversationManager?: import('../../services/conversation-manager.js').ConversationManager;
   /** Enable full handlers on agents */
   enableFullHandlers?: boolean;
   /**

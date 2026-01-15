@@ -17,13 +17,13 @@ import {
   RITUAL_PROMPTS,
   type EmotionalWeather,
   type DailyRitualsService,
-} from '../services/scheduling/daily-rituals.js';
+} from '../services/daily-rituals.js';
 import {
   getMemoryEngagementEngine,
   resetMemoryEngagementEngine,
   buildMemoryEngagementContext,
   type MemoryEngagementEngine,
-} from '../intelligence/tracking/memory-engagement.js';
+} from '../intelligence/memory-engagement.js';
 import {
   getTeamEngagementService,
   resetTeamEngagementService,

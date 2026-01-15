@@ -29,7 +29,7 @@ import type {
   SemanticRoutingResult,
   ContextInjection,
 } from './types.js';
-import { diag } from '../../services/observability/diagnostic-logger.js';
+import { diag } from '../../services/diagnostic-logger.js';
 
 // ============================================================================
 // CONFIGURATION

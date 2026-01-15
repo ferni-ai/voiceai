@@ -11,7 +11,7 @@ import {
   getSessionVarietyTracker,
   type PersonalityExpression,
   type ThemeCategory,
-} from '../../services/session-manager/session-variety-tracker.js';
+} from '../../services/session-variety-tracker.js';
 import type { PersonaConfig } from '../types.js';
 import type {
   BundleConflictHandling,
@@ -622,8 +622,7 @@ export class BundleRuntimeEngine {
 
     try {
       // Import dynamically to avoid circular dependencies
-      const { getAgentEvolution } =
-        await import('../../intelligence/collective/agent-evolution.js');
+      const { getAgentEvolution } = await import('../../intelligence/agent-evolution.js');
       const evolution = getAgentEvolution();
 
       const relationshipStage = context.relationshipStage || this.getRelationshipStageName();
@@ -706,8 +705,7 @@ export class BundleRuntimeEngine {
     // Feed to community insights for evolution learning
     if (userReaction) {
       try {
-        const { getCommunityInsights } =
-          await import('../../intelligence/collective/community-insights.js');
+        const { getCommunityInsights } = await import('../../intelligence/community-insights.js');
         const insights = getCommunityInsights();
 
         // Record story resonance for future recommendations

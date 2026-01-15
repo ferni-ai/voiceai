@@ -84,21 +84,19 @@ const DECLINE_RULES: DeclineRule[] = [
     check: (event, context) => {
       const hour = new Date(event.startTime).getHours();
       const { focusTimePreference } = context.patterns;
-
+      
       if (focusTimePreference === 'morning' && hour >= 9 && hour <= 11) {
         return {
           triggered: true,
           reason: 'This meeting is during your typical morning focus time',
-          alternativeText:
-            'Would it be possible to move this to the afternoon? Mornings work better for my deep work.',
+          alternativeText: 'Would it be possible to move this to the afternoon? Mornings work better for my deep work.',
         };
       }
       if (focusTimePreference === 'afternoon' && hour >= 14 && hour <= 16) {
         return {
           triggered: true,
           reason: 'This meeting is during your typical afternoon focus time',
-          alternativeText:
-            'Could we shift this to the morning? I tend to reserve afternoons for focused work.',
+          alternativeText: 'Could we shift this to the morning? I tend to reserve afternoons for focused work.',
         };
       }
       return null;
@@ -113,33 +111,30 @@ const DECLINE_RULES: DeclineRule[] = [
       // Calculate total meeting hours for the day
       const eventDay = new Date(event.startTime).toDateString();
       const dayMeetings = context.dayEvents.filter(
-        (e) => new Date(e.startTime).toDateString() === eventDay
+        e => new Date(e.startTime).toDateString() === eventDay
       );
-
+      
       const totalMinutes = dayMeetings.reduce((acc, e) => {
-        const duration =
-          (new Date(e.endTime).getTime() - new Date(e.startTime).getTime()) / (1000 * 60);
+        const duration = (new Date(e.endTime).getTime() - new Date(e.startTime).getTime()) / (1000 * 60);
         return acc + duration;
       }, 0);
-
+      
       const totalHours = totalMinutes / 60;
-
+      
       if (totalHours > 6) {
         // Check if this meeting is marked as optional
-        const isOptional =
-          event.title?.toLowerCase().includes('optional') ||
-          event.description?.toLowerCase().includes('optional');
-
+        const isOptional = event.title?.toLowerCase().includes('optional') ||
+                          event.description?.toLowerCase().includes('optional');
+        
         if (isOptional) {
           return {
             triggered: true,
             reason: `This is an optional meeting on a day with ${Math.round(totalHours)} hours of meetings`,
             confidenceModifier: 10,
-            alternativeText:
-              "I won't be able to make this one - my schedule is packed. Please send notes if anything critical comes up!",
+            alternativeText: "I won't be able to make this one - my schedule is packed. Please send notes if anything critical comes up!",
           };
         }
-
+        
         return {
           triggered: true,
           reason: `This meeting adds to an already packed day (${Math.round(totalHours)}h of meetings)`,
@@ -156,14 +151,13 @@ const DECLINE_RULES: DeclineRule[] = [
     baseConfidence: 60,
     check: (event) => {
       const attendeeCount = event.attendees?.length || 0;
-
+      
       if (attendeeCount > 8) {
         return {
           triggered: true,
           reason: `Large meeting with ${attendeeCount} attendees - your input may not be essential`,
           confidenceModifier: Math.min(attendeeCount - 8, 20), // More confidence with more attendees
-          alternativeText:
-            'With this many people, I may be able to just review the notes afterwards. Would that work?',
+          alternativeText: 'With this many people, I may be able to just review the notes afterwards. Would that work?',
         };
       }
       return null;
@@ -177,39 +171,37 @@ const DECLINE_RULES: DeclineRule[] = [
     check: (event, context) => {
       const eventStart = new Date(event.startTime);
       const eventEnd = new Date(event.endTime);
-
+      
       // Check for meetings immediately before or after
-      const hasImmediateBefore = context.dayEvents.some((e) => {
+      const hasImmediateBefore = context.dayEvents.some(e => {
         const otherEnd = new Date(e.endTime);
         const gap = eventStart.getTime() - otherEnd.getTime();
         return gap >= 0 && gap < 5 * 60 * 1000; // Less than 5 min gap
       });
-
-      const hasImmediateAfter = context.dayEvents.some((e) => {
+      
+      const hasImmediateAfter = context.dayEvents.some(e => {
         const otherStart = new Date(e.startTime);
         const gap = otherStart.getTime() - eventEnd.getTime();
         return gap >= 0 && gap < 5 * 60 * 1000;
       });
-
+      
       if (hasImmediateBefore && hasImmediateAfter) {
         return {
           triggered: true,
           reason: 'This creates a back-to-back meeting block with no breaks',
           confidenceModifier: 10,
-          alternativeText:
-            'Could we push this back 15 minutes? I need a short break between calls.',
+          alternativeText: 'Could we push this back 15 minutes? I need a short break between calls.',
         };
       }
-
+      
       if (hasImmediateBefore || hasImmediateAfter) {
         return {
           triggered: true,
           reason: 'This meeting is back-to-back with another',
-          alternativeText:
-            'Any chance we could start 10 minutes later? I have another meeting right before.',
+          alternativeText: 'Any chance we could start 10 minutes later? I have another meeting right before.',
         };
       }
-
+      
       return null;
     },
   },
@@ -221,7 +213,7 @@ const DECLINE_RULES: DeclineRule[] = [
     check: (event, context) => {
       const hour = new Date(event.startTime).getHours();
       const { avoidHours } = context.patterns;
-
+      
       if (avoidHours.includes(hour)) {
         if (hour < 8) {
           return {
@@ -249,9 +241,9 @@ const DECLINE_RULES: DeclineRule[] = [
     check: (event) => {
       // Check if this is a recurring meeting that might be low value
       // This would need historical tracking of attendance/engagement
-
+      
       const title = (event.title || '').toLowerCase();
-
+      
       // Common low-value meeting patterns
       if (title.includes('optional') || title.includes('fyi')) {
         return {
@@ -260,7 +252,7 @@ const DECLINE_RULES: DeclineRule[] = [
           alternativeText: "I'll skip this week - please send notes if there's anything important!",
         };
       }
-
+      
       return null;
     },
   },
@@ -281,9 +273,9 @@ export async function suggestDeclines(userId: string): Promise<DeclineSuggestion
     const { getEvents } = await import('./unified-calendar-store.js');
     const now = new Date();
     const nextWeek = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-
+    
     const events = await getEvents(userId, now, nextWeek);
-
+    
     if (events.length === 0) {
       return [];
     }
@@ -291,7 +283,7 @@ export async function suggestDeclines(userId: string): Promise<DeclineSuggestion
     // Get user patterns and load factors
     const patterns = await getMeetingPatterns(userId);
     const loadFactors = await getCalendarLoadFactors(userId);
-
+    
     const context: DeclineContext = {
       patterns,
       dayEvents: events,
@@ -304,19 +296,18 @@ export async function suggestDeclines(userId: string): Promise<DeclineSuggestion
     for (const event of events) {
       // Skip all-day events
       if (event.isAllDay) continue;
-
+      
       // Skip events created by the user (they probably want to attend their own meetings)
       // This would need organizer tracking
-
+      
       for (const rule of DECLINE_RULES) {
         const result = rule.check(event, context);
-
+        
         if (result?.triggered) {
-          const confidence = Math.min(
-            100,
-            Math.max(0, rule.baseConfidence + (result.confidenceModifier || 0))
-          );
-
+          const confidence = Math.min(100, Math.max(0, 
+            rule.baseConfidence + (result.confidenceModifier || 0)
+          ));
+          
           // Only suggest if confidence is reasonable
           if (confidence >= 50) {
             suggestions.push({
@@ -337,7 +328,7 @@ export async function suggestDeclines(userId: string): Promise<DeclineSuggestion
 
     // Deduplicate (same event may trigger multiple rules - keep highest confidence)
     const seen = new Set<string>();
-    const deduplicated = suggestions.filter((s) => {
+    const deduplicated = suggestions.filter(s => {
       const key = s.event.id || s.event.title;
       if (seen.has(key)) return false;
       seen.add(key);
@@ -364,9 +355,11 @@ export async function suggestDeclinesForDay(
   date: Date
 ): Promise<DeclineSuggestion[]> {
   const allSuggestions = await suggestDeclines(userId);
-
+  
   const targetDay = date.toDateString();
-  return allSuggestions.filter((s) => new Date(s.event.startTime).toDateString() === targetDay);
+  return allSuggestions.filter(
+    s => new Date(s.event.startTime).toDateString() === targetDay
+  );
 }
 
 /**
@@ -383,23 +376,23 @@ export function generateDeclineMessage(
   const templates: Record<DeclineSuggestion['suggestedAction'], string[]> = {
     decline: [
       "I won't be able to make this one, but please keep me in the loop!",
-      'Unfortunately I need to pass on this - hope it goes well!',
+      "Unfortunately I need to pass on this - hope it goes well!",
     ],
     reschedule: [
-      'Could we find another time that works better?',
+      "Could we find another time that works better?",
       "I'd love to attend but the timing doesn't work - any flexibility?",
     ],
     shorten: [
       "Would it be possible to keep this shorter? I'm a bit squeezed for time.",
-      'Could we aim for 30 minutes instead?',
+      "Could we aim for 30 minutes instead?",
     ],
     make_optional: [
-      'Would it be okay if I join as optional? I may not be able to make every session.',
-      'I might need to drop this week - would that be okay?',
+      "Would it be okay if I join as optional? I may not be able to make every session.",
+      "I might need to drop this week - would that be okay?",
     ],
     send_delegate: [
-      'Would it be okay if I send a colleague instead?',
-      'I may not be able to attend personally - can I loop someone else in?',
+      "Would it be okay if I send a colleague instead?",
+      "I may not be able to attend personally - can I loop someone else in?",
     ],
   };
 

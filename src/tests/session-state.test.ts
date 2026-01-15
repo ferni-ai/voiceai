@@ -17,7 +17,7 @@ import {
   updateEmotionalTrajectory,
   updateVoiceEmotion,
   wasMemoryReferenced,
-} from '../intelligence/state/session.js';
+} from '../intelligence/session-state.js';
 
 describe('session-state', () => {
   beforeEach(() => {

@@ -22,7 +22,7 @@ import {
   getSessionContext,
   getContextSummary,
   clearAllContexts,
-} from '../services/context-awareness/context-inspection.js';
+} from '../services/context-inspection.js';
 import { createLogger } from '../utils/safe-logger.js';
 import { handleCorsPreflightIfNeeded, sendJSON, sendError } from './helpers.js';
 

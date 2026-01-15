@@ -143,7 +143,10 @@ export class ConsolidationEngine {
 
       report.durationMs = Date.now() - startTime;
 
-      log.info({ userId, ...report }, 'Memory consolidation complete');
+      log.info(
+        { userId, ...report },
+        'Memory consolidation complete'
+      );
 
       return report;
     } catch (error) {
@@ -226,10 +229,9 @@ export class ConsolidationEngine {
       const entity = doc.data() as Entity;
 
       // Calculate decay amount
-      const lastSeen =
-        entity.lastSeen instanceof Date
-          ? entity.lastSeen
-          : (entity.lastSeen as FirebaseFirestore.Timestamp)?.toDate() || new Date();
+      const lastSeen = entity.lastSeen instanceof Date
+        ? entity.lastSeen
+        : (entity.lastSeen as FirebaseFirestore.Timestamp)?.toDate() || new Date();
 
       const daysSinceMention = Math.floor(
         (Date.now() - lastSeen.getTime()) / (1000 * 60 * 60 * 24)
@@ -242,8 +244,7 @@ export class ConsolidationEngine {
       // Apply decay
       const effectiveDecayRate =
         this.config.baseDecayRate * emotionalProtection * salienceProtection;
-      const decayAmount =
-        effectiveDecayRate * (daysSinceMention - this.config.recentMentionProtectionDays);
+      const decayAmount = effectiveDecayRate * (daysSinceMention - this.config.recentMentionProtectionDays);
 
       const newSalience = Math.max(0, entity.salienceScore - decayAmount);
 
@@ -289,7 +290,9 @@ export class ConsolidationEngine {
     const entityIds = new Set(entitiesSnapshot.docs.map((doc) => doc.id));
 
     // Get relationships involving these entities
-    const relSnapshot = await this.db.collection(RELATIONSHIPS_COLLECTION).get();
+    const relSnapshot = await this.db
+      .collection(RELATIONSHIPS_COLLECTION)
+      .get();
 
     let updatedCount = 0;
     const batch = this.db.batch();
@@ -314,10 +317,9 @@ export class ConsolidationEngine {
       }
 
       // Prune old, weak relationships
-      const lastReinforced =
-        rel.lastReinforced instanceof Date
-          ? rel.lastReinforced
-          : (rel.lastReinforced as FirebaseFirestore.Timestamp)?.toDate() || new Date();
+      const lastReinforced = rel.lastReinforced instanceof Date
+        ? rel.lastReinforced
+        : (rel.lastReinforced as FirebaseFirestore.Timestamp)?.toDate() || new Date();
 
       const daysSinceReinforced = Math.floor(
         (Date.now() - lastReinforced.getTime()) / (1000 * 60 * 60 * 24)
@@ -408,11 +410,7 @@ export class ConsolidationEngine {
     return 1 - distance / maxLength;
   }
 
-  private async mergeEntities(
-    userId: string,
-    primary: Entity,
-    duplicates: Entity[]
-  ): Promise<void> {
+  private async mergeEntities(userId: string, primary: Entity, duplicates: Entity[]): Promise<void> {
     if (!this.db) return;
 
     // Merge all data into primary
@@ -420,10 +418,9 @@ export class ConsolidationEngine {
     let totalMentions = primary.mentionCount;
     let maxSalience = primary.salienceScore;
     let maxEmotional = primary.emotionalWeight;
-    let earliestSeen =
-      primary.firstSeen instanceof Date
-        ? primary.firstSeen
-        : (primary.firstSeen as FirebaseFirestore.Timestamp)?.toDate() || new Date();
+    let earliestSeen = primary.firstSeen instanceof Date
+      ? primary.firstSeen
+      : (primary.firstSeen as FirebaseFirestore.Timestamp)?.toDate() || new Date();
 
     for (const dup of duplicates) {
       dup.aliases.forEach((a) => mergedAliases.add(a));
@@ -432,10 +429,9 @@ export class ConsolidationEngine {
       maxSalience = Math.max(maxSalience, dup.salienceScore);
       maxEmotional = Math.max(maxEmotional, dup.emotionalWeight);
 
-      const dupFirstSeen =
-        dup.firstSeen instanceof Date
-          ? dup.firstSeen
-          : (dup.firstSeen as FirebaseFirestore.Timestamp)?.toDate() || new Date();
+      const dupFirstSeen = dup.firstSeen instanceof Date
+        ? dup.firstSeen
+        : (dup.firstSeen as FirebaseFirestore.Timestamp)?.toDate() || new Date();
       if (dupFirstSeen < earliestSeen) {
         earliestSeen = dupFirstSeen;
       }
@@ -445,16 +441,14 @@ export class ConsolidationEngine {
     await this.db
       .collection(ENTITIES_COLLECTION)
       .doc(primary.id)
-      .update(
-        cleanForFirestore({
-          aliases: [...mergedAliases],
-          mentionCount: totalMentions,
-          salienceScore: maxSalience,
-          emotionalWeight: maxEmotional,
-          firstSeen: earliestSeen,
-          updatedAt: new Date(),
-        })
-      );
+      .update(cleanForFirestore({
+        aliases: [...mergedAliases],
+        mentionCount: totalMentions,
+        salienceScore: maxSalience,
+        emotionalWeight: maxEmotional,
+        firstSeen: earliestSeen,
+        updatedAt: new Date(),
+      }));
 
     // Re-point relationships to primary and delete duplicates
     for (const dup of duplicates) {
@@ -495,7 +489,10 @@ export class ConsolidationEngine {
   private async archiveEntity(userId: string, entityId: string): Promise<void> {
     if (!this.db) return;
 
-    const entityDoc = await this.db.collection(ENTITIES_COLLECTION).doc(entityId).get();
+    const entityDoc = await this.db
+      .collection(ENTITIES_COLLECTION)
+      .doc(entityId)
+      .get();
 
     if (entityDoc.exists) {
       // Move to archive

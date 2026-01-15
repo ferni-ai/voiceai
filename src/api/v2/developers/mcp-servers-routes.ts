@@ -43,7 +43,7 @@ import {
 } from './shared/types.js';
 import { getFirestore } from '../../v1/developers/shared/developer-auth.js';
 import { getLogger } from '../../../utils/safe-logger.js';
-import { encryptSensitive, decryptSensitive } from '../../../services/identity/privacy-crypto.js';
+import { encryptSensitive, decryptSensitive } from '../../../services/privacy-crypto.js';
 
 const log = getLogger().child({ module: 'mcp-servers-routes' });
 
@@ -580,10 +580,7 @@ async function testMCPConnection(server: DeveloperMCPServer): Promise<MCPServerT
 /**
  * Convert Firestore document to server object
  */
-function firestoreToServer(doc: {
-  id: string;
-  data: () => Record<string, unknown> | undefined;
-}): DeveloperMCPServer {
+function firestoreToServer(doc: { id: string; data: () => Record<string, unknown> | undefined }): DeveloperMCPServer {
   const data = doc.data() || {};
   return {
     id: doc.id,
@@ -639,9 +636,7 @@ function serverToFirestore(server: DeveloperMCPServer): Record<string, unknown> 
 /**
  * Remove secrets from server for API response
  */
-function sanitizeServer(
-  server: DeveloperMCPServer
-): Omit<DeveloperMCPServer, 'secrets'> & { hasSecrets: boolean } {
+function sanitizeServer(server: DeveloperMCPServer): Omit<DeveloperMCPServer, 'secrets'> & { hasSecrets: boolean } {
   const { secrets, ...rest } = server;
   return {
     ...rest,

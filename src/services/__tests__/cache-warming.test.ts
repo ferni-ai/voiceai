@@ -37,7 +37,7 @@ const mockEmbeddingCache = {
   getBatch: vi.fn().mockResolvedValue({ ok: true, value: [[0.1, 0.2, 0.3]] }),
 };
 
-vi.mock('../memory/embedding-cache.js', () => ({
+vi.mock('../../memory/embedding-cache.js', () => ({
   getEmbeddingCache: vi.fn(() => mockEmbeddingCache),
 }));
 

@@ -83,7 +83,7 @@ export async function fastSessionStart(
   let isReturningUser = false;
 
   try {
-    const { getStore } = await import('../memory/store-factory.js');
+    const { getStore } = await import('../../memory/store-factory.js');
     const store = await getStore();
 
     profile = await store.getProfile(userId);
@@ -117,8 +117,9 @@ export async function fastSessionStart(
   // This enables comprehensive entity/fact/relationship extraction via Gemini
   scheduleBackgroundTask('knowledge_capture', async () => {
     try {
-      const { initializeKnowledgeCapture } =
-        await import('../memory/knowledge-graph/services/knowledge-capture.js');
+      const { initializeKnowledgeCapture } = await import(
+        '../../memory/knowledge-graph/services/knowledge-capture.js'
+      );
       await initializeKnowledgeCapture();
       log.debug({ userId }, '🧠 Knowledge graph LLM capture initialized');
     } catch {
@@ -164,7 +165,7 @@ export async function fastSessionStart(
     // Load cross-persona insights
     scheduleBackgroundTask('cross_persona_insights', async () => {
       try {
-        const { loadInsights } = await import('../cross-persona/cross-persona-insights.js');
+        const { loadInsights } = await import('../cross-persona-insights.js');
         await loadInsights(userId);
       } catch {
         // Non-critical
@@ -225,7 +226,10 @@ export async function fastSessionStart(
 /**
  * Clean session end - prunes profile, clears caches
  */
-export async function fastSessionEnd(userId: string, sessionId: string): Promise<SessionEndResult> {
+export async function fastSessionEnd(
+  userId: string,
+  sessionId: string
+): Promise<SessionEndResult> {
   const startTime = performance.now();
 
   log.debug({ userId, sessionId }, '🔚 Fast session end initiated');

@@ -32,8 +32,7 @@ const SYNTHETIC_CONVERSATION = [
     role: 'assistant' as const,
     content:
       '<break time="200ms"/>Hi Sarah! <prosody rate="95%">It\'s so nice to meet you.</prosody> Tell me more about what\'s been on your mind.',
-    expectedCleanContent:
-      "Hi Sarah! It's so nice to meet you. Tell me more about what's been on your mind.",
+    expectedCleanContent: "Hi Sarah! It's so nice to meet you. Tell me more about what's been on your mind.",
   },
   {
     role: 'user' as const,
@@ -141,8 +140,7 @@ describe('Memory Flow E2E', () => {
       const { extractNames } = await import('../../services/social-graph/index.js');
 
       // Test with text that includes common misheard words
-      const textWithErrors =
-        'Bought said he would help. And told me to wait. Here is my friend Sarah.';
+      const textWithErrors = 'Bought said he would help. And told me to wait. Here is my friend Sarah.';
 
       const names = extractNames(textWithErrors);
       const extractedNames = names.map((n) => n.name.toLowerCase());
@@ -221,18 +219,10 @@ describe('Memory Flow E2E', () => {
       const tracker = new ConversationHistoryTracker(TEST_SESSION_ID);
 
       // Add user turn
-      tracker.addTurn({
-        role: 'user',
-        content: "Hi, I'm testing the memory system",
-        timestamp: new Date(),
-      });
+      tracker.addTurn({ role: 'user', content: "Hi, I'm testing the memory system", timestamp: new Date() });
 
       // Add assistant turn
-      tracker.addTurn({
-        role: 'assistant',
-        content: 'Hello! Nice to meet you.',
-        timestamp: new Date(),
-      });
+      tracker.addTurn({ role: 'assistant', content: 'Hello! Nice to meet you.', timestamp: new Date() });
 
       // Get turns
       const turns = tracker.getTurns();
@@ -245,8 +235,9 @@ describe('Memory Flow E2E', () => {
 
   describe('Learning Engine Data Flow', () => {
     it('should extract small details from user speech', async () => {
-      const { extractSmallDetails } =
-        await import('../../intelligence/conversation-quality/small-details.js');
+      const { extractSmallDetails } = await import(
+        '../../intelligence/conversation-quality/small-details.js'
+      );
 
       const userSpeech = "My name is Sarah and I live in Austin. I've been at my job for 3 years.";
 
@@ -263,8 +254,9 @@ describe('Memory Flow E2E', () => {
     });
 
     it('should detect emotional content', async () => {
-      const { extractSmallDetails } =
-        await import('../../intelligence/conversation-quality/small-details.js');
+      const { extractSmallDetails } = await import(
+        '../../intelligence/conversation-quality/small-details.js'
+      );
 
       const emotionalSpeech = "I'm feeling really anxious about my presentation next week.";
 
@@ -359,9 +351,9 @@ describe('User Corrections Detection', () => {
   it('should categorize corrections correctly', async () => {
     const { categorizeCorrection } = await import('../../services/superhuman/user-corrections.js');
 
-    expect(categorizeCorrection('Her name is Sarah', 'His name is Mike')).toBe('relationship');
-    expect(categorizeCorrection('The meeting is Monday', 'The meeting is Tuesday')).toBe('event');
-    expect(categorizeCorrection('You like coffee', 'I prefer tea')).toBe('preference');
+    expect(categorizeCorrection("Her name is Sarah", "His name is Mike")).toBe('relationship');
+    expect(categorizeCorrection("The meeting is Monday", "The meeting is Tuesday")).toBe('event');
+    expect(categorizeCorrection("You like coffee", "I prefer tea")).toBe('preference');
   });
 });
 
@@ -371,8 +363,9 @@ describe('User Corrections Detection', () => {
 
 describe('Name Capture Scenarios', () => {
   it('should extract names from various formats', async () => {
-    const { extractSmallDetails } =
-      await import('../../intelligence/conversation-quality/small-details.js');
+    const { extractSmallDetails } = await import(
+      '../../intelligence/conversation-quality/small-details.js'
+    );
 
     // "My name is X"
     const details1 = extractSmallDetails('My name is Michael');
@@ -392,8 +385,9 @@ describe('Name Capture Scenarios', () => {
   });
 
   it('should extract family member names', async () => {
-    const { extractSmallDetails } =
-      await import('../../intelligence/conversation-quality/small-details.js');
+    const { extractSmallDetails } = await import(
+      '../../intelligence/conversation-quality/small-details.js'
+    );
 
     const details = extractSmallDetails('My wife Sarah and my son Tommy');
     const names = details.filter((d) => d.type === 'person_name' || d.type === 'family_member');
@@ -403,8 +397,9 @@ describe('Name Capture Scenarios', () => {
   });
 
   it('should not confuse persona names with user names', async () => {
-    const { extractSmallDetails } =
-      await import('../../intelligence/conversation-quality/small-details.js');
+    const { extractSmallDetails } = await import(
+      '../../intelligence/conversation-quality/small-details.js'
+    );
 
     // "Hi Maya" should NOT capture Maya as the user's name
     const details = extractSmallDetails('Hi Maya, how are you?');
@@ -425,8 +420,9 @@ describe('Comprehensive Synthetic Conversations', () => {
   it('should handle a career coaching conversation', async () => {
     const { stripSSML } = await import('../../utils/text-utils.js');
     const { ConversationHistoryTracker } = await import('../../memory/history.js');
-    const { extractSmallDetails } =
-      await import('../../intelligence/conversation-quality/small-details.js');
+    const { extractSmallDetails } = await import(
+      '../../intelligence/conversation-quality/small-details.js'
+    );
 
     const tracker = new ConversationHistoryTracker(`career-session-${Date.now()}`);
 
@@ -438,18 +434,14 @@ describe('Comprehensive Synthetic Conversations', () => {
       },
       {
         role: 'user' as const,
-        content:
-          "I've been at my company for 5 years and I'm thinking about asking for a promotion.",
+        content: "I've been at my company for 5 years and I'm thinking about asking for a promotion.",
       },
       {
         role: 'assistant' as const,
         content:
           '<prosody rate="95%">That\'s exciting! Five years shows real commitment. What role are you eyeing?</prosody>',
       },
-      {
-        role: 'user' as const,
-        content: 'I want to be a senior engineer. My manager Lisa seems supportive.',
-      },
+      { role: 'user' as const, content: 'I want to be a senior engineer. My manager Lisa seems supportive.' },
     ];
 
     // Process conversation
@@ -497,12 +489,11 @@ describe('Comprehensive Synthetic Conversations', () => {
       {
         role: 'assistant' as const,
         content:
-          '<break time="200ms"/>That\'s a lot to carry. How are you taking care of yourself through this?',
+          "<break time=\"200ms\"/>That's a lot to carry. How are you taking care of yourself through this?",
       },
       {
         role: 'user' as const,
-        content:
-          "I'm trying to exercise but it's hard. My friend Rachel has been supportive though.",
+        content: "I'm trying to exercise but it's hard. My friend Rachel has been supportive though.",
       },
     ];
 
@@ -529,10 +520,7 @@ describe('Comprehensive Synthetic Conversations', () => {
     const conversationWithCorrections = [
       { role: 'user' as const, content: 'I live in Boston.' },
       { role: 'assistant' as const, content: 'Oh nice, how long have you been in New York?' },
-      {
-        role: 'user' as const,
-        content: "No, I said Boston, not New York. I've been here 3 years.",
-      },
+      { role: 'user' as const, content: "No, I said Boston, not New York. I've been here 3 years." },
     ];
 
     // The third turn should be detected as a correction
@@ -552,8 +540,9 @@ describe('Comprehensive Synthetic Conversations', () => {
 
 describe.skip('Memory Flow Integration (requires Firestore)', () => {
   it('should persist and retrieve conversation turns', async () => {
-    const { startConversation, persistTurn, getConversationTurns } =
-      await import('../../services/memory/realtime-memory.js');
+    const { startConversation, persistTurn, getConversationTurns } = await import(
+      '../../services/memory/realtime-memory.js'
+    );
 
     // Start conversation
     const conversationId = await startConversation(TEST_USER_ID, TEST_PERSONA_ID);

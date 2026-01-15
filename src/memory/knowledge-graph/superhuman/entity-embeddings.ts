@@ -211,13 +211,10 @@ export class EntityEmbeddingsEngine {
       });
     }
 
-    log.info(
-      {
-        generated: needsGeneration.length,
-        cached: entities.length - needsGeneration.length,
-      },
-      'Batch embedding generation complete'
-    );
+    log.info({
+      generated: needsGeneration.length,
+      cached: entities.length - needsGeneration.length,
+    }, 'Batch embedding generation complete');
 
     return results;
   }
@@ -356,7 +353,10 @@ export class EntityEmbeddingsEngine {
   /**
    * Detect potential entity merges (same entity, different names)
    */
-  async detectPotentialMerges(userId: string, threshold: number = 0.85): Promise<PotentialMerge[]> {
+  async detectPotentialMerges(
+    userId: string,
+    threshold: number = 0.85
+  ): Promise<PotentialMerge[]> {
     const merges: PotentialMerge[] = [];
 
     try {
@@ -381,12 +381,7 @@ export class EntityEmbeddingsEngine {
           const similarity = cosineSimilarity(emb1.embedding, emb2.embedding);
 
           if (similarity >= threshold) {
-            const evidence = this.gatherMergeEvidence(
-              entity1,
-              entity2,
-              emb1.sourceText,
-              emb2.sourceText
-            );
+            const evidence = this.gatherMergeEvidence(entity1, entity2, emb1.sourceText, emb2.sourceText);
 
             merges.push({
               entity1Id: entity1.id,
@@ -446,10 +441,7 @@ export class EntityEmbeddingsEngine {
         const centroid = this.calculateCentroid(group.map((g) => g.embedding));
 
         // Calculate cohesion
-        const cohesion = this.calculateCohesion(
-          group.map((g) => g.embedding),
-          centroid
-        );
+        const cohesion = this.calculateCohesion(group.map((g) => g.embedding), centroid);
 
         clusters.push({
           id: `cluster-${type}`,
@@ -465,17 +457,16 @@ export class EntityEmbeddingsEngine {
         if (cluster.entities.length > 10) {
           // Could implement k-means here for sub-clustering
           // For now, just note large clusters
-          log.debug(
-            {
-              cluster: cluster.label,
-              size: cluster.entities.length,
-            },
-            'Large cluster detected, consider sub-clustering'
-          );
+          log.debug({
+            cluster: cluster.label,
+            size: cluster.entities.length,
+          }, 'Large cluster detected, consider sub-clustering');
         }
       }
 
-      return clusters.filter((c) => c.entities.length >= minClusterSize).slice(0, maxClusters);
+      return clusters
+        .filter((c) => c.entities.length >= minClusterSize)
+        .slice(0, maxClusters);
     } catch (error) {
       log.error({ error: String(error) }, 'Clustering failed');
       return [];

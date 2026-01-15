@@ -45,7 +45,10 @@ function getDb(): FirebaseFirestore.Firestore {
 /**
  * Check if a voice upload is associated with an active agent
  */
-async function isUploadActive(db: FirebaseFirestore.Firestore, gcsUri: string): Promise<boolean> {
+async function isUploadActive(
+  db: FirebaseFirestore.Firestore,
+  gcsUri: string
+): Promise<boolean> {
   try {
     // Parse userId and agentId from the GCS path
     // Expected format: gs://bucket/voice-samples/{userId}/{agentId}/{filename}
@@ -217,10 +220,9 @@ export async function cleanupOrphanedUploads(): Promise<CleanupResult> {
 /**
  * HTTP handler for scheduled job
  */
-export async function handleCleanupOrphanedUploads(res: {
-  writeHead: (status: number, headers?: Record<string, string>) => void;
-  end: (data?: string) => void;
-}): Promise<void> {
+export async function handleCleanupOrphanedUploads(
+  res: { writeHead: (status: number, headers?: Record<string, string>) => void; end: (data?: string) => void }
+): Promise<void> {
   try {
     const result = await cleanupOrphanedUploads();
 

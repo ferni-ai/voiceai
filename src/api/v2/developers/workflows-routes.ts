@@ -28,14 +28,14 @@ import {
   sendItemResponse,
   sendPaginatedResponse,
 } from './shared/middleware.js';
-import {
-  CreateWorkflowSchema,
-  UpdateWorkflowSchema,
-  PaginationSchema,
-} from './shared/validation.js';
-import type { DeveloperWorkflow, WorkflowExecution, WorkflowTestResult } from './shared/types.js';
+import { CreateWorkflowSchema, UpdateWorkflowSchema, PaginationSchema } from './shared/validation.js';
+import type {
+  DeveloperWorkflow,
+  WorkflowExecution,
+  WorkflowTestResult,
+} from './shared/types.js';
 import { COLLECTIONS, ID_PREFIXES } from './shared/types.js';
-import type { WorkflowNode, WorkflowEdge } from '../../../services/workflows/workflow-engine.js';
+import type { WorkflowNode, WorkflowEdge } from '../../../services/workflow-engine.js';
 
 const log = getLogger().child({ module: 'workflows-routes' });
 
@@ -222,7 +222,10 @@ export async function handleWorkflowsRoutes(
 /**
  * POST /workflows - Create a new workflow definition
  */
-async function handleCreateWorkflow(req: IncomingMessage, res: ServerResponse): Promise<boolean> {
+async function handleCreateWorkflow(
+  req: IncomingMessage,
+  res: ServerResponse
+): Promise<boolean> {
   // Authenticate
   const auth = await requireApiKeyAuth(req, res);
   if (!auth) return true;
@@ -287,7 +290,10 @@ async function handleCreateWorkflow(req: IncomingMessage, res: ServerResponse): 
 
     await db.collection(COLLECTIONS.WORKFLOWS).doc(workflowId).set(workflow);
 
-    log.info({ workflowId, publisherId: auth.publisherId, name: input.name }, 'Workflow created');
+    log.info(
+      { workflowId, publisherId: auth.publisherId, name: input.name },
+      'Workflow created'
+    );
 
     sendItemResponse(res, { ...workflow, id: workflowId });
     return true;
@@ -306,7 +312,10 @@ async function handleCreateWorkflow(req: IncomingMessage, res: ServerResponse): 
 /**
  * GET /workflows - List workflows with pagination
  */
-async function handleListWorkflows(req: IncomingMessage, res: ServerResponse): Promise<boolean> {
+async function handleListWorkflows(
+  req: IncomingMessage,
+  res: ServerResponse
+): Promise<boolean> {
   // Authenticate
   const auth = await requireApiKeyAuth(req, res);
   if (!auth) return true;
@@ -697,10 +706,7 @@ async function handleExecuteWorkflow(
       name: data.name as string,
       description: data.description as string | undefined,
       version: data.version as string | undefined,
-      trigger: data.trigger as {
-        type: 'voice_command' | 'schedule' | 'event' | 'api';
-        config: Record<string, unknown>;
-      },
+      trigger: data.trigger as { type: 'voice_command' | 'schedule' | 'event' | 'api'; config: Record<string, unknown> },
       nodes: data.nodes as WorkflowNode[],
       edges: data.edges as WorkflowEdge[],
       entryNodeId: data.entryNodeId as string,
@@ -732,7 +738,10 @@ async function handleExecuteWorkflow(
       completedAt: completedExecution.completedAt,
     });
 
-    log.info({ workflowId, executionId, publisherId: auth.publisherId }, 'Workflow executed');
+    log.info(
+      { workflowId, executionId, publisherId: auth.publisherId },
+      'Workflow executed'
+    );
 
     const result: WorkflowTestResult = {
       success: true,
@@ -799,7 +808,10 @@ async function handleGetRuns(
       .orderBy('startedAt', 'desc');
 
     if (cursor) {
-      const cursorDoc = await db.collection(COLLECTIONS.WORKFLOW_EXECUTIONS).doc(cursor).get();
+      const cursorDoc = await db
+        .collection(COLLECTIONS.WORKFLOW_EXECUTIONS)
+        .doc(cursor)
+        .get();
       if (cursorDoc.exists) {
         query = query.startAfter(cursorDoc);
       }

@@ -39,7 +39,7 @@ import {
   formatReviewForSpeech as formatYelpReview,
   isYelpConfigured,
   type YelpBusiness,
-} from '../../../services/integrations/yelp.js';
+} from '../../../services/yelp.js';
 
 const log = getLogger();
 

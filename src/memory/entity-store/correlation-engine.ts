@@ -342,16 +342,14 @@ export class CorrelationEngine {
       for (const [timeOfDay, count] of timeMap) {
         const ratio = count / total;
         if (ratio >= 0.5 && count >= 3) {
-          correlations.push(
-            this.createCorrelation(userId, {
-              type: 'temporal',
-              entityIds: [entityId],
-              description: `Entity mentioned ${Math.round(ratio * 100)}% of the time in the ${timeOfDay}`,
-              strength: ratio,
-              observationCount: count,
-              pattern: { temporal: timeOfDay },
-            })
-          );
+          correlations.push(this.createCorrelation(userId, {
+            type: 'temporal',
+            entityIds: [entityId],
+            description: `Entity mentioned ${Math.round(ratio * 100)}% of the time in the ${timeOfDay}`,
+            strength: ratio,
+            observationCount: count,
+            pattern: { temporal: timeOfDay },
+          }));
         }
       }
     }
@@ -364,10 +362,7 @@ export class CorrelationEngine {
     observations: CorrelationObservation[]
   ): Correlation[] {
     const correlations: Correlation[] = [];
-    const entityEmotionPatterns = new Map<
-      string,
-      Map<string, { count: number; totalIntensity: number }>
-    >();
+    const entityEmotionPatterns = new Map<string, Map<string, { count: number; totalIntensity: number }>>();
 
     for (const obs of observations) {
       if (!obs.context.emotion) continue;
@@ -397,16 +392,14 @@ export class CorrelationEngine {
         const avgIntensity = stats.totalIntensity / stats.count;
 
         if (ratio >= 0.4 && avgIntensity >= 0.5 && stats.count >= 3) {
-          correlations.push(
-            this.createCorrelation(userId, {
-              type: 'emotional',
-              entityIds: [entityId],
-              description: `Entity associated with ${emotion} ${Math.round(ratio * 100)}% of the time`,
-              strength: ratio * avgIntensity,
-              observationCount: stats.count,
-              pattern: { contextual: emotion },
-            })
-          );
+          correlations.push(this.createCorrelation(userId, {
+            type: 'emotional',
+            entityIds: [entityId],
+            description: `Entity associated with ${emotion} ${Math.round(ratio * 100)}% of the time`,
+            strength: ratio * avgIntensity,
+            observationCount: stats.count,
+            pattern: { contextual: emotion },
+          }));
         }
       }
     }
@@ -435,15 +428,13 @@ export class CorrelationEngine {
     for (const [key, count] of cooccurrences) {
       if (count >= MIN_OBSERVATIONS) {
         const [id1, id2] = key.split(':');
-        correlations.push(
-          this.createCorrelation(userId, {
-            type: 'social',
-            entityIds: [id1, id2],
-            description: `These entities co-occur ${count} times`,
-            strength: Math.min(1, count / 10),
-            observationCount: count,
-          })
-        );
+        correlations.push(this.createCorrelation(userId, {
+          type: 'social',
+          entityIds: [id1, id2],
+          description: `These entities co-occur ${count} times`,
+          strength: Math.min(1, count / 10),
+          observationCount: count,
+        }));
       }
     }
 
@@ -478,16 +469,14 @@ export class CorrelationEngine {
         const ratio = count / expected;
 
         if (ratio >= 2 && count >= 3) {
-          correlations.push(
-            this.createCorrelation(userId, {
-              type: 'cyclical',
-              entityIds: [entityId],
-              description: `Entity mentioned ${ratio.toFixed(1)}x more often on ${dayOfWeek}s`,
-              strength: Math.min(1, (ratio - 1) / 3),
-              observationCount: count,
-              pattern: { temporal: `${dayOfWeek}s` },
-            })
-          );
+          correlations.push(this.createCorrelation(userId, {
+            type: 'cyclical',
+            entityIds: [entityId],
+            description: `Entity mentioned ${ratio.toFixed(1)}x more often on ${dayOfWeek}s`,
+            strength: Math.min(1, (ratio - 1) / 3),
+            observationCount: count,
+            pattern: { temporal: `${dayOfWeek}s` },
+          }));
         }
       }
     }
@@ -590,31 +579,18 @@ export class CorrelationEngine {
     const existing = await this.findExistingCorrelation(correlation.userId, key);
 
     if (existing) {
-      await this.db
-        .collection(CORRELATIONS_COLLECTION)
-        .doc(existing.id)
-        .update(
-          cleanForFirestore({
-            strength: Math.max(existing.strength, correlation.strength),
-            observationCount: existing.observationCount + correlation.observationCount,
-            confidence: Math.min(
-              1,
-              (existing.observationCount + correlation.observationCount) / 10
-            ),
-            lastObserved: new Date(),
-            updatedAt: new Date(),
-          })
-        );
+      await this.db.collection(CORRELATIONS_COLLECTION).doc(existing.id).update(cleanForFirestore({
+        strength: Math.max(existing.strength, correlation.strength),
+        observationCount: existing.observationCount + correlation.observationCount,
+        confidence: Math.min(1, (existing.observationCount + correlation.observationCount) / 10),
+        lastObserved: new Date(),
+        updatedAt: new Date(),
+      }));
     } else {
-      await this.db
-        .collection(CORRELATIONS_COLLECTION)
-        .doc(correlation.id)
-        .set(
-          cleanForFirestore({
-            ...correlation,
-            correlationKey: key,
-          })
-        );
+      await this.db.collection(CORRELATIONS_COLLECTION).doc(correlation.id).set(cleanForFirestore({
+        ...correlation,
+        correlationKey: key,
+      }));
     }
   }
 

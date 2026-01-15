@@ -622,9 +622,6 @@ function createPanel(): HTMLElement {
           <button aria-label="Confirm" class="dev-action-btn" data-music-action="test-spotify">
             ${ICONS.headphones} Check Spotify
           </button>
-          <button aria-label="Test Ducking" class="dev-action-btn" data-music-action="test-ducking">
-            ${ICONS.volumeLow} Test Ducking
-          </button>
         </div>
       </section>
       
@@ -4400,54 +4397,25 @@ async function updateMusicStatusDisplay(): Promise<void> {
     `;
   }
 
-  // Get frontend ducking diagnostics
-  const { getMusicAudioController } = await import('../services/music-audio.controller.js');
-  const audioController = getMusicAudioController();
-  const duckingDiag = audioController.getDuckingDiagnostics();
-  
-  // Frontend ducking status
-  const duckingClass = duckingDiag.hasTrack 
-    ? 'dev-music-status__item--success' 
-    : 'dev-music-status__item--warning';
-  
-  let duckingStatus = 'Ready';
-  if (duckingDiag.agentSpeaking) duckingStatus = '🔉 Agent Ducking';
-  else if (duckingDiag.userSpeaking) duckingStatus = '🔉 User Ducking';
-  else if (duckingDiag.backendDucking) duckingStatus = '🔉 Backend Ducking';
-  else if (!duckingDiag.hasTrack) duckingStatus = '⚠️ No Track';
-  
-  const gainPercent = Math.round(duckingDiag.targetGain * 100);
-
   statusContainer.innerHTML = `
     <div class="dev-music-status__grid">
       <div class="dev-music-status__item ${statusClass}">
-        <span class="dev-music-status__label">Backend Player</span>
-        <span class="dev-music-status__value">${status.initialized ? '✓ Ready' : '✗ Not Init'}</span>
+        <span class="dev-music-status__label">Player</span>
+        <span class="dev-music-status__value">${status.initialized ? '${ICONS.check} Ready' : '${ICONS.x} Not Init'}</span>
       </div>
       <div class="dev-music-status__item ${playingClass}">
         <span class="dev-music-status__label">Playing</span>
-        <span class="dev-music-status__value">${status.isPlaying ? '▶ Yes' : '⏹ No'}</span>
+        <span class="dev-music-status__value">${status.isPlaying ? '${ICONS.play} Yes' : '${ICONS.stop} No'}</span>
       </div>
       <div class="dev-music-status__item">
-        <span class="dev-music-status__label">Backend Vol</span>
+        <span class="dev-music-status__label">Volume</span>
         <span class="dev-music-status__value">${Math.round(status.volume * 100)}%${status.isDucked ? ' (ducked)' : ''}</span>
       </div>
       <div class="dev-music-status__item ${itunesClass}">
         <span class="dev-music-status__label">iTunes</span>
-        <span class="dev-music-status__value">${status.itunesAvailable ? '✓ Available' : '✗ Down'}</span>
+        <span class="dev-music-status__value">${status.itunesAvailable ? '${ICONS.check} Available' : '${ICONS.x} Down'}</span>
       </div>
       ${spotifyHtml}
-      
-      <!-- Frontend Ducking Diagnostics -->
-      <div class="dev-music-status__item ${duckingClass}">
-        <span class="dev-music-status__label">Frontend Ducking</span>
-        <span class="dev-music-status__value">${duckingStatus}</span>
-      </div>
-      <div class="dev-music-status__item">
-        <span class="dev-music-status__label">Gain Level</span>
-        <span class="dev-music-status__value">${gainPercent}%${duckingDiag.hasGainNode ? ' (Web Audio)' : duckingDiag.usingFallback ? ' (Fallback)' : ''}</span>
-      </div>
-      
       ${
         status.currentTrack
           ? `
@@ -4505,41 +4473,6 @@ async function handleMusicStatusAction(action: string): Promise<void> {
       } catch (e) {
         log.error({ error: e }, 'Spotify check failed');
         alert('Spotify check failed - check console');
-      }
-      break;
-
-    case 'test-ducking':
-      try {
-        const { getMusicAudioController } = await import('../services/music-audio.controller.js');
-        const controller = getMusicAudioController();
-        const diagBefore = controller.getDuckingDiagnostics();
-        
-        log.info({ before: diagBefore }, '🎚️ Testing ducking - BEFORE');
-        
-        // Simulate agent speaking for 2 seconds
-        const duckResult = controller.duckForAgent();
-        const diagDuring = controller.getDuckingDiagnostics();
-        
-        log.info({ duckResult, during: diagDuring }, '🎚️ Testing ducking - DURING');
-        
-        // Show status
-        const statusMsg = duckResult 
-          ? `✓ Ducking applied!\n\nGain: ${Math.round(diagDuring.targetGain * 100)}%\nHas Track: ${diagDuring.hasTrack}\nHas GainNode: ${diagDuring.hasGainNode}`
-          : `⚠️ Ducking NOT applied\n\nHas Track: ${diagDuring.hasTrack}\nUsing Fallback: ${diagDuring.usingFallback}\n\nNote: Ducking requires music to be playing.`;
-        
-        alert(`Ducking Test:\n\n${statusMsg}`);
-        
-        // Restore after 2 seconds
-        setTimeout(() => {
-          controller.unduckForAgent();
-          const diagAfter = controller.getDuckingDiagnostics();
-          log.info({ after: diagAfter }, '🎚️ Testing ducking - AFTER (restored)');
-          void updateMusicStatusDisplay();
-        }, 2000);
-        
-      } catch (e) {
-        log.error({ error: e }, 'Ducking test failed');
-        alert('Ducking test failed - check console');
       }
       break;
 

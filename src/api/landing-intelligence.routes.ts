@@ -567,7 +567,7 @@ export async function handleLandingIntelligenceRoutes(
 
       try {
         // Import the feature flags service (Firestore-backed)
-        const { isEnabled, getFlag: getFlagConfig } = await import('../services/deployment/feature-flags.js');
+        const { isEnabled, getFlag: getFlagConfig } = await import('../services/feature-flags.js');
 
         // Check if flag is enabled for this user (handles percentage rollout internally)
         const enabled = isEnabled(experimentId as Parameters<typeof isEnabled>[0], userId);

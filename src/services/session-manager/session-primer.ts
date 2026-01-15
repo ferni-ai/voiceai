@@ -15,9 +15,9 @@ import {
   buildMemoryIndex,
   getConversationPrimingMemories,
   getSessionPrimer,
-} from '../memory/index.js';
+} from '../../memory/index.js';
 
-import type { MemoryItem } from '../memory/advanced-retrieval.js';
+import type { MemoryItem } from '../../memory/advanced-retrieval.js';
 
 // Intelligence imports
 import type {

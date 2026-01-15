@@ -7,7 +7,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { getFirestoreVectorStore } from '../memory/firestore-vector-store.js';
+import { getFirestoreVectorStore } from '../../memory/firestore-vector-store.js';
 import { DEFAULT_INDEXING_POLICY, getPoliciesByDomain } from './indexing-policy.js';
 import type { StoreType, EntityType } from './types.js';
 

@@ -6,7 +6,7 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
-import { loadPersonaBehaviors } from './persona-behavior-manager.js';
+import { loadPersonaBehaviors } from '../persona-service/persona-behavior-manager.js';
 
 const _logger = getLogger().child({ service: 'CulturalAwareness' }); // Reserved for future debug logging
 

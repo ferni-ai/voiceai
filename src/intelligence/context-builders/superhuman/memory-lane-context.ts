@@ -100,8 +100,9 @@ async function findRelevantMemories(
   const candidates: ProactiveSurfaceableMemory[] = [];
 
   try {
-    const { loadMemories, loadOnThisDayMemories } =
-      await import('../../../services/memory-lane/memory-collector.js');
+    const { loadMemories, loadOnThisDayMemories } = await import(
+      '../../../services/memory-lane/memory-collector.js'
+    );
     const { scoreMemory } = await import('../../../services/memory-lane/highlight-scorer.js');
 
     const scoringContext = {
@@ -136,8 +137,8 @@ async function findRelevantMemories(
       for (const memory of memories) {
         if (session.surfacedMemoryIds.has(memory.id)) continue;
 
-        const hasTopicMatch = memory.topicTags.some(
-          (tag) => tag.toLowerCase().includes(topicLower) || topicLower.includes(tag.toLowerCase())
+        const hasTopicMatch = memory.topicTags.some((tag) =>
+          tag.toLowerCase().includes(topicLower) || topicLower.includes(tag.toLowerCase())
         );
 
         if (hasTopicMatch) {
@@ -153,10 +154,7 @@ async function findRelevantMemories(
     }
 
     // 3. Check for emotional echo (when current emotion matches past breakthrough)
-    if (
-      context.currentEmotion &&
-      ['sad', 'anxious', 'stressed', 'overwhelmed'].includes(context.currentEmotion)
-    ) {
+    if (context.currentEmotion && ['sad', 'anxious', 'stressed', 'overwhelmed'].includes(context.currentEmotion)) {
       const memories = await loadMemories(userId, { types: ['breakthrough', 'growth'] });
 
       for (const memory of memories) {
@@ -256,10 +254,7 @@ async function buildMemoryLaneContext(input: ContextBuilderInput): Promise<Conte
   const session = getSession(sessionId);
 
   // Respect cooldown between memory surfacing
-  if (
-    session.lastSurfacedTurn > 0 &&
-    turnCount - session.lastSurfacedTurn < MIN_TURNS_BETWEEN_MEMORIES
-  ) {
+  if (session.lastSurfacedTurn > 0 && turnCount - session.lastSurfacedTurn < MIN_TURNS_BETWEEN_MEMORIES) {
     return injections;
   }
 
@@ -333,8 +328,7 @@ Only surface if it feels natural. Don't force it.`,
  */
 async function markMemoryAsSurfaced(userId: string, memoryId: string): Promise<void> {
   try {
-    const { markMemorySurfaced } =
-      await import('../../../services/memory-lane/highlight-scorer.js');
+    const { markMemorySurfaced } = await import('../../../services/memory-lane/highlight-scorer.js');
     await markMemorySurfaced(userId, memoryId, 'conversation');
   } catch {
     // Non-critical, don't log

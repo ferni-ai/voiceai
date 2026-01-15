@@ -327,7 +327,7 @@ async function fetchRelationships(userId: string): Promise<RelationshipGrowth> {
 
 async function fetchTeamUnlocks(userId: string): Promise<TeamUnlock[]> {
   try {
-    const { getTeamUnlockState } = await import('../services/monetization/team-unlocks.js');
+    const { getTeamUnlockState } = await import('../services/team-unlocks.js');
     const { getDefaultStore } = await import('../memory/in-memory-store.js');
     const store = getDefaultStore();
     const profile = await store.getProfile(userId);

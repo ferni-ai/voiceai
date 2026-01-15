@@ -532,7 +532,7 @@ export function setupServicesMocks(services?: ReturnType<typeof createMockSessio
   }));
 
   // Cross-persona insights
-  vi.mock('../../../services/cross-persona/cross-persona-insights.js', () => ({
+  vi.mock('../../../services/cross-persona-insights.js', () => ({
     loadInsights: vi.fn().mockResolvedValue([]),
     formatInsightsForPrompt: vi.fn(() => ''),
     recordInsight: vi.fn(),

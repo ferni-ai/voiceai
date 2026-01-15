@@ -58,7 +58,7 @@ import {
   broadcastCognitiveMode,
   broadcastConfidence,
   broadcastUserStyle,
-} from '../../../services/cognitive-intelligence/cognitive-broadcast.js';
+} from '../../../services/cognitive-broadcast.js';
 
 // Cognitive metrics for performance tracking
 import {
@@ -68,7 +68,7 @@ import {
 } from '../../../utils/cognitive-metrics.js';
 
 // Centralized distress levels
-import { DISTRESS } from '../../detectors/distress.js';
+import { DISTRESS } from '../../distress-levels.js';
 
 // Centralized session state
 import {
@@ -78,7 +78,7 @@ import {
   getCognitiveState,
   setActiveReasoningChain,
   updateUserCognitiveStyle,
-} from '../../state/session.js';
+} from '../../session-state.js';
 
 /**
  * Build cognitive intelligence context

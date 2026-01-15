@@ -32,91 +32,91 @@ const log = createLogger({ module: 'BreakthroughProximity' });
 
 /** Types of breakthroughs we can detect */
 export type BreakthroughType =
-  | 'self_understanding' // Insight about who they are
-  | 'pattern_recognition' // Seeing a recurring pattern in their life
-  | 'belief_shift' // Changing a core belief
-  | 'emotional_release' // Processing stuck emotion
-  | 'decision_clarity' // Clarity on a major decision
-  | 'relationship_insight' // Understanding a relationship dynamic
-  | 'value_alignment' // Realizing their values
-  | 'forgiveness' // Ready to forgive self or others
-  | 'acceptance' // Accepting something they've resisted
-  | 'integration' // Integrating a past experience
-  | 'purpose_clarity' // Understanding their purpose
-  | 'boundary_recognition' // Recognizing need for boundaries
-  | 'grief_movement' // Moving through stuck grief
-  | 'identity_evolution'; // Evolving sense of self
+  | 'self_understanding'      // Insight about who they are
+  | 'pattern_recognition'     // Seeing a recurring pattern in their life
+  | 'belief_shift'            // Changing a core belief
+  | 'emotional_release'       // Processing stuck emotion
+  | 'decision_clarity'        // Clarity on a major decision
+  | 'relationship_insight'    // Understanding a relationship dynamic
+  | 'value_alignment'         // Realizing their values
+  | 'forgiveness'             // Ready to forgive self or others
+  | 'acceptance'              // Accepting something they've resisted
+  | 'integration'             // Integrating a past experience
+  | 'purpose_clarity'         // Understanding their purpose
+  | 'boundary_recognition'    // Recognizing need for boundaries
+  | 'grief_movement'          // Moving through stuck grief
+  | 'identity_evolution';     // Evolving sense of self
 
 /** Indicators that a breakthrough is approaching */
 export interface BreakthroughIndicator {
   type: IndicatorType;
-  strength: number; // 0-1
+  strength: number;        // 0-1
   timestamp: number;
-  content: string; // What they said
-  topic: string; // Related topic
+  content: string;         // What they said
+  topic: string;           // Related topic
 }
 
 export type IndicatorType =
-  | 'questioning_beliefs' // "I always thought... but now I wonder"
-  | 'circling_topic' // Coming back to same topic
-  | 'increasing_reflection' // "I've been thinking a lot about..."
-  | 'emotional_intensity' // Strong emotions around topic
+  | 'questioning_beliefs'     // "I always thought... but now I wonder"
+  | 'circling_topic'          // Coming back to same topic
+  | 'increasing_reflection'   // "I've been thinking a lot about..."
+  | 'emotional_intensity'     // Strong emotions around topic
   | 'contradiction_surfacing' // Noticing their own contradictions
-  | 'connecting_dots' // Making new connections
-  | 'future_visualization' // Imagining different futures
-  | 'past_reframing' // Seeing past differently
-  | 'resistance_softening' // Less defensive about topic
-  | 'language_shift' // New vocabulary for old issues
-  | 'aha_adjacency' // Near-insight moments
-  | 'vulnerability_increase' // More willing to be vulnerable
+  | 'connecting_dots'         // Making new connections
+  | 'future_visualization'    // Imagining different futures
+  | 'past_reframing'          // Seeing past differently
+  | 'resistance_softening'    // Less defensive about topic
+  | 'language_shift'          // New vocabulary for old issues
+  | 'aha_adjacency'           // Near-insight moments
+  | 'vulnerability_increase'  // More willing to be vulnerable
   | 'asking_deeper_questions' // Questions going deeper
-  | 'silence_processing'; // Processing silences
+  | 'silence_processing';     // Processing silences
 
 /** What's blocking the breakthrough */
 export interface BreakthroughBlockage {
   type: BlockageType;
-  strength: number; // 0-1, how strong the block is
+  strength: number;        // 0-1, how strong the block is
   description: string;
   addressingStrategy: string;
 }
 
 export type BlockageType =
-  | 'fear_of_change' // Scared of what insight means
-  | 'identity_threat' // Insight threatens self-image
-  | 'grief_avoidance' // Would have to feel loss
-  | 'shame_protection' // Insight reveals something shameful
-  | 'relationship_stakes' // Would affect relationships
-  | 'overwhelm' // Too much to process at once
-  | 'intellectualization' // Staying in head, avoiding heart
-  | 'external_validation' // Waiting for permission
-  | 'timing' // Not ready yet
-  | 'safety' // Environment doesn't feel safe
-  | 'language_gap'; // Can't articulate what they're sensing
+  | 'fear_of_change'          // Scared of what insight means
+  | 'identity_threat'         // Insight threatens self-image
+  | 'grief_avoidance'         // Would have to feel loss
+  | 'shame_protection'        // Insight reveals something shameful
+  | 'relationship_stakes'     // Would affect relationships
+  | 'overwhelm'               // Too much to process at once
+  | 'intellectualization'     // Staying in head, avoiding heart
+  | 'external_validation'     // Waiting for permission
+  | 'timing'                  // Not ready yet
+  | 'safety'                  // Environment doesn't feel safe
+  | 'language_gap';           // Can't articulate what they're sensing
 
 /** Breakthrough proximity assessment */
 export interface BreakthroughProximity {
   userId: string;
   topic: string;
   potentialBreakthroughType: BreakthroughType;
-
+  
   /** How close they are to the breakthrough */
   proximity: 'distant' | 'approaching' | 'imminent' | 'threshold';
-
+  
   /** Probability of breakthrough in next conversation */
   probability: number;
-
+  
   /** Confidence in our assessment */
   confidence: number;
-
+  
   /** All indicators we've observed */
   indicators: BreakthroughIndicator[];
-
+  
   /** What's blocking the breakthrough */
   blockages: BreakthroughBlockage[];
-
+  
   /** The insight we predict they're approaching */
   predictedInsight: string;
-
+  
   /** Optimal conditions to facilitate */
   optimalConditions: {
     conversationTone: ConversationTone;
@@ -126,25 +126,25 @@ export interface BreakthroughProximity {
     environment: string;
     pacing: 'slow' | 'moderate' | 'follow_their_lead';
   };
-
+  
   /** Questions that might catalyze the breakthrough */
   catalystQuestions: string[];
-
+  
   /** What NOT to do */
   antiPatterns: string[];
-
+  
   /** How valuable this breakthrough would be (0-1) */
   impactPotential: number;
 }
 
 type ConversationTone =
-  | 'socratic' // Asking questions that lead to discovery
-  | 'validating' // Affirming what they're feeling
-  | 'challenging' // Gently pushing on assumptions
-  | 'witnessing' // Just being present
-  | 'reflecting' // Mirroring back what they're saying
-  | 'grounding' // Helping them feel safe
-  | 'celebratory'; // Acknowledging the work they've done
+  | 'socratic'         // Asking questions that lead to discovery
+  | 'validating'       // Affirming what they're feeling
+  | 'challenging'      // Gently pushing on assumptions
+  | 'witnessing'       // Just being present
+  | 'reflecting'       // Mirroring back what they're saying
+  | 'grounding'        // Helping them feel safe
+  | 'celebratory';     // Acknowledging the work they've done
 
 /** User's breakthrough profile */
 interface UserBreakthroughProfile {
@@ -340,9 +340,13 @@ export function recordBreakthrough(
   const track = profile.activeTracks.get(topic);
 
   // Record the breakthrough
-  const precursorIndicators = track ? [...new Set(track.indicators.map((i) => i.type))] : [];
+  const precursorIndicators = track
+    ? [...new Set(track.indicators.map((i) => i.type))]
+    : [];
 
-  const timeFromFirstIndicator = track ? now - track.startedAt : 0;
+  const timeFromFirstIndicator = track
+    ? now - track.startedAt
+    : 0;
 
   profile.pastBreakthroughs.push({
     topic,
@@ -418,8 +422,8 @@ export function assessProximity(userId: string, topic: string): BreakthroughProx
   const indicatorDiversity = indicatorCounts.size / 10; // Normalized
 
   // Calculate blockage impact
-  const blockageImpact =
-    track.blockages.reduce((sum, b) => sum + b.strength, 0) / Math.max(1, track.blockages.length);
+  const blockageImpact = track.blockages.reduce((sum, b) => sum + b.strength, 0) / 
+    Math.max(1, track.blockages.length);
 
   // Calculate raw probability
   let probability = avgStrength * 0.5 + indicatorDiversity * 0.3 - blockageImpact * 0.2;
@@ -457,7 +461,11 @@ export function assessProximity(userId: string, topic: string): BreakthroughProx
   );
 
   // Generate optimal conditions
-  const optimalConditions = generateOptimalConditions(track, profile, potentialBreakthroughType);
+  const optimalConditions = generateOptimalConditions(
+    track,
+    profile,
+    potentialBreakthroughType
+  );
 
   // Generate catalyst questions
   const catalystQuestions = generateCatalystQuestions(
@@ -473,7 +481,10 @@ export function assessProximity(userId: string, topic: string): BreakthroughProx
   const impactPotential = calculateImpactPotential(potentialBreakthroughType, track);
 
   // Calculate confidence
-  const confidence = Math.min(0.9, 0.3 + track.indicators.length * 0.05 + indicatorDiversity * 0.2);
+  const confidence = Math.min(
+    0.9,
+    0.3 + track.indicators.length * 0.05 + indicatorDiversity * 0.2
+  );
 
   return {
     userId,
@@ -545,14 +556,12 @@ export function buildBreakthroughContext(userId: string): string {
 
   const sections: string[] = [];
   sections.push('[BREAKTHROUGH INTELLIGENCE - Insights Forming]');
-  sections.push("You sense they're approaching a breakthrough. Be the midwife to their insight.");
+  sections.push('You sense they\'re approaching a breakthrough. Be the midwife to their insight.');
   sections.push('');
 
   for (const assessment of assessments.slice(0, 2)) {
     sections.push(`• **Topic:** ${assessment.topic}`);
-    sections.push(
-      `  - Proximity: ${assessment.proximity} (${Math.round(assessment.probability * 100)}%)`
-    );
+    sections.push(`  - Proximity: ${assessment.proximity} (${Math.round(assessment.probability * 100)}%)`);
     sections.push(`  - Likely insight: "${assessment.predictedInsight}"`);
     sections.push(`  - Tone: ${assessment.optimalConditions.conversationTone}`);
     if (assessment.catalystQuestions.length > 0) {
@@ -564,7 +573,7 @@ export function buildBreakthroughContext(userId: string): string {
     sections.push('');
   }
 
-  sections.push("**Your role:** Don't give them the answer. Help them find it themselves.");
+  sections.push('**Your role:** Don\'t give them the answer. Help them find it themselves.');
 
   return sections.join('\n');
 }
@@ -609,18 +618,12 @@ function inferBreakthroughType(
 
   // Topic-based inference
   const topicLower = topic.toLowerCase();
-  if (
-    topicLower.includes('relationship') ||
-    topicLower.includes('parent') ||
-    topicLower.includes('partner')
-  ) {
+  if (topicLower.includes('relationship') || topicLower.includes('parent') ||
+      topicLower.includes('partner')) {
     return 'relationship_insight';
   }
-  if (
-    topicLower.includes('decision') ||
-    topicLower.includes('choose') ||
-    topicLower.includes('whether')
-  ) {
+  if (topicLower.includes('decision') || topicLower.includes('choose') ||
+      topicLower.includes('whether')) {
     return 'decision_clarity';
   }
   if (topicLower.includes('forgive') || topicLower.includes('resentment')) {
@@ -660,7 +663,9 @@ function generatePredictedInsight(
   type: BreakthroughType
 ): string {
   // Find most common content themes
-  const contentWords = indicators.map((i) => i.content.toLowerCase().split(/\s+/)).flat();
+  const contentWords = indicators
+    .map((i) => i.content.toLowerCase().split(/\s+/))
+    .flat();
 
   // Generate insight based on type
   switch (type) {
@@ -711,11 +716,11 @@ function generateOptimalConditions(
       break;
     case 'decision_clarity':
       conversationTone = 'socratic';
-      timing = "after they've had time to process";
+      timing = 'after they\'ve had time to process';
       break;
     case 'belief_shift':
       conversationTone = 'challenging';
-      timing = "when they're questioning themselves";
+      timing = 'when they\'re questioning themselves';
       pacing = 'slow';
       break;
     case 'forgiveness':
@@ -729,7 +734,7 @@ function generateOptimalConditions(
       break;
     case 'integration':
       conversationTone = 'grounding';
-      timing = "when they're in a reflective mood";
+      timing = 'when they\'re in a reflective mood';
       break;
   }
 
@@ -774,12 +779,12 @@ function generateCatalystQuestions(
       questions.push('When was the first time you remember feeling this way?');
       break;
     case 'belief_shift':
-      questions.push("What if that wasn't true?");
+      questions.push('What if that wasn\'t true?');
       questions.push('Who told you that, originally?');
       questions.push('What would change if you believed something different?');
       break;
     case 'decision_clarity':
-      questions.push("If you knew you couldn't fail, what would you choose?");
+      questions.push('If you knew you couldn\'t fail, what would you choose?');
       questions.push('What does your gut say, beneath all the analysis?');
       questions.push('What are you most afraid of about this decision?');
       break;
@@ -790,7 +795,7 @@ function generateCatalystQuestions(
       break;
     case 'relationship_insight':
       questions.push('What role do you play in this dynamic?');
-      questions.push("What do you think they're really trying to say?");
+      questions.push('What do you think they\'re really trying to say?');
       questions.push('What would shift if you saw it from their perspective?');
       break;
     case 'forgiveness':
@@ -804,7 +809,7 @@ function generateCatalystQuestions(
       questions.push('What have you been sacrificing this for?');
       break;
     default:
-      questions.push("What are you starting to see that you couldn't see before?");
+      questions.push('What are you starting to see that you couldn\'t see before?');
       questions.push('What would shift if you really let yourself know this?');
       questions.push('What does this mean for who you want to become?');
   }
@@ -819,29 +824,29 @@ function generateAntiPatterns(
   const antiPatterns: string[] = [];
 
   // Universal anti-patterns
-  antiPatterns.push("Don't give them the answer - let them find it");
-  antiPatterns.push("Don't rush - breakthroughs have their own timing");
+  antiPatterns.push('Don\'t give them the answer - let them find it');
+  antiPatterns.push('Don\'t rush - breakthroughs have their own timing');
 
   // Blockage-specific
   for (const blockage of blockages) {
     switch (blockage.type) {
       case 'fear_of_change':
-        antiPatterns.push("Don't push them to commit to change");
+        antiPatterns.push('Don\'t push them to commit to change');
         break;
       case 'identity_threat':
-        antiPatterns.push("Don't challenge their self-image directly");
+        antiPatterns.push('Don\'t challenge their self-image directly');
         break;
       case 'grief_avoidance':
-        antiPatterns.push("Don't force them to feel before they're ready");
+        antiPatterns.push('Don\'t force them to feel before they\'re ready');
         break;
       case 'shame_protection':
-        antiPatterns.push("Don't imply there's something wrong with them");
+        antiPatterns.push('Don\'t imply there\'s something wrong with them');
         break;
       case 'overwhelm':
-        antiPatterns.push("Don't add more to process right now");
+        antiPatterns.push('Don\'t add more to process right now');
         break;
       case 'external_validation':
-        antiPatterns.push("Don't give permission they need to find themselves");
+        antiPatterns.push('Don\'t give permission they need to find themselves');
         break;
     }
   }
@@ -849,12 +854,15 @@ function generateAntiPatterns(
   return [...new Set(antiPatterns)].slice(0, 5);
 }
 
-function generateAddressingStrategy(type: BlockageType, profile: UserBreakthroughProfile): string {
+function generateAddressingStrategy(
+  type: BlockageType,
+  profile: UserBreakthroughProfile
+): string {
   switch (type) {
     case 'fear_of_change':
-      return "Acknowledge the fear as valid. Explore what they'd gain AND lose.";
+      return 'Acknowledge the fear as valid. Explore what they\'d gain AND lose.';
     case 'identity_threat':
-      return "Emphasize that insight adds to who they are, doesn't replace it.";
+      return 'Emphasize that insight adds to who they are, doesn\'t replace it.';
     case 'grief_avoidance':
       return 'Create safety for feeling. Normalize grief as part of growth.';
     case 'shame_protection':
@@ -862,7 +870,7 @@ function generateAddressingStrategy(type: BlockageType, profile: UserBreakthroug
     case 'relationship_stakes':
       return 'Explore what relationships could look like with the insight.';
     case 'overwhelm':
-      return "Break it down. Focus on one piece. Assure them there's time.";
+      return 'Break it down. Focus on one piece. Assure them there\'s time.';
     case 'intellectualization':
       return 'Gently redirect from thinking to feeling. Ask body questions.';
     case 'external_validation':
@@ -870,7 +878,7 @@ function generateAddressingStrategy(type: BlockageType, profile: UserBreakthroug
     case 'timing':
       return 'Honor the pace. Plant seeds and let them germinate.';
     case 'safety':
-      return "Build safety first. Be consistent. Don't push.";
+      return 'Build safety first. Be consistent. Don\'t push.';
     case 'language_gap':
       return 'Offer multiple ways to express it. Use metaphors. Patience.';
     default:
@@ -878,7 +886,10 @@ function generateAddressingStrategy(type: BlockageType, profile: UserBreakthroug
   }
 }
 
-function calculateImpactPotential(type: BreakthroughType, track: BreakthroughTrack): number {
+function calculateImpactPotential(
+  type: BreakthroughType,
+  track: BreakthroughTrack
+): number {
   // High-impact breakthrough types
   const highImpactTypes: BreakthroughType[] = [
     'purpose_clarity',
@@ -918,8 +929,7 @@ function updateBreakthroughStyle(profile: UserBreakthroughProfile): void {
   for (const [catalyst, count] of catalystCounts) {
     if (count > maxCount) {
       maxCount = count;
-      profile.breakthroughStyle.preferredCatalyst =
-        catalyst as typeof profile.breakthroughStyle.preferredCatalyst;
+      profile.breakthroughStyle.preferredCatalyst = catalyst as typeof profile.breakthroughStyle.preferredCatalyst;
     }
   }
 

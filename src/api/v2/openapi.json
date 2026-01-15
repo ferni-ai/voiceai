@@ -128,7 +128,9 @@
         "tags": ["MCP Servers"],
         "summary": "Get MCP server",
         "operationId": "getMcpServer",
-        "parameters": [{ "$ref": "#/components/parameters/ServerId" }],
+        "parameters": [
+          { "$ref": "#/components/parameters/ServerId" }
+        ],
         "responses": {
           "200": {
             "description": "MCP server details",
@@ -145,7 +147,9 @@
         "tags": ["MCP Servers"],
         "summary": "Update MCP server",
         "operationId": "updateMcpServer",
-        "parameters": [{ "$ref": "#/components/parameters/ServerId" }],
+        "parameters": [
+          { "$ref": "#/components/parameters/ServerId" }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -170,7 +174,9 @@
         "tags": ["MCP Servers"],
         "summary": "Delete MCP server",
         "operationId": "deleteMcpServer",
-        "parameters": [{ "$ref": "#/components/parameters/ServerId" }],
+        "parameters": [
+          { "$ref": "#/components/parameters/ServerId" }
+        ],
         "responses": {
           "204": { "description": "Server deleted" },
           "404": { "$ref": "#/components/responses/NotFound" }
@@ -182,7 +188,9 @@
         "tags": ["MCP Servers"],
         "summary": "Test MCP server connection",
         "operationId": "testMcpServer",
-        "parameters": [{ "$ref": "#/components/parameters/ServerId" }],
+        "parameters": [
+          { "$ref": "#/components/parameters/ServerId" }
+        ],
         "responses": {
           "200": {
             "description": "Connection test result",
@@ -200,7 +208,9 @@
         "tags": ["MCP Servers"],
         "summary": "List tools from MCP server",
         "operationId": "getMcpServerTools",
-        "parameters": [{ "$ref": "#/components/parameters/ServerId" }],
+        "parameters": [
+          { "$ref": "#/components/parameters/ServerId" }
+        ],
         "responses": {
           "200": {
             "description": "List of available tools",
@@ -289,7 +299,9 @@
         "tags": ["Custom Tools"],
         "summary": "Get custom tool",
         "operationId": "getTool",
-        "parameters": [{ "$ref": "#/components/parameters/ToolId" }],
+        "parameters": [
+          { "$ref": "#/components/parameters/ToolId" }
+        ],
         "responses": {
           "200": {
             "description": "Tool details",
@@ -305,7 +317,9 @@
         "tags": ["Custom Tools"],
         "summary": "Update custom tool",
         "operationId": "updateTool",
-        "parameters": [{ "$ref": "#/components/parameters/ToolId" }],
+        "parameters": [
+          { "$ref": "#/components/parameters/ToolId" }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -329,7 +343,9 @@
         "tags": ["Custom Tools"],
         "summary": "Delete custom tool",
         "operationId": "deleteTool",
-        "parameters": [{ "$ref": "#/components/parameters/ToolId" }],
+        "parameters": [
+          { "$ref": "#/components/parameters/ToolId" }
+        ],
         "responses": {
           "204": { "description": "Tool deleted" }
         }
@@ -340,7 +356,9 @@
         "tags": ["Custom Tools"],
         "summary": "Test custom tool",
         "operationId": "testTool",
-        "parameters": [{ "$ref": "#/components/parameters/ToolId" }],
+        "parameters": [
+          { "$ref": "#/components/parameters/ToolId" }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -421,7 +439,9 @@
         "tags": ["Webhooks"],
         "summary": "Get webhook",
         "operationId": "getWebhook",
-        "parameters": [{ "$ref": "#/components/parameters/WebhookId" }],
+        "parameters": [
+          { "$ref": "#/components/parameters/WebhookId" }
+        ],
         "responses": {
           "200": {
             "description": "Webhook details",
@@ -437,7 +457,9 @@
         "tags": ["Webhooks"],
         "summary": "Update webhook",
         "operationId": "updateWebhook",
-        "parameters": [{ "$ref": "#/components/parameters/WebhookId" }],
+        "parameters": [
+          { "$ref": "#/components/parameters/WebhookId" }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -461,7 +483,9 @@
         "tags": ["Webhooks"],
         "summary": "Delete webhook",
         "operationId": "deleteWebhook",
-        "parameters": [{ "$ref": "#/components/parameters/WebhookId" }],
+        "parameters": [
+          { "$ref": "#/components/parameters/WebhookId" }
+        ],
         "responses": {
           "204": { "description": "Webhook deleted" }
         }
@@ -472,7 +496,9 @@
         "tags": ["Webhooks"],
         "summary": "Send test event",
         "operationId": "testWebhook",
-        "parameters": [{ "$ref": "#/components/parameters/WebhookId" }],
+        "parameters": [
+          { "$ref": "#/components/parameters/WebhookId" }
+        ],
         "responses": {
           "200": {
             "description": "Test event sent",
@@ -583,7 +609,9 @@
         "tags": ["Workflows"],
         "summary": "Get workflow",
         "operationId": "getWorkflow",
-        "parameters": [{ "$ref": "#/components/parameters/WorkflowId" }],
+        "parameters": [
+          { "$ref": "#/components/parameters/WorkflowId" }
+        ],
         "responses": {
           "200": {
             "description": "Workflow details",
@@ -599,7 +627,9 @@
         "tags": ["Workflows"],
         "summary": "Update workflow",
         "operationId": "updateWorkflow",
-        "parameters": [{ "$ref": "#/components/parameters/WorkflowId" }],
+        "parameters": [
+          { "$ref": "#/components/parameters/WorkflowId" }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -623,7 +653,9 @@
         "tags": ["Workflows"],
         "summary": "Delete workflow",
         "operationId": "deleteWorkflow",
-        "parameters": [{ "$ref": "#/components/parameters/WorkflowId" }],
+        "parameters": [
+          { "$ref": "#/components/parameters/WorkflowId" }
+        ],
         "responses": {
           "204": { "description": "Workflow deleted" }
         }
@@ -634,7 +666,9 @@
         "tags": ["Workflows"],
         "summary": "Execute workflow",
         "operationId": "executeWorkflow",
-        "parameters": [{ "$ref": "#/components/parameters/WorkflowId" }],
+        "parameters": [
+          { "$ref": "#/components/parameters/WorkflowId" }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -748,7 +782,9 @@
         "tags": ["OAuth Providers"],
         "summary": "Get OAuth provider",
         "operationId": "getOAuthProvider",
-        "parameters": [{ "$ref": "#/components/parameters/ProviderId" }],
+        "parameters": [
+          { "$ref": "#/components/parameters/ProviderId" }
+        ],
         "responses": {
           "200": {
             "description": "Provider details",
@@ -764,7 +800,9 @@
         "tags": ["OAuth Providers"],
         "summary": "Update OAuth provider",
         "operationId": "updateOAuthProvider",
-        "parameters": [{ "$ref": "#/components/parameters/ProviderId" }],
+        "parameters": [
+          { "$ref": "#/components/parameters/ProviderId" }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -788,7 +826,9 @@
         "tags": ["OAuth Providers"],
         "summary": "Delete OAuth provider",
         "operationId": "deleteOAuthProvider",
-        "parameters": [{ "$ref": "#/components/parameters/ProviderId" }],
+        "parameters": [
+          { "$ref": "#/components/parameters/ProviderId" }
+        ],
         "responses": {
           "204": { "description": "Provider deleted" }
         }
@@ -866,7 +906,9 @@
         "tags": ["OAuth Providers"],
         "summary": "Revoke OAuth token",
         "operationId": "revokeOAuthToken",
-        "parameters": [{ "$ref": "#/components/parameters/TokenId" }],
+        "parameters": [
+          { "$ref": "#/components/parameters/TokenId" }
+        ],
         "responses": {
           "204": { "description": "Token revoked" }
         }
@@ -992,7 +1034,9 @@
         "tags": ["Activities"],
         "summary": "Get activity",
         "operationId": "getActivity",
-        "parameters": [{ "$ref": "#/components/parameters/ActivityId" }],
+        "parameters": [
+          { "$ref": "#/components/parameters/ActivityId" }
+        ],
         "responses": {
           "200": {
             "description": "Activity details",
@@ -1008,7 +1052,9 @@
         "tags": ["Activities"],
         "summary": "Delete activity",
         "operationId": "deleteActivity",
-        "parameters": [{ "$ref": "#/components/parameters/ActivityId" }],
+        "parameters": [
+          { "$ref": "#/components/parameters/ActivityId" }
+        ],
         "responses": {
           "204": { "description": "Activity deleted" }
         }
@@ -1450,20 +1496,7 @@
           "name": { "type": "string" },
           "type": {
             "type": "string",
-            "enum": [
-              "start",
-              "end",
-              "mcp_call",
-              "webhook",
-              "llm_prompt",
-              "condition",
-              "parallel",
-              "join",
-              "wait",
-              "set_variable",
-              "activity",
-              "sub_workflow"
-            ]
+            "enum": ["start", "end", "mcp_call", "webhook", "llm_prompt", "condition", "parallel", "join", "wait", "set_variable", "activity", "sub_workflow"]
           },
           "config": { "type": "object" },
           "position": {
@@ -1525,16 +1558,7 @@
           "name": { "type": "string" },
           "type": {
             "type": "string",
-            "enum": [
-              "google",
-              "spotify",
-              "github",
-              "slack",
-              "notion",
-              "linear",
-              "discord",
-              "custom"
-            ]
+            "enum": ["google", "spotify", "github", "slack", "notion", "linear", "discord", "custom"]
           },
           "clientId": { "type": "string" },
           "authorizationUrl": { "type": "string", "format": "uri" },
@@ -1556,16 +1580,7 @@
           "name": { "type": "string" },
           "type": {
             "type": "string",
-            "enum": [
-              "google",
-              "spotify",
-              "github",
-              "slack",
-              "notion",
-              "linear",
-              "discord",
-              "custom"
-            ]
+            "enum": ["google", "spotify", "github", "slack", "notion", "linear", "discord", "custom"]
           },
           "clientId": { "type": "string" },
           "clientSecret": { "type": "string" },

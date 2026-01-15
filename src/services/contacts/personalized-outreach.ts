@@ -11,8 +11,8 @@
 import type { Firestore as FirestoreType } from '@google-cloud/firestore';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
-import { sendEmail, sendSMS } from '../communication/communication-service.js';
-import { callLLM } from '../llm/llm-utils.js';
+import { sendEmail, sendSMS } from '../communication-service.js';
+import { callLLM } from '../llm-utils.js';
 import { loadNetwork } from '../superhuman/relationship-network.js';
 import { loadPersonalDates } from '../superhuman/seasonal-awareness.js';
 import { getGroup, getGroups } from './contact-groups.js';

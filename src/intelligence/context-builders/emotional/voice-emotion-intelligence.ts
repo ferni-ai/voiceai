@@ -10,7 +10,7 @@
  */
 
 import type { VoiceEmotionResult } from '../../../speech/audio-prosody.js';
-import type { EmotionResult } from '../../detectors/emotion.js';
+import type { EmotionResult } from '../../emotion-detector.js';
 
 // ============================================================================
 // TYPES
@@ -132,7 +132,7 @@ DON'T:
       'Mirror their lower energy - be calm and grounded',
       'Acknowledge what you sense without labeling it',
       'Create space for them to share if they want',
-      "Be present and patient - don't fill silence",
+      'Be present and patient - don\'t fill silence',
     ],
     avoidBehaviors: [
       'Being too energetic or upbeat',
@@ -203,7 +203,7 @@ DON'T:
       'Acknowledge the frustration you sense in their voice',
       'Validate without trying to immediately fix',
       'Stay grounded and present - be a steady presence',
-      "Create space for them to express what they're holding back",
+      'Create space for them to express what they\'re holding back',
     ],
     avoidBehaviors: [
       'Telling them to calm down',
@@ -410,7 +410,7 @@ function createVoiceOnlyResponse(voice: VoiceEmotionResult): VoiceEmotionIntelli
     doBehaviors.push('Match their positive energy', 'Be engaged and responsive');
   } else if (voice.arousal < 0.3 && voice.valence < -0.2) {
     guidance += 'User sounds low/tired. Be warm but not overwhelming.';
-    doBehaviors.push('Be warm but measured', "Don't overwhelm with energy");
+    doBehaviors.push('Be warm but measured', 'Don\'t overwhelm with energy');
   } else {
     guidance += 'User sounds neutral/calm. Proceed naturally.';
   }

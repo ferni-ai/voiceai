@@ -20,9 +20,9 @@ import {
   type UserCognitiveStyle,
 } from '../../../personas/cognitive-advanced.js';
 import { getCognitiveProfile } from '../../../personas/cognitive-profiles.js';
-import { broadcastInsightGenerated } from '../../../services/cognitive-intelligence/cognitive-broadcast.js';
-import { DISTRESS } from '../../detectors/distress.js';
-import { isInsightOnCooldown, markInsightShared, wasInsightShared } from '../../state/session.js';
+import { broadcastInsightGenerated } from '../../../services/cognitive-broadcast.js';
+import { DISTRESS } from '../../distress-levels.js';
+import { isInsightOnCooldown, markInsightShared, wasInsightShared } from '../../session-state.js';
 import {
   createHintInjection,
   registerContextBuilder,

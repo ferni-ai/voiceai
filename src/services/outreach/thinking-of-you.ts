@@ -31,10 +31,7 @@ import { getAnticipatoryPresence } from '../../conversation/superhuman/anticipat
 import type { UserProfile } from '../../types/user-profile.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { getCognitiveDifferentiation } from '../../personas/cognitive-differentiation.js';
-import {
-  generateQuestion,
-  type QuestionContext,
-} from '../../intelligence/coaching/dynamic-questions.js';
+import { generateQuestion, type QuestionContext } from '../../intelligence/dynamic-questions.js';
 
 const log = createLogger({ module: 'ThinkingOfYou' });
 

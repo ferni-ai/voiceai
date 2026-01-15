@@ -62,7 +62,7 @@ export interface RoadmapSuggestion {
 
 // Import UserSeeds from service layer (clean architecture)
 // Re-export for backward compatibility
-import { type UserSeeds } from '../services/engagement/seed-economy.js';
+import { type UserSeeds } from '../services/seed-economy.js';
 export type { UserSeeds };
 
 export interface FeatureStats {
@@ -1050,6 +1050,6 @@ export async function handleRoadmapRoutes(
 // =============================================================================
 
 // Re-export for backward compatibility - callers should import from services/seed-economy.js directly
-export { awardSeedsForConversation } from '../services/engagement/seed-economy.js';
+export { awardSeedsForConversation } from '../services/seed-economy.js';
 
 export default handleRoadmapRoutes;

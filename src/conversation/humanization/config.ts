@@ -144,16 +144,16 @@ export const DEFAULT_HUMANIZATION_CONFIG: HumanizationConfig = {
   // ENHANCED: Bumped probabilities for more human-like speech (Jan 2026)
   // Previous values were too conservative - humans use these patterns much more often
   probabilities: {
-    selfCorrection: 0.25, // Was 0.15 - "Wait, let me rephrase that"
-    disfluency: 0.18, // Was 0.10 - "Um", "well", natural pauses
-    fillerWords: 0.15, // Was 0.12 - "You know", "like"
-    hedging: 0.28, // Was 0.20 - "I think", "maybe"
-    catchingYourself: 0.15, // Was 0.08 - "Actually, let me back up"
+    selfCorrection: 0.25,    // Was 0.15 - "Wait, let me rephrase that"
+    disfluency: 0.18,        // Was 0.10 - "Um", "well", natural pauses
+    fillerWords: 0.15,       // Was 0.12 - "You know", "like"
+    hedging: 0.28,           // Was 0.20 - "I think", "maybe"
+    catchingYourself: 0.15,  // Was 0.08 - "Actually, let me back up"
     voiceStateInsight: 0.85, // Was 0.70 - Notice voice changes
-    crossSessionAck: 0.9, // Was 0.80 - Remember across sessions
-    emotionalLeading: 0.75, // Was 0.60 - Lead emotional trajectory
-    breathingSync: 0.65, // Was 0.50 - Sync breathing patterns
-    ambientAck: 0.8, // Was 0.70 - Notice ambient context
+    crossSessionAck: 0.9,    // Was 0.80 - Remember across sessions
+    emotionalLeading: 0.75,  // Was 0.60 - Lead emotional trajectory
+    breathingSync: 0.65,     // Was 0.50 - Sync breathing patterns
+    ambientAck: 0.8,         // Was 0.70 - Notice ambient context
   },
 
   confidenceThresholds: {
@@ -174,14 +174,14 @@ export const DEFAULT_HUMANIZATION_CONFIG: HumanizationConfig = {
   // ENHANCED: Lowered comfort thresholds for faster humanization (Jan 2026)
   // Humans show natural speech patterns from the start, not after "warming up"
   comfortThresholds: {
-    allowHedging: 0.15, // Was 0.25 - Hedging is natural from turn 1
-    allowSelfCorrection: 0.2, // Was 0.30 - Self-correction is human
-    allowDisfluency: 0.25, // Was 0.35 - Natural pauses earlier
-    allowFillerWords: 0.3, // Was 0.40 - Filler words are natural
+    allowHedging: 0.15,          // Was 0.25 - Hedging is natural from turn 1
+    allowSelfCorrection: 0.20,   // Was 0.30 - Self-correction is human
+    allowDisfluency: 0.25,       // Was 0.35 - Natural pauses earlier
+    allowFillerWords: 0.30,      // Was 0.40 - Filler words are natural
     allowEmotionalLeading: 0.35, // Was 0.50 - Lead emotions sooner
-    allowVoiceInsights: 0.4, // Was 0.55 - Notice voice changes sooner
-    allowBreathingSync: 0.45, // Was 0.60 - Sync breathing sooner
-    allowDeepVulnerability: 0.65, // Was 0.75 - Still requires trust
+    allowVoiceInsights: 0.40,    // Was 0.55 - Notice voice changes sooner
+    allowBreathingSync: 0.45,    // Was 0.60 - Sync breathing sooner
+    allowDeepVulnerability: 0.65,// Was 0.75 - Still requires trust
   },
 
   voicePrint: {

@@ -245,12 +245,7 @@ export class EmotionDetectorAdapter implements EmotionDetector {
   async detectEmotion(input: EmotionDetectionInput): Promise<EmotionDetectionResult> {
     const text = input.text.toLowerCase();
     const evidence: string[] = [];
-    let bestMatch: {
-      emotion: PrimaryEmotion;
-      granular: GranularEmotion | null;
-      confidence: number;
-      intensity: number;
-    } = {
+    let bestMatch: { emotion: PrimaryEmotion; granular: GranularEmotion | null; confidence: number; intensity: number } = {
       emotion: 'neutral',
       granular: null,
       confidence: 0.3,
@@ -332,7 +327,7 @@ export class EmotionDetectorAdapter implements EmotionDetector {
       return {
         detected: true,
         emotions: [detectedEmotions[0]!, detectedEmotions[1]!],
-        validationPhrase: 'It makes sense to feel both of those things at once.',
+        validationPhrase: "It makes sense to feel both of those things at once.",
         confidence: hasContradictionLanguage ? 0.8 : 0.6,
       };
     }
@@ -368,11 +363,9 @@ export class EmotionDetectorAdapter implements EmotionDetector {
     const secondHalfLength = valenceScores.length - firstHalfLength || 1;
 
     const firstHalfAvg =
-      valenceScores.slice(0, firstHalfLength).reduce((a: number, b: number) => a + b, 0) /
-      firstHalfLength;
+      valenceScores.slice(0, firstHalfLength).reduce((a: number, b: number) => a + b, 0) / firstHalfLength;
     const secondHalfAvg =
-      valenceScores.slice(firstHalfLength).reduce((a: number, b: number) => a + b, 0) /
-      secondHalfLength;
+      valenceScores.slice(firstHalfLength).reduce((a: number, b: number) => a + b, 0) / secondHalfLength;
 
     const diff = secondHalfAvg - firstHalfAvg;
     const evidence: string[] = [];
@@ -440,8 +433,7 @@ export class EmotionDetectorAdapter implements EmotionDetector {
 
     let suggestedAcknowledgment: string | undefined;
     if (isFirstTime) {
-      suggestedAcknowledgment =
-        "Thank you for trusting me with that. I know it wasn't easy to share.";
+      suggestedAcknowledgment = "Thank you for trusting me with that. I know it wasn't easy to share.";
     }
 
     return {
@@ -472,8 +464,7 @@ export class EmotionDetectorAdapter implements EmotionDetector {
     ];
 
     const topics: string[] = [];
-    const topicEmotionPairs: Array<{ topic: string; emotion: PrimaryEmotion; confidence: number }> =
-      [];
+    const topicEmotionPairs: Array<{ topic: string; emotion: PrimaryEmotion; confidence: number }> = [];
 
     for (const { pattern, topic, emotion } of topicPatterns) {
       if (pattern.test(text)) {
@@ -517,8 +508,7 @@ export class EmotionDetectorAdapter implements EmotionDetector {
         pattern: /\b(fine|okay|alright)\b/i,
         term: 'fine',
         suggestions: ['content', 'sad', 'exhausted'],
-        question:
-          "Sometimes 'fine' means really fine, and sometimes it doesn't. How are you really?",
+        question: "Sometimes 'fine' means really fine, and sometimes it doesn't. How are you really?",
       },
       {
         pattern: /\b(upset|bothered)\b/i,

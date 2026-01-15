@@ -80,7 +80,7 @@ export {
   // Types
   type SpeakerEmbedding,
   type SpeakerMatch,
-} from '../memory/voice-memory-enhanced.js';
+} from '../voice-memory-enhanced.js';
 
 // Conversation memory - from voice-conversation-memory.ts
 export {
@@ -107,7 +107,7 @@ export {
 // ============================================================================
 
 import { getLogger } from '../../utils/safe-logger.js';
-import { isNeuralEmbeddingAvailable } from '../memory/voice-memory-enhanced.js';
+import { isNeuralEmbeddingAvailable } from '../voice-memory-enhanced.js';
 
 const log = getLogger();
 

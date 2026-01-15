@@ -80,8 +80,6 @@ interface SessionState {
   hasActiveLowPriorityResponse: boolean;
   /** Timestamp when low-priority response started (for cleanup) */
   lowPriorityResponseStartedAt?: number;
-  /** Timer to clear low-priority response flag after a short window */
-  lowPriorityResponseClearTimer?: ReturnType<typeof setTimeout>;
   /** Session reference for interrupting active responses */
   activeSession?: voice.AgentSession;
   // Statistics
@@ -102,11 +100,6 @@ interface SessionState {
  */
 const DEBOUNCE_MS_NORMAL = 300;
 const DEBOUNCE_MS_LOW = 500;
-/**
- * Keep low-priority response flagged briefly so we can interrupt it before
- * starting a real response. Prevents "conversation_already_has_active_response".
- */
-const LOW_PRIORITY_ACTIVE_WINDOW_MS = 4000;
 
 /** Time after which circuit breaker enters "half-open" state to allow recovery */
 const CIRCUIT_BREAKER_RESET_MS = 10_000;
@@ -122,14 +115,7 @@ const GRACEFUL_EXIT_THRESHOLD = 3;
 // ============================================================================
 
 interface GeminiErrorDetails {
-  errorType:
-    | 'timeout'
-    | 'rate_limit'
-    | 'auth'
-    | 'connection'
-    | 'api'
-    | 'session_draining'
-    | 'unknown';
+  errorType: 'timeout' | 'rate_limit' | 'auth' | 'connection' | 'api' | 'session_draining' | 'unknown';
   errorCode?: number | string;
   isRetryable: boolean;
   isGeminiDead: boolean;
@@ -412,7 +398,7 @@ async function triggerGracefulExit(sessionId: string): Promise<void> {
     await new Promise((resolve) => setTimeout(resolve, 2500));
 
     // Signal frontend to disconnect
-    const { sendFrontendSignal } = await import('../../services/pubsub/frontend-signal.js');
+    const { sendFrontendSignal } = await import('../../services/frontend-signal.js');
     await sendFrontendSignal('conversation_end', {
       reason: 'graceful_exit_failures',
       disconnectDelay: 500, // Short delay since TTS already played
@@ -517,10 +503,6 @@ export function clearPendingLowPriorityResponse(sessionId: string): void {
     );
     state.hasActiveLowPriorityResponse = false;
     state.lowPriorityResponseStartedAt = undefined;
-    if (state.lowPriorityResponseClearTimer) {
-      clearTimeout(state.lowPriorityResponseClearTimer);
-      state.lowPriorityResponseClearTimer = undefined;
-    }
 
     // Also interrupt the session to cancel any active response
     if (state.activeSession) {
@@ -825,10 +807,6 @@ export async function generateReply(
     // Clear the flag
     state.hasActiveLowPriorityResponse = false;
     state.lowPriorityResponseStartedAt = undefined;
-    if (state.lowPriorityResponseClearTimer) {
-      clearTimeout(state.lowPriorityResponseClearTimer);
-      state.lowPriorityResponseClearTimer = undefined;
-    }
   }
 
   // Store session reference for future interrupts
@@ -843,18 +821,6 @@ export async function generateReply(
   if (priority === 'low' && !waitForPlayout) {
     state.hasActiveLowPriorityResponse = true;
     state.lowPriorityResponseStartedAt = Date.now();
-    if (state.lowPriorityResponseClearTimer) {
-      clearTimeout(state.lowPriorityResponseClearTimer);
-    }
-    state.lowPriorityResponseClearTimer = setTimeout(() => {
-      const currentState = sessionStates.get(sessionId);
-      if (!currentState) return;
-      if (!currentState.hasActiveLowPriorityResponse) return;
-      currentState.hasActiveLowPriorityResponse = false;
-      currentState.lowPriorityResponseStartedAt = undefined;
-      currentState.lowPriorityResponseClearTimer = undefined;
-      log.debug({ sessionId }, '🧹 [GATEWAY] Cleared low-priority response flag (timeout)');
-    }, LOW_PRIORITY_ACTIVE_WINDOW_MS);
   }
 
   try {
@@ -1132,13 +1098,9 @@ export async function generateReply(
 
     // Clear low-priority response flag if this was a low-priority call
     // (either completed successfully or failed/timed out)
-    if (priority === 'low' && waitForPlayout) {
+    if (priority === 'low') {
       state.hasActiveLowPriorityResponse = false;
       state.lowPriorityResponseStartedAt = undefined;
-      if (state.lowPriorityResponseClearTimer) {
-        clearTimeout(state.lowPriorityResponseClearTimer);
-        state.lowPriorityResponseClearTimer = undefined;
-      }
     }
   }
 }

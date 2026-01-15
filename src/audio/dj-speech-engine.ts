@@ -14,7 +14,7 @@
  * @module audio/dj-speech-engine
  */
 
-import { callLLM } from '../services/llm/llm-utils.js';
+import { callLLM } from '../services/llm-utils.js';
 import { createLogger } from '../utils/safe-logger.js';
 import type { MusicTrack } from './music-player.js';
 

@@ -25,7 +25,7 @@ import {
   type PersonalityExpression,
   type SelectionOptions,
   type ThemeCategory,
-} from '../../../services/session-manager/session-variety-tracker.js';
+} from '../../../services/session-variety-tracker.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'ferni-personality' });

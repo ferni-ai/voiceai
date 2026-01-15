@@ -22,7 +22,7 @@ import {
   saveAgentEvolutionToFirestore,
   type PersonaEvolutionState,
   type PersonaExperiment,
-} from '../intelligence/collective/agent-evolution.js';
+} from '../intelligence/agent-evolution.js';
 import { startExperiment } from '../services/experiments/integration.js';
 
 // ============================================================================

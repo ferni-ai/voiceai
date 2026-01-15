@@ -7,7 +7,7 @@
 
 import type { UserProfile, LifeStage } from '../../types/user-profile.js';
 // 🦀 Rust-accelerated word counting
-import { countWordsRust, isTokenCountingAvailable } from '../memory/rust-accelerator.js';
+import { countWordsRust, isTokenCountingAvailable } from '../../memory/rust-accelerator.js';
 
 const RUST_COUNTING_AVAILABLE = isTokenCountingAvailable();
 

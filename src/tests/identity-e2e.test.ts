@@ -114,8 +114,7 @@ describe('Identity System E2E', () => {
 
   describe('Name Extraction', () => {
     it('extracts name from "My name is X"', async () => {
-      const { extractSmallDetails } =
-        await import('../intelligence/tracking/conversation-quality.js');
+      const { extractSmallDetails } = await import('../intelligence/conversation-quality.js');
 
       const details = extractSmallDetails('My name is Seth');
 
@@ -128,8 +127,7 @@ describe('Identity System E2E', () => {
     });
 
     it('extracts name from "I\'m X"', async () => {
-      const { extractSmallDetails } =
-        await import('../intelligence/tracking/conversation-quality.js');
+      const { extractSmallDetails } = await import('../intelligence/conversation-quality.js');
 
       const details = extractSmallDetails("Hi, I'm Sarah");
 
@@ -142,8 +140,7 @@ describe('Identity System E2E', () => {
     });
 
     it('extracts name from "Call me X"', async () => {
-      const { extractSmallDetails } =
-        await import('../intelligence/tracking/conversation-quality.js');
+      const { extractSmallDetails } = await import('../intelligence/conversation-quality.js');
 
       const details = extractSmallDetails('Call me Mike');
 
@@ -156,8 +153,7 @@ describe('Identity System E2E', () => {
     });
 
     it('does NOT extract persona names as user names', async () => {
-      const { extractSmallDetails } =
-        await import('../intelligence/tracking/conversation-quality.js');
+      const { extractSmallDetails } = await import('../intelligence/conversation-quality.js');
 
       const details = extractSmallDetails('Hi Ferni!');
 
@@ -166,8 +162,7 @@ describe('Identity System E2E', () => {
     });
 
     it('does NOT extract common words as names', async () => {
-      const { extractSmallDetails } =
-        await import('../intelligence/tracking/conversation-quality.js');
+      const { extractSmallDetails } = await import('../intelligence/conversation-quality.js');
 
       const details = extractSmallDetails("I'm Good today");
 
@@ -417,8 +412,7 @@ describe('Identity Integration Tests', () => {
       mockProfiles.set(TEST_USER_ID, profile);
 
       // 2. Extract name from text
-      const { extractSmallDetails } =
-        await import('../intelligence/tracking/conversation-quality.js');
+      const { extractSmallDetails } = await import('../intelligence/conversation-quality.js');
       const details = extractSmallDetails('My name is Sarah');
       const userNameDetail = details.find((d) => d.type === 'user_name');
 

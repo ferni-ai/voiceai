@@ -369,10 +369,7 @@ export const memoryEnhancementBuilder: ContextBuilder = {
         gateState.lastInjectionTurn = turnCount;
         surfaced = true;
 
-        log.info(
-          { userId, differences: comparison.differences },
-          '🎨 Surfacing conversation texture'
-        );
+        log.info({ userId, differences: comparison.differences }, '🎨 Surfacing conversation texture');
       }
     }
 
@@ -532,10 +529,7 @@ USE SPARINGLY: This should happen maybe 1-2 times in a relationship.`;
   });
 }
 
-function buildTextureInjection(
-  comparison: TextureComparison,
-  _personaId: string
-): ContextInjection {
+function buildTextureInjection(comparison: TextureComparison, _personaId: string): ContextInjection {
   const content = `[CONVERSATION TEXTURE - "This feels different"]
 
 You've noticed this conversation has a different FEEL than usual.

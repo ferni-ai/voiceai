@@ -98,10 +98,10 @@ router.post('/roundtable/start', async (req: Request, res: Response) => {
     const validPersonas = [
       'ferni',
       'peter-john',
-      'maya-santos',
+      'maya-habits',
       'alex-chen',
       'jordan-taylor',
-      'nayan-patel',
+      'nayan-sharma',
     ];
     const invalidPersonas = personas.filter((p) => !validPersonas.includes(p));
     if (invalidPersonas.length > 0) {
@@ -450,10 +450,10 @@ function getPersonaName(personaId: string): string {
   const names: Record<string, string> = {
     ferni: 'Ferni',
     'peter-john': 'Peter',
-    'maya-santos': 'Maya',
+    'maya-habits': 'Maya',
     'alex-chen': 'Alex',
     'jordan-taylor': 'Jordan',
-    'nayan-patel': 'Nayan',
+    'nayan-sharma': 'Nayan',
   };
   return names[personaId] ?? personaId;
 }

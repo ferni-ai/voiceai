@@ -20,11 +20,7 @@ vi.mock('../../services/superhuman/semantic-intelligence/correlation-mining.js',
       confidence: 0.8,
       observationCount: 5,
       coOccurrences: [
-        {
-          timestamp: Date.now(),
-          contextSnippet: 'feeling tired and stressed',
-          strengthAtTime: 0.7,
-        },
+        { timestamp: Date.now(), contextSnippet: 'feeling tired and stressed', strengthAtTime: 0.7 },
       ],
     },
   ]),
@@ -96,10 +92,7 @@ vi.mock('../../services/superhuman/semantic-intelligence/growth-fingerprint.js',
       },
       {
         timestamp: Date.now(),
-        topicDistribution: [
-          { topic: 'work', weight: 0.3 },
-          { topic: 'growth', weight: 0.3 },
-        ],
+        topicDistribution: [{ topic: 'work', weight: 0.3 }, { topic: 'growth', weight: 0.3 }],
         emotionalVocabulary: [{ word: 'calm', frequency: 5 }],
         emotionalRange: 0.7,
         languagePatterns: {
@@ -146,7 +139,9 @@ vi.mock('../../services/superhuman/semantic-intelligence/relationship-graph.js',
     { name: 'Sarah', mentionCount: 10, recentMentions: 5, sentiment: 0.8 },
     { name: 'Mom', mentionCount: 8, recentMentions: 2, sentiment: 0.3 },
   ]),
-  getRecentlyMentioned: vi.fn().mockResolvedValue([{ name: 'Sarah', mentionCount: 10 }]),
+  getRecentlyMentioned: vi.fn().mockResolvedValue([
+    { name: 'Sarah', mentionCount: 10 },
+  ]),
   getPeopleByImpact: vi.fn().mockResolvedValue({
     energizing: [{ name: 'Sarah', relationship: 'friend', mentionCount: 10, sentiment: 0.8 }],
     draining: [{ name: 'Boss', relationship: 'work', mentionCount: 5, sentiment: -0.3 }],
@@ -179,27 +174,21 @@ vi.mock('../../services/superhuman/semantic-intelligence/temporal-patterns.js', 
 }));
 
 vi.mock('../../services/superhuman/commitment-keeper.js', () => ({
-  buildCommitmentContext: vi
-    .fn()
-    .mockResolvedValue(
-      '[COMMITMENT MEMORY]\nYou mentioned wanting to start meditating (3 days ago).'
-    ),
+  buildCommitmentContext: vi.fn().mockResolvedValue(
+    '[COMMITMENT MEMORY]\nYou mentioned wanting to start meditating (3 days ago).'
+  ),
 }));
 
 vi.mock('../../services/superhuman/dream-keeper.js', () => ({
-  buildDreamContext: vi
-    .fn()
-    .mockResolvedValue(
-      '[DREAM MEMORY]\nActive dreams: Learn piano\nDormant (worth revisiting?): Learn Spanish (6 months)'
-    ),
+  buildDreamContext: vi.fn().mockResolvedValue(
+    '[DREAM MEMORY]\nActive dreams: Learn piano\nDormant (worth revisiting?): Learn Spanish (6 months)'
+  ),
 }));
 
 vi.mock('../../services/superhuman/seasonal-awareness.js', () => ({
-  buildSeasonalContext: vi
-    .fn()
-    .mockResolvedValue(
-      '[SEASONAL AWARENESS]\nEnergy pattern: tends to slow down in winter\nPersonal: Birthday in 2 months'
-    ),
+  buildSeasonalContext: vi.fn().mockResolvedValue(
+    '[SEASONAL AWARENESS]\nEnergy pattern: tends to slow down in winter\nPersonal: Birthday in 2 months'
+  ),
 }));
 
 // Import after mocks
@@ -388,11 +377,7 @@ describe('Insight Generation Engine', () => {
         },
       };
 
-      const insights = await generateCategoryInsights(
-        testUserId,
-        'voice_content_mismatch',
-        context
-      );
+      const insights = await generateCategoryInsights(testUserId, 'voice_content_mismatch', context);
 
       expect(insights.length).toBeGreaterThan(0);
       expect(insights[0].category).toBe('voice_content_mismatch');
@@ -471,23 +456,9 @@ describe('Insight Content Quality', () => {
       // Messages should have a warm, personal tone
       // Allow: starts with personal patterns, person names (capitalized words), seasons, or quotes
       const personalPatterns = [
-        'I',
-        'You',
-        'Something',
-        'There',
-        'This',
-        'Remember',
-        'Your',
-        'Heads',
-        'Looking',
-        'Based',
-        'That',
-        'When',
-        'Interesting',
-        'The',
-        'A ',
-        'As ',
-        'Can ',
+        'I', 'You', 'Something', 'There', 'This', 'Remember', 'Your',
+        'Heads', 'Looking', 'Based', 'That', 'When', 'Interesting',
+        'The', 'A ', 'As ', 'Can ',
       ];
       const startsPersonally = personalPatterns.some((pattern) =>
         insight.message.startsWith(pattern)

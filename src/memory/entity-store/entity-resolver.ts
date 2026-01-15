@@ -108,10 +108,7 @@ function createPersonAttributes(options: {
 /**
  * Map relationship terms to canonical types
  */
-const RELATIONSHIP_ALIASES: Record<
-  string,
-  { type: SimpleRelationshipType; specific?: FamilyRelation }
-> = {
+const RELATIONSHIP_ALIASES: Record<string, { type: SimpleRelationshipType; specific?: FamilyRelation }> = {
   // Family
   mother: { type: 'family', specific: 'mother' },
   mom: { type: 'family', specific: 'mother' },
@@ -180,10 +177,7 @@ function normalizeRelationship(term: string): {
   type: SimpleRelationshipType;
   specific?: string;
 } | null {
-  const normalized = term
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z\s-]/g, '');
+  const normalized = term.toLowerCase().trim().replace(/[^a-z\s-]/g, '');
 
   // Direct lookup
   if (RELATIONSHIP_ALIASES[normalized]) {
@@ -345,7 +339,7 @@ export async function resolvePerson(
   // Strategy 5: Create new entity
   const normalizedRel = relationship ? normalizeRelationship(relationship) : null;
   const canonicalName = name || normalizedRel?.specific || relationship || 'Unknown Person';
-
+  
   const personAttrs = createPersonAttributes({
     relationship: normalizedRel?.specific || relationship,
     relationshipCategory: normalizedRel?.type || 'other',
@@ -391,11 +385,7 @@ export async function resolvePerson(
   });
 
   log.info(
-    {
-      entityId: newEntity.id,
-      name: newEntity.canonicalName,
-      relationship: getSpecificRelation(newEntity),
-    },
+    { entityId: newEntity.id, name: newEntity.canonicalName, relationship: getSpecificRelation(newEntity) },
     '✨ Created new person entity'
   );
 
@@ -442,10 +432,7 @@ function buildAliases(name?: string, relationship?: string): string[] {
 /**
  * Find entity by specific relation (brother, mother, etc.)
  */
-async function findBySpecificRelation(
-  userId: string,
-  specificRelation: string
-): Promise<Entity | null> {
+async function findBySpecificRelation(userId: string, specificRelation: string): Promise<Entity | null> {
   const entities = await getAllEntities(userId, { types: ['person'], topK: 100 });
 
   for (const entity of entities) {
@@ -538,18 +525,11 @@ export async function mergeEntities(
 
   // Merge contact info (from PersonAttributes)
   const primaryAttrs = primary.attributes as PersonAttributes;
-  const mergedPhone =
-    primaryAttrs.phone ||
-    (secondaries.find((s) => getPhone(s))?.attributes &&
-      getPhone(secondaries.find((s) => getPhone(s))!));
-  const mergedEmail =
-    primaryAttrs.email ||
-    (secondaries.find((s) => getEmail(s))?.attributes &&
-      getEmail(secondaries.find((s) => getEmail(s))!));
+  const mergedPhone = primaryAttrs.phone || secondaries.find((s) => getPhone(s))?.attributes && getPhone(secondaries.find((s) => getPhone(s))!);
+  const mergedEmail = primaryAttrs.email || secondaries.find((s) => getEmail(s))?.attributes && getEmail(secondaries.find((s) => getEmail(s))!);
 
   // Sum mention counts
-  const totalMentions =
-    primary.mentionCount + secondaries.reduce((sum, s) => sum + s.mentionCount, 0);
+  const totalMentions = primary.mentionCount + secondaries.reduce((sum, s) => sum + s.mentionCount, 0);
 
   // Take highest salience and emotional weight
   const maxSalience = Math.max(primary.salienceScore, ...secondaries.map((s) => s.salienceScore));
@@ -738,7 +718,10 @@ let entityResolverInstance: EntityResolver | null = null;
  * Resolve a mention to an entity - FULL IMPLEMENTATION
  * This handles text mentions like "my brother" or "Mike" and resolves to canonical entities.
  */
-async function resolveMentionImpl(userId: string, mention: unknown): Promise<Entity | null> {
+async function resolveMentionImpl(
+  userId: string,
+  mention: unknown
+): Promise<Entity | null> {
   const input = mention as {
     text?: string;
     name?: string;
@@ -750,7 +733,7 @@ async function resolveMentionImpl(userId: string, mention: unknown): Promise<Ent
 
   // Extract the name/text to resolve
   const nameOrText = input.name || input.text;
-
+  
   if (!nameOrText && !input.relationship) {
     log.debug({ userId, mention }, 'Cannot resolve mention without name or relationship');
     return null;
@@ -844,7 +827,10 @@ function mapToEdgeType(rel: string): import('./types.js').EdgeType {
 /**
  * Resolve an entity by ID or query - FULL IMPLEMENTATION
  */
-async function resolveImpl(userId: string, query: unknown): Promise<Entity | null> {
+async function resolveImpl(
+  userId: string,
+  query: unknown
+): Promise<Entity | null> {
   // If query is a string, could be an ID or a name
   if (typeof query === 'string') {
     // First try as ID
@@ -860,17 +846,13 @@ async function resolveImpl(userId: string, query: unknown): Promise<Entity | nul
 
   // If query is an object, use it for resolution
   const queryObj = query as { id?: string; name?: string; type?: string };
-
+  
   if (queryObj.id) {
     return getEntity(userId, queryObj.id);
   }
 
   if (queryObj.name) {
-    return findEntityByAlias(
-      userId,
-      queryObj.name,
-      queryObj.type as import('./types.js').EntityType
-    );
+    return findEntityByAlias(userId, queryObj.name, queryObj.type as import('./types.js').EntityType);
   }
 
   return null;
@@ -909,7 +891,10 @@ async function getFactsImpl(
 /**
  * Get a specific entity by ID - FULL IMPLEMENTATION
  */
-async function getEntityImpl(userId: string, entityId: string): Promise<Entity | null> {
+async function getEntityImpl(
+  userId: string,
+  entityId: string
+): Promise<Entity | null> {
   return getEntity(userId, entityId);
 }
 

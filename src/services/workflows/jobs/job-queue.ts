@@ -36,24 +36,24 @@ export interface Job<T = unknown> {
   payload: T;
   status: JobStatus;
   priority: JobPriority;
-
+  
   // Timing
   createdAt: Date;
   scheduledFor?: Date;
   startedAt?: Date;
   completedAt?: Date;
-
+  
   // Execution
   attempts: number;
   maxAttempts: number;
   lastError?: string;
   result?: unknown;
-
+  
   // Metadata
   userId?: string;
   correlationId?: string;
   tags: string[];
-
+  
   // Processing
   workerId?: string;
   timeout: number; // milliseconds
@@ -158,7 +158,10 @@ export class JobQueue {
     this.jobs.set(job.id, job as Job);
     this.insertIntoQueue(job.id, job.priority);
 
-    log.info({ jobId: job.id, type: job.type, priority: job.priority }, 'Job enqueued');
+    log.info(
+      { jobId: job.id, type: job.type, priority: job.priority },
+      'Job enqueued'
+    );
 
     return job;
   }
@@ -333,13 +336,18 @@ export class JobQueue {
     job.workerId = `worker-${process.pid}`;
     this.processingJobs.add(jobId);
 
-    log.debug({ jobId, type: job.type, attempt: job.attempts }, 'Processing job');
+    log.debug(
+      { jobId, type: job.type, attempt: job.attempts },
+      'Processing job'
+    );
 
     try {
       // Execute with timeout
       const result = await Promise.race([
         handler.handler(job),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('Job timeout')), job.timeout)),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Job timeout')), job.timeout)
+        ),
       ]);
 
       // Success
@@ -359,14 +367,14 @@ export class JobQueue {
       // Check if should retry
       if (job.attempts < job.maxAttempts) {
         job.status = 'pending';
-
+        
         // Exponential backoff
         const backoffMs = handler.options?.backoffMs || 1000;
         const delay = backoffMs * Math.pow(2, job.attempts - 1);
         job.scheduledFor = new Date(Date.now() + delay);
-
+        
         this.insertIntoQueue(jobId, job.priority);
-
+        
         log.warn(
           { jobId, type: job.type, attempt: job.attempts, nextRetry: job.scheduledFor },
           'Job failed, scheduling retry'

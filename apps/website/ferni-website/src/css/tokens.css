@@ -638,12 +638,12 @@ code {
     --color-bg-glass: rgba(230, 195, 160, 0.08);
     --color-bg-overlay: rgba(88, 72, 64, 0.95);
 
-    /* Text Colors - WCAG AA Compliant (4.5:1+ on #70605a elevated bg)
-       HARDCODED to ensure proper contrast - values from colors.json themes.midnight */
-    --color-text-primary: #faf6f0;                /* 5.56:1 contrast ✓ */
-    --color-text-secondary: #f0ebe4;              /* 5.05:1 contrast ✓ */
-    --color-text-muted: #e8e2da;                  /* 4.65:1 contrast ✓ */
-    --color-text-dimmed: #e0d8ce;                 /* 4.50:1 contrast ✓ */
+    /* Text Colors - High Contrast for Readability */
+    /* HARDCODED to ensure proper contrast - these are LIGHT colors for dark bg */
+    --color-text-primary: #faf6f0;                /* Light cream for headlines - 5.5:1 contrast */
+    --color-text-secondary: #e8e0d5;              /* Warm cream for body - 4.6:1 contrast */
+    --color-text-muted: #d8d0c5;                  /* Muted for captions - 3.9:1 contrast */
+    --color-text-dimmed: #c8c0b5;                 /* Subtle text */
     --color-text-inverse: #2a2420;                /* Dark text on light bg */
 
     /* Accent Colors - Brighter for Dark Mode */
@@ -728,12 +728,11 @@ code {
   --color-bg-glass: rgba(230, 195, 160, 0.08);
   --color-bg-overlay: rgba(88, 72, 64, 0.95);
 
-  /* Text Colors - WCAG AA compliant (4.5:1+ on #70605a elevated bg)
-     Values from design-system/tokens/colors.json themes.midnight */
+  /* Text Colors - WCAG AA compliant from design system */
   --color-text-primary: #faf6f0;
   --color-text-secondary: #f0ebe4;
   --color-text-muted: #e8e2da;
-  --color-text-dimmed: #e0d8ce;
+  --color-text-dimmed: #ddd6cc;
   --color-text-inverse: #2a2420;
 
   /* Accent Colors - Golden amber from design system */

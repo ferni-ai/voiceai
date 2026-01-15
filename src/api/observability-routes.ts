@@ -43,7 +43,7 @@ import {
 } from '../tools/semantic-router/integration/metrics.js';
 import { getProactiveStats } from '../tools/semantic-router/advanced/proactive-suggestions.js';
 import { getAggregateRoutingStats } from '../tools/semantic-router/integration/routing-observability.js';
-import { getAgentEvolution } from '../intelligence/collective/agent-evolution.js';
+import { getAgentEvolution } from '../intelligence/agent-evolution.js';
 import {
   getAllCircuitStats,
   getAllClientStats,
@@ -288,7 +288,7 @@ async function getRedisMetrics() {
 
     // Get Pub/Sub status
     try {
-      const { getRedisPubSub, CHANNELS } = await import('../services/pubsub/redis-pubsub.js');
+      const { getRedisPubSub, CHANNELS } = await import('../services/redis-pubsub.js');
       const pubsub = getRedisPubSub();
       metrics.pubsub = {
         enabled: pubsub.isAvailable(),
@@ -342,24 +342,6 @@ async function getRedisMetrics() {
       });
     } catch {
       // Semantic router cache not available
-    }
-
-    // Get day awareness cache stats
-    try {
-      const { getDayAwarenessCacheStats } = await import('../services/context-awareness/day-awareness-cache.js');
-      const dayStats = getDayAwarenessCacheStats();
-      metrics.caches.push({
-        name: 'day-awareness',
-        stats: {
-          initialized: dayStats.initialized,
-          hasCachedContext: dayStats.hasCachedContext,
-          contextFreshness: dayStats.contextFreshness,
-          contextAgeMs: dayStats.contextAge,
-          weatherCitiesCached: dayStats.weatherCitiesCached,
-        },
-      });
-    } catch {
-      // Day awareness cache not available
     }
   } catch (error) {
     log.debug({ error: String(error) }, 'Error getting Redis metrics');
@@ -523,33 +505,23 @@ export async function handleObservabilityRoutes(
     // GET /api/observability/dynamic-memory - Dynamic memory system metrics
     if (pathname === '/api/observability/dynamic-memory' && req.method === 'GET') {
       try {
-        const { getDynamicMemoryMetrics, getSTMStats, getAttributionMetrics } = await import(
+        const { getDynamicMemoryMetrics, getSTMStats } = await import(
           '../memory/dynamic/index.js'
         );
         const { getSyncStats } = await import('../memory/dynamic/firestore-spanner-sync.js');
-        const { getDeepExtractionWorker } = await import(
-          '../memory/dynamic/deep-extraction-worker.js'
-        );
-        const { getInjectedMemoryStoreStats } = await import('../memory/retrieval/index.js');
+        const { getDeepExtractionWorker } = await import('../memory/dynamic/deep-extraction-worker.js');
 
         const dynamicMetrics = getDynamicMemoryMetrics();
         const stmStats = getSTMStats();
         const syncStats = getSyncStats();
         const worker = getDeepExtractionWorker();
         const workerStats = worker?.getStats() ?? null;
-        const attributionMetrics = getAttributionMetrics();
-        const injectedStoreStats = getInjectedMemoryStoreStats();
 
         sendJSON(res, {
           dynamicMemory: dynamicMetrics,
           stmBuffer: stmStats,
           syncService: syncStats,
           deepExtractionWorker: workerStats,
-          // Memory attribution tracking (recall quality)
-          attribution: {
-            ...attributionMetrics,
-            injectedMemoryStore: injectedStoreStats,
-          },
           collectedAt: new Date().toISOString(),
         });
       } catch (error) {

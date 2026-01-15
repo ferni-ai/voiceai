@@ -146,13 +146,7 @@ async function syncEntityToSpanner(entity: SyncableEntity): Promise<boolean> {
       entityId: `entity_${entity.userId}_${entity.id}`,
       userId: entity.userId,
       name: entity.name,
-      entityType: entity.type as
-        | 'person'
-        | 'place'
-        | 'organization'
-        | 'event'
-        | 'concept'
-        | 'thing',
+      entityType: entity.type as 'person' | 'place' | 'organization' | 'event' | 'concept' | 'thing',
       attributes: {},
       importance: entity.importance,
       firstMentioned: extractedDate,
@@ -169,14 +163,13 @@ async function syncEntityToSpanner(entity: SyncableEntity): Promise<boolean> {
 async function syncFactToSpanner(fact: SyncableFact): Promise<boolean> {
   try {
     const { insertFact } = await import('../spanner-graph/client.js');
-
+    
     await insertFact({
       factId: `fact_${fact.userId}_${fact.id}`,
       userId: fact.userId,
       factType: fact.factType as 'attribute' | 'event' | 'relationship' | 'state' | 'preference',
       key: fact.key,
       value: fact.value,
-      domain: 'general', // Default domain - will be classified by extraction
       confidence: fact.confidence,
       sourceSession: undefined,
       extractedAt: new Date(fact.extractedAt),
@@ -191,11 +184,15 @@ async function syncFactToSpanner(fact: SyncableFact): Promise<boolean> {
 async function syncRelationshipToSpanner(rel: SyncableRelationship): Promise<boolean> {
   try {
     const { insertRelationship, getEntitiesByUser } = await import('../spanner-graph/client.js');
-
+    
     // Find source and target entities
     const entities = await getEntitiesByUser(rel.userId);
-    const sourceEntity = entities.find((e) => e.name.toLowerCase() === rel.source.toLowerCase());
-    const targetEntity = entities.find((e) => e.name.toLowerCase() === rel.target.toLowerCase());
+    const sourceEntity = entities.find(
+      (e) => e.name.toLowerCase() === rel.source.toLowerCase()
+    );
+    const targetEntity = entities.find(
+      (e) => e.name.toLowerCase() === rel.target.toLowerCase()
+    );
 
     if (!sourceEntity || !targetEntity) {
       log.debug(
@@ -247,7 +244,7 @@ async function getUnsyncedEntities(limit: number): Promise<SyncableEntity[]> {
       // Extract userId from path: bogle_users/{userId}/dynamic_entities/{docId}
       const pathParts = doc.ref.path.split('/');
       const userId = pathParts[1];
-
+      
       entities.push({
         id: doc.id,
         userId,
@@ -261,10 +258,7 @@ async function getUnsyncedEntities(limit: number): Promise<SyncableEntity[]> {
     }
   } catch (error) {
     // If index doesn't exist or other query error, fallback to no filter
-    log.debug(
-      { error: String(error) },
-      'Collection group query failed, entities may need manual sync'
-    );
+    log.debug({ error: String(error) }, 'Collection group query failed, entities may need manual sync');
   }
 
   return entities;
@@ -290,7 +284,7 @@ async function getUnsyncedFacts(limit: number): Promise<SyncableFact[]> {
       const data = doc.data();
       const pathParts = doc.ref.path.split('/');
       const userId = pathParts[1];
-
+      
       facts.push({
         id: doc.id,
         userId,
@@ -329,7 +323,7 @@ async function getUnsyncedRelationships(limit: number): Promise<SyncableRelation
       const data = doc.data();
       const pathParts = doc.ref.path.split('/');
       const userId = pathParts[1];
-
+      
       relationships.push({
         id: doc.id,
         userId,
@@ -356,10 +350,15 @@ async function markAsSynced(
   if (!db) return;
 
   try {
-    await db.collection('bogle_users').doc(userId).collection(collection).doc(docId).update({
-      syncedToSpanner: true,
-      syncedAt: new Date().toISOString(),
-    });
+    await db
+      .collection('bogle_users')
+      .doc(userId)
+      .collection(collection)
+      .doc(docId)
+      .update({
+        syncedToSpanner: true,
+        syncedAt: new Date().toISOString(),
+      });
   } catch (error) {
     log.warn({ error: String(error), docId }, 'Failed to mark document as synced');
   }
@@ -520,11 +519,4 @@ export function isSyncServiceRunning(): boolean {
 // EXPORTS
 // ============================================================================
 
-export type {
-  SyncConfig,
-  SyncResult,
-  SyncStats,
-  SyncableEntity,
-  SyncableFact,
-  SyncableRelationship,
-};
+export type { SyncConfig, SyncResult, SyncStats, SyncableEntity, SyncableFact, SyncableRelationship };

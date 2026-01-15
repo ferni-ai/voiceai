@@ -9,7 +9,10 @@ import { countWordsRust, isTokenCountingAvailable } from '../../../memory/rust-a
 import { getAmbientAwarenessEngine, type AmbientDetectionResult } from '../ambient-awareness.js';
 import { getBreathingSyncEngine, type BreathPattern } from '../breathing-sync.js';
 import { getVoicePrintEngine, type VoiceSnapshot } from '../voice-print.js';
-import { getHumanizationOrchestrator, type HumanizedResponseResult } from '../index.js';
+import {
+  getHumanizationOrchestrator,
+  type HumanizedResponseResult,
+} from '../index.js';
 import {
   processAdvancedTurn,
   getResponseModifications,

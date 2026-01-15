@@ -18,8 +18,8 @@ import {
   type ContextBuilderInput,
   type ContextInjection,
 } from '../index.js';
-import { getCommunityInsights } from '../../collective/community-insights.js';
-import { getAgentEvolution } from '../../collective/agent-evolution.js';
+import { getCommunityInsights } from '../../community-insights.js';
+import { getAgentEvolution } from '../../agent-evolution.js';
 
 // ============================================================================
 // CONTEXT BUILDER

@@ -245,7 +245,7 @@ async function deliverOutreach(outreach: ScheduledOutreach): Promise<boolean> {
       case 'text': {
         try {
           const { sendSMS } = await import('./delivery/sms-delivery.js');
-          const { getDefaultStore } = await import('../memory/index.js');
+          const { getDefaultStore } = await import('../../memory/index.js');
           const store = getDefaultStore();
           const profile = await store.getProfile(outreach.userId);
           const phone = profile?.contactInfo?.phone;

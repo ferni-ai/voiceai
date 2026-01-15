@@ -6,7 +6,7 @@
  * @module conversation/active-listening/clarification
  */
 
-import { getContentWithFallback, type ContentContext } from '../../services/llm/llm-dynamic-content.js';
+import { getContentWithFallback, type ContentContext } from '../../services/llm-dynamic-content.js';
 import { seededIndex } from '../utils/rng.js';
 
 import type { ClarifyingQuestion } from './types.js';

@@ -98,7 +98,10 @@ export class TelephonyIntegration {
   /**
    * Resolve a phone number to a known entity
    */
-  async resolveContact(userId: string, phoneNumber: string): Promise<ContactResolution> {
+  async resolveContact(
+    userId: string,
+    phoneNumber: string
+  ): Promise<ContactResolution> {
     const normalized = this.normalizePhoneNumber(phoneNumber);
 
     try {
@@ -148,10 +151,14 @@ export class TelephonyIntegration {
   /**
    * Get pre-call briefing context for a contact
    */
-  async getPhoneContext(userId: string, entityId: string): Promise<PhoneContext | null> {
+  async getPhoneContext(
+    userId: string,
+    entityId: string
+  ): Promise<PhoneContext | null> {
     try {
-      const { getEntity, getMentionsForEntity, getEntityRelationships } =
-        await import('../../entity-store/storage.js');
+      const { getEntity, getMentionsForEntity, getEntityRelationships } = await import(
+        '../../entity-store/storage.js'
+      );
 
       const entity = await getEntity(userId, entityId);
       if (!entity) return null;
@@ -262,23 +269,15 @@ export class TelephonyIntegration {
         const { recordMention } = await import('../../entity-store/storage.js');
 
         await recordMention(userId, call.entityId, {
-          sentiment:
-            call.emotionalContext === 'positive'
-              ? 1
-              : call.emotionalContext === 'negative'
-                ? -1
-                : 0,
+          sentiment: call.emotionalContext === 'positive' ? 1 : call.emotionalContext === 'negative' ? -1 : 0,
           topics: call.topics || [],
         });
 
-        log.info(
-          {
-            callId,
-            entityId: call.entityId,
-            direction: call.direction,
-          },
-          'Call recorded'
-        );
+        log.info({
+          callId,
+          entityId: call.entityId,
+          direction: call.direction,
+        }, 'Call recorded');
       }
     } catch (error) {
       log.error({ error: String(error) }, 'Failed to record call');
@@ -295,8 +294,7 @@ export class TelephonyIntegration {
     const suggestions: ContactSuggestion[] = [];
 
     try {
-      const { getAllEntities, getMentionsForEntity } =
-        await import('../../entity-store/storage.js');
+      const { getAllEntities, getMentionsForEntity } = await import('../../entity-store/storage.js');
       const entities = await getAllEntities(userId, { types: ['person'], limit: 50 });
 
       for (const entity of entities) {
@@ -350,13 +348,11 @@ export class TelephonyIntegration {
 
       // Sort by priority then by days since contact
       const priorityOrder = { high: 0, medium: 1, low: 2 };
-      return suggestions
-        .sort((a, b) => {
-          const priorityDiff = priorityOrder[a.priority] - priorityOrder[b.priority];
-          if (priorityDiff !== 0) return priorityDiff;
-          return (a.lastContact?.getTime() || 0) - (b.lastContact?.getTime() || 0);
-        })
-        .slice(0, 10);
+      return suggestions.sort((a, b) => {
+        const priorityDiff = priorityOrder[a.priority] - priorityOrder[b.priority];
+        if (priorityDiff !== 0) return priorityDiff;
+        return (a.lastContact?.getTime() || 0) - (b.lastContact?.getTime() || 0);
+      }).slice(0, 10);
     } catch (error) {
       log.error({ error: String(error) }, 'Failed to suggest contacts');
       return [];
@@ -562,7 +558,9 @@ export class TelephonyIntegration {
 
     // Time since last contact
     if (lastMentioned) {
-      const daysSince = Math.round((Date.now() - lastMentioned.getTime()) / (24 * 60 * 60 * 1000));
+      const daysSince = Math.round(
+        (Date.now() - lastMentioned.getTime()) / (24 * 60 * 60 * 1000)
+      );
       if (daysSince === 0) {
         parts.push(`You talked about ${name} today.`);
       } else if (daysSince === 1) {

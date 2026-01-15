@@ -62,7 +62,7 @@ vi.mock('firebase-admin', () => {
 });
 
 // Mock contacts service (both paths used in codebase)
-vi.mock('../../services/identity/contacts.js', () => ({
+vi.mock('../../services/contacts.js', () => ({
   getContacts: vi.fn().mockResolvedValue([
     {
       displayName: 'Mom',
@@ -254,7 +254,7 @@ vi.mock('../../services/superhuman/semantic-intelligence/emotional-trajectories.
 }));
 
 // Mock coaching patterns
-vi.mock('../../intelligence/coaching/patterns.js', () => ({
+vi.mock('../../intelligence/coaching-patterns.js', () => ({
   getUserPatterns: vi.fn().mockResolvedValue([
     {
       pattern: 'Gets anxious before presentations',

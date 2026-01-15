@@ -17,7 +17,7 @@
 
 import { log } from '@livekit/agents';
 import type { PersonaConfig } from '../../personas/types.js';
-import { diag } from '../../services/observability/diagnostic-logger.js';
+import { diag } from '../../services/diagnostic-logger.js';
 import { getSessionFlags, initializeFlags } from '../../config/voice-humanization-flags.js';
 import {
   recordFeatureUsage,

@@ -14,7 +14,7 @@ import {
   recordTrialTime,
   startTrial,
   TRIAL_DURATION_MS,
-} from '../services/monetization/first-taste-trial.js';
+} from '../services/first-taste-trial.js';
 import {
   canStartConversation,
   createCheckoutSession,
@@ -24,12 +24,12 @@ import {
   isStripeConfigured,
   recordConversation,
   verifyWebhook,
-} from '../services/integrations/stripe-subscription.js';
+} from '../services/stripe-subscription.js';
 import {
   getMetricsForApi,
   initializeSubscriptionMetrics,
   trackStripeEvent,
-} from '../services/analytics/subscription-metrics.js';
+} from '../services/subscription-metrics.js';
 import { createLogger } from '../utils/safe-logger.js';
 
 // Initialize subscription metrics on module load (fire-and-forget)

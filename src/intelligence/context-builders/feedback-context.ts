@@ -125,7 +125,9 @@ export async function buildFeedbackContext(
 // ANALYSIS
 // ============================================================================
 
-function analyzeFeedback(feedback: ConversationFeedback[]): FeedbackContextResult['summary'] {
+function analyzeFeedback(
+  feedback: ConversationFeedback[]
+): FeedbackContextResult['summary'] {
   // Take most recent feedback items
   const recent = feedback.slice(0, RECENT_FEEDBACK_LIMIT);
 
@@ -140,7 +142,9 @@ function analyzeFeedback(feedback: ConversationFeedback[]): FeedbackContextResul
   };
 
   // Get most recent non-skipped feedback
-  const lastMeaningful = recent.find((f) => f.reaction && f.reaction !== 'skipped');
+  const lastMeaningful = recent.find(
+    (f) => f.reaction && f.reaction !== 'skipped'
+  );
 
   if (lastMeaningful) {
     summary.lastReaction = lastMeaningful.reaction;
@@ -153,7 +157,10 @@ function analyzeFeedback(feedback: ConversationFeedback[]): FeedbackContextResul
     } else if (lastMeaningful.reaction === 'off_track') {
       summary.needsAdjustment = true;
       summary.adjustmentType = 'redirect';
-    } else if (lastMeaningful.reaction === 'resonated' || lastMeaningful.reaction === 'helpful') {
+    } else if (
+      lastMeaningful.reaction === 'resonated' ||
+      lastMeaningful.reaction === 'helpful'
+    ) {
       // Positive feedback - subtle acknowledgment, continue this direction
       summary.adjustmentType = summary.resonatedCount > 1 ? 'continue' : 'acknowledge';
     }

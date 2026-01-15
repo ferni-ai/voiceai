@@ -114,7 +114,7 @@ async function getLifeContext(userId: string, res: ServerResponse): Promise<void
  */
 async function refreshLifeContext(userId: string, res: ServerResponse): Promise<void> {
   try {
-    const { triggerLifeContextScan } = await import('../services/pubsub/life-context-broadcast.js');
+    const { triggerLifeContextScan } = await import('../services/life-context-broadcast.js');
 
     const snapshot = await triggerLifeContextScan(userId);
 

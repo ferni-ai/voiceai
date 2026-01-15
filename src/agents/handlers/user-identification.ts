@@ -7,7 +7,7 @@
 
 import { getLogger } from '../../utils/safe-logger.js';
 import { identifyFromMetadata } from '../../services/identity/user-identification.js';
-import { diag as defaultDiag, type DiagnosticLogger } from '../../services/observability/diagnostic-logger.js';
+import { diag as defaultDiag, type DiagnosticLogger } from '../../services/diagnostic-logger.js';
 
 /**
  * Room metadata for user identification

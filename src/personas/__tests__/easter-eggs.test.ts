@@ -10,7 +10,11 @@
  */
 
 import { describe, expect, it, beforeEach } from 'vitest';
-import { checkForEasterEgg, getRandomQuirk, resetEasterEggState } from '../easter-eggs.js';
+import {
+  checkForEasterEgg,
+  getRandomQuirk,
+  resetEasterEggState,
+} from '../easter-eggs.js';
 
 describe('Easter Eggs System', () => {
   beforeEach(() => {
@@ -29,14 +33,7 @@ describe('Easter Eggs System', () => {
     });
 
     it('should work for all personas', () => {
-      const personas = [
-        'ferni',
-        'peter-john',
-        'alex-chen',
-        'maya-santos',
-        'jordan-taylor',
-        'nayan-patel',
-      ];
+      const personas = ['ferni', 'peter-john', 'alex-chen', 'maya-santos', 'jordan-taylor', 'nayan-patel'];
 
       for (const personaId of personas) {
         // Try multiple times since quirks are probabilistic
@@ -111,14 +108,7 @@ describe('Easter Eggs System', () => {
     });
 
     it('should work for all personas', () => {
-      const personas = [
-        'ferni',
-        'peter-john',
-        'alex-chen',
-        'maya-santos',
-        'jordan-taylor',
-        'nayan-patel',
-      ];
+      const personas = ['ferni', 'peter-john', 'alex-chen', 'maya-santos', 'jordan-taylor', 'nayan-patel'];
 
       for (const personaId of personas) {
         const result = checkForEasterEgg('test message', personaId, {
@@ -166,7 +156,11 @@ describe('Easter Eggs System', () => {
   describe('Easter egg content quality', () => {
     it('easter egg response should not be empty when triggered', () => {
       // Use known triggers to ensure we get results
-      const triggers = ["it's my birthday", 'getting married', 'got engaged'];
+      const triggers = [
+        "it's my birthday",
+        'getting married',
+        'got engaged',
+      ];
 
       for (const trigger of triggers) {
         const result = checkForEasterEgg(trigger, 'ferni', {

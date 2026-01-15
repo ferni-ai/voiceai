@@ -19,7 +19,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 // 🦀 Rust-accelerated word counting
-import { countWordsRust, isTokenCountingAvailable } from '../memory/rust-accelerator.js';
+import { countWordsRust, isTokenCountingAvailable } from '../../memory/rust-accelerator.js';
 
 const logger = createLogger({ module: 'VocabularyMirroring' });
 const RUST_COUNTING_AVAILABLE = isTokenCountingAvailable();

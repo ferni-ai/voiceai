@@ -10,7 +10,7 @@ import {
   generateContent,
   getContentWithFallback,
   type ContentContext,
-} from '../../services/llm/llm-dynamic-content.js';
+} from '../../services/llm-dynamic-content.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { seededChance, seededPick } from '../utils/rng.js';
 
@@ -22,50 +22,10 @@ const log = createLogger({ module: 'QuestionPatternEngine' });
 
 // Stop words for keyword extraction
 const STOP_WORDS = new Set([
-  'i',
-  'me',
-  'my',
-  'the',
-  'a',
-  'an',
-  'is',
-  'are',
-  'was',
-  'were',
-  'be',
-  'been',
-  'being',
-  'have',
-  'has',
-  'had',
-  'do',
-  'does',
-  'did',
-  'will',
-  'would',
-  'could',
-  'should',
-  'may',
-  'might',
-  'must',
-  'to',
-  'of',
-  'in',
-  'for',
-  'on',
-  'with',
-  'at',
-  'by',
-  'from',
-  'and',
-  'but',
-  'or',
-  'so',
-  'just',
-  'really',
-  'very',
-  'that',
-  'this',
+  'i', 'me', 'my', 'the', 'a', 'an', 'is', 'are', 'was', 'were', 'be', 'been',
+  'being', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could',
+  'should', 'may', 'might', 'must', 'to', 'of', 'in', 'for', 'on', 'with', 'at',
+  'by', 'from', 'and', 'but', 'or', 'so', 'just', 'really', 'very', 'that', 'this',
 ]);
 
 export class QuestionPatternEngine {

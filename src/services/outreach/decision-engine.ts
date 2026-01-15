@@ -52,7 +52,7 @@ import {
 } from './superhuman-outreach-bridge.js';
 
 // Redis cache for real-time session suppression
-import { getRedisCache } from '../memory/redis-cache.js';
+import { getRedisCache } from '../../memory/redis-cache.js';
 
 // Re-export types from dedicated types module
 export type {
@@ -1088,11 +1088,7 @@ class OutreachDecisionEngine extends EventEmitter {
           topic: String(trigger.context?.topic || trigger.reason),
           reason: trigger.reason,
           suggestedPersonas: trigger.context?.personas as string[] | undefined,
-          collaborationMode: trigger.context?.mode as
-            | 'discussion'
-            | 'brainstorm'
-            | 'support'
-            | undefined,
+          collaborationMode: trigger.context?.mode as 'discussion' | 'brainstorm' | 'support' | undefined,
           preferredName,
         });
         break;

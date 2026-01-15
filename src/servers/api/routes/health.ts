@@ -496,7 +496,7 @@ export async function handleHealthRoutes(
       if (!healthStatus.dbAvailable) {
         superhumanHealth.status = 'unavailable';
         superhumanHealth.userImpact =
-          'Ferni cannot remember commitments, track patterns, or provide personalized insights. Memory features are offline.';
+          "Ferni cannot remember commitments, track patterns, or provide personalized insights. Memory features are offline.";
         superhumanHealth.alerts.push({
           level: 'error',
           message: `Superhuman Firestore unavailable - all ${SUPERHUMAN_SERVICES.length} services degraded`,
@@ -537,10 +537,7 @@ export async function handleHealthRoutes(
           timestamp: new Date().toISOString(),
           error: (err as Error).message,
           alerts: [
-            {
-              level: 'error',
-              message: `Superhuman health check failed: ${(err as Error).message}`,
-            },
+            { level: 'error', message: `Superhuman health check failed: ${(err as Error).message}` },
           ],
         })
       );

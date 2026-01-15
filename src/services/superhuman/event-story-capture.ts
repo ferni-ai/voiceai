@@ -55,14 +55,7 @@ export interface EventStory {
     /** How they felt after */
     afterEvent: string[];
     /** The overall emotional arc */
-    overallArc:
-      | 'joyful'
-      | 'bittersweet'
-      | 'healing'
-      | 'triumphant'
-      | 'peaceful'
-      | 'transformative'
-      | 'mixed';
+    overallArc: 'joyful' | 'bittersweet' | 'healing' | 'triumphant' | 'peaceful' | 'transformative' | 'mixed';
   };
 
   /** Memorable moments */
@@ -149,28 +142,28 @@ export interface EventStoryProfile {
 
 const DEFAULT_CAPTURE_PROMPTS: StoryCapturePrompts = {
   meaningPrompts: [
-    'What made this event special - beyond just the celebration itself?',
-    'If you were telling your grandchildren about this day, what would you want them to know?',
-    'What was the deeper significance of this moment?',
-    'How does this event fit into your larger life story?',
+    "What made this event special - beyond just the celebration itself?",
+    "If you were telling your grandchildren about this day, what would you want them to know?",
+    "What was the deeper significance of this moment?",
+    "How does this event fit into your larger life story?",
   ],
   emotionalPrompts: [
-    'How were you feeling in the days leading up to this?',
-    'What was the moment during the event when you felt most alive?',
-    'How do you feel now, looking back?',
-    'Were there any bittersweet moments?',
+    "How were you feeling in the days leading up to this?",
+    "What was the moment during the event when you felt most alive?",
+    "How do you feel now, looking back?",
+    "Were there any bittersweet moments?",
   ],
   momentPrompts: [
-    'What surprised you during the event?',
-    'Was there a moment that made everyone laugh?',
-    'Who said something that touched your heart?',
-    'Did any unexpected connections happen?',
+    "What surprised you during the event?",
+    "Was there a moment that made everyone laugh?",
+    "Who said something that touched your heart?",
+    "Did any unexpected connections happen?",
   ],
   reflectionPrompts: [
-    'What would you tell someone planning a similar event?',
+    "What would you tell someone planning a similar event?",
     "Is there anything you'd do differently?",
-    'Who are you most grateful for?',
-    'What tradition might you continue from this?',
+    "Who are you most grateful for?",
+    "What tradition might you continue from this?",
   ],
 };
 
@@ -185,12 +178,7 @@ async function loadEventStoryProfile(userId: string): Promise<EventStoryProfile 
   if (!db) return null;
 
   try {
-    const doc = await db
-      .collection('bogle_users')
-      .doc(userId)
-      .collection(COLLECTION)
-      .doc('profile')
-      .get();
+    const doc = await db.collection('bogle_users').doc(userId).collection(COLLECTION).doc('profile').get();
     if (doc.exists) {
       return doc.data() as EventStoryProfile;
     }
@@ -300,7 +288,7 @@ export async function updateEventStory(
   if (storyIdx < 0) return null;
 
   const story = profile.stories[storyIdx];
-
+  
   // Deep merge updates
   const updated: EventStory = {
     ...story,
@@ -327,15 +315,7 @@ export async function addMeaningfulMoment(
   userId: string,
   storyId: string,
   momentType: 'unexpectedJoy' | 'touching' | 'funny' | 'speech' | 'connection',
-  content:
-    | string
-    | {
-        speaker?: string;
-        summary?: string;
-        whyItMattered?: string;
-        between?: string[];
-        context?: string;
-      }
+  content: string | { speaker?: string; summary?: string; whyItMattered?: string; between?: string[]; context?: string }
 ): Promise<void> {
   const profile = await loadEventStoryProfile(userId);
   if (!profile) return;
@@ -413,17 +393,17 @@ export function getStoryCapturePrompts(
   switch (timing) {
     case 'pre':
       return [
-        'What are you most looking forward to?',
-        'What does this event mean to you?',
-        'Who are you most excited to see?',
-        'Is there any nervousness mixed in with the excitement?',
+        "What are you most looking forward to?",
+        "What does this event mean to you?",
+        "Who are you most excited to see?",
+        "Is there any nervousness mixed in with the excitement?",
       ];
     case 'during':
       return [
         "What's the highlight so far?",
-        'Any unexpected moments?',
-        'How are you feeling right now?',
-        'What will you remember most about today?',
+        "Any unexpected moments?",
+        "How are you feeling right now?",
+        "What will you remember most about today?",
       ];
     case 'post':
       return [
@@ -450,15 +430,14 @@ export async function getEventStory(userId: string, storyId: string): Promise<Ev
 /**
  * Find a story by event name (partial match)
  */
-export async function findEventStory(
-  userId: string,
-  eventName: string
-): Promise<EventStory | null> {
+export async function findEventStory(userId: string, eventName: string): Promise<EventStory | null> {
   const profile = await loadEventStoryProfile(userId);
   if (!profile) return null;
 
   return (
-    profile.stories.find((s) => s.eventName.toLowerCase().includes(eventName.toLowerCase())) || null
+    profile.stories.find((s) =>
+      s.eventName.toLowerCase().includes(eventName.toLowerCase())
+    ) || null
   );
 }
 

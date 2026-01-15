@@ -57,9 +57,9 @@ const MODULE_LOADERS: Record<string, ModuleLoader> = {
   'speech/multi-signal-laughter': async () => import('../../speech/multi-signal-laughter.js'),
 
   // Services
-  'services/conversation-manager': async () => import('../../services/conversation-thread/conversation-manager.js'),
+  'services/conversation-manager': async () => import('../../services/conversation-manager.js'),
   'services/cognitive-session-hooks': async () =>
-    import('../../services/cognitive-intelligence/cognitive-session-hooks.js'),
+    import('../../services/cognitive-session-hooks.js'),
   'services/emotion-analysis/hume': async () => import('../../services/emotion-analysis/hume.js'),
   'services/voice-speaker-change': async () =>
     import('../../services/voice/voice-speaker-change.js'),

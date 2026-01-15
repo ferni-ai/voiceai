@@ -50,27 +50,27 @@ const GROUP_OUTREACH_TRIGGER_TYPES: Set<OutreachTriggerType> = new Set([
 const GROUP_TOPICS: Array<{ pattern: RegExp; personas: PersonaId[]; reason: string }> = [
   {
     pattern: /\b(career|job|work|promotion|fired|hired|quit)\b/i,
-    personas: ['ferni', 'peter-john', 'alex-chen'],
+    personas: ['ferni', 'peter-john', 'alex-comms'],
     reason: 'Career transition - needs research, communication, and life coaching',
   },
   {
     pattern: /\b(wedding|marriage|engaged|relationship|dating)\b/i,
-    personas: ['ferni', 'jordan-taylor', 'maya-santos'],
+    personas: ['ferni', 'jordan-milestones', 'maya-habits'],
     reason: 'Relationship milestone - needs planning, habits, and life coaching',
   },
   {
     pattern: /\b(moving|relocation|new home|apartment)\b/i,
-    personas: ['ferni', 'jordan-taylor', 'alex-chen'],
+    personas: ['ferni', 'jordan-milestones', 'alex-comms'],
     reason: 'Major life change - needs planning, communication, and life coaching',
   },
   {
     pattern: /\b(health|diagnosis|medical|surgery|treatment)\b/i,
-    personas: ['ferni', 'peter-john', 'maya-santos'],
+    personas: ['ferni', 'peter-john', 'maya-habits'],
     reason: 'Health journey - needs research, habits, and life coaching',
   },
   {
     pattern: /\b(depression|anxiety|overwhelm|burnout|crisis)\b/i,
-    personas: ['ferni', 'maya-santos', 'nayan-patel'],
+    personas: ['ferni', 'maya-habits', 'nayan-wisdom'],
     reason: 'Mental health support - needs habits, wisdom, and life coaching',
   },
   {
@@ -80,12 +80,12 @@ const GROUP_TOPICS: Array<{ pattern: RegExp; personas: PersonaId[]; reason: stri
   },
   {
     pattern: /\b(trip|vacation|travel|adventure)\b/i,
-    personas: ['ferni', 'jordan-taylor'],
+    personas: ['ferni', 'jordan-milestones'],
     reason: 'Travel planning - needs planning and life coaching',
   },
   {
     pattern: /\b(birthday|anniversary|graduation|celebration)\b/i,
-    personas: ['ferni', 'jordan-taylor', 'maya-santos'],
+    personas: ['ferni', 'jordan-milestones', 'maya-habits'],
     reason: 'Celebration - needs planning, habits, and life coaching',
   },
 ];
@@ -141,7 +141,7 @@ export function shouldTriggerGroupOutreach(
       case 'celebration':
         return {
           shouldUseGroup: true,
-          personas: ['ferni', 'jordan-taylor', 'maya-santos'],
+          personas: ['ferni', 'jordan-milestones', 'maya-habits'],
           reason: 'Team celebration for achievement',
           outreachType: 'text',
         };
@@ -149,7 +149,7 @@ export function shouldTriggerGroupOutreach(
       case 'emotional_support':
         return {
           shouldUseGroup: true,
-          personas: ['ferni', 'maya-santos', 'nayan-patel'],
+          personas: ['ferni', 'maya-habits', 'nayan-wisdom'],
           reason: 'Full team support for difficult time',
           outreachType: context.priority === 'urgent' ? 'call' : 'text',
         };
@@ -157,7 +157,7 @@ export function shouldTriggerGroupOutreach(
       case 'goal_milestone':
         return {
           shouldUseGroup: true,
-          personas: ['ferni', 'jordan-taylor', 'peter-john'],
+          personas: ['ferni', 'jordan-milestones', 'peter-john'],
           reason: 'Major life milestone - multiple perspectives valuable',
           outreachType: 'text',
         };
@@ -167,7 +167,7 @@ export function shouldTriggerGroupOutreach(
         if (context.priority === 'high' && context.relationshipStage === 'deep') {
           return {
             shouldUseGroup: true,
-            personas: ['ferni', 'maya-santos', 'jordan-taylor'],
+            personas: ['ferni', 'maya-habits', 'jordan-milestones'],
             reason: 'Important check-in with engaged user',
             outreachType: 'roundtable',
           };

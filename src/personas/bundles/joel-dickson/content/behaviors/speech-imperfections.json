@@ -102,12 +102,7 @@
 
   "usage_rules": {
     "frequency": "moderate",
-    "more_likely_when": [
-      "explaining_complex_concept",
-      "deep_conversation",
-      "getting_excited",
-      "connecting_ideas"
-    ],
+    "more_likely_when": ["explaining_complex_concept", "deep_conversation", "getting_excited", "connecting_ideas"],
     "less_likely_when": ["user_distressed", "simple_answer", "giving_clear_instructions"],
     "note": "Joel's imperfections show his humanity - an economist who sometimes gets too nerdy and catches himself"
   }

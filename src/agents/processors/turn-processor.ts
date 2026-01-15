@@ -28,7 +28,7 @@
 
 import type { llm } from '@livekit/agents';
 import type { ContextUserData } from '../../intelligence/context-builders/index.js';
-import { diag } from '../../services/observability/diagnostic-logger.js';
+import { diag } from '../../services/diagnostic-logger.js';
 import { updateUserContextForHandoff } from '../../tools/handoff/index.js';
 import { safeFireAndForget } from '../../utils/safe-fire-and-forget.js';
 import {
@@ -36,7 +36,7 @@ import {
   publishPredictiveIntelligence,
   publishKeyMoment,
   publishOutreachExtraction,
-} from '../../services/cross-persona/intelligence-publisher.js';
+} from '../../services/intelligence-publisher.js';
 
 // 🧠 TRUE PREDICTIVE INTELLIGENCE: Feed data into ML models + Get predictions for context
 import {
@@ -71,7 +71,7 @@ import {
 import { shouldUseIntelligentRouting } from '../../tools/semantic-router/advanced/intelligent/index.js';
 
 // Context inspection for debugging
-import { recordContextBuild, createInspectionData } from '../../services/context-awareness/context-inspection.js';
+import { recordContextBuild, createInspectionData } from '../../services/context-inspection.js';
 
 // Injection builders (cleaner separation of concerns)
 import {
@@ -173,17 +173,14 @@ import {
   recordPhaseTiming,
   recordContextInjectionTiming,
   createTimer,
-} from '../../services/performance/performance-metrics.js';
+} from '../../services/performance-metrics.js';
 
 // Development telemetry for E2E observability
 import { createTurnTrace, type Trace } from '../shared/dev-telemetry.js';
 
 // Coaching Intelligence - "Better than Human" pattern detection
-import { processTranscriptForPatterns } from '../../intelligence/coaching/patterns.js';
-import {
-  recordVoiceTurn,
-  initializeVoiceTracking,
-} from '../../intelligence/detectors/voice-signals.js';
+import { processTranscriptForPatterns } from '../../intelligence/coaching-patterns.js';
+import { recordVoiceTurn, initializeVoiceTracking } from '../../intelligence/voice-signals.js';
 
 // Speculative Persona Preloading - "Better than Human" handoff prediction
 import { analyzeAndPreload } from '../shared/performance/speculative-preloading.js';
@@ -226,7 +223,7 @@ import {
 import { getResponseEnhancements } from '../../speech/response-naturalness.js';
 
 // Voice-text mismatch - for recording insights
-import { recordMismatchInsight } from '../../intelligence/detectors/voice-mismatch.js';
+import { recordMismatchInsight } from '../../intelligence/voice-text-mismatch.js';
 
 // Cross-session reflection ("Better Than Human" - remember significant moments)
 import {
@@ -251,7 +248,7 @@ import { detectCrisis, guardPreResponse } from '../safety/crisis-guard.js';
 // "Better than Human" - We learn and remember as the conversation unfolds
 import { recordMention, extractNames } from '../../services/superhuman/relationship-network.js';
 import { fastCapture } from '../../memory/dynamic/index.js';
-import { triggerAutoSave } from '../../services/data-layer/realtime-persistence.js';
+import { triggerAutoSave } from '../../services/realtime-persistence.js';
 
 // NOTE: Cached module getters moved to cached-modules.ts
 // NOTE: analyzeMessage and updateConversationState are imported from message-analyzer.ts
@@ -373,10 +370,7 @@ async function buildContextInjections(
   // to OUTPUT JSON not text. This fixes long session tool execution failures.
   // Priority 90 = very high, just below honesty/safety
   const currentTurnCount = userData.turnCount || 1;
-  const functionCallingReinforcement = buildFunctionCallingReinforcement(
-    userText,
-    currentTurnCount
-  );
+  const functionCallingReinforcement = buildFunctionCallingReinforcement(userText, currentTurnCount);
   if (functionCallingReinforcement) {
     injections.push(functionCallingReinforcement);
     diag.debug('🔧 Function calling reinforcement added', {
@@ -462,7 +456,7 @@ async function buildContextInjections(
   if (services.userId && (userData.turnCount || 0) === 0) {
     try {
       const { getActiveUserContext, formatContextForVoiceCall } =
-        await import('../../services/session-manager/session-summary.js');
+        await import('../../services/session-context/session-summary.js');
       const activeContext = await getActiveUserContext(services.userId);
       if (activeContext) {
         const crossChannelContext = formatContextForVoiceCall(activeContext);
@@ -502,9 +496,7 @@ async function buildContextInjections(
         diag.debug('📋 While You Were Away context injected');
       }
     } catch (error) {
-      diag.debug('Pending background results context failed (non-blocking)', {
-        error: String(error),
-      });
+      diag.debug('Pending background results context failed (non-blocking)', { error: String(error) });
     }
   }
 
@@ -1254,7 +1246,7 @@ Placement: ${action.placement || 'natural'} - weave this in naturally.`,
     const surfacingLines = ctx.proactiveSurfacing
       .slice(0, 2) // Max 2 suggestions
       .map((opp) => `- ${opp.naturalPhrasing}`);
-
+    
     injections.push({
       category: 'proactive_memory',
       content: `[MEMORY SURFACING - Consider mentioning naturally if relevant]\n${surfacingLines.join('\n')}\n(Only mention if it flows naturally - don't force it)`,
@@ -1801,8 +1793,9 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
     safeFireAndForget(
       async () => {
         try {
-          const { captureTurn, isKnowledgeCaptureReady } =
-            await import('../../memory/knowledge-graph/index.js');
+          const { captureTurn, isKnowledgeCaptureReady } = await import(
+            '../../memory/knowledge-graph/index.js'
+          );
 
           if (!isKnowledgeCaptureReady()) return;
 
@@ -1906,27 +1899,27 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
       safeFireAndForget(
         async () => {
           try {
-            const { checkProactiveSurfacing, isEntityStoreReady } =
-              await import('../../memory/entity-store/integration.js');
+            const { checkProactiveSurfacing, isEntityStoreReady } = await import(
+              '../../memory/entity-store/integration.js'
+            );
 
             if (!isEntityStoreReady()) return;
 
-            const opportunities = await checkProactiveSurfacing(services.userId!, userText, {
-              sessionId: services.sessionId,
-              personaId: ctx.persona?.id || 'ferni',
-              turnNumber: turnCount,
-              surfacingCountThisSession: ctx.surfacingCount || 0,
-              sessionTopics: ctx.sessionTopics || [],
-              // Get mood from analysis.state.currentMood
-              conversationMood: analysisResult?.analysis?.state?.currentMood as
-                | 'exploratory'
-                | 'venting'
-                | 'seeking_help'
-                | 'casual'
-                | undefined,
-              lastTurnWasQuestion: userText.trim().endsWith('?'),
-              detectedEmotion: analysisResult?.analysis?.emotion?.primary,
-            });
+            const opportunities = await checkProactiveSurfacing(
+              services.userId!,
+              userText,
+              {
+                sessionId: services.sessionId,
+                personaId: ctx.persona?.id || 'ferni',
+                turnNumber: turnCount,
+                surfacingCountThisSession: ctx.surfacingCount || 0,
+                sessionTopics: ctx.sessionTopics || [],
+                // Get mood from analysis.state.currentMood
+                conversationMood: analysisResult?.analysis?.state?.currentMood as 'exploratory' | 'venting' | 'seeking_help' | 'casual' | undefined,
+                lastTurnWasQuestion: userText.trim().endsWith('?'),
+                detectedEmotion: analysisResult?.analysis?.emotion?.primary,
+              }
+            );
 
             if (opportunities.length > 0) {
               diag.state('💡 Proactive surfacing opportunities found', {
@@ -2623,32 +2616,6 @@ If they're just conversing, respond naturally without the tool call.`,
     );
   }
 
-  // ============================================================================
-  // 🧠 LEARNING ENGINE: Get surfaced memory event for reaction tracking
-  // If a memory was surfaced this turn, return the event ID so the caller
-  // can record the user's reaction on their next message
-  // ============================================================================
-  let surfacedMemory: { eventId: string; memoryTopics: string[] } | undefined;
-  if (services.userId) {
-    try {
-      const { getMostRecentPendingSurfacingEvent } =
-        await import('../../services/unified-memory-service.js');
-      const pendingEvent = getMostRecentPendingSurfacingEvent(services.userId);
-      if (pendingEvent) {
-        surfacedMemory = {
-          eventId: pendingEvent.eventId,
-          memoryTopics: pendingEvent.memoryTopics,
-        };
-        diag.debug('🧠 Learning Engine: Memory surfaced this turn', {
-          eventId: pendingEvent.eventId,
-          topics: pendingEvent.memoryTopics,
-        });
-      }
-    } catch {
-      // Non-critical - learning engine is optional
-    }
-  }
-
   return {
     analysis: analysisResult,
     context: {
@@ -2677,8 +2644,6 @@ If they're just conversing, respond naturally without the tool call.`,
     semanticRouting,
     // 📊 RESONANCE CHECK: Voice-native feedback for BTH effectiveness
     resonanceCheck,
-    // 🧠 LEARNING ENGINE: Surfaced memory for reaction tracking
-    surfacedMemory,
   };
 }
 

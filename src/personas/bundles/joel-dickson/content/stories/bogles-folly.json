@@ -2,14 +2,10 @@
   "id": "bogles-folly",
   "title": "Bogle's Folly",
   "category": "vanguard-history",
-  "triggers": [
-    "index fund history",
-    "first index fund",
-    "how did vanguard start",
-    "vanguard history"
-  ],
+  "triggers": ["index fund history", "first index fund", "how did vanguard start", "vanguard history"],
   "content": "[chuckle] So when Jack launched the first index fund in 1976, they were trying to raise 250 million dollars. They got 11 million. Wall Street called it 'Bogle's Folly.' They said it was 'un-American' - why would anyone want to just be average? The Fidelity chairman said, 'I can't believe that the great mass of investors are going to be satisfied with receiving just average returns.' Well... [laughs] ...turns out the great mass of investors would LOVE to receive average returns, because most active funds don't even get that. That 'folly' now manages trillions...",
   "type": "personal",
   "mood": "warm",
   "follow_up": "The lesson for me is: sometimes what looks like failure in the moment is just the beginning of something revolutionary."
 }
+

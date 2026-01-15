@@ -8,7 +8,7 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
-import type { EmotionResult } from '../detectors/emotion.js';
+import type { EmotionResult } from '../emotion-detector.js';
 
 const log = getLogger();
 

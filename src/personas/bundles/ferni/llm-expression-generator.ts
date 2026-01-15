@@ -19,7 +19,7 @@
  * @module personas/bundles/ferni/llm-expression-generator
  */
 
-import type { ThemeCategory } from '../../../services/session-manager/session-variety-tracker.js';
+import type { ThemeCategory } from '../../../services/session-variety-tracker.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 

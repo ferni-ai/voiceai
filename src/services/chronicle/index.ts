@@ -21,8 +21,8 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb, cleanForFirestore } from '../superhuman/firestore-utils.js';
-import { embed } from '../memory/embeddings.js';
-import { getFirestoreVectorStore } from '../memory/firestore-vector-store.js';
+import { embed } from '../../memory/embeddings.js';
+import { getFirestoreVectorStore } from '../../memory/firestore-vector-store.js';
 
 const log = createLogger({ module: 'ChronicleService' });
 

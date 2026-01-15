@@ -4,10 +4,7 @@
  * @module @ferni/humanization/voice-agent-integration/types
  */
 
-import type {
-  TurnGuidance,
-  ResponseModification,
-} from '../../advanced-humanization-integration.js';
+import type { TurnGuidance, ResponseModification } from '../../advanced-humanization-integration.js';
 
 export interface HumanizationSessionState {
   sessionId: string;

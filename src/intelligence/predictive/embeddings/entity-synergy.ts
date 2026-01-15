@@ -396,10 +396,7 @@ function isEntityRelevantToDomain(entity: Entity, domain: string): boolean {
   return keywords.some((kw) => entityText.includes(kw));
 }
 
-function inferInfluenceType(
-  entity: Entity,
-  description: string
-): 'trigger' | 'support' | 'context' {
+function inferInfluenceType(entity: Entity, description: string): 'trigger' | 'support' | 'context' {
   const descLower = description.toLowerCase();
   const nameLower = getEntityName(entity).toLowerCase();
 
@@ -408,10 +405,7 @@ function inferInfluenceType(
     return 'trigger';
   }
 
-  if (
-    descLower.includes(`${nameLower} helped`) ||
-    descLower.includes(`support from ${nameLower}`)
-  ) {
+  if (descLower.includes(`${nameLower} helped`) || descLower.includes(`support from ${nameLower}`)) {
     return 'support';
   }
 

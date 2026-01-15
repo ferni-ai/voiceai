@@ -260,7 +260,7 @@ export class IntegrationHub implements IntegrationRegistry {
     if (connection?.status === 'connected') {
       return true;
     }
-
+    
     // Check Firestore
     const status = await getConnectionStatus(userId, integrationId);
     return status.connected;
@@ -273,11 +273,7 @@ export class IntegrationHub implements IntegrationRegistry {
     const key = `${connection.userId}:${connection.integrationId}`;
     this.connections.set(key, connection);
     log.debug(
-      {
-        userId: connection.userId,
-        integrationId: connection.integrationId,
-        status: connection.status,
-      },
+      { userId: connection.userId, integrationId: connection.integrationId, status: connection.status },
       'Connection updated'
     );
   }
@@ -407,7 +403,7 @@ export class IntegrationHub implements IntegrationRegistry {
       // Use OAuth manager to get valid tokens (auto-refreshes from Firestore)
       const oauthManager = getOAuthManager();
       const tokens = await oauthManager.getValidTokens(userId, integrationId);
-
+      
       if (!tokens) {
         return {
           success: false,
@@ -418,7 +414,7 @@ export class IntegrationHub implements IntegrationRegistry {
       }
 
       headers['Authorization'] = `Bearer ${tokens.accessToken}`;
-
+      
       // Update in-memory cache for quick access
       const connection = this.getConnection(userId, integrationId);
       if (connection) {
@@ -457,7 +453,7 @@ export class IntegrationHub implements IntegrationRegistry {
           url.searchParams.set(key, String(value));
         }
       }
-
+      
       // Add API key as query param for Google Maps
       if (integrationId === 'google_maps') {
         const apiKey = process.env['GOOGLE_MAPS_API_KEY'];

@@ -24,7 +24,6 @@ import {
   clearNewlyUnlocked,
   getMemberStatus,
   getTeamMember,
-  getUnlockState,
   isFullTeamUnlocked,
   isTeamMemberUnlocked,
   TEAM_MEMBERS,
@@ -1102,8 +1101,7 @@ function createTeamMemberElement(agent: ApiAgent): HTMLElement {
   const classes = ['team-member'];
   if (agent.isCoordinator) classes.push('team-member--coach');
   if (isLocked) classes.push('team-member--locked');
-  // "Almost unlocked" glow at 80%+ progress (not 50%)
-  if (memberStatus.progress >= 0.8 && isLocked) classes.push('team-member--almost-unlocked');
+  if (memberStatus.progress > 0.5 && isLocked) classes.push('team-member--almost-unlocked');
 
   element.className = classes.join(' ');
   element.setAttribute('data-persona-id', agent.id);
@@ -1137,27 +1135,17 @@ function createTeamMemberElement(agent: ApiAgent): HTMLElement {
   // Display first name only in roster for cleaner UI
   const displayName = getFirstName(agent.name);
 
-  // Mystery indicator ("?") instead of lock icon - more intriguing
-  const mysteryIndicator = isLocked
-    ? `<div class="team-mystery-indicator" aria-hidden="true">?</div>`
+  // Lock icon SVG (Lucide icon style - 2px stroke, rounded)
+  const lockIcon = isLocked
+    ? `
+    <div class="team-lock-indicator" aria-hidden="true">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+      </svg>
+    </div>
+  `
     : '';
-
-  // Progress hint showing conversations remaining (shown on hover)
-  // Get conversations needed from unlock state if this is the next member to unlock
-  const unlockState = getUnlockState();
-  const isNextToUnlock = unlockState?.nextUnlock?.member.id === agent.id;
-  const conversationsRemaining = isNextToUnlock ? (unlockState?.nextUnlock?.conversationsNeeded || 0) : 0;
-  
-  // Generate hint text - either specific count or generic encouragement
-  let progressHint = '';
-  if (isLocked) {
-    if (conversationsRemaining > 0) {
-      progressHint = `<span class="team-progress-hint">${conversationsRemaining} more chat${conversationsRemaining === 1 ? '' : 's'}</span>`;
-    } else if (memberStatus.progress > 0) {
-      const percent = Math.round(memberStatus.progress * 100);
-      progressHint = `<span class="team-progress-hint">${percent}% there</span>`;
-    }
-  }
 
   // Progress ring for locked members (shows progress toward unlock)
   const progressRing =
@@ -1200,20 +1188,12 @@ function createTeamMemberElement(agent: ApiAgent): HTMLElement {
 
   avatarContainer.appendChild(avatar);
 
-  // Add mystery indicator if locked (replaces lock icon)
-  if (mysteryIndicator) {
+  // Add lock icon if locked
+  if (lockIcon) {
     const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = mysteryIndicator;
-    const mysteryEl = tempDiv.firstElementChild;
-    if (mysteryEl) avatarContainer.appendChild(mysteryEl);
-  }
-
-  // Add progress hint if locked (shows on hover)
-  if (progressHint) {
-    const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = progressHint;
-    const hintEl = tempDiv.firstElementChild;
-    if (hintEl) avatarContainer.appendChild(hintEl);
+    tempDiv.innerHTML = lockIcon;
+    const lockEl = tempDiv.firstElementChild;
+    if (lockEl) avatarContainer.appendChild(lockEl);
   }
 
   element.appendChild(avatarContainer);
@@ -1606,11 +1586,8 @@ function updateTeamMemberLockStates(state: ReturnType<typeof teamUnlockService.g
     // Update classes
     if (isLocked) {
       addClass(element, 'team-member--locked');
-      // "Almost unlocked" glow at 80%+ progress (not 50%)
-      if (status && status.progress >= 0.8) {
+      if (status && status.progress > 0.5) {
         addClass(element, 'team-member--almost-unlocked');
-      } else {
-        removeClass(element, 'team-member--almost-unlocked');
       }
     } else {
       removeClass(element, 'team-member--locked');

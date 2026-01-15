@@ -24,29 +24,29 @@ const log = createLogger({ module: 'insight-gen:anticipatory' });
 
 const ANTICIPATORY_TEMPLATES = {
   upcoming_event: [
-    '{event} is {timeframe}. Based on past patterns, you might start feeling {emotion} around {onset}. Want to prepare together?',
+    "{event} is {timeframe}. Based on past patterns, you might start feeling {emotion} around {onset}. Want to prepare together?",
     "I'm looking ahead: {event} is {timeframe}. Last time, {emotion} kicked in about {onset} before. How are you feeling about it?",
-    '{event} coming up in {timeframe}. I remember how {pastExperience}. Is there anything you want to think through now?',
+    "{event} coming up in {timeframe}. I remember how {pastExperience}. Is there anything you want to think through now?",
   ],
   annual_pattern: [
-    'This time of year tends to be {quality} for you. {reason}. How are you preparing?',
-    '{season} is {quality} for you historically. I want to check in before it hits.',
+    "This time of year tends to be {quality} for you. {reason}. How are you preparing?",
+    "{season} is {quality} for you historically. I want to check in before it hits.",
     "Heads up: we're entering {season}. You've mentioned this period being {quality}. What support would help?",
   ],
   relationship_date: [
-    '{event} is coming up in {timeframe}. Last year it was {quality}. Thinking about how you want to handle this one?',
+    "{event} is coming up in {timeframe}. Last year it was {quality}. Thinking about how you want to handle this one?",
     "I noticed {event} is approaching. You've got history with this date. Want to talk through it?",
-    '{event} in {timeframe}. I remember what you shared about last year. How are you feeling about it this time?',
+    "{event} in {timeframe}. I remember what you shared about last year. How are you feeling about it this time?",
   ],
   predictive_stress: [
-    'Based on patterns, you might start feeling {emotion} soon. The {trigger} is coming, and it usually affects you.',
-    'I want to name something: {trigger} tends to bring {emotion} for you. We can get ahead of it.',
+    "Based on patterns, you might start feeling {emotion} soon. The {trigger} is coming, and it usually affects you.",
+    "I want to name something: {trigger} tends to bring {emotion} for you. We can get ahead of it.",
     "Historically, {trigger} creates {emotion}. It's {timeframe} away. Want to build a buffer?",
   ],
   opportunity: [
     "You mentioned wanting to {goal} when {condition}. That's coming up—{timeframe}. Ready?",
     "Remember when you said you'd {goal} when {condition}? That window is {timeframe}.",
-    '{condition} is approaching. You had plans around this. Still feeling that?',
+    "{condition} is approaching. You had plans around this. Still feeling that?",
   ],
 };
 
@@ -55,12 +55,7 @@ const ANTICIPATORY_TEMPLATES = {
 // ============================================================================
 
 interface AnticipatoryData {
-  type:
-    | 'upcoming_event'
-    | 'annual_pattern'
-    | 'relationship_date'
-    | 'predictive_stress'
-    | 'opportunity';
+  type: 'upcoming_event' | 'annual_pattern' | 'relationship_date' | 'predictive_stress' | 'opportunity';
   event: string;
   timeframe: string;
   daysUntil: number;
@@ -79,13 +74,7 @@ interface AnticipatoryData {
 const ANNUAL_PATTERNS = [
   { month: 0, event: "New Year's", type: 'relationship_date', quality: 'mixed' },
   { month: 1, event: "Valentine's Day", type: 'relationship_date', quality: 'varies' },
-  {
-    month: 3,
-    event: 'Tax deadline',
-    type: 'predictive_stress',
-    trigger: 'tax season',
-    emotion: 'stress',
-  },
+  { month: 3, event: 'Tax deadline', type: 'predictive_stress', trigger: 'tax season', emotion: 'stress' },
   { month: 4, event: "Mother's Day", type: 'relationship_date', quality: 'varies' },
   { month: 5, event: "Father's Day", type: 'relationship_date', quality: 'varies' },
   { month: 10, event: 'Thanksgiving', type: 'annual_pattern', quality: 'complex' },
@@ -113,12 +102,9 @@ async function fetchAnticipatoryData(userId: string): Promise<AnticipatoryData[]
         if (currentDay < eventDay) {
           daysUntil = eventDay - currentDay;
         }
-      } else if (
-        pattern.month === currentMonth + 1 ||
-        (currentMonth === 11 && pattern.month === 0)
-      ) {
+      } else if ((pattern.month === currentMonth + 1) || (currentMonth === 11 && pattern.month === 0)) {
         // Next month
-        daysUntil = 30 - currentDay + 15;
+        daysUntil = (30 - currentDay) + 15;
       }
 
       if (daysUntil > 0 && daysUntil <= 14) {
@@ -147,10 +133,7 @@ async function fetchAnticipatoryData(userId: string): Promise<AnticipatoryData[]
           timeframe: 'now',
           daysUntil: 0,
           season: currentSeason,
-          quality:
-            energyMatch[1].includes('slow') || energyMatch[1].includes('low')
-              ? 'lower energy'
-              : 'higher energy',
+          quality: energyMatch[1].includes('slow') || energyMatch[1].includes('low') ? 'lower energy' : 'higher energy',
           reason: energyMatch[1],
         });
       }
@@ -215,7 +198,10 @@ async function generateAnticipatoryInsights(
   return insights;
 }
 
-function buildAnticipatoryInsight(data: AnticipatoryData, userId: string): GeneratedInsight | null {
+function buildAnticipatoryInsight(
+  data: AnticipatoryData,
+  userId: string
+): GeneratedInsight | null {
   const templates = ANTICIPATORY_TEMPLATES[data.type];
   if (!templates || templates.length === 0) {
     return null;
@@ -237,7 +223,8 @@ function buildAnticipatoryInsight(data: AnticipatoryData, userId: string): Gener
     .replace(/{goal}/g, data.goal || 'make a change')
     .replace(/{condition}/g, data.condition || 'the time was right');
 
-  const priorityByDays = data.daysUntil <= 3 ? 'high' : data.daysUntil <= 7 ? 'medium' : 'low';
+  const priorityByDays =
+    data.daysUntil <= 3 ? 'high' : data.daysUntil <= 7 ? 'medium' : 'low';
 
   return {
     id: `anticipatory_${data.event.replace(/\s+/g, '_')}_${Date.now()}`,
@@ -257,9 +244,7 @@ function buildAnticipatoryInsight(data: AnticipatoryData, userId: string): Gener
     confidence: 0.75,
     dataPoints: 3,
     generatedAt: new Date(),
-    expiresAt: new Date(
-      Date.now() + data.daysUntil * 24 * 60 * 60 * 1000 + 2 * 24 * 60 * 60 * 1000
-    ), // Expire 2 days after event
+    expiresAt: new Date(Date.now() + data.daysUntil * 24 * 60 * 60 * 1000 + 2 * 24 * 60 * 60 * 1000), // Expire 2 days after event
     surfaced: false,
     dismissed: false,
   };

@@ -30,7 +30,7 @@ import type { IncomingMessage, ServerResponse } from 'http';
 import crypto from 'crypto';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { sendError } from '../../helpers.js';
-import { encryptSensitive, decryptSensitive } from '../../../services/identity/privacy-crypto.js';
+import { encryptSensitive, decryptSensitive } from '../../../services/privacy-crypto.js';
 import {
   requireApiKeyAuth,
   extractIdFromPath,
@@ -39,12 +39,11 @@ import {
   sendItemResponse,
   sendPaginatedResponse,
 } from './shared/middleware.js';
-import {
-  CreateOAuthProviderSchema,
-  UpdateOAuthProviderSchema,
-  PaginationSchema,
-} from './shared/validation.js';
-import type { DeveloperOAuthProvider, DeveloperOAuthToken } from './shared/types.js';
+import { CreateOAuthProviderSchema, UpdateOAuthProviderSchema, PaginationSchema } from './shared/validation.js';
+import type {
+  DeveloperOAuthProvider,
+  DeveloperOAuthToken,
+} from './shared/types.js';
 import { COLLECTIONS, ID_PREFIXES } from './shared/types.js';
 
 const log = getLogger().child({ module: 'oauth-routes' });
@@ -210,7 +209,10 @@ export async function handleOAuthRoutes(
 /**
  * POST /oauth/providers - Register a new OAuth provider
  */
-async function handleCreateProvider(req: IncomingMessage, res: ServerResponse): Promise<boolean> {
+async function handleCreateProvider(
+  req: IncomingMessage,
+  res: ServerResponse
+): Promise<boolean> {
   // Authenticate
   const auth = await requireApiKeyAuth(req, res);
   if (!auth) return true;
@@ -283,7 +285,10 @@ async function handleCreateProvider(req: IncomingMessage, res: ServerResponse): 
 /**
  * GET /oauth/providers - List OAuth providers
  */
-async function handleListProviders(req: IncomingMessage, res: ServerResponse): Promise<boolean> {
+async function handleListProviders(
+  req: IncomingMessage,
+  res: ServerResponse
+): Promise<boolean> {
   // Authenticate
   const auth = await requireApiKeyAuth(req, res);
   if (!auth) return true;
@@ -587,7 +592,10 @@ async function handleDeleteProvider(
  *   "state": "optional_custom_state"
  * }
  */
-async function handleAuthorize(req: IncomingMessage, res: ServerResponse): Promise<boolean> {
+async function handleAuthorize(
+  req: IncomingMessage,
+  res: ServerResponse
+): Promise<boolean> {
   // Authenticate
   const auth = await requireApiKeyAuth(req, res);
   if (!auth) return true;
@@ -656,7 +664,10 @@ async function handleAuthorize(req: IncomingMessage, res: ServerResponse): Promi
     authUrl.searchParams.set('scope', (data.scopes as string[]).join(' '));
     authUrl.searchParams.set('state', stateToken);
 
-    log.info({ providerId, publisherId: auth.publisherId }, 'OAuth authorization URL generated');
+    log.info(
+      { providerId, publisherId: auth.publisherId },
+      'OAuth authorization URL generated'
+    );
 
     sendItemResponse(res, {
       authorizationUrl: authUrl.toString(),
@@ -685,7 +696,10 @@ async function handleAuthorize(req: IncomingMessage, res: ServerResponse): Promi
  *   "state": "state_token_from_authorize"
  * }
  */
-async function handleCallback(req: IncomingMessage, res: ServerResponse): Promise<boolean> {
+async function handleCallback(
+  req: IncomingMessage,
+  res: ServerResponse
+): Promise<boolean> {
   // Note: Callback may not have API key auth if called from redirect
   // We validate via the state token instead
 
@@ -790,7 +804,10 @@ async function handleCallback(req: IncomingMessage, res: ServerResponse): Promis
     // Delete used state token
     await stateDoc.ref.delete();
 
-    log.info({ tokenId, providerId, publisherId: stateData.publisherId }, 'OAuth token stored');
+    log.info(
+      { tokenId, providerId, publisherId: stateData.publisherId },
+      'OAuth token stored'
+    );
 
     sendItemResponse(res, {
       tokenId,
@@ -817,7 +834,10 @@ async function handleCallback(req: IncomingMessage, res: ServerResponse): Promis
 /**
  * GET /oauth/tokens - List OAuth tokens
  */
-async function handleListTokens(req: IncomingMessage, res: ServerResponse): Promise<boolean> {
+async function handleListTokens(
+  req: IncomingMessage,
+  res: ServerResponse
+): Promise<boolean> {
   // Authenticate
   const auth = await requireApiKeyAuth(req, res);
   if (!auth) return true;
@@ -1009,7 +1029,9 @@ async function handleRefreshToken(
     sendItemResponse(res, {
       tokenId,
       refreshed: true,
-      expiresAt: updates.expiresAt ? (updates.expiresAt as Date).toISOString() : undefined,
+      expiresAt: updates.expiresAt
+        ? (updates.expiresAt as Date).toISOString()
+        : undefined,
     });
 
     return true;
@@ -1128,7 +1150,9 @@ async function handleGetAccessToken(
         sendItemResponse(res, {
           tokenId,
           accessToken,
-          expiresAt: updates.expiresAt ? (updates.expiresAt as Date).toISOString() : undefined,
+          expiresAt: updates.expiresAt
+            ? (updates.expiresAt as Date).toISOString()
+            : undefined,
           refreshed: true,
         });
 

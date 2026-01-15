@@ -814,7 +814,7 @@ let serviceInstance: LearnedMemoriesService | null = null;
  * Requires a memory store to be passed for profile operations
  */
 export function createLearnedMemoriesService(
-  getStore: () => Promise<import('../memory/store.js').MemoryStore>
+  getStore: () => Promise<import('../../memory/store.js').MemoryStore>
 ): LearnedMemoriesService {
   return {
     async getLearnedMemories(userId: string): Promise<LearnedMemoriesData> {
@@ -862,7 +862,7 @@ export function getLearnedMemoriesService(): LearnedMemoriesService {
 }
 
 export function initLearnedMemoriesService(
-  getStore: () => Promise<import('../memory/store.js').MemoryStore>
+  getStore: () => Promise<import('../../memory/store.js').MemoryStore>
 ): void {
   serviceInstance = createLearnedMemoriesService(getStore);
 }

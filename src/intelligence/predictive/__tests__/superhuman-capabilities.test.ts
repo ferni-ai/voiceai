@@ -64,10 +64,7 @@ describe('Better Than Human v4 - Superhuman Capabilities', () => {
       avoidancePrediction.recordDeflection(userId, 'area:career_dissatisfaction', 'humor');
       avoidancePrediction.recordDeflection(userId, 'area:career_dissatisfaction', 'minimize');
 
-      const prediction = avoidancePrediction.predictSurfacing(
-        userId,
-        'area:career_dissatisfaction'
-      );
+      const prediction = avoidancePrediction.predictSurfacing(userId, 'area:career_dissatisfaction');
 
       // Should identify humor as primary deflection style
       expect(prediction).not.toBeNull();
@@ -99,20 +96,12 @@ describe('Better Than Human v4 - Superhuman Capabilities', () => {
       // Record multiple indicators
       breakthroughProximity.recordIndicator(
         userId,
-        {
-          type: 'questioning_beliefs',
-          strength: 0.7,
-          content: 'I always thought I had to work this hard',
-        },
+        { type: 'questioning_beliefs', strength: 0.7, content: 'I always thought I had to work this hard' },
         topic
       );
       breakthroughProximity.recordIndicator(
         userId,
-        {
-          type: 'connecting_dots',
-          strength: 0.8,
-          content: 'I see the same pattern in my relationships',
-        },
+        { type: 'connecting_dots', strength: 0.8, content: 'I see the same pattern in my relationships' },
         topic
       );
       breakthroughProximity.recordIndicator(
@@ -158,7 +147,7 @@ describe('Better Than Human v4 - Superhuman Capabilities', () => {
       });
 
       const assessment = breakthroughProximity.assessProximity(userId, topic);
-
+      
       // Blockages should be tracked (now has enough indicators)
       expect(assessment).not.toBeNull();
       expect(assessment!.blockages.length).toBeGreaterThan(0);
@@ -169,7 +158,12 @@ describe('Better Than Human v4 - Superhuman Capabilities', () => {
       const topic = 'relationship-pattern';
 
       // Record a breakthrough
-      breakthroughProximity.recordBreakthrough(userId, topic, 'pattern_recognition', 'reflection');
+      breakthroughProximity.recordBreakthrough(
+        userId,
+        topic,
+        'pattern_recognition',
+        'reflection'
+      );
 
       // Should affect future predictions
       const assessments = breakthroughProximity.getAllBreakthroughAssessments(userId);
@@ -185,24 +179,9 @@ describe('Better Than Human v4 - Superhuman Capabilities', () => {
       const userId = `${TEST_USER}-trajectory`;
 
       // Record observations
-      preTrajectoryDetection.recordPrecursorObservation(
-        userId,
-        'sleep_pattern_change',
-        0.3,
-        'conversation'
-      );
-      preTrajectoryDetection.recordPrecursorObservation(
-        userId,
-        'energy_fluctuation',
-        0.4,
-        'conversation'
-      );
-      preTrajectoryDetection.recordPrecursorObservation(
-        userId,
-        'rumination_increase',
-        0.7,
-        'conversation'
-      );
+      preTrajectoryDetection.recordPrecursorObservation(userId, 'sleep_pattern_change', 0.3, 'conversation');
+      preTrajectoryDetection.recordPrecursorObservation(userId, 'energy_fluctuation', 0.4, 'conversation');
+      preTrajectoryDetection.recordPrecursorObservation(userId, 'rumination_increase', 0.7, 'conversation');
 
       // Should build predictions
       const predictions = preTrajectoryDetection.predictTrajectories(userId);
@@ -230,18 +209,8 @@ describe('Better Than Human v4 - Superhuman Capabilities', () => {
 
       // Record multiple concerning signals
       for (let i = 0; i < 5; i++) {
-        preTrajectoryDetection.recordPrecursorObservation(
-          userId,
-          'rumination_increase',
-          0.8,
-          'test'
-        );
-        preTrajectoryDetection.recordPrecursorObservation(
-          userId,
-          'energy_fluctuation',
-          0.2,
-          'test'
-        );
+        preTrajectoryDetection.recordPrecursorObservation(userId, 'rumination_increase', 0.8, 'test');
+        preTrajectoryDetection.recordPrecursorObservation(userId, 'energy_fluctuation', 0.2, 'test');
       }
 
       const context = preTrajectoryDetection.buildPreTrajectoryContext(userId);
@@ -401,7 +370,7 @@ describe('Better Than Human v4 - Superhuman Capabilities', () => {
       rippleEffectPrediction.updateDomainHealth(userId, 'sleep', 0.3);
 
       const status = rippleEffectPrediction.getRippleStatus(userId);
-
+      
       // Should identify sleep as leverage point
       const prediction = rippleEffectPrediction.recordDomainEvent(userId, {
         domain: 'work',
@@ -481,9 +450,11 @@ describe('Better Than Human v4 - Superhuman Capabilities', () => {
     it('should get timing recommendation', () => {
       const userId = `${TEST_USER}-timing`;
 
-      const recommendation = interventionTiming.getTimingRecommendation(userId, 'validation', {
-        emotionalState: 'sad',
-      });
+      const recommendation = interventionTiming.getTimingRecommendation(
+        userId,
+        'validation',
+        { emotionalState: 'sad' }
+      );
 
       expect(recommendation).toBeDefined();
       expect(recommendation.interventionType).toBe('validation');
@@ -541,8 +512,7 @@ describe('Better Than Human v4 - Superhuman Capabilities', () => {
       const userId = `${TEST_USER}-integration`;
 
       await signalIntegration.processTurnForSuperhumanLearning(userId, {
-        userMessage:
-          'I have been thinking about my relationship with my dad. Maybe I have been wrong about him.',
+        userMessage: 'I have been thinking about my relationship with my dad. Maybe I have been wrong about him.',
         emotion: {
           primary: 'reflective',
           intensity: 0.6,
@@ -605,7 +575,7 @@ describe('Better Than Human v4 - Superhuman Capabilities', () => {
         style: 'intuitive',
         timeToDecision: 1,
       });
-
+      
       for (let i = 0; i < 5; i++) {
         lifePhasePrediction.recordPhaseSignal(userId, 'new_initiatives', 0.7);
       }

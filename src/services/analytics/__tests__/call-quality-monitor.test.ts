@@ -7,7 +7,7 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 
 // Mock dependencies before importing module
-vi.mock('../../integrations/slack-notifications.js', () => ({
+vi.mock('../../slack-notifications.js', () => ({
   SlackNotificationService: vi.fn().mockImplementation(() => ({
     notify: vi.fn().mockResolvedValue(undefined),
   })),

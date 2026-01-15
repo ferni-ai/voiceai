@@ -56,7 +56,7 @@ vi.mock('../intelligence/human-behaviors.js', () => ({
   getProactiveGoalReference: mockGetProactiveGoalReference,
 }));
 
-vi.mock('../services/conversation-thread/conversation-manager.js', () => ({
+vi.mock('../services/conversation-manager.js', () => ({
   // Session-scoped is now the default export used by the builder
   getSessionConversationManager: vi.fn(() => ({
     getConversationEnhancements: mockGetConversationEnhancements,

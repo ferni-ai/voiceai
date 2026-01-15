@@ -22,14 +22,6 @@ import { createTelephonyTools } from './telephony.js';
 // Import on-behalf call tool
 import { createCallOnBehalfTool } from './call-on-behalf.js';
 
-// Import recurring call tools
-import {
-  scheduleRecurringCall,
-  listRecurringCalls,
-  cancelRecurringCall,
-  scheduleRecurringCallSchema,
-} from './recurring-calls.js';
-
 // ============================================================================
 // LEGACY TOOL WRAPPER
 // ============================================================================
@@ -99,60 +91,6 @@ function getTelephonyToolDefinitions(): ToolDefinition[] {
       tags: ['telephony', 'outbound', 'personal', 'conversation'],
       requiredServices: ['twilio'],
       create: (ctx: ToolContext) => createCallOnBehalfTool(ctx),
-    },
-    // Recurring call scheduling - "call mom every Sunday"
-    {
-      id: 'scheduleRecurringCall',
-      name: 'Schedule Recurring Call',
-      description:
-        'Schedule recurring calls to a contact. Examples: "call mom every Sunday", "check in with dad weekly"',
-      domain: 'telephony',
-      tags: ['telephony', 'recurring', 'schedule', 'family'],
-      requiredServices: ['twilio'],
-      create: (ctx: ToolContext) => ({
-        name: 'scheduleRecurringCall',
-        description: 'Schedule a recurring phone call',
-        schema: scheduleRecurringCallSchema,
-        execute: async (params: unknown) => {
-          return scheduleRecurringCall(
-            params as Parameters<typeof scheduleRecurringCall>[0],
-            { userId: ctx.userId }
-          );
-        },
-      }),
-    },
-    {
-      id: 'listRecurringCalls',
-      name: 'List Recurring Calls',
-      description: 'List all scheduled recurring calls',
-      domain: 'telephony',
-      tags: ['telephony', 'recurring', 'list'],
-      create: (ctx: ToolContext) => ({
-        name: 'listRecurringCalls',
-        description: 'List recurring call schedules',
-        schema: { type: 'object', properties: {} },
-        execute: async () => listRecurringCalls({ userId: ctx.userId }),
-      }),
-    },
-    {
-      id: 'cancelRecurringCall',
-      name: 'Cancel Recurring Call',
-      description: 'Stop recurring calls to a contact',
-      domain: 'telephony',
-      tags: ['telephony', 'recurring', 'cancel'],
-      create: (ctx: ToolContext) => ({
-        name: 'cancelRecurringCall',
-        description: 'Cancel a recurring call schedule',
-        schema: {
-          type: 'object',
-          properties: {
-            contactQuery: { type: 'string', description: 'Who to stop calling' },
-          },
-          required: ['contactQuery'],
-        },
-        execute: async (params: { contactQuery: string }) =>
-          cancelRecurringCall(params.contactQuery, { userId: ctx.userId }),
-      }),
     },
   ];
 }

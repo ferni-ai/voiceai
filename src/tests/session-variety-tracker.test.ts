@@ -12,7 +12,7 @@ import {
   resetSessionVarietyTracker,
   type PersonalityExpression,
   type ThemeCategory,
-} from '../services/session-manager/session-variety-tracker.js';
+} from '../services/session-variety-tracker.js';
 
 describe('SessionVarietyTracker', () => {
   let tracker: SessionVarietyTracker;

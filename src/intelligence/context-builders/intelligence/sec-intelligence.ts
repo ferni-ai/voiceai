@@ -104,7 +104,7 @@ function extractTickers(text: string): string[] {
     target: 'TGT',
     pfizer: 'PFE',
     johnson: 'JNJ',
-    berkshire: 'BRK.B',
+    'berkshire': 'BRK.B',
     'coca cola': 'KO',
     pepsi: 'PEP',
     starbucks: 'SBUX',
@@ -249,7 +249,9 @@ export async function buildSECIntelligenceContext(
  *
  * Used for proactive insights during conversation
  */
-export async function generateSuperhumanSECMoment(ticker: string): Promise<string | null> {
+export async function generateSuperhumanSECMoment(
+  ticker: string
+): Promise<string | null> {
   return generateSECInsight(ticker);
 }
 

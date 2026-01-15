@@ -15,7 +15,7 @@ import {
   loadINoticePower,
   loadEmotionalIntelligence,
   clearContentCache,
-} from '../services/persona-service/persona-content-loader.js';
+} from '../services/persona-content-loader.js';
 
 // All personas to test
 const PERSONAS = [

@@ -29,23 +29,23 @@ const log = createLogger({ module: 'insight-gen:temporal' });
 
 const TEMPORAL_TEMPLATES = {
   time_of_day: [
-    'Your {timeOfDay}s tend to be {quality}. I see it in how you show up during those hours.',
+    "Your {timeOfDay}s tend to be {quality}. I see it in how you show up during those hours.",
     "I've noticed a pattern: {timeOfDay} is usually a {quality} time for you. Your energy shifts.",
     "Something about {timeOfDay}s is consistent for you—they're often {quality}.",
   ],
   day_of_week: [
     "{day}s seem {quality} for you. It's come up enough times that it's a pattern.",
-    'I notice {day}s tend to land {quality}. Is there something about that day?',
+    "I notice {day}s tend to land {quality}. Is there something about that day?",
     "There's a rhythm: {day}s are often {quality}. Your mood shifts predictably.",
   ],
   seasonal: [
     "{season} tends to be {quality} for you. I've seen it across our time together.",
-    'This time of year—{season}—seems to affect you. The pattern is {quality}.',
-    'As we move into {season}, I want to name something: this season tends to be {quality} for you.',
+    "This time of year—{season}—seems to affect you. The pattern is {quality}.",
+    "As we move into {season}, I want to name something: this season tends to be {quality} for you.",
   ],
   transition: [
-    'The transition from {from} to {to} is usually hard for you. How are you preparing?',
-    'Sunday evenings, right? The shift from weekend to week hits you consistently.',
+    "The transition from {from} to {to} is usually hard for you. How are you preparing?",
+    "Sunday evenings, right? The shift from weekend to week hits you consistently.",
     "End of {period} tends to bring {feeling} for you. I'm here as we approach that.",
   ],
   anomaly: [
@@ -68,10 +68,7 @@ interface TemporalInsightData {
   examples?: string[];
 }
 
-async function fetchTemporalData(
-  userId: string,
-  context: InsightGeneratorContext
-): Promise<TemporalInsightData[]> {
+async function fetchTemporalData(userId: string, context: InsightGeneratorContext): Promise<TemporalInsightData[]> {
   const insights: TemporalInsightData[] = [];
 
   try {
@@ -247,10 +244,7 @@ function buildTemporalInsight(data: TemporalInsightData, userId: string): Genera
       `Typically ${data.quality} during ${data.timeframe}`,
     ],
     surfacingMoment: data.type === 'anomaly' ? 'natural_pause' : 'session_start',
-    tone:
-      data.quality === 'challenging' || data.quality === 'heavy'
-        ? 'protective_care'
-        : 'warm_observation',
+    tone: data.quality === 'challenging' || data.quality === 'heavy' ? 'protective_care' : 'warm_observation',
     triggerTopics: [data.timeframe, 'time', 'schedule', 'rhythm'],
     confidence: Math.min(data.intensity + (data.occurrences > 10 ? 0.2 : 0), 0.9),
     dataPoints: data.occurrences,

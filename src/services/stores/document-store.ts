@@ -301,10 +301,7 @@ export async function saveDocumentData(userId: string, data: Partial<DocumentDat
       };
       const result = await saveLifeAutomationData(userId, 'documents', firestoreData);
       if (!result.success) {
-        log.warn(
-          { userId, error: result.error },
-          'Failed to save to Firestore, data in memory only'
-        );
+        log.warn({ userId, error: result.error }, 'Failed to save to Firestore, data in memory only');
       }
     }
 

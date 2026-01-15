@@ -34,7 +34,7 @@ describe('Stripe Integration', () => {
 
   describe('Module Exports', () => {
     it('should export subscription management functions', async () => {
-      const module = await import('../services/integrations/stripe-subscription.js');
+      const module = await import('../services/stripe-subscription.js');
 
       expect(module.createCheckoutSession).toBeDefined();
       expect(module.getSubscriptionInfo).toBeDefined();
@@ -50,7 +50,7 @@ describe('Stripe Integration', () => {
       const originalEnv = process.env.STRIPE_SECRET_KEY;
       delete process.env.STRIPE_SECRET_KEY;
 
-      const { isStripeConfigured } = await import('../services/integrations/stripe-subscription.js');
+      const { isStripeConfigured } = await import('../services/stripe-subscription.js');
       expect(isStripeConfigured()).toBe(false);
 
       process.env.STRIPE_SECRET_KEY = originalEnv;
@@ -59,7 +59,7 @@ describe('Stripe Integration', () => {
 
   describe('Webhook Verification', () => {
     it('should export webhook functions', async () => {
-      const module = await import('../services/integrations/stripe-subscription.js');
+      const module = await import('../services/stripe-subscription.js');
 
       expect(module.verifyWebhook).toBeDefined();
       expect(module.handleWebhookEvent).toBeDefined();
@@ -581,7 +581,7 @@ describe('API Integration Health', () => {
 
     // Stripe
     try {
-      const { isStripeConfigured } = await import('../services/integrations/stripe-subscription.js');
+      const { isStripeConfigured } = await import('../services/stripe-subscription.js');
       healthStatus['stripe'] = isStripeConfigured();
     } catch {
       healthStatus['stripe'] = false;

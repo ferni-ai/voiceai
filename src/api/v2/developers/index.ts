@@ -126,8 +126,7 @@ function handleApiInfo(res: ServerResponse): boolean {
       data: {
         name: 'Ferni Developer Platform API',
         version: '2.0.0',
-        description:
-          'APIs for extending Ferni agents with custom workflows, tools, and integrations',
+        description: 'APIs for extending Ferni agents with custom workflows, tools, and integrations',
         endpoints: {
           '/api/v2/developers/mcp-servers': {
             description: 'Register and manage external MCP servers',

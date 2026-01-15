@@ -59,7 +59,7 @@ import {
   loadPersistedExpressions,
   type ExpressionContext,
 } from './llm-expression-generator.js';
-import type { ThemeCategory } from '../../../services/session-manager/session-variety-tracker.js';
+import type { ThemeCategory } from '../../../services/session-variety-tracker.js';
 import type {
   BehaviorEvent,
   BehaviorEventType,

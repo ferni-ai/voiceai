@@ -47,10 +47,10 @@ const PERSONA_VOICES: Record<string, PersonaVoice> = {
   peter: {
     name: 'Peter',
     openings: [
-      "I've been looking at your patterns, and something interesting came up.",
+      'I\'ve been looking at your patterns, and something interesting came up.',
       'The data tells a story here.',
       'I noticed something in your numbers.',
-      "There's a pattern I want to show you.",
+      'There\'s a pattern I want to show you.',
     ],
     style: 'analytical but warm, data-driven but human',
     domains: ['financial', 'patterns', 'research', 'trends'],
@@ -59,7 +59,7 @@ const PERSONA_VOICES: Record<string, PersonaVoice> = {
   maya: {
     name: 'Maya',
     openings: [
-      "Hey, I've been watching your energy and noticed something.",
+      'Hey, I\'ve been watching your energy and noticed something.',
       'I want to celebrate something with you.',
       'Your habits are telling me a story.',
       'I noticed a shift in your routine.',
@@ -71,8 +71,8 @@ const PERSONA_VOICES: Record<string, PersonaVoice> = {
   jordan: {
     name: 'Jordan',
     openings: [
-      "I've been thinking about something to celebrate.",
-      "There's a milestone I don't want you to miss.",
+      'I\'ve been thinking about something to celebrate.',
+      'There\'s a milestone I don\'t want you to miss.',
       'I noticed an anniversary coming up.',
       'Something special is around the corner.',
     ],
@@ -84,7 +84,7 @@ const PERSONA_VOICES: Record<string, PersonaVoice> = {
     name: 'Alex',
     openings: [
       'Looking at your schedule, I noticed something.',
-      "There's a communication pattern I want to flag.",
+      'There\'s a communication pattern I want to flag.',
       'Your calendar tells me something.',
       'I spotted an opportunity in your week.',
     ],
@@ -95,8 +95,8 @@ const PERSONA_VOICES: Record<string, PersonaVoice> = {
   nayan: {
     name: 'Nayan',
     openings: [
-      "I've been reflecting on your journey.",
-      "There's something deeper I want to share.",
+      'I\'ve been reflecting on your journey.',
+      'There\'s something deeper I want to share.',
       'Looking at the bigger picture...',
       'I see a thread running through your story.',
     ],
@@ -108,7 +108,7 @@ const PERSONA_VOICES: Record<string, PersonaVoice> = {
     name: 'Ferni',
     openings: [
       'The team has been noticing some things.',
-      "I've been thinking about you.",
+      'I\'ve been thinking about you.',
       'Something came up that I want to share.',
       'I noticed something that matters.',
     ],
@@ -136,8 +136,7 @@ const OBSERVATION_TEMPLATES: ObservationTemplate[] = [
   {
     persona: 'peter',
     pattern: 'energy_time_correlation',
-    template:
-      'Your energy seems to dip around {timeframe}. This has happened {count} times now. Worth noting for planning.',
+    template: 'Your energy seems to dip around {timeframe}. This has happened {count} times now. Worth noting for planning.',
     priority: 'medium',
     surfacingMoment: 'natural_pause',
     minDataPoints: 3,
@@ -145,8 +144,7 @@ const OBSERVATION_TEMPLATES: ObservationTemplate[] = [
   {
     persona: 'peter',
     pattern: 'topic_mood_correlation',
-    template:
-      "I noticed you seem {emotion} when {topic} comes up. It's come up {count} times with this same energy.",
+    template: 'I noticed you seem {emotion} when {topic} comes up. It\'s come up {count} times with this same energy.',
     priority: 'medium',
     surfacingMoment: 'topic_relevant',
     minDataPoints: 3,
@@ -156,8 +154,7 @@ const OBSERVATION_TEMPLATES: ObservationTemplate[] = [
   {
     persona: 'maya',
     pattern: 'streak_celebration',
-    template:
-      "You've been consistent with {habit} for {days} days now. That's not nothing. That's you showing up.",
+    template: 'You\'ve been consistent with {habit} for {days} days now. That\'s not nothing. That\'s you showing up.',
     priority: 'high',
     surfacingMoment: 'celebration',
     minDataPoints: 5,
@@ -173,8 +170,7 @@ const OBSERVATION_TEMPLATES: ObservationTemplate[] = [
   {
     persona: 'maya',
     pattern: 'capacity_warning',
-    template:
-      "You've mentioned being tired {count} times lately. Your plate looks full. How are you actually doing?",
+    template: 'You\'ve mentioned being tired {count} times lately. Your plate looks full. How are you actually doing?',
     priority: 'high',
     surfacingMoment: 'gentle_probe',
     minDataPoints: 3,
@@ -184,8 +180,7 @@ const OBSERVATION_TEMPLATES: ObservationTemplate[] = [
   {
     persona: 'jordan',
     pattern: 'relationship_milestone',
-    template:
-      "It's been {duration} since we first talked. {conversationCount} conversations. That's a real relationship we've built.",
+    template: 'It\'s been {duration} since we first talked. {conversationCount} conversations. That\'s a real relationship we\'ve built.',
     priority: 'high',
     surfacingMoment: 'celebration',
     minDataPoints: 1,
@@ -193,8 +188,7 @@ const OBSERVATION_TEMPLATES: ObservationTemplate[] = [
   {
     persona: 'jordan',
     pattern: 'upcoming_important_date',
-    template:
-      "{date_name} is coming up in {days} days. Last year you mentioned {context}. Wanted to make sure it's on your radar.",
+    template: '{date_name} is coming up in {days} days. Last year you mentioned {context}. Wanted to make sure it\'s on your radar.',
     priority: 'high',
     surfacingMoment: 'session_start',
     minDataPoints: 1,
@@ -202,18 +196,17 @@ const OBSERVATION_TEMPLATES: ObservationTemplate[] = [
   {
     persona: 'jordan',
     pattern: 'quiet_win',
-    template: "This might seem small, but you {achievement}. That's worth acknowledging.",
+    template: 'This might seem small, but you {achievement}. That\'s worth acknowledging.',
     priority: 'medium',
     surfacingMoment: 'celebration',
     minDataPoints: 1,
   },
 
-  // Alex - Communication observations
+  // Alex - Communication observations  
   {
     persona: 'alex',
     pattern: 'calendar_density',
-    template:
-      "Your week looks {density}. You've got {count} things scheduled. Want to talk about priorities?",
+    template: 'Your week looks {density}. You\'ve got {count} things scheduled. Want to talk about priorities?',
     priority: 'medium',
     surfacingMoment: 'session_start',
     minDataPoints: 3,
@@ -221,8 +214,7 @@ const OBSERVATION_TEMPLATES: ObservationTemplate[] = [
   {
     persona: 'alex',
     pattern: 'person_silence',
-    template:
-      "You haven't mentioned {person} in a while. Last time was {days} days ago. Everything okay there?",
+    template: 'You haven\'t mentioned {person} in a while. Last time was {days} days ago. Everything okay there?',
     priority: 'low',
     surfacingMoment: 'natural_pause',
     minDataPoints: 3,
@@ -232,8 +224,7 @@ const OBSERVATION_TEMPLATES: ObservationTemplate[] = [
   {
     persona: 'nayan',
     pattern: 'growth_reflection',
-    template:
-      "You know what strikes me? A few months ago, you wouldn't have {growth_example}. Something shifted.",
+    template: 'You know what strikes me? A few months ago, you wouldn\'t have {growth_example}. Something shifted.',
     priority: 'medium',
     surfacingMoment: 'natural_pause',
     minDataPoints: 2,
@@ -241,8 +232,7 @@ const OBSERVATION_TEMPLATES: ObservationTemplate[] = [
   {
     persona: 'nayan',
     pattern: 'values_alignment',
-    template:
-      "You said {value} matters to you, but I've noticed {contradiction}. Not judging—just curious what's happening there.",
+    template: 'You said {value} matters to you, but I\'ve noticed {contradiction}. Not judging—just curious what\'s happening there.',
     priority: 'medium',
     surfacingMoment: 'gentle_probe',
     minDataPoints: 2,
@@ -250,8 +240,7 @@ const OBSERVATION_TEMPLATES: ObservationTemplate[] = [
   {
     persona: 'nayan',
     pattern: 'dream_reminder',
-    template:
-      'Remember when you talked about {dream}? That was {days} days ago. Is that dream still alive?',
+    template: 'Remember when you talked about {dream}? That was {days} days ago. Is that dream still alive?',
     priority: 'low',
     surfacingMoment: 'natural_pause',
     minDataPoints: 1,
@@ -261,7 +250,7 @@ const OBSERVATION_TEMPLATES: ObservationTemplate[] = [
   {
     persona: 'ferni',
     pattern: 'team_summary',
-    template: "The team has been paying attention. {summary}. We're in your corner.",
+    template: 'The team has been paying attention. {summary}. We\'re in your corner.',
     priority: 'high',
     surfacingMoment: 'session_start',
     minDataPoints: 3,
@@ -269,8 +258,7 @@ const OBSERVATION_TEMPLATES: ObservationTemplate[] = [
   {
     persona: 'ferni',
     pattern: 'first_time_share',
-    template:
-      'You shared something new last time—{topic}. That meant something that you trusted me with that.',
+    template: 'You shared something new last time—{topic}. That meant something that you trusted me with that.',
     priority: 'high',
     surfacingMoment: 'session_start',
     minDataPoints: 1,
@@ -338,7 +326,7 @@ async function fetchUserData(userId: string): Promise<UserData> {
       .collection('commitments')
       .limit(10)
       .get();
-    data.commitments = commitmentsSnap.docs.map((d) => d.data() as CommitmentData);
+    data.commitments = commitmentsSnap.docs.map(d => d.data() as CommitmentData);
 
     // Fetch dreams
     const dreamsSnap = await db
@@ -347,7 +335,7 @@ async function fetchUserData(userId: string): Promise<UserData> {
       .collection('dreams')
       .limit(10)
       .get();
-    data.dreams = dreamsSnap.docs.map((d) => d.data() as DreamData);
+    data.dreams = dreamsSnap.docs.map(d => d.data() as DreamData);
 
     // Fetch relationship network
     const networkSnap = await db
@@ -356,7 +344,7 @@ async function fetchUserData(userId: string): Promise<UserData> {
       .collection('relationship_network')
       .limit(20)
       .get();
-    data.networkData = networkSnap.docs.map((d) => d.data() as NetworkPersonData);
+    data.networkData = networkSnap.docs.map(d => d.data() as NetworkPersonData);
   } catch (error) {
     log.debug({ error: String(error), userId }, 'Error fetching user data for observations');
   }
@@ -379,16 +367,16 @@ function formatObservation(
   data: Record<string, string | number>
 ): string {
   let message = template.template;
-
+  
   // Replace placeholders with data
   for (const [key, value] of Object.entries(data)) {
     message = message.replace(new RegExp(`\\{${key}\\}`, 'g'), String(value));
   }
-
+  
   // Add persona opening
   const opening = generatePersonaOpening(template.persona);
   const voice = PERSONA_VOICES[template.persona];
-
+  
   return `${opening}\n\n${message}`;
 }
 
@@ -410,25 +398,21 @@ async function generateObservations(
   if (userData.profile?.totalConversations && userData.profile?.firstContact) {
     const conversationCount = userData.profile.totalConversations;
     const firstContact = new Date(userData.profile.firstContact);
-    const daysSinceFirst = Math.floor(
-      (now.getTime() - firstContact.getTime()) / (1000 * 60 * 60 * 24)
-    );
-
+    const daysSinceFirst = Math.floor((now.getTime() - firstContact.getTime()) / (1000 * 60 * 60 * 24));
+    
     // Check for round number milestones
-    const isMilestone =
-      conversationCount === 5 ||
-      conversationCount === 10 ||
-      conversationCount === 25 ||
-      conversationCount === 50 ||
-      conversationCount === 100 ||
-      (conversationCount > 0 && conversationCount % 50 === 0);
-
+    const isMilestone = conversationCount === 5 || 
+                        conversationCount === 10 || 
+                        conversationCount === 25 ||
+                        conversationCount === 50 ||
+                        conversationCount === 100 ||
+                        (conversationCount > 0 && conversationCount % 50 === 0);
+    
     if (isMilestone) {
-      const durationStr =
-        daysSinceFirst > 30
-          ? `${Math.floor(daysSinceFirst / 30)} months`
-          : `${daysSinceFirst} days`;
-
+      const durationStr = daysSinceFirst > 30 
+        ? `${Math.floor(daysSinceFirst / 30)} months` 
+        : `${daysSinceFirst} days`;
+      
       const voice = PERSONA_VOICES.jordan;
       insights.push({
         id: uuid(),
@@ -437,10 +421,7 @@ async function generateObservations(
         priority: 'high',
         headline: `${conversationCount} conversations milestone`,
         message: `${generatePersonaOpening('jordan')}\n\nIt's been ${durationStr} since we first talked. ${conversationCount} conversations. That's a real relationship we've built.`,
-        evidence: [
-          `${conversationCount} total conversations`,
-          `First contact: ${firstContact.toLocaleDateString()}`,
-        ],
+        evidence: [`${conversationCount} total conversations`, `First contact: ${firstContact.toLocaleDateString()}`],
         surfacingMoment: 'celebration',
         tone: voice.tone,
         generatedAt: now,
@@ -454,13 +435,12 @@ async function generateObservations(
 
   // Maya: Capacity check (from time anchors mentioning tiredness)
   const timeAnchors = userData.profile.personalJourney?.seasonal?.timeAnchors || [];
-  const tirednessAnchors = timeAnchors.filter(
-    (a) =>
-      a.description?.toLowerCase().includes('tired') ||
-      a.description?.toLowerCase().includes('exhausted') ||
-      a.description?.toLowerCase().includes('overwhelmed')
+  const tirednessAnchors = timeAnchors.filter(a => 
+    a.description?.toLowerCase().includes('tired') ||
+    a.description?.toLowerCase().includes('exhausted') ||
+    a.description?.toLowerCase().includes('overwhelmed')
   );
-
+  
   if (tirednessAnchors.length >= 2) {
     const voice = PERSONA_VOICES.maya;
     insights.push({
@@ -470,7 +450,7 @@ async function generateObservations(
       priority: 'high',
       headline: 'Energy check needed',
       message: `${generatePersonaOpening('maya')}\n\nYou've mentioned being tired ${tirednessAnchors.length} times lately. Your plate looks full. How are you actually doing?`,
-      evidence: tirednessAnchors.map((a) => a.description).slice(0, 3),
+      evidence: tirednessAnchors.map(a => a.description).slice(0, 3),
       surfacingMoment: 'gentle_probe',
       tone: voice.tone,
       generatedAt: now,
@@ -486,10 +466,8 @@ async function generateObservations(
     for (const dream of userData.dreams.slice(0, 2)) {
       if (dream.dream && dream.lastMentioned) {
         const lastMentioned = new Date(dream.lastMentioned);
-        const daysSilent = Math.floor(
-          (now.getTime() - lastMentioned.getTime()) / (1000 * 60 * 60 * 24)
-        );
-
+        const daysSilent = Math.floor((now.getTime() - lastMentioned.getTime()) / (1000 * 60 * 60 * 24));
+        
         if (daysSilent > 30) {
           const voice = PERSONA_VOICES.nayan;
           insights.push({
@@ -516,15 +494,13 @@ async function generateObservations(
   // Alex: Person silence (someone not mentioned in a while)
   if (userData.networkData && userData.networkData.length > 0) {
     // Filter to important people (mentioned more than twice)
-    const importantPeople = userData.networkData.filter((p) => (p.mentionCount || 0) > 2);
-
+    const importantPeople = userData.networkData.filter(p => (p.mentionCount || 0) > 2);
+    
     for (const person of importantPeople.slice(0, 2)) {
       if (person.name && person.lastMentioned) {
         const lastMentioned = new Date(person.lastMentioned);
-        const daysSilent = Math.floor(
-          (now.getTime() - lastMentioned.getTime()) / (1000 * 60 * 60 * 24)
-        );
-
+        const daysSilent = Math.floor((now.getTime() - lastMentioned.getTime()) / (1000 * 60 * 60 * 24));
+        
         if (daysSilent > 14 && person.name.length > 2) {
           const voice = PERSONA_VOICES.alex;
           insights.push({
@@ -534,10 +510,7 @@ async function generateObservations(
             priority: 'low',
             headline: `${person.name} not mentioned lately`,
             message: `${generatePersonaOpening('alex')}\n\nYou haven't mentioned ${person.name} in a while. Last time was ${daysSilent} days ago. Everything okay there?`,
-            evidence: [
-              `${person.mentionCount} previous mentions`,
-              `Last mentioned: ${lastMentioned.toLocaleDateString()}`,
-            ],
+            evidence: [`${person.mentionCount} previous mentions`, `Last mentioned: ${lastMentioned.toLocaleDateString()}`],
             surfacingMoment: 'natural_pause',
             tone: voice.tone,
             triggerPerson: person.name,
@@ -554,8 +527,8 @@ async function generateObservations(
 
   // Ferni: Growth reflection (from challenges)
   const challenges = userData.profile.humanMemory?.growthArc?.challenges || [];
-  const workingChallenges = challenges.filter((c) => c.status === 'working_on_it');
-
+  const workingChallenges = challenges.filter(c => c.status === 'working_on_it');
+  
   if (workingChallenges.length > 0) {
     const voice = PERSONA_VOICES.ferni;
     insights.push({
@@ -565,7 +538,7 @@ async function generateObservations(
       priority: 'medium',
       headline: 'Growth in progress',
       message: `${generatePersonaOpening('ferni')}\n\nI see you're working on some things. ${workingChallenges.length} challenge${workingChallenges.length > 1 ? 's' : ''} you're actively tackling. That takes courage.`,
-      evidence: workingChallenges.map((c) => c.challenge.slice(0, 50)),
+      evidence: workingChallenges.map(c => c.challenge.slice(0, 50)),
       surfacingMoment: 'session_start',
       tone: voice.tone,
       generatedAt: now,

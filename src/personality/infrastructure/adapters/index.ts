@@ -6,6 +6,12 @@
  * @module personality/infrastructure/adapters
  */
 
-export { VoiceAnalyzerAdapter, getVoiceAnalyzerAdapter } from './voice-analyzer-adapter.js';
+export {
+  VoiceAnalyzerAdapter,
+  getVoiceAnalyzerAdapter,
+} from './voice-analyzer-adapter.js';
 
-export { EmotionDetectorAdapter, getEmotionDetectorAdapter } from './emotion-detector-adapter.js';
+export {
+  EmotionDetectorAdapter,
+  getEmotionDetectorAdapter,
+} from './emotion-detector-adapter.js';

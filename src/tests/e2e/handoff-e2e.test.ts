@@ -65,8 +65,12 @@ describe('Handoff Detection', () => {
   });
 
   it('should not detect handoff for normal conversation', async () => {
-    const { shouldHandoffToMaya, shouldHandoffToPeter, shouldHandoffToAlex, shouldHandoffToNayan } =
-      await import('../../tools/handoff/index.js');
+    const {
+      shouldHandoffToMaya,
+      shouldHandoffToPeter,
+      shouldHandoffToAlex,
+      shouldHandoffToNayan,
+    } = await import('../../tools/handoff/index.js');
 
     const normalPhrases = ['How are you today?', 'Tell me a joke', "That's interesting"];
 
@@ -108,8 +112,9 @@ describe('Persona ID Normalization', () => {
 
 describe('Handoff State Management', () => {
   it('should track handoff history', async () => {
-    const { recordHandoff, getHandoffHistory, resetHandoffState } =
-      await import('../../tools/handoff/index.js');
+    const { recordHandoff, getHandoffHistory, resetHandoffState } = await import(
+      '../../tools/handoff/index.js'
+    );
 
     // Reset state first
     resetHandoffState();
@@ -159,8 +164,9 @@ describe('Persona Affinity', () => {
 
 describe('Handoff Context Preservation', () => {
   it('should capture handoff context', async () => {
-    const { captureHandoffContext, resetHandoffState } =
-      await import('../../tools/handoff/index.js');
+    const { captureHandoffContext, resetHandoffState } = await import(
+      '../../tools/handoff/index.js'
+    );
 
     // Reset state first
     resetHandoffState();
@@ -177,8 +183,9 @@ describe('Handoff Context Preservation', () => {
   });
 
   it('should format handoff context for agent', async () => {
-    const { formatHandoffContextForAgent, captureHandoffContext, resetHandoffState } =
-      await import('../../tools/handoff/index.js');
+    const { formatHandoffContextForAgent, captureHandoffContext, resetHandoffState } = await import(
+      '../../tools/handoff/index.js'
+    );
 
     // Reset and capture context
     resetHandoffState();

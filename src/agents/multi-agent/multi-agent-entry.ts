@@ -37,7 +37,7 @@
 import type { JobContext } from '@livekit/agents';
 import type { Room, RemoteParticipant } from '@livekit/rtc-node';
 import { getLogger } from '../../utils/safe-logger.js';
-import { diag } from '../../services/observability/diagnostic-logger.js';
+import { diag } from '../../services/diagnostic-logger.js';
 import type { SessionServices } from '../../services/types.js';
 import type { UserData } from '../shared/types.js';
 import { createAgentOrchestrator, type AgentOrchestrator } from './orchestrator.js';
@@ -121,11 +121,11 @@ export async function initializeMultiAgentSession(
 
   // Get conversation manager (required for full handlers including music)
   let conversationManager:
-    | import('../../services/conversation-thread/conversation-manager.js').ConversationManager
+    | import('../../services/conversation-manager.js').ConversationManager
     | undefined;
   if (enableFullHandlers) {
     try {
-      const { getConversationManager } = await import('../../services/conversation-thread/conversation-manager.js');
+      const { getConversationManager } = await import('../../services/conversation-manager.js');
       conversationManager = getConversationManager();
       conversationManager.setPersonaId(initialPersonaId);
       log.debug({ sessionId }, '🎭 Conversation manager initialized');

@@ -27,10 +27,7 @@ import {
 } from '../index.js';
 import { BuilderCategory } from '../core/categories.js';
 import { createLogger } from '../../../utils/safe-logger.js';
-import {
-  getSuperhmanHealth,
-  getFirestoreDb,
-} from '../../../services/superhuman/firestore-utils.js';
+import { getSuperhmanHealth, getFirestoreDb } from '../../../services/superhuman/firestore-utils.js';
 
 const log = createLogger({ module: 'SuperhumanSessionPriming' });
 
@@ -50,8 +47,7 @@ const primedSessions = new Set<string>();
 
 async function loadActiveCommitments(userId: string): Promise<string | null> {
   try {
-    const { loadUserCommitments } =
-      await import('../../../services/superhuman/commitment-keeper.js');
+    const { loadUserCommitments } = await import('../../../services/superhuman/commitment-keeper.js');
 
     const allCommitments = await loadUserCommitments(userId);
     const now = Date.now();
@@ -114,8 +110,7 @@ async function loadTrackedDreams(userId: string): Promise<string | null> {
 
 async function loadUpcomingMilestones(userId: string): Promise<string | null> {
   try {
-    const { findUpcomingDates } =
-      await import('../../../services/superhuman/seasonal-awareness.js');
+    const { findUpcomingDates } = await import('../../../services/superhuman/seasonal-awareness.js');
     const personalDates = await findUpcomingDates(userId, 7); // Next 7 days
 
     if (!personalDates || personalDates.length === 0) return null;

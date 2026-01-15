@@ -25,26 +25,26 @@ export interface SituationEmbedding {
   id: string;
   userId: string;
   timestamp: number;
-
+  
   // Embeddings
-  situationEmbedding: number[]; // Overall situation
-  emotionalEmbedding: number[]; // Emotional context
-  topicEmbedding: number[]; // What was being discussed
-
+  situationEmbedding: number[];   // Overall situation
+  emotionalEmbedding: number[];   // Emotional context
+  topicEmbedding: number[];       // What was being discussed
+  
   // Raw context
   transcript: string;
   emotionalState: string;
   topic: string;
   conversationDepth: 'surface' | 'moderate' | 'deep';
-
+  
   // What was tried
   intervention: InterventionType;
-
+  
   // Outcome
   outcome: 'success' | 'neutral' | 'backfired';
-  effectivenessScore: number; // 0-1
+  effectivenessScore: number;  // 0-1
   userResponse: 'engaged' | 'deflected' | 'ignored' | 'rejected' | 'breakthrough';
-
+  
   // Additional context
   timeOfDay: string;
   dayOfWeek: number;
@@ -107,19 +107,19 @@ export async function recordSituationOutcome(
   }
 ): Promise<SituationEmbedding> {
   const library = userSituationLibrary.get(userId) || [];
-
+  
   // Build embedding texts
   const situationText = `${situation.topic}: ${situation.transcript.slice(0, 500)}. Emotion: ${situation.emotionalState}. Depth: ${situation.conversationDepth}`;
   const emotionalText = `emotional state: ${situation.emotionalState}`;
   const topicText = situation.topic;
-
+  
   // Generate embeddings
   const [situationEmbedding, emotionalEmbedding, topicEmbedding] = await embedBatch([
     situationText,
     emotionalText,
     topicText,
   ]);
-
+  
   const record: SituationEmbedding = {
     id: `sit-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
     userId,
@@ -139,21 +139,21 @@ export async function recordSituationOutcome(
     dayOfWeek: situation.dayOfWeek ?? new Date().getDay(),
     relationshipStage: situation.relationshipStage || 'established',
   };
-
+  
   library.push(record);
-
+  
   // Keep library manageable
   if (library.length > 500) {
-    library.shift(); // Remove oldest
+    library.shift();  // Remove oldest
   }
-
+  
   userSituationLibrary.set(userId, library);
-
+  
   log.debug(
     { userId, intervention: situation.intervention, outcome: situation.outcome },
     '📍 Recorded situation-intervention outcome'
   );
-
+  
   return record;
 }
 
@@ -167,39 +167,41 @@ export async function findSimilarSituations(
 ): Promise<SituationMatch[]> {
   const library = userSituationLibrary.get(userId) || [];
   if (library.length === 0) return [];
-
+  
   // Embed current situation
   const situationText = `${currentSituation.topic}: ${currentSituation.transcript.slice(0, 500)}. Emotion: ${currentSituation.emotionalState}. Depth: ${currentSituation.conversationDepth || 'moderate'}`;
   const emotionalText = `emotional state: ${currentSituation.emotionalState}`;
   const topicText = currentSituation.topic;
-
+  
   const [currentSituationEmb, currentEmotionalEmb, currentTopicEmb] = await embedBatch([
     situationText,
     emotionalText,
     topicText,
   ]);
-
+  
   // Score all historical situations
   const scored: SituationMatch[] = [];
-
+  
   for (const situation of library) {
     const situationSim = cosineSimilarity(currentSituationEmb, situation.situationEmbedding);
     const emotionalSim = cosineSimilarity(currentEmotionalEmb, situation.emotionalEmbedding);
     const topicSim = cosineSimilarity(currentTopicEmb, situation.topicEmbedding);
-
+    
     // Weighted overall similarity
-    const similarity = situationSim * 0.5 + emotionalSim * 0.3 + topicSim * 0.2;
-
+    const similarity = 
+      situationSim * 0.5 +
+      emotionalSim * 0.3 +
+      topicSim * 0.2;
+    
     scored.push({
       situation,
       similarity,
       emotionalMatch: emotionalSim,
       topicMatch: topicSim,
-      successfulIntervention:
-        situation.outcome === 'success' || situation.userResponse === 'breakthrough',
+      successfulIntervention: situation.outcome === 'success' || situation.userResponse === 'breakthrough',
     });
   }
-
+  
   return scored
     .filter((m) => m.similarity > 0.5)
     .sort((a, b) => b.similarity - a.similarity)
@@ -215,25 +217,22 @@ export async function getInterventionRecommendations(
   k = 5
 ): Promise<InterventionRecommendation[]> {
   const similarSituations = await findSimilarSituations(userId, currentSituation, 20);
-
+  
   if (similarSituations.length < 3) {
     return getDefaultRecommendations(currentSituation);
   }
-
+  
   // Aggregate intervention outcomes
-  const interventionStats: Record<
-    string,
-    {
-      successes: number;
-      failures: number;
-      totalScore: number;
-      situations: SituationMatch[];
-    }
-  > = {};
-
+  const interventionStats: Record<string, {
+    successes: number;
+    failures: number;
+    totalScore: number;
+    situations: SituationMatch[];
+  }> = {};
+  
   for (const match of similarSituations) {
     const intervention = match.situation.intervention;
-
+    
     if (!interventionStats[intervention]) {
       interventionStats[intervention] = {
         successes: 0,
@@ -242,35 +241,35 @@ export async function getInterventionRecommendations(
         situations: [],
       };
     }
-
+    
     const stats = interventionStats[intervention];
     stats.situations.push(match);
     stats.totalScore += match.situation.effectivenessScore * match.similarity;
-
+    
     if (match.successfulIntervention) {
       stats.successes++;
     } else if (match.situation.outcome === 'backfired') {
       stats.failures++;
     }
   }
-
+  
   // Build recommendations
   const recommendations: InterventionRecommendation[] = [];
-
+  
   for (const [intervention, stats] of Object.entries(interventionStats)) {
     const sampleSize = stats.situations.length;
     if (sampleSize < 2) continue;
-
+    
     const successRate = stats.successes / sampleSize;
     const avgScore = stats.totalScore / sampleSize;
     const confidence = Math.min(1, sampleSize / 10) * avgScore;
-
+    
     // Find anti-patterns (what backfired)
     const antiPatterns = stats.situations
       .filter((s) => s.situation.outcome === 'backfired')
       .map((s) => describeAntiPattern(s.situation))
       .slice(0, 2);
-
+    
     recommendations.push({
       intervention: intervention as InterventionType,
       confidence,
@@ -280,8 +279,10 @@ export async function getInterventionRecommendations(
       antiPatterns,
     });
   }
-
-  return recommendations.sort((a, b) => b.confidence - a.confidence).slice(0, k);
+  
+  return recommendations
+    .sort((a, b) => b.confidence - a.confidence)
+    .slice(0, k);
 }
 
 /**
@@ -304,21 +305,21 @@ export async function getInterventionSuccessRate(
   currentSituation: CurrentSituation
 ): Promise<{ rate: number; sampleSize: number; conditions: string[] } | null> {
   const similarSituations = await findSimilarSituations(userId, currentSituation, 20);
-
+  
   const relevantSituations = similarSituations.filter(
     (s) => s.situation.intervention === intervention
   );
-
+  
   if (relevantSituations.length < 2) return null;
-
+  
   const successes = relevantSituations.filter((s) => s.successfulIntervention).length;
   const successRate = successes / relevantSituations.length;
-
+  
   // Find common conditions in successful cases
   const successfulConditions = relevantSituations
     .filter((s) => s.successfulIntervention)
     .map((s) => describeConditions(s.situation));
-
+  
   return {
     rate: successRate,
     sampleSize: relevantSituations.length,
@@ -335,12 +336,11 @@ export function getSuccessfulSituations(
   limit = 5
 ): SituationEmbedding[] {
   const library = userSituationLibrary.get(userId) || [];
-
+  
   return library
-    .filter(
-      (s) =>
-        s.intervention === intervention &&
-        (s.outcome === 'success' || s.userResponse === 'breakthrough')
+    .filter((s) => 
+      s.intervention === intervention && 
+      (s.outcome === 'success' || s.userResponse === 'breakthrough')
     )
     .sort((a, b) => b.effectivenessScore - a.effectivenessScore)
     .slice(0, limit);
@@ -349,30 +349,24 @@ export function getSuccessfulSituations(
 /**
  * Get intervention statistics for user
  */
-export function getInterventionStats(userId: string): Record<
-  string,
-  {
-    attempts: number;
-    successRate: number;
-    avgEffectiveness: number;
-    bestConditions: string[];
-  }
-> {
+export function getInterventionStats(userId: string): Record<string, {
+  attempts: number;
+  successRate: number;
+  avgEffectiveness: number;
+  bestConditions: string[];
+}> {
   const library = userSituationLibrary.get(userId) || [];
-
-  const stats: Record<
-    string,
-    {
-      successes: number;
-      attempts: number;
-      totalEffectiveness: number;
-      conditions: string[];
-    }
-  > = {};
-
+  
+  const stats: Record<string, {
+    successes: number;
+    attempts: number;
+    totalEffectiveness: number;
+    conditions: string[];
+  }> = {};
+  
   for (const situation of library) {
     const intervention = situation.intervention;
-
+    
     if (!stats[intervention]) {
       stats[intervention] = {
         successes: 0,
@@ -381,26 +375,23 @@ export function getInterventionStats(userId: string): Record<
         conditions: [],
       };
     }
-
+    
     stats[intervention].attempts++;
     stats[intervention].totalEffectiveness += situation.effectivenessScore;
-
+    
     if (situation.outcome === 'success' || situation.userResponse === 'breakthrough') {
       stats[intervention].successes++;
       stats[intervention].conditions.push(describeConditions(situation));
     }
   }
-
-  const result: Record<
-    string,
-    {
-      attempts: number;
-      successRate: number;
-      avgEffectiveness: number;
-      bestConditions: string[];
-    }
-  > = {};
-
+  
+  const result: Record<string, {
+    attempts: number;
+    successRate: number;
+    avgEffectiveness: number;
+    bestConditions: string[];
+  }> = {};
+  
   for (const [intervention, data] of Object.entries(stats)) {
     result[intervention] = {
       attempts: data.attempts,
@@ -409,7 +400,7 @@ export function getInterventionStats(userId: string): Record<
       bestConditions: [...new Set(data.conditions)].slice(0, 3),
     };
   }
-
+  
   return result;
 }
 
@@ -429,7 +420,7 @@ function getTimeOfDay(): string {
 function getDefaultRecommendations(situation: CurrentSituation): InterventionRecommendation[] {
   // Default recommendations when no history
   const recommendations: InterventionRecommendation[] = [];
-
+  
   // Based on emotional state
   if (situation.emotionalState.match(/sad|grief|hurt|low/i)) {
     recommendations.push({
@@ -441,7 +432,7 @@ function getDefaultRecommendations(situation: CurrentSituation): InterventionRec
       antiPatterns: ['jumping to solutions', 'minimizing'],
     });
   }
-
+  
   if (situation.emotionalState.match(/anxious|worried|scared/i)) {
     recommendations.push({
       intervention: 'grounding',
@@ -452,18 +443,18 @@ function getDefaultRecommendations(situation: CurrentSituation): InterventionRec
       antiPatterns: ['amplifying worry', 'dismissing'],
     });
   }
-
+  
   if (situation.emotionalState.match(/excited|happy|proud/i)) {
     recommendations.push({
       intervention: 'celebration',
       confidence: 0.7,
       successRate: 0.8,
       sampleSize: 0,
-      reasoning: "Celebrate with them when they're happy",
+      reasoning: 'Celebrate with them when they\'re happy',
       antiPatterns: ['tempering enthusiasm', 'redirecting'],
     });
   }
-
+  
   // Default fallback
   if (recommendations.length === 0) {
     recommendations.push({
@@ -475,7 +466,7 @@ function getDefaultRecommendations(situation: CurrentSituation): InterventionRec
       antiPatterns: [],
     });
   }
-
+  
   return recommendations;
 }
 
@@ -512,25 +503,20 @@ function generateReasoning(
   situations: SituationMatch[],
   successRate: number
 ): string {
-  const successWord =
-    successRate > 0.7
-      ? 'highly effective'
-      : successRate > 0.5
-        ? 'moderately effective'
-        : 'sometimes effective';
-
+  const successWord = successRate > 0.7 ? 'highly effective' :
+    successRate > 0.5 ? 'moderately effective' : 'sometimes effective';
+  
   const topicMatch = situations.reduce((sum, s) => sum + s.topicMatch, 0) / situations.length;
-  const emotionalMatch =
-    situations.reduce((sum, s) => sum + s.emotionalMatch, 0) / situations.length;
-
+  const emotionalMatch = situations.reduce((sum, s) => sum + s.emotionalMatch, 0) / situations.length;
+  
   let reasoning = `${intervention.replace(/_/g, ' ')} has been ${successWord} in similar situations`;
-
+  
   if (emotionalMatch > 0.7) {
     reasoning += ' (especially with similar emotional states)';
   } else if (topicMatch > 0.7) {
     reasoning += ' (especially on similar topics)';
   }
-
+  
   return reasoning;
 }
 
@@ -546,24 +532,24 @@ export async function buildInterventionMatchingContext(
   currentSituation: CurrentSituation
 ): Promise<string> {
   const recommendations = await getInterventionRecommendations(userId, currentSituation, 3);
-
+  
   if (recommendations.length === 0) return '';
-
+  
   const sections: string[] = ['[INTERVENTION MATCHING INTELLIGENCE]'];
-
+  
   sections.push('\nBased on similar past situations:');
-
+  
   for (const rec of recommendations) {
     const rateStr = `${Math.round(rec.successRate * 100)}% success`;
     const sampleStr = rec.sampleSize > 0 ? ` (n=${rec.sampleSize})` : ' (default)';
     sections.push(`• ${rec.intervention.replace(/_/g, ' ')}: ${rateStr}${sampleStr}`);
     sections.push(`  ${rec.reasoning}`);
-
+    
     if (rec.antiPatterns.length > 0) {
       sections.push(`  ⚠️ Avoid when: ${rec.antiPatterns.join(', ')}`);
     }
   }
-
+  
   return sections.join('\n');
 }
 
@@ -587,7 +573,10 @@ export function getStateForPersistence(userId: string): InterventionPersistenceD
 /**
  * Hydrate from persisted data
  */
-export function hydrateFromPersistence(userId: string, data: InterventionPersistenceData): void {
+export function hydrateFromPersistence(
+  userId: string,
+  data: InterventionPersistenceData
+): void {
   if (data.situations && data.situations.length > 0) {
     userSituationLibrary.set(userId, data.situations);
     log.debug({ userId, count: data.situations.length }, '💧 Hydrated intervention situations');

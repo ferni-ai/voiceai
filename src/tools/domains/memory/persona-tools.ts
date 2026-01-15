@@ -21,10 +21,6 @@ import { createLogger } from '../../../utils/safe-logger.js';
 import { z } from 'zod';
 import { getToolDescription } from '../../utils/tool-descriptions.js';
 import {
-  toStorageKey,
-  type CanonicalPersonaName,
-} from '../../../services/memory/persona-memories.js';
-import {
   getUserId,
   ordinal,
   formatCurrency,
@@ -629,10 +625,9 @@ export function createAlexMemoryTools() {
       }),
       execute: async ({ preference, context }, { ctx }) => {
         const userId = getUserId({ ctx });
-        const storageKey = toStorageKey('alex');
 
-        await recall(userId, storageKey); // Load first
-        await remember(userId, storageKey, {
+        await recall(userId, 'comm-specialist'); // Load first
+        await remember(userId, 'comm-specialist', {
           type: 'communication_preference',
           name: preference,
           details: context,
@@ -654,10 +649,9 @@ export function createAlexMemoryTools() {
       }),
       execute: async ({ note, recurring }, { ctx }) => {
         const userId = getUserId({ ctx });
-        const storageKey = toStorageKey('alex');
 
-        await recall(userId, storageKey);
-        await remember(userId, storageKey, {
+        await recall(userId, 'comm-specialist');
+        await remember(userId, 'comm-specialist', {
           type: 'scheduling_note',
           name: note,
           details: recurring ? 'Recurring' : 'One-time',
@@ -674,9 +668,8 @@ export function createAlexMemoryTools() {
       parameters: z.object({}),
       execute: async (_, { ctx }) => {
         const userId = getUserId({ ctx });
-        const storageKey = toStorageKey('alex');
 
-        const memories = await recall(userId, storageKey);
+        const memories = await recall(userId, 'comm-specialist');
 
         if (memories.length === 0) {
           return `We haven't saved any communication preferences yet! Tell me how you like to be contacted, your scheduling preferences, or any notes about people you communicate with.`;
@@ -710,16 +703,22 @@ export function createMemoryManagementTools() {
       parameters: z.object({
         searchTerm: z.string().describe('What to search for and forget'),
         persona: z
-          .enum(['ferni', 'peter', 'maya', 'jordan', 'alex', 'nayan'])
+          .enum([
+            'jack-b',
+            'nayan-patel',
+            'peter-john',
+            'spend-save',
+            'event-planner',
+            'comm-specialist',
+          ])
           .describe(
-            'Which team member stored this memory (ferni=coach, peter=researcher, maya=habits, jordan=planner, alex=communicator, nayan=sage)'
+            'Which persona stored this memory (jack-b=Bogle, nayan-patel=Ferni, spend-save=Maya, event-planner=Jordan)'
           ),
       }),
       execute: async ({ searchTerm, persona }, { ctx }) => {
         const userId = getUserId({ ctx });
-        const storageKey = toStorageKey(persona as CanonicalPersonaName);
 
-        const memory = await findMemory(userId, storageKey, searchTerm);
+        const memory = await findMemory(userId, persona, searchTerm);
         if (!memory) {
           return `I couldn't find anything matching "${searchTerm}" in my memory. Could you be more specific about what you'd like me to forget?`;
         }
@@ -742,9 +741,16 @@ export function createMemoryManagementTools() {
       parameters: z.object({
         searchTerm: z.string().describe('What memory to update'),
         persona: z
-          .enum(['ferni', 'peter', 'maya', 'jordan', 'alex', 'nayan'])
+          .enum([
+            'jack-b',
+            'nayan-patel',
+            'peter-john',
+            'spend-save',
+            'event-planner',
+            'comm-specialist',
+          ])
           .describe(
-            'Which team member stored this memory (ferni=coach, peter=researcher, maya=habits, jordan=planner, alex=communicator, nayan=sage)'
+            'Which persona stored this memory (jack-b=Bogle, nayan-patel=Ferni, spend-save=Maya, event-planner=Jordan)'
           ),
         updates: z.object({
           name: z.string().optional().describe('New name'),
@@ -754,9 +760,8 @@ export function createMemoryManagementTools() {
       }),
       execute: async ({ searchTerm, persona, updates }, { ctx }) => {
         const userId = getUserId({ ctx });
-        const storageKey = toStorageKey(persona as CanonicalPersonaName);
 
-        const memory = await findMemory(userId, storageKey, searchTerm);
+        const memory = await findMemory(userId, persona, searchTerm);
         if (!memory) {
           return `I couldn't find anything matching "${searchTerm}". Would you like me to remember something new instead?`;
         }

@@ -14,7 +14,7 @@
  */
 
 import admin from 'firebase-admin';
-import { getFirestore } from '../memory/firestore-factory.js';
+import { getFirestore } from '../../memory/firestore-factory.js';
 import { getLogger } from '../../utils/safe-logger.js';
 
 const log = getLogger().child({ module: 'FamilyMessages' });
@@ -125,7 +125,9 @@ function invalidateCache(userId: string): void {
 /**
  * Create a new family message.
  */
-export async function createFamilyMessage(data: CreateFamilyMessageData): Promise<FamilyMessage> {
+export async function createFamilyMessage(
+  data: CreateFamilyMessageData
+): Promise<FamilyMessage> {
   const db = getFirestore();
   if (!db) {
     throw new Error('Firestore not available');
@@ -148,13 +150,10 @@ export async function createFamilyMessage(data: CreateFamilyMessageData): Promis
     emotionalContext: data.emotionalContext,
   };
 
-  await db
-    .collection(COLLECTION_NAME)
-    .doc(id)
-    .set({
-      ...message,
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
-    });
+  await db.collection(COLLECTION_NAME).doc(id).set({
+    ...message,
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+  });
 
   // Invalidate cache for recipient
   invalidateCache(data.toUserId);
@@ -235,7 +234,10 @@ export async function getPendingMessages(userId: string): Promise<FamilyMessage[
 /**
  * Get all messages for a user (delivered and pending).
  */
-export async function getAllMessages(userId: string, limit = 50): Promise<FamilyMessage[]> {
+export async function getAllMessages(
+  userId: string,
+  limit = 50
+): Promise<FamilyMessage[]> {
   const db = getFirestore();
   if (!db) return [];
 
@@ -473,4 +475,7 @@ function getTimeAgo(date: Date): string {
 // EXPORTS
 // ============================================================================
 
-export { COLLECTION_NAME as FAMILY_MESSAGES_COLLECTION, MESSAGE_EXPIRY_DAYS };
+export {
+  COLLECTION_NAME as FAMILY_MESSAGES_COLLECTION,
+  MESSAGE_EXPIRY_DAYS,
+};

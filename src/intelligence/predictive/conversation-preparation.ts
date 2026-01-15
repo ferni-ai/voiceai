@@ -33,18 +33,18 @@ const log = createLogger({ module: 'ConversationPreparation' });
 
 /** Conversation needs types */
 export type ConversationNeed =
-  | 'validation' // Need to feel understood
-  | 'advice' // Want guidance
-  | 'challenge' // Ready to be pushed
-  | 'celebration' // Want to share success
-  | 'presence' // Just need someone there
-  | 'processing' // Working through something
-  | 'venting' // Need to release
-  | 'planning' // Want to strategize
-  | 'reflection' // Looking back, making sense
-  | 'connection' // Feeling lonely, want to bond
-  | 'reassurance' // Anxious, need calming
-  | 'accountability'; // Want to be held to commitments
+  | 'validation'       // Need to feel understood
+  | 'advice'           // Want guidance
+  | 'challenge'        // Ready to be pushed
+  | 'celebration'      // Want to share success
+  | 'presence'         // Just need someone there
+  | 'processing'       // Working through something
+  | 'venting'          // Need to release
+  | 'planning'         // Want to strategize
+  | 'reflection'       // Looking back, making sense
+  | 'connection'       // Feeling lonely, want to bond
+  | 'reassurance'      // Anxious, need calming
+  | 'accountability';  // Want to be held to commitments
 
 /** Predicted topic for next conversation */
 export interface PredictedTopic {
@@ -88,10 +88,10 @@ export type TopicCategory =
 export interface ConversationPreparation {
   userId: string;
   generatedAt: Date;
-
+  
   /** Topics they're likely to bring up */
   predictedTopics: PredictedTopic[];
-
+  
   /** Their likely emotional state */
   predictedEmotionalState: {
     primaryEmotion: string;
@@ -99,21 +99,21 @@ export interface ConversationPreparation {
     stability: 'stable' | 'volatile' | 'unknown';
     confidence: number;
   };
-
+  
   /** What they'll likely need from the conversation */
   predictedNeeds: Array<{
     need: ConversationNeed;
     probability: number;
     reasoning: string;
   }>;
-
+  
   /** Suggested conversation opening */
   suggestedOpening: {
     phrase: string;
     rationale: string;
     alternatives: string[];
   };
-
+  
   /** Topics THEY won't raise but should */
   topicsToProactivelyRaise: Array<{
     topic: string;
@@ -122,30 +122,30 @@ export interface ConversationPreparation {
     timing: 'early' | 'middle' | 'when_ready' | 'end';
     sensitivity: 'low' | 'moderate' | 'high';
   }>;
-
+  
   /** Safe warmup topics to build to deeper ones */
   warmupTopics: string[];
-
+  
   /** What to avoid */
   topicsToAvoid: Array<{
     topic: string;
     reason: string;
   }>;
-
+  
   /** Context to keep in mind */
   relevantContext: Array<{
     fact: string;
     importance: number;
     shouldMention: boolean;
   }>;
-
+  
   /** Optimal conversation pacing */
   pacing: {
     recommendedLength: 'brief' | 'normal' | 'extended';
     energyLevel: 'calm' | 'moderate' | 'energetic';
     depthLevel: 'surface' | 'moderate' | 'deep';
   };
-
+  
   /** Confidence in this preparation */
   overallConfidence: number;
 }
@@ -168,7 +168,7 @@ interface ConversationOutcome {
   topicsDiscussed: string[];
   needsMet: ConversationNeed[];
   emotionalStateObserved: string;
-  satisfactionLevel: number; // 0-1
+  satisfactionLevel: number;  // 0-1
   predictedTopicsHit: string[];
   unexpectedTopics: string[];
 }
@@ -201,7 +201,7 @@ interface UserPreparationProfile {
 
 interface RecurringTopicPattern {
   topic: string;
-  frequency: number; // Times per month
+  frequency: number;  // Times per month
   avgIntensity: number;
   typicalDayOfWeek: number[];
   typicalFollowUp: string[];
@@ -218,7 +218,7 @@ interface TemporalPattern {
 }
 
 interface EventPattern {
-  eventType: string; // "before_deadline", "after_meeting", "weekend", etc.
+  eventType: string;  // "before_deadline", "after_meeting", "weekend", etc.
   likelyTopics: string[];
   likelyNeeds: ConversationNeed[];
   typicalEmotionalState: string;
@@ -359,10 +359,9 @@ export function recordConversationOutcome(
   }
 
   // Learn from prediction accuracy
-  const hitRate =
-    outcome.predictedTopicsHit.length /
+  const hitRate = outcome.predictedTopicsHit.length / 
     Math.max(1, outcome.predictedTopicsHit.length + outcome.unexpectedTopics.length);
-
+  
   log.debug(
     {
       userId,
@@ -518,14 +517,14 @@ export function prepareForConversation(
  */
 export function buildConversationPrepContext(userId: string): string {
   const prep = prepareForConversation(userId);
-
+  
   if (prep.predictedTopics.length === 0 && prep.predictedNeeds.length === 0) {
     return '';
   }
 
   const sections: string[] = [];
-  sections.push("[CONVERSATION PREPARATION - Know What's Coming]");
-  sections.push("You've prepared. You know what they might need:");
+  sections.push('[CONVERSATION PREPARATION - Know What\'s Coming]');
+  sections.push('You\'ve prepared. You know what they might need:');
   sections.push('');
 
   // Predicted topics
@@ -559,7 +558,7 @@ export function buildConversationPrepContext(userId: string): string {
 
   // Proactive topics
   if (prep.topicsToProactivelyRaise.length > 0) {
-    sections.push("**Topics They Won't Raise But Should:**");
+    sections.push('**Topics They Won\'t Raise But Should:**');
     for (const topic of prep.topicsToProactivelyRaise.slice(0, 2)) {
       sections.push(`• ${topic.topic}`);
       sections.push(`  Why: ${topic.why}`);
@@ -630,7 +629,7 @@ function updateRecurringPattern(
   const oldestEntry = profile.topicHistory.find((t) => t.topic === topic);
   if (oldestEntry) {
     const daysSinceFirst = (Date.now() - oldestEntry.timestamp) / (1000 * 60 * 60 * 24);
-    pattern.frequency = (topicOccurrences / Math.max(1, daysSinceFirst)) * 30; // Per month
+    pattern.frequency = (topicOccurrences / Math.max(1, daysSinceFirst)) * 30;  // Per month
   }
 
   // Update average intensity
@@ -662,7 +661,7 @@ function predictTopics(
   if (context.knownTopic) {
     predictions.push({
       topic: context.knownTopic,
-      category: 'emotions', // Default, would be better inferred
+      category: 'emotions',  // Default, would be better inferred
       probability: 0.95,
       emotionalIntensity: 0.6,
       reasoning: ['User indicated this topic'],
@@ -699,7 +698,7 @@ function predictTopics(
 
   // Check recurring topics that are "due"
   for (const [topic, pattern] of profile.recurringTopics) {
-    if (pattern.frequency < 2) continue; // Not recurring enough
+    if (pattern.frequency < 2) continue;  // Not recurring enough
 
     const lastOccurrence = profile.topicHistory
       .filter((t) => t.topic === topic)
@@ -741,7 +740,7 @@ function predictTopics(
       if (!predictions.some((p) => p.topic === topic)) {
         predictions.push({
           topic,
-          category: 'emotions', // Would be better inferred
+          category: 'emotions',  // Would be better inferred
           probability: pattern.confidence * 0.6,
           emotionalIntensity: 0.5,
           reasoning: [`Typical topic for ${getDayName(dayOfWeek)}`],
@@ -802,7 +801,7 @@ function predictEmotionalState(
 
   // Default based on recent patterns
   const recentOutcomes = profile.outcomes.slice(-5);
-
+  
   if (recentOutcomes.length > 0) {
     // Find most common emotional state
     const stateCounts = new Map<string, number>();
@@ -848,19 +847,20 @@ function predictNeeds(
   // Check needs history for patterns
   const recentNeeds = profile.needsHistory.slice(-20);
   const needCounts = new Map<ConversationNeed, number>();
-
+  
   for (const entry of recentNeeds) {
     // Weight more heavily if same day/time
-    const weight =
+    const weight = 
       (entry.dayOfWeek === dayOfWeek ? 1.5 : 1) *
       (Math.abs(entry.hourOfDay - hourOfDay) < 4 ? 1.3 : 1);
-
+    
     const count = needCounts.get(entry.primaryNeed) || 0;
     needCounts.set(entry.primaryNeed, count + weight);
   }
 
   // Sort by count and create predictions
-  const sortedNeeds = Array.from(needCounts.entries()).sort((a, b) => b[1] - a[1]);
+  const sortedNeeds = Array.from(needCounts.entries())
+    .sort((a, b) => b[1] - a[1]);
 
   const totalWeight = sortedNeeds.reduce((sum, [_, w]) => sum + w, 0);
 
@@ -950,7 +950,7 @@ function identifyProactiveTopics(
       if (!lastOccurrence) continue;
 
       const daysSince = (Date.now() - lastOccurrence.timestamp) / (1000 * 60 * 60 * 24);
-
+      
       if (daysSince > 7 && !lastOccurrence.userInitiated) {
         proactive.push({
           topic,
@@ -1134,16 +1134,11 @@ function calculateOverallConfidence(
 
   // Good prediction accuracy increases confidence
   if (profile.outcomes.length > 5) {
-    const recentAccuracy =
-      profile.outcomes
-        .slice(-5)
-        .reduce(
-          (sum, o) =>
-            sum +
-            o.predictedTopicsHit.length /
-              Math.max(1, o.predictedTopicsHit.length + o.unexpectedTopics.length),
-          0
-        ) / 5;
+    const recentAccuracy = profile.outcomes.slice(-5).reduce(
+      (sum, o) => sum + o.predictedTopicsHit.length / 
+        Math.max(1, o.predictedTopicsHit.length + o.unexpectedTopics.length),
+      0
+    ) / 5;
     confidence += recentAccuracy * 0.15;
   }
 

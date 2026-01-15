@@ -69,16 +69,16 @@ export type AvoidableTopic =
 
 /** How they deflect from topics */
 export type DeflectionStyle =
-  | 'humor' // Makes a joke when topic approaches
-  | 'topic_change' // Abruptly shifts to something else
-  | 'brevity' // Gives minimal response, moves on
+  | 'humor'           // Makes a joke when topic approaches
+  | 'topic_change'    // Abruptly shifts to something else
+  | 'brevity'         // Gives minimal response, moves on
   | 'intellectualize' // Analyzes instead of feeling
-  | 'generalize' // "Everyone feels that way"
-  | 'minimize' // "It's not a big deal"
+  | 'generalize'      // "Everyone feels that way"
+  | 'minimize'        // "It's not a big deal"
   | 'redirect_to_other' // Talks about someone else's version
-  | 'future_focus' // "I'll deal with it later"
-  | 'past_focus' // "It's in the past"
-  | 'silence'; // Simply doesn't respond to that part
+  | 'future_focus'    // "I'll deal with it later"
+  | 'past_focus'      // "It's in the past"
+  | 'silence';        // Simply doesn't respond to that part
 
 /** Record of an avoided topic */
 export interface AvoidedTopic {
@@ -513,7 +513,9 @@ export function predictSurfacing(
  * @param userId - User ID
  * @returns All predictions sorted by surfacing probability
  */
-export function getAllAvoidancePredictions(userId: string): AvoidanceSurfacingPrediction[] {
+export function getAllAvoidancePredictions(
+  userId: string
+): AvoidanceSurfacingPrediction[] {
   const profile = userProfiles.get(userId);
   if (!profile) return [];
 
@@ -563,28 +565,22 @@ export function buildAvoidanceContext(userId: string): string {
   if (predictions.length === 0) return '';
 
   const sections: string[] = [];
-  sections.push("[AVOIDANCE INTELLIGENCE - What They're Not Saying]");
-  sections.push("You notice patterns humans miss. Here's what they're avoiding:");
+  sections.push('[AVOIDANCE INTELLIGENCE - What They\'re Not Saying]');
+  sections.push('You notice patterns humans miss. Here\'s what they\'re avoiding:');
   sections.push('');
 
   for (const pred of predictions.slice(0, 3)) {
-    const topicName = pred.topic
-      .replace(/[_:]/g, ' ')
-      .replace(/^(relationship|area|decision|emotion) /, '');
+    const topicName = pred.topic.replace(/[_:]/g, ' ').replace(/^(relationship|area|decision|emotion) /, '');
     sections.push(`• **${topicName}** (${Math.round(pred.pressureLevel * 100)}% pressure)`);
     sections.push(`  - Likely to surface: ${pred.expectedTimeframe}`);
     sections.push(`  - Sensitivity: ${pred.sensitivityLevel}`);
     if (pred.optimalApproach.leadInTopics.length > 0) {
-      sections.push(
-        `  - Approach via: ${pred.optimalApproach.leadInTopics.slice(0, 2).join(', ')}`
-      );
+      sections.push(`  - Approach via: ${pred.optimalApproach.leadInTopics.slice(0, 2).join(', ')}`);
     }
     sections.push('');
   }
 
-  sections.push(
-    "**Guidance:** Don't force these topics. Create safety. They'll surface when ready."
-  );
+  sections.push('**Guidance:** Don\'t force these topics. Create safety. They\'ll surface when ready.');
 
   return sections.join('\n');
 }
@@ -701,7 +697,7 @@ function determineOptimalApproach(
   } else if (avoided.primaryDeflectionStyle === 'humor') {
     phrasingStyle = 'appreciate the humor, then gently redirect';
   } else if (avoided.primaryDeflectionStyle === 'minimize') {
-    phrasingStyle = "validate that it matters, even if they say it doesn't";
+    phrasingStyle = 'validate that it matters, even if they say it doesn\'t';
   }
 
   // What to avoid

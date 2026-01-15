@@ -236,15 +236,11 @@ export function generateDailyReportHTML(data: DailyReportData): string {
         <p style="margin: 0; font-size: 14px; color: #333;">
           Average session duration: <strong>${data.visitors.avgSessionDuration} minutes</strong>
         </p>
-        ${
-          data.callers.total > 0
-            ? `
+        ${data.callers.total > 0 ? `
         <p style="margin: 8px 0 0 0; font-size: 14px; color: #333;">
           Average call duration: <strong>${formatDuration(data.callers.avgDuration)}</strong>
         </p>
-        `
-            : ''
-        }
+        ` : ''}
       </div>
     </div>
 
@@ -288,10 +284,7 @@ Phone Calls: ${data.callers.total} (${formatChange(data.comparison.callersChange
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 `;
     for (const call of data.callers.calls) {
-      const time = call.timestamp.toLocaleTimeString('en-US', {
-        hour: '2-digit',
-        minute: '2-digit',
-      });
+      const time = call.timestamp.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
       text += `${call.phoneNumber} | ${call.direction.toUpperCase()} | ${formatDuration(call.duration)} | ${call.outcome} | ${time}\n`;
     }
     text += '\n';
@@ -355,8 +348,7 @@ function generateCallsTable(calls: CallerRecord[]): string {
 
   for (const call of calls) {
     const time = call.timestamp.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-    const directionClass =
-      call.direction === 'inbound' ? 'direction-inbound' : 'direction-outbound';
+    const directionClass = call.direction === 'inbound' ? 'direction-inbound' : 'direction-outbound';
 
     html += `
         <tr>
@@ -377,9 +369,7 @@ function generateCallsTable(calls: CallerRecord[]): string {
   return html;
 }
 
-function generatePersonaBars(
-  personas: { personaId: string; personaName: string; sessions: number; percentage: number }[]
-): string {
+function generatePersonaBars(personas: { personaId: string; personaName: string; sessions: number; percentage: number }[]): string {
   if (personas.length === 0) {
     return '<p class="no-data">No persona usage recorded for this period.</p>';
   }

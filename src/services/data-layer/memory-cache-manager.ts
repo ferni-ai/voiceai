@@ -17,7 +17,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { registerInterval, clearNamedInterval, hasInterval } from '../../utils/interval-manager.js';
-import type { RedisCache } from '../memory/redis-cache.js';
+import type { RedisCache } from '../../memory/redis-cache.js';
 
 const log = createLogger({ module: 'MemoryCacheManager' });
 
@@ -313,7 +313,7 @@ export class RedisBackedCache<K extends string, V> extends ManagedCache<K, V> {
    */
   async initializeRedis(): Promise<boolean> {
     try {
-      const { getRedisCache } = await import('../memory/redis-cache.js');
+      const { getRedisCache } = await import('../../memory/redis-cache.js');
       const cache = getRedisCache();
       await cache.initialize();
 
@@ -464,10 +464,7 @@ export class RedisBackedCache<K extends string, V> extends ManagedCache<K, V> {
     super.clear();
     // Note: Redis pattern delete would be expensive, skip for now
     // Individual entries will expire via TTL
-    log.debug(
-      { cache: this.redisConfig.redisKeyPrefix },
-      'L1 cache cleared (L2 will expire via TTL)'
-    );
+    log.debug({ cache: this.redisConfig.redisKeyPrefix }, 'L1 cache cleared (L2 will expire via TTL)');
   }
 
   /**

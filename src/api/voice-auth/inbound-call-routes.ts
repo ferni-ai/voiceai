@@ -101,8 +101,11 @@ interface TwilioIncomingCallPayload {
  * Handle incoming call webhook from Twilio.
  * This is called when someone dials the Ferni phone number.
  */
-async function handleInboundCallWebhook(req: IncomingMessage, res: ServerResponse): Promise<void> {
-  const body = (await parseBody(req)) as unknown as TwilioIncomingCallPayload;
+async function handleInboundCallWebhook(
+  req: IncomingMessage,
+  res: ServerResponse
+): Promise<void> {
+  const body = await parseBody(req) as unknown as TwilioIncomingCallPayload;
 
   // Validate Twilio signature (skip in development)
   if (process.env.NODE_ENV === 'production') {
@@ -111,10 +114,7 @@ async function handleInboundCallWebhook(req: IncomingMessage, res: ServerRespons
     const host = req.headers.host || '';
     const fullUrl = `${protocol}://${host}${req.url}`;
 
-    if (
-      signature &&
-      !validateTwilioSignature(signature, fullUrl, body as unknown as Record<string, string>)
-    ) {
+    if (signature && !validateTwilioSignature(signature, fullUrl, body as unknown as Record<string, string>)) {
       log.warn({ url: req.url }, 'Invalid Twilio signature for inbound call');
       res.writeHead(403, { 'Content-Type': 'text/xml' });
       res.end(generateRejectTwiml('Invalid request signature'));
@@ -385,8 +385,11 @@ function generateRejectTwiml(reason: string): string {
 /**
  * Handle call status updates from Twilio.
  */
-async function handleInboundCallStatus(req: IncomingMessage, res: ServerResponse): Promise<void> {
-  const body = (await parseBody(req)) as Record<string, string>;
+async function handleInboundCallStatus(
+  req: IncomingMessage,
+  res: ServerResponse
+): Promise<void> {
+  const body = await parseBody(req) as Record<string, string>;
 
   const { CallSid, CallStatus, CallDuration } = body;
 
@@ -426,7 +429,10 @@ async function handleInboundCallStatus(req: IncomingMessage, res: ServerResponse
             '📝 Recorded call for sponsored identity'
           );
         } catch (error) {
-          log.error({ error: String(error), callSid: CallSid }, 'Failed to record call');
+          log.error(
+            { error: String(error), callSid: CallSid },
+            'Failed to record call'
+          );
         }
       }
 
@@ -460,4 +466,8 @@ function escapeXml(text: string): string {
 // EXPORTS
 // ============================================================================
 
-export { identifyInboundCaller, generateInboundTwiml, activeInboundCalls };
+export {
+  identifyInboundCaller,
+  generateInboundTwiml,
+  activeInboundCalls,
+};

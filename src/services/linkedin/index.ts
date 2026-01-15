@@ -17,7 +17,7 @@
  * @module services/linkedin
  */
 
-import { getStore } from '../memory/store-factory.js';
+import { getStore } from '../../memory/store-factory.js';
 import { getCircuitBreaker } from '../../utils/circuit-breaker.js';
 import { createLogger } from '../../utils/safe-logger.js';
 

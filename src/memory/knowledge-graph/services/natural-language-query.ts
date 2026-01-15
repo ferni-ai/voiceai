@@ -13,7 +13,11 @@
  */
 
 import { createLogger } from '../../../utils/safe-logger.js';
-import type { Entity, Insight, Thread } from '../types.js';
+import type {
+  Entity,
+  Insight,
+  Thread,
+} from '../types.js';
 import type { Mention, EntityRelationship, ExtractedFact } from '../../entity-store/types.js';
 
 const log = createLogger({ module: 'NaturalLanguageQuery' });
@@ -108,28 +112,24 @@ const QUERY_PATTERNS: Array<{
 
   // Temporal queries
   {
-    pattern:
-      /when\s+did\s+(?:I|we)\s+(?:last\s+)?(?:talk|discuss|mention)\s+(?:about\s+)?(.+?)(?:\?|$)/i,
+    pattern: /when\s+did\s+(?:I|we)\s+(?:last\s+)?(?:talk|discuss|mention)\s+(?:about\s+)?(.+?)(?:\?|$)/i,
     type: 'temporal',
     extractTarget: (m) => m[1].trim(),
   },
   {
-    pattern:
-      /(?:how\s+long|when)\s+since\s+(?:I|we)\s+(?:talked|discussed)\s+(?:about\s+)?(.+?)(?:\?|$)/i,
+    pattern: /(?:how\s+long|when)\s+since\s+(?:I|we)\s+(?:talked|discussed)\s+(?:about\s+)?(.+?)(?:\?|$)/i,
     type: 'temporal',
     extractTarget: (m) => m[1].trim(),
   },
 
   // Pattern queries
   {
-    pattern:
-      /what\s+patterns?\s+(?:have\s+you|do\s+you)\s+(?:noticed?|seen?)\s+(?:about\s+)?(.+?)(?:\?|$)/i,
+    pattern: /what\s+patterns?\s+(?:have\s+you|do\s+you)\s+(?:noticed?|seen?)\s+(?:about\s+)?(.+?)(?:\?|$)/i,
     type: 'pattern',
     extractTarget: (m) => m[1].trim(),
   },
   {
-    pattern:
-      /(?:have\s+you\s+)?noticed?\s+(?:any\s+)?patterns?\s+(?:about|with|in)\s+(.+?)(?:\?|$)/i,
+    pattern: /(?:have\s+you\s+)?noticed?\s+(?:any\s+)?patterns?\s+(?:about|with|in)\s+(.+?)(?:\?|$)/i,
     type: 'pattern',
     extractTarget: (m) => m[1].trim(),
   },
@@ -141,16 +141,14 @@ const QUERY_PATTERNS: Array<{
     extractTarget: (m) => `${m[1].trim()}|${m[2].trim()}`,
   },
   {
-    pattern:
-      /what(?:'s|\s+is)\s+the\s+(?:connection|relationship)\s+between\s+(.+?)\s+and\s+(.+?)(?:\?|$)/i,
+    pattern: /what(?:'s|\s+is)\s+the\s+(?:connection|relationship)\s+between\s+(.+?)\s+and\s+(.+?)(?:\?|$)/i,
     type: 'relationship',
     extractTarget: (m) => `${m[1].trim()}|${m[2].trim()}`,
   },
 
   // Open loops queries
   {
-    pattern:
-      /what\s+(?:were\s+we|was\s+I)\s+(?:talking|discussing)\s+about\s+that\s+(?:we\s+)?(?:didn't|never)\s+finish/i,
+    pattern: /what\s+(?:were\s+we|was\s+I)\s+(?:talking|discussing)\s+about\s+that\s+(?:we\s+)?(?:didn't|never)\s+finish/i,
     type: 'open_loops',
     extractTarget: () => '',
   },
@@ -162,8 +160,7 @@ const QUERY_PATTERNS: Array<{
 
   // Insights queries
   {
-    pattern:
-      /what\s+insights?\s+(?:do\s+you\s+have|have\s+you\s+(?:got|found))\s+(?:about\s+)?(.+?)(?:\?|$)/i,
+    pattern: /what\s+insights?\s+(?:do\s+you\s+have|have\s+you\s+(?:got|found))\s+(?:about\s+)?(.+?)(?:\?|$)/i,
     type: 'insights',
     extractTarget: (m) => m[1]?.trim() || '',
   },
@@ -311,7 +308,9 @@ async function executeTemporalQuery(
   options: QueryOptions,
   startTime: number
 ): Promise<NaturalQueryResult> {
-  const { findEntityByAlias, getMentionsForEntity } = await import('../../entity-store/storage.js');
+  const { findEntityByAlias, getMentionsForEntity } = await import(
+    '../../entity-store/storage.js'
+  );
 
   const entity = await findEntityByAlias(userId, target, 'person');
 
@@ -402,8 +401,9 @@ async function executeRelationshipQuery(
 ): Promise<NaturalQueryResult> {
   const [entity1Name, entity2Name] = target.split('|');
 
-  const { findEntityByAlias, getRelationshipsForEntity } =
-    await import('../../entity-store/storage.js');
+  const { findEntityByAlias, getRelationshipsForEntity } = await import(
+    '../../entity-store/storage.js'
+  );
 
   const entity1 = await findEntityByAlias(userId, entity1Name, 'person');
   const entity2 = await findEntityByAlias(userId, entity2Name, 'person');
@@ -515,7 +515,9 @@ async function executeTimelineQuery(
   options: QueryOptions,
   startTime: number
 ): Promise<NaturalQueryResult> {
-  const { findEntityByAlias, getMentionsForEntity } = await import('../../entity-store/storage.js');
+  const { findEntityByAlias, getMentionsForEntity } = await import(
+    '../../entity-store/storage.js'
+  );
 
   const entity = await findEntityByAlias(userId, target, 'person');
 
@@ -595,9 +597,7 @@ async function executeGeneralQuery(
 // ============================================================================
 
 function formatEntityProfileResponse(
-  result: Awaited<
-    ReturnType<typeof import('../../entity-store/entity-resolver.js').whatDoWeKnowAbout>
-  >,
+  result: Awaited<ReturnType<typeof import('../../entity-store/entity-resolver.js').whatDoWeKnowAbout>>,
   insights: Insight[],
   threads: Thread[]
 ): string {
@@ -643,7 +643,7 @@ function formatEntityProfileResponse(
 
   // Insights
   if (insights.length > 0) {
-    lines.push("\nPatterns I've noticed:");
+    lines.push('\nPatterns I\'ve noticed:');
     for (const insight of insights.slice(0, 3)) {
       lines.push(`• ${insight.description}`);
     }
@@ -674,27 +674,17 @@ function formatTemporalResponse(
     timeAgo = `${Math.floor(daysDiff / 30)} months ago`;
   }
 
-  return (
-    `You last mentioned ${entity.canonicalName} ${timeAgo}. ` +
-    `In total, you've brought them up ${totalMentions} times in our conversations.`
-  );
+  return `You last mentioned ${entity.canonicalName} ${timeAgo}. ` +
+    `In total, you've brought them up ${totalMentions} times in our conversations.`;
 }
 
-function formatPatternResponse(
-  target: string,
-  insights: Insight[],
-  entity?: Entity | null
-): string {
+function formatPatternResponse(target: string, insights: Insight[], entity?: Entity | null): string {
   if (insights.length === 0) {
-    return (
-      `I haven't detected any clear patterns about ${target} yet. ` +
-      `The more we talk, the better I'll understand.`
-    );
+    return `I haven't detected any clear patterns about ${target} yet. ` +
+      `The more we talk, the better I'll understand.`;
   }
 
-  const lines: string[] = [
-    `Here are some patterns I've noticed about ${entity?.canonicalName || target}:`,
-  ];
+  const lines: string[] = [`Here are some patterns I've noticed about ${entity?.canonicalName || target}:`];
 
   for (const insight of insights.slice(0, 5)) {
     lines.push(`• ${insight.description}`);
@@ -709,16 +699,12 @@ function formatRelationshipResponse(
   connection?: EntityRelationship
 ): string {
   if (connection) {
-    return (
-      `Based on our conversations, ${entity1.canonicalName} and ${entity2.canonicalName} ` +
-      `are connected through: ${connection.label || connection.type}`
-    );
+    return `Based on our conversations, ${entity1.canonicalName} and ${entity2.canonicalName} ` +
+      `are connected through: ${connection.label || connection.type}`;
   }
 
-  return (
-    `I haven't found a direct connection between ${entity1.canonicalName} ` +
-    `and ${entity2.canonicalName} in our conversations, but they might still be related.`
-  );
+  return `I haven't found a direct connection between ${entity1.canonicalName} ` +
+    `and ${entity2.canonicalName} in our conversations, but they might still be related.`;
 }
 
 function formatOpenLoopsResponse(threads: Thread[]): string {
@@ -726,9 +712,7 @@ function formatOpenLoopsResponse(threads: Thread[]): string {
     return "I don't have any open threads or unfinished conversations to follow up on.";
   }
 
-  const lines: string[] = [
-    "Here are some things we started discussing but haven't fully resolved:",
-  ];
+  const lines: string[] = ['Here are some things we started discussing but haven\'t fully resolved:'];
 
   for (const thread of threads.slice(0, 5)) {
     lines.push(`• ${thread.topic}`);
@@ -748,7 +732,7 @@ function formatInsightsResponse(insights: Insight[], entity?: Entity | null): st
 
   const lines: string[] = entity
     ? [`Here are some insights about ${entity.canonicalName}:`]
-    : ["Here are some insights I've gathered:"];
+    : ['Here are some insights I\'ve gathered:'];
 
   for (const insight of insights.slice(0, 5)) {
     lines.push(`• ${insight.title}: ${insight.description}`);
@@ -841,19 +825,19 @@ let unifiedEngineInstance: UnifiedQueryEngine | null = null;
 
 /**
  * Search entities - FULL IMPLEMENTATION
- *
+ * 
  * This searches the entity store based on various criteria and returns
  * relevant entities with their facts and mentions.
  */
 async function searchImpl(options: SearchOptions): Promise<SearchResult[]> {
-  const {
-    userId,
-    types,
-    minImportance = 0,
+  const { 
+    userId, 
+    types, 
+    minImportance = 0, 
     limit = 10,
     includeRecentMentions = 0,
     query,
-    includeFacts = false,
+    includeFacts = false 
   } = options;
 
   const { getEntityResolver } = await import('../index.js');
@@ -875,20 +859,18 @@ async function searchImpl(options: SearchOptions): Promise<SearchResult[]> {
 
   // Filter by importance/salience
   if (minImportance > 0) {
-    entities = entities.filter((e) => (e.salienceScore || 0) >= minImportance);
+    entities = entities.filter(e => (e.salienceScore || 0) >= minImportance);
   }
 
   // If query provided, do text matching
   if (query) {
     const queryLower = query.toLowerCase();
-    entities = entities.filter((e) => {
+    entities = entities.filter(e => {
       const name = (e.canonicalName || '').toLowerCase();
-      const aliases = (e.aliases || []).map((a) => a.toLowerCase());
-      return (
-        name.includes(queryLower) ||
-        aliases.some((a) => a.includes(queryLower)) ||
-        queryLower.includes(name)
-      );
+      const aliases = (e.aliases || []).map(a => a.toLowerCase());
+      return name.includes(queryLower) || 
+             aliases.some(a => a.includes(queryLower)) ||
+             queryLower.includes(name);
     });
   }
 

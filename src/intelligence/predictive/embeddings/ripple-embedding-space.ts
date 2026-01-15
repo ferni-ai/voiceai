@@ -23,27 +23,27 @@ const log = createLogger({ module: 'RippleEmbeddingSpace' });
 
 export interface DomainEmbedding {
   domain: LifeDomain;
-
+  
   // Semantic position
-  coreEmbedding: number[]; // Base domain meaning
+  coreEmbedding: number[];        // Base domain meaning
   currentStateEmbedding: number[]; // Current user's state in this domain
   healthyStateEmbedding: number[]; // What healthy looks like
-
+  
   // User's relationship with this domain
-  personalMeaning: string; // How user relates to this domain
-  recentTopics: string[]; // Recent conversation topics
-  emotionalAssociation: number; // -1 to 1
+  personalMeaning: string;        // How user relates to this domain
+  recentTopics: string[];         // Recent conversation topics
+  emotionalAssociation: number;   // -1 to 1
 }
 
 export interface InfluenceVector {
   from: LifeDomain;
   to: LifeDomain;
-
+  
   // Semantic nature of influence
-  influenceEmbedding: number[]; // What the influence looks like
-  strength: number; // 0-1
+  influenceEmbedding: number[];   // What the influence looks like
+  strength: number;               // 0-1
   direction: 'positive' | 'negative' | 'amplifying';
-
+  
   // Evidence
   observationCount: number;
   exampleDescriptions: string[];
@@ -51,13 +51,13 @@ export interface InfluenceVector {
 
 export interface DomainEmbeddingSpace {
   userId: string;
-
+  
   // Domain positions
   domains: Map<LifeDomain, DomainEmbedding>;
-
+  
   // Learned influence vectors
   influenceVectors: InfluenceVector[];
-
+  
   // Last updated
   lastUpdated: number;
 }
@@ -121,39 +121,39 @@ const DOMAIN_DESCRIPTIONS: Record<LifeDomain, string> = {
  */
 export async function initializeDomainSpace(userId: string): Promise<DomainEmbeddingSpace> {
   const domains = new Map<LifeDomain, DomainEmbedding>();
-
+  
   // Generate base embeddings for all domains
   const domainNames = Object.keys(DOMAIN_DESCRIPTIONS) as LifeDomain[];
   const descriptions = domainNames.map((d) => DOMAIN_DESCRIPTIONS[d]);
   const healthyDescriptions = domainNames.map((d) => `healthy ${DOMAIN_DESCRIPTIONS[d]}`);
-
+  
   const [coreEmbeddings, healthyEmbeddings] = await Promise.all([
     embedBatch(descriptions),
     embedBatch(healthyDescriptions),
   ]);
-
+  
   for (let i = 0; i < domainNames.length; i++) {
     domains.set(domainNames[i], {
       domain: domainNames[i],
       coreEmbedding: coreEmbeddings[i],
-      currentStateEmbedding: coreEmbeddings[i], // Start at baseline
+      currentStateEmbedding: coreEmbeddings[i],  // Start at baseline
       healthyStateEmbedding: healthyEmbeddings[i],
       personalMeaning: '',
       recentTopics: [],
       emotionalAssociation: 0,
     });
   }
-
+  
   const space: DomainEmbeddingSpace = {
     userId,
     domains,
     influenceVectors: [],
     lastUpdated: Date.now(),
   };
-
+  
   userDomainSpaces.set(userId, space);
   log.debug({ userId }, '🌐 Initialized domain embedding space');
-
+  
   return space;
 }
 
@@ -174,13 +174,16 @@ export async function updateDomainState(
   if (!space) {
     space = await initializeDomainSpace(userId);
   }
-
+  
   const domainData = space.domains.get(domain);
   if (!domainData) return;
-
+  
   // Update metadata
   if (update.recentTopics) {
-    domainData.recentTopics = [...update.recentTopics, ...domainData.recentTopics].slice(0, 10);
+    domainData.recentTopics = [
+      ...update.recentTopics,
+      ...domainData.recentTopics,
+    ].slice(0, 10);
   }
   if (update.personalMeaning) {
     domainData.personalMeaning = update.personalMeaning;
@@ -188,7 +191,7 @@ export async function updateDomainState(
   if (update.emotionalAssociation !== undefined) {
     domainData.emotionalAssociation = update.emotionalAssociation;
   }
-
+  
   // Update current state embedding
   if (update.currentDescription || update.recentTopics?.length) {
     const stateText = [
@@ -196,13 +199,11 @@ export async function updateDomainState(
       update.currentDescription || '',
       domainData.recentTopics.slice(0, 5).join(', '),
       domainData.personalMeaning,
-    ]
-      .filter(Boolean)
-      .join('. ');
-
+    ].filter(Boolean).join('. ');
+    
     domainData.currentStateEmbedding = await embed(stateText);
   }
-
+  
   space.lastUpdated = Date.now();
 }
 
@@ -223,28 +224,28 @@ export async function recordDomainInfluence(
   if (!space) {
     space = await initializeDomainSpace(userId);
   }
-
+  
   // Find existing influence vector or create new
   let vector = space.influenceVectors.find(
     (v) => v.from === observation.from && v.to === observation.to
   );
-
+  
   if (vector) {
     // Update existing
     vector.observationCount++;
     vector.exampleDescriptions.push(observation.description);
     vector.exampleDescriptions = vector.exampleDescriptions.slice(-10);
-
+    
     // Update strength with exponential moving average
     vector.strength = vector.strength * 0.7 + observation.strength * 0.3;
-
+    
     // Re-embed with new examples
     const influenceText = vector.exampleDescriptions.join('. ');
     vector.influenceEmbedding = await embed(influenceText);
   } else {
     // Create new
     const influenceEmbedding = await embed(observation.description);
-
+    
     space.influenceVectors.push({
       from: observation.from,
       to: observation.to,
@@ -255,9 +256,12 @@ export async function recordDomainInfluence(
       exampleDescriptions: [observation.description],
     });
   }
-
+  
   space.lastUpdated = Date.now();
-  log.debug({ userId, from: observation.from, to: observation.to }, '🔗 Recorded domain influence');
+  log.debug(
+    { userId, from: observation.from, to: observation.to },
+    '🔗 Recorded domain influence'
+  );
 }
 
 /**
@@ -271,10 +275,10 @@ export async function predictRipplePath(
   if (!space) {
     space = await initializeDomainSpace(userId);
   }
-
+  
   const eventEmbedding = await embed(event.description);
   const sourceDomain = space.domains.get(event.domain);
-
+  
   if (!sourceDomain) {
     return {
       event,
@@ -283,50 +287,50 @@ export async function predictRipplePath(
       leveragePoints: [],
     };
   }
-
+  
   // Find semantically similar domains
   const domainSimilarities: Array<{
     domain: LifeDomain;
     similarity: number;
     hasInfluenceVector: boolean;
   }> = [];
-
+  
   for (const [domain, data] of space.domains) {
     if (domain === event.domain) continue;
-
+    
     // Semantic similarity to event
     const eventSimilarity = cosineSimilarity(eventEmbedding, data.currentStateEmbedding);
-
+    
     // Check for known influence vector
     const influenceVector = space.influenceVectors.find(
       (v) => v.from === event.domain && v.to === domain
     );
-
+    
     // Combine semantic similarity with known influence
     const combinedScore = influenceVector
       ? eventSimilarity * 0.4 + influenceVector.strength * 0.6
       : eventSimilarity;
-
+    
     domainSimilarities.push({
       domain,
       similarity: combinedScore,
       hasInfluenceVector: !!influenceVector,
     });
   }
-
+  
   // Sort by similarity
   domainSimilarities.sort((a, b) => b.similarity - a.similarity);
-
+  
   // Build predicted path
   const predictedPath: RipplePathPrediction['predictedPath'] = [];
   let order = 1;
   let remainingMagnitude = Math.abs(event.magnitude);
-
+  
   for (const ds of domainSimilarities) {
     if (ds.similarity < 0.3 || remainingMagnitude < 0.1) break;
-
+    
     const expectedImpact = remainingMagnitude * ds.similarity;
-
+    
     predictedPath.push({
       domain: ds.domain,
       order,
@@ -335,19 +339,20 @@ export async function predictRipplePath(
         ? 'Known influence pattern'
         : `Semantic proximity (${Math.round(ds.similarity * 100)}%)`,
     });
-
-    remainingMagnitude *= 0.7; // Decay
+    
+    remainingMagnitude *= 0.7;  // Decay
     order++;
   }
-
+  
   // Calculate total risk
-  const totalRisk =
-    predictedPath.reduce((sum, p) => sum + Math.abs(p.expectedImpact), 0) / predictedPath.length ||
-    0;
-
+  const totalRisk = predictedPath.reduce(
+    (sum, p) => sum + Math.abs(p.expectedImpact),
+    0
+  ) / predictedPath.length || 0;
+  
   // Find leverage points
   const leveragePoints = findLeveragePoints(space, event.domain, predictedPath);
-
+  
   return {
     event,
     predictedPath: predictedPath.slice(0, 5),
@@ -362,47 +367,47 @@ export async function predictRipplePath(
 export function findDomainClusters(userId: string): DomainCluster[] {
   const space = userDomainSpaces.get(userId);
   if (!space) return [];
-
+  
   const clusters: DomainCluster[] = [];
   const assigned = new Set<LifeDomain>();
-
+  
   // Simple clustering based on embedding similarity
   for (const [domain, data] of space.domains) {
     if (assigned.has(domain)) continue;
-
+    
     const clusterDomains: LifeDomain[] = [domain];
     const clusterEmbeddings: number[][] = [data.currentStateEmbedding];
     assigned.add(domain);
-
+    
     // Find similar domains
     for (const [otherDomain, otherData] of space.domains) {
       if (assigned.has(otherDomain)) continue;
-
+      
       const similarity = cosineSimilarity(
         data.currentStateEmbedding,
         otherData.currentStateEmbedding
       );
-
+      
       if (similarity > 0.7) {
         clusterDomains.push(otherDomain);
         clusterEmbeddings.push(otherData.currentStateEmbedding);
         assigned.add(otherDomain);
       }
     }
-
+    
     if (clusterDomains.length > 1) {
       const centroid = calculateCentroid(clusterEmbeddings);
-      const cohesion =
-        clusterEmbeddings.reduce((sum, emb) => sum + cosineSimilarity(emb, centroid), 0) /
-        clusterEmbeddings.length;
-
+      const cohesion = clusterEmbeddings.reduce(
+        (sum, emb) => sum + cosineSimilarity(emb, centroid),
+        0
+      ) / clusterEmbeddings.length;
+      
       // Calculate vulnerability (how negative the emotional associations are)
-      const vulnerability =
-        clusterDomains.reduce((sum, d) => {
-          const domainData = space.domains.get(d);
-          return sum + (domainData ? (1 - domainData.emotionalAssociation) / 2 : 0.5);
-        }, 0) / clusterDomains.length;
-
+      const vulnerability = clusterDomains.reduce((sum, d) => {
+        const domainData = space.domains.get(d);
+        return sum + (domainData ? (1 - domainData.emotionalAssociation) / 2 : 0.5);
+      }, 0) / clusterDomains.length;
+      
       clusters.push({
         name: clusterDomains.slice(0, 2).join('-'),
         domains: clusterDomains,
@@ -412,7 +417,7 @@ export function findDomainClusters(userId: string): DomainCluster[] {
       });
     }
   }
-
+  
   return clusters.sort((a, b) => b.vulnerabilityScore - a.vulnerabilityScore);
 }
 
@@ -426,12 +431,12 @@ export function getDomainDistance(
 ): number | null {
   const space = userDomainSpaces.get(userId);
   if (!space) return null;
-
+  
   const dataA = space.domains.get(domainA);
   const dataB = space.domains.get(domainB);
-
+  
   if (!dataA || !dataB) return null;
-
+  
   return 1 - cosineSimilarity(dataA.currentStateEmbedding, dataB.currentStateEmbedding);
 }
 
@@ -445,17 +450,19 @@ export async function findRelatedDomains(
 ): Promise<Array<{ domain: LifeDomain; similarity: number }>> {
   const space = userDomainSpaces.get(userId);
   if (!space) return [];
-
+  
   const topicEmbedding = await embed(topic);
-
+  
   const similarities: Array<{ domain: LifeDomain; similarity: number }> = [];
-
+  
   for (const [domain, data] of space.domains) {
     const similarity = cosineSimilarity(topicEmbedding, data.currentStateEmbedding);
     similarities.push({ domain, similarity });
   }
-
-  return similarities.sort((a, b) => b.similarity - a.similarity).slice(0, k);
+  
+  return similarities
+    .sort((a, b) => b.similarity - a.similarity)
+    .slice(0, k);
 }
 
 // ============================================================================
@@ -468,16 +475,18 @@ function findLeveragePoints(
   predictedPath: RipplePathPrediction['predictedPath']
 ): RipplePathPrediction['leveragePoints'] {
   const leveragePoints: RipplePathPrediction['leveragePoints'] = [];
-
+  
   // Find domains that could break the cascade
   for (const pathItem of predictedPath.slice(0, 3)) {
     const domainData = space.domains.get(pathItem.domain);
     if (!domainData) continue;
-
+    
     // Distance to healthy state
-    const healthDistance =
-      1 - cosineSimilarity(domainData.currentStateEmbedding, domainData.healthyStateEmbedding);
-
+    const healthDistance = 1 - cosineSimilarity(
+      domainData.currentStateEmbedding,
+      domainData.healthyStateEmbedding
+    );
+    
     // If far from healthy, it's a leverage point
     if (healthDistance > 0.3) {
       leveragePoints.push({
@@ -487,24 +496,24 @@ function findLeveragePoints(
       });
     }
   }
-
+  
   return leveragePoints.sort((a, b) => b.expectedBenefit - a.expectedBenefit).slice(0, 3);
 }
 
 function calculateCentroid(embeddings: number[][]): number[] {
   const dim = embeddings[0].length;
   const centroid = new Array(dim).fill(0);
-
+  
   for (const emb of embeddings) {
     for (let i = 0; i < dim; i++) {
       centroid[i] += emb[i];
     }
   }
-
+  
   for (let i = 0; i < dim; i++) {
     centroid[i] /= embeddings.length;
   }
-
+  
   const magnitude = Math.sqrt(centroid.reduce((sum, v) => sum + v * v, 0));
   return centroid.map((v) => v / magnitude);
 }
@@ -522,20 +531,18 @@ export async function buildRippleSpaceContext(
 ): Promise<string> {
   const space = userDomainSpaces.get(userId);
   if (!space) return '';
-
+  
   const sections: string[] = ['[RIPPLE EMBEDDING SPACE]'];
-
+  
   // Domain clusters
   const clusters = findDomainClusters(userId);
   if (clusters.length > 0) {
     sections.push('\nDomain clusters (tend to move together):');
     for (const cluster of clusters.slice(0, 2)) {
-      sections.push(
-        `• ${cluster.domains.join(' ↔ ')} (cohesion: ${Math.round(cluster.cohesion * 100)}%)`
-      );
+      sections.push(`• ${cluster.domains.join(' ↔ ')} (cohesion: ${Math.round(cluster.cohesion * 100)}%)`);
     }
   }
-
+  
   // Related domains to current topic
   if (currentTopic) {
     const related = await findRelatedDomains(userId, currentTopic, 3);
@@ -546,17 +553,19 @@ export async function buildRippleSpaceContext(
       }
     }
   }
-
+  
   // Known influence patterns
-  const strongInfluences = space.influenceVectors.filter((v) => v.strength > 0.5).slice(0, 3);
-
+  const strongInfluences = space.influenceVectors
+    .filter((v) => v.strength > 0.5)
+    .slice(0, 3);
+  
   if (strongInfluences.length > 0) {
     sections.push('\nKnown influence patterns:');
     for (const inf of strongInfluences) {
       sections.push(`• ${inf.from} → ${inf.to} (${inf.direction})`);
     }
   }
-
+  
   return sections.join('\n');
 }
 
@@ -584,7 +593,7 @@ export interface RippleSpacePersistenceData {
 export function getStateForPersistence(userId: string): RippleSpacePersistenceData | null {
   const space = userDomainSpaces.get(userId);
   if (!space) return null;
-
+  
   const domainsArray: RippleSpacePersistenceData['domains'] = [];
   for (const [domain, data] of space.domains) {
     domainsArray.push({
@@ -597,7 +606,7 @@ export function getStateForPersistence(userId: string): RippleSpacePersistenceDa
       emotionalAssociation: data.emotionalAssociation,
     });
   }
-
+  
   return {
     domains: domainsArray,
     influenceVectors: space.influenceVectors,
@@ -608,9 +617,12 @@ export function getStateForPersistence(userId: string): RippleSpacePersistenceDa
 /**
  * Hydrate from persisted data
  */
-export function hydrateFromPersistence(userId: string, data: RippleSpacePersistenceData): void {
+export function hydrateFromPersistence(
+  userId: string,
+  data: RippleSpacePersistenceData
+): void {
   if (!data.domains || data.domains.length === 0) return;
-
+  
   const domains = new Map<LifeDomain, DomainEmbedding>();
   for (const d of data.domains) {
     domains.set(d.domain, {
@@ -623,14 +635,14 @@ export function hydrateFromPersistence(userId: string, data: RippleSpacePersiste
       emotionalAssociation: d.emotionalAssociation,
     });
   }
-
+  
   userDomainSpaces.set(userId, {
     userId,
     domains,
     influenceVectors: data.influenceVectors || [],
     lastUpdated: data.lastUpdated || Date.now(),
   });
-
+  
   log.debug({ userId, domainCount: domains.size }, '💧 Hydrated ripple embedding space');
 }
 

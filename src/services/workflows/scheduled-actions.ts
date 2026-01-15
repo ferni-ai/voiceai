@@ -223,10 +223,7 @@ async function executeAction(action: ScheduledAction): Promise<boolean> {
       if (action.attempts >= 3) {
         action.status = 'failed';
         action.error = 'Max attempts reached';
-        log.warn(
-          { actionId: action.id, attempts: action.attempts },
-          '❌ Action failed after retries'
-        );
+        log.warn({ actionId: action.id, attempts: action.attempts }, '❌ Action failed after retries');
       } else {
         log.debug({ actionId: action.id, attempts: action.attempts }, 'Will retry action');
       }

@@ -7,11 +7,7 @@
  */
 
 import type { KeyMoment, EmotionalPattern } from '../../types/user-profile.js';
-import type {
-  SmallDetail,
-  FollowUpItem,
-  FarewellSummary,
-} from '../tracking/conversation-quality.js';
+import type { SmallDetail, FollowUpItem, FarewellSummary } from '../conversation-quality.js';
 
 // ============================================================================
 // TYPES

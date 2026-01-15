@@ -100,9 +100,7 @@ function createMockAnalysis(overrides: Partial<Record<string, unknown>> = {}) {
 /**
  * Create mock session services
  */
-function createMockServices(
-  overrides: Partial<Record<string, unknown>> = {}
-): Record<string, unknown> {
+function createMockServices(overrides: Partial<Record<string, unknown>> = {}): Record<string, unknown> {
   return {
     sessionId: 'test-session-123',
     userId: 'test-user-456',

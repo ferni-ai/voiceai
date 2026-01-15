@@ -23,7 +23,7 @@ import {
   getVoiceProsodyResponse,
   verifyTopicThreading,
   getProactiveGoalReference,
-} from '../intelligence/human-behaviors/index.js';
+} from '../intelligence/human-behaviors.js';
 import { createUserProfile, type UserProfile } from '../types/user-profile.js';
 
 describe('Human Behaviors Module', () => {

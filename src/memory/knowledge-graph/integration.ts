@@ -13,9 +13,12 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-// NOTE: getKnowledgeGraph and getEntityResolver are imported lazily inside functions
-// to avoid circular dependency (integration.ts <- index.ts <- integration.ts)
-import type { Entity, EntityType, MentionInput } from './types.js';
+import { getKnowledgeGraph, getEntityResolver } from './index.js';
+import type {
+  Entity,
+  EntityType,
+  MentionInput,
+} from './types.js';
 
 // Alias for backward compatibility
 type EntityMention = MentionInput;
@@ -44,7 +47,7 @@ export async function integrateContact(
     sourceText?: string;
   }
 ): Promise<Entity> {
-  const kg = await getKG();
+  const kg = getKnowledgeGraph();
 
   // Build entity mention from contact
   const mention: EntityMention = {
@@ -107,8 +110,8 @@ export async function integrateCommitment(
     sourceText?: string;
   }
 ): Promise<Entity> {
-  const kg = await getKG();
-  const resolver = await getResolver();
+  const kg = getKnowledgeGraph();
+  const resolver = getEntityResolver();
 
   // Create commitment entity
   const mention: EntityMention = {
@@ -175,7 +178,7 @@ export async function integrateRelationshipMention(
     emotionalIntensity?: number;
   }
 ): Promise<Entity> {
-  const kg = await getKG();
+  const kg = getKnowledgeGraph();
 
   const entityMention: EntityMention = {
     text: mention.personName || mention.relationship,
@@ -226,26 +229,22 @@ export async function processConversationTurn(
     extractedRelationships?: Array<{ relationship: string; name?: string; context: string }>;
   }
 ): Promise<void> {
-  const kg = await getKG();
+  const kg = getKnowledgeGraph();
 
   // Process extracted names
   if (turn.extractedNames) {
     for (const { name, context } of turn.extractedNames) {
       try {
-        const entity = await kg.resolveMention(
-          userId,
-          {
-            text: name,
-            name,
-            type: 'person',
-          },
-          {
-            sessionId: turn.sessionId,
-            turnNumber: turn.turnNumber,
-            sourceText: context,
-            emotionalIntensity: turn.emotionalIntensity,
-          }
-        );
+        const entity = await kg.resolveMention(userId, {
+          text: name,
+          name,
+          type: 'person',
+        }, {
+          sessionId: turn.sessionId,
+          turnNumber: turn.turnNumber,
+          sourceText: context,
+          emotionalIntensity: turn.emotionalIntensity,
+        });
 
         await kg.recordMention(userId, entity.id, {
           sessionId: turn.sessionId,
@@ -264,21 +263,17 @@ export async function processConversationTurn(
   if (turn.extractedRelationships) {
     for (const { relationship, name, context } of turn.extractedRelationships) {
       try {
-        const entity = await kg.resolveMention(
-          userId,
-          {
-            text: name || relationship,
-            name,
-            relationship,
-            type: 'person',
-          },
-          {
-            sessionId: turn.sessionId,
-            turnNumber: turn.turnNumber,
-            sourceText: context,
-            emotionalIntensity: turn.emotionalIntensity,
-          }
-        );
+        const entity = await kg.resolveMention(userId, {
+          text: name || relationship,
+          name,
+          relationship,
+          type: 'person',
+        }, {
+          sessionId: turn.sessionId,
+          turnNumber: turn.turnNumber,
+          sourceText: context,
+          emotionalIntensity: turn.emotionalIntensity,
+        });
 
         await kg.recordMention(userId, entity.id, {
           sessionId: turn.sessionId,
@@ -288,10 +283,7 @@ export async function processConversationTurn(
           emotionalIntensity: turn.emotionalIntensity,
         });
       } catch (error) {
-        log.warn(
-          { error: String(error), relationship },
-          'Failed to process extracted relationship'
-        );
+        log.warn({ error: String(error), relationship }, 'Failed to process extracted relationship');
       }
     }
   }
@@ -299,18 +291,14 @@ export async function processConversationTurn(
   // If we have a topic, also track it as an entity
   if (turn.currentTopic && turn.currentTopic !== 'general') {
     try {
-      const topicEntity = await kg.resolveMention(
-        userId,
-        {
-          text: turn.currentTopic,
-          type: 'topic',
-        },
-        {
-          sessionId: turn.sessionId,
-          turnNumber: turn.turnNumber,
-          sourceText: turn.userMessage,
-        }
-      );
+      const topicEntity = await kg.resolveMention(userId, {
+        text: turn.currentTopic,
+        type: 'topic',
+      }, {
+        sessionId: turn.sessionId,
+        turnNumber: turn.turnNumber,
+        sourceText: turn.userMessage,
+      });
 
       await kg.recordMention(userId, topicEntity.id, {
         sessionId: turn.sessionId,
@@ -338,7 +326,7 @@ export async function syncFromSuperhumanService(
   service: 'commitment-keeper' | 'relationship-network' | 'dream-keeper' | 'values-alignment',
   data: unknown[]
 ): Promise<number> {
-  const kg = await getKG();
+  const kg = getKnowledgeGraph();
   let synced = 0;
 
   switch (service) {
@@ -426,7 +414,6 @@ export async function migrateUserData(userId: string): Promise<{
   commitments: number;
   relationships: number;
 }> {
-  const kg = await getKG();
   const stats = {
     contacts: 0,
     commitments: 0,
@@ -435,7 +422,7 @@ export async function migrateUserData(userId: string): Promise<{
 
   try {
     // 1. Migrate from user_contacts collection
-    const { searchContacts } = await import('../../services/identity/contacts.js');
+    const { searchContacts } = await import('../../services/contacts.js');
     const contacts = await searchContacts(userId, ''); // Get all
     for (const result of contacts) {
       await integrateContact(userId, {
@@ -466,19 +453,13 @@ export async function migrateUserData(userId: string): Promise<{
 
     // 3. Migrate from commitment_keeper
     try {
-      const { loadUserCommitments } =
-        await import('../../services/superhuman/commitment-keeper.js');
+      const { loadUserCommitments } = await import('../../services/superhuman/commitment-keeper.js');
       const commitments = await loadUserCommitments(userId);
       for (const commitment of commitments) {
         await integrateCommitment(userId, {
           description: commitment.summary,
           dueDate: commitment.targetDate ? new Date(commitment.targetDate) : undefined,
-          priority:
-            commitment.emotionalWeight > 0.7
-              ? 'high'
-              : commitment.emotionalWeight > 0.4
-                ? 'medium'
-                : 'low',
+          priority: commitment.emotionalWeight > 0.7 ? 'high' : commitment.emotionalWeight > 0.4 ? 'medium' : 'low',
         });
         stats.commitments++;
       }
@@ -494,14 +475,5 @@ export async function migrateUserData(userId: string): Promise<{
   return stats;
 }
 
-// Helper to get knowledge graph lazily (avoids circular dependency)
-async function getKG() {
-  const { getKnowledgeGraph } = await import('./index.js');
-  return getKnowledgeGraph();
-}
-
-// Helper to get entity resolver lazily (avoids circular dependency)
-async function getResolver() {
-  const { getEntityResolver } = await import('./index.js');
-  return getEntityResolver();
-}
+// Get the singleton for use in the module
+const kg = getKnowledgeGraph();

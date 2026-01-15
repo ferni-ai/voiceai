@@ -82,8 +82,9 @@ export class EmotionalMemoryMap {
    */
   async getEmotionalMap(userId: string): Promise<EmotionalAssociation[]> {
     try {
-      const { getAllEntities, getMentionsForEntity } =
-        await import('../../entity-store/storage.js');
+      const { getAllEntities, getMentionsForEntity } = await import(
+        '../../entity-store/storage.js'
+      );
 
       const entities = await getAllEntities(userId, { limit: 100 });
       const associations: EmotionalAssociation[] = [];
@@ -115,7 +116,9 @@ export class EmotionalMemoryMap {
     entityId: string
   ): Promise<EmotionalAssociation | null> {
     try {
-      const { getEntity, getMentionsForEntity } = await import('../../entity-store/storage.js');
+      const { getEntity, getMentionsForEntity } = await import(
+        '../../entity-store/storage.js'
+      );
 
       const entity = await getEntity(userId, entityId);
       if (!entity) return null;
@@ -123,10 +126,7 @@ export class EmotionalMemoryMap {
       const mentions = await getMentionsForEntity(userId, entityId, 100);
       return this.calculateAssociation(entity, mentions);
     } catch (error) {
-      log.error(
-        { error: String(error), userId, entityId },
-        'Failed to get entity emotional profile'
-      );
+      log.error({ error: String(error), userId, entityId }, 'Failed to get entity emotional profile');
       return null;
     }
   }
@@ -182,7 +182,10 @@ export class EmotionalMemoryMap {
   /**
    * Detect emotional triggers for an entity
    */
-  async detectEmotionalTriggers(userId: string, entityId: string): Promise<EmotionalTrigger[]> {
+  async detectEmotionalTriggers(
+    userId: string,
+    entityId: string
+  ): Promise<EmotionalTrigger[]> {
     const triggers: EmotionalTrigger[] = [];
 
     try {
@@ -214,7 +217,8 @@ export class EmotionalMemoryMap {
           emotionCounts[emotion] = (emotionCounts[emotion] || 0) + 1;
         }
 
-        const dominant = Object.entries(emotionCounts).sort((a, b) => b[1] - a[1])[0];
+        const dominant = Object.entries(emotionCounts)
+          .sort((a, b) => b[1] - a[1])[0];
 
         if (dominant && dominant[1] / emotions.length >= 0.6) {
           triggers.push({
@@ -257,7 +261,8 @@ export class EmotionalMemoryMap {
           emotionCounts[emotion] = (emotionCounts[emotion] || 0) + 1;
         }
 
-        const dominant = Object.entries(emotionCounts).sort((a, b) => b[1] - a[1])[0];
+        const dominant = Object.entries(emotionCounts)
+          .sort((a, b) => b[1] - a[1])[0];
 
         if (dominant && dominant[1] / emotions.length >= 0.6) {
           triggers.push({
@@ -281,7 +286,10 @@ export class EmotionalMemoryMap {
   /**
    * Generate emotional insight summary
    */
-  async generateEmotionalInsight(userId: string, entityId: string): Promise<string | null> {
+  async generateEmotionalInsight(
+    userId: string,
+    entityId: string
+  ): Promise<string | null> {
     const association = await this.getEntityEmotionalProfile(userId, entityId);
     if (!association) return null;
 
@@ -318,11 +326,8 @@ export class EmotionalMemoryMap {
       const topTrigger = triggers[0];
       parts.push(
         `I notice you often feel ${topTrigger.resultingEmotion} when ` +
-          `${
-            topTrigger.triggerType === 'time'
-              ? `discussing this in the ${topTrigger.trigger}`
-              : `the topic of ${topTrigger.trigger} comes up`
-          }.`
+        `${topTrigger.triggerType === 'time' ? `discussing this in the ${topTrigger.trigger}` : 
+           `the topic of ${topTrigger.trigger} comes up`}.`
       );
     }
 
@@ -333,14 +338,17 @@ export class EmotionalMemoryMap {
   // PRIVATE METHODS
   // ============================================================================
 
-  private calculateAssociation(entity: Entity, mentions: Mention[]): EmotionalAssociation | null {
+  private calculateAssociation(
+    entity: Entity,
+    mentions: Mention[]
+  ): EmotionalAssociation | null {
     const emotionalMentions = mentions.filter((m) => m.emotion || m.emotionalIntensity);
 
     if (emotionalMentions.length === 0) return null;
 
     // Calculate overall valence
-    const valences = emotionalMentions.map(
-      (m) => this.emotionToValence(m.emotion || 'neutral') * (m.emotionalIntensity || 0.5)
+    const valences = emotionalMentions.map((m) => 
+      this.emotionToValence(m.emotion || 'neutral') * (m.emotionalIntensity || 0.5)
     );
     const overallValence = valences.reduce((a, b) => a + b, 0) / valences.length;
 
@@ -380,15 +388,13 @@ export class EmotionalMemoryMap {
     let trajectory: EmotionalAssociation['trajectory'] = 'stable';
 
     if (recentMentions.length >= 2 && olderMentions.length >= 2) {
-      const recentAvg =
-        recentMentions
-          .map((m) => this.emotionToValence(m.emotion || 'neutral'))
-          .reduce((a, b) => a + b, 0) / recentMentions.length;
+      const recentAvg = recentMentions
+        .map((m) => this.emotionToValence(m.emotion || 'neutral'))
+        .reduce((a, b) => a + b, 0) / recentMentions.length;
 
-      const olderAvg =
-        olderMentions
-          .map((m) => this.emotionToValence(m.emotion || 'neutral'))
-          .reduce((a, b) => a + b, 0) / olderMentions.length;
+      const olderAvg = olderMentions
+        .map((m) => this.emotionToValence(m.emotion || 'neutral'))
+        .reduce((a, b) => a + b, 0) / olderMentions.length;
 
       recentTrend = recentAvg - olderAvg;
 
@@ -507,10 +513,7 @@ export class EmotionalMemoryMap {
     const recent = timeline.slice(-10);
     const n = recent.length;
 
-    let sumX = 0,
-      sumY = 0,
-      sumXY = 0,
-      sumX2 = 0;
+    let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
 
     for (let i = 0; i < n; i++) {
       sumX += i;

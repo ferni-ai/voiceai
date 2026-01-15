@@ -22,7 +22,7 @@ import {
   registerDDoSAlertCallback,
   startDDoSMonitoring,
 } from '../../utils/ddos-protection.js';
-import { notifyDDoSAlert } from '../../services/integrations/slack-notifications.js';
+import { notifyDDoSAlert } from '../../services/slack-notifications.js';
 import { rateLimit, optionalAuthAsync } from '../../api/auth-middleware.js';
 import { parseRawBody } from '../../api/helpers.js';
 
@@ -98,7 +98,6 @@ import { handleTrustExportRoutes } from '../../api/trust-export-routes.js';
 import { handleTrustJourneyRoutes } from '../../api/trust-journey-routes.js';
 import { handleCalendarRoutes } from '../../api/calendar-routes.js';
 import { handleTrustSystemsRoutes } from '../../api/trust-systems-routes.js';
-import { handleSuperhumanMetricsRoutes } from '../../api/superhuman-metrics-routes.js';
 import { handleRelationshipArcRoutes } from '../../api/relationship-arc-routes.js';
 import { handleFeatureFlagsRoutes } from '../../api/feature-flags-routes.js';
 import { handleFeedbackRoutes, isFeedbackRoute } from '../../api/feedback-routes.js';
@@ -196,19 +195,19 @@ import { handleOutboundCallRoutes } from '../../api/outbound-call-handler.js';
 import {
   initInsightsWebSocket,
   shutdownInsightsWebSocket,
-} from '../../services/cross-persona/insights-websocket.js';
+} from '../../services/insights-websocket.js';
 
 // WebSocket for life context (Phase 6)
 import {
   initLifeContextWebSocket,
   shutdownLifeContextWebSocket,
-} from '../../services/pubsub/life-context-websocket.js';
+} from '../../services/life-context-websocket.js';
 
 // WebSocket for user events (voice-triggered theme/navigation changes)
 import {
   initUserEventsWebSocket,
   shutdownUserEventsWebSocket,
-} from '../../services/pubsub/user-events-websocket.js';
+} from '../../services/user-events-websocket.js';
 import { handleMarketplaceRoutes } from '../../api/marketplace-routes.js';
 // SECURITY: Uses new modular version with Firebase auth (no x-user-id)
 import { handleCustomAgentRoutes } from '../../api/custom-agent/index.js';
@@ -796,12 +795,6 @@ const server = http.createServer(async (req, res) => {
     // Trust systems routes
     if (pathname.startsWith('/api/trust/')) {
       const handled = await handleTrustSystemsRoutes(req, res, pathname, parsedUrl);
-      if (handled) return;
-    }
-
-    // Superhuman metrics routes (Better Than Human dashboard)
-    if (pathname.startsWith('/api/superhuman')) {
-      const handled = await handleSuperhumanMetricsRoutes(req, res, pathname, parsedUrl);
       if (handled) return;
     }
 

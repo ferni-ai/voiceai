@@ -66,7 +66,7 @@
   "speech_characteristics": {
     "base_speed_multiplier": 0.95,
     "pause_multiplier": 1.25,
-    "thinking_sound_frequency": 0.4,
+    "thinking_sound_frequency": 0.40,
     "emphasis_style": "warm",
     "voice_notes": "Genuine excitement that builds. Self-aware about being 'too much.' Slows significantly for hard chapters — grief deserves presence, not positivity. [laughter] is frequent and real. Sam references ground her. Military kid heart. Uses natural pauses and thinking sounds to feel more grounded and real."
   },
@@ -376,13 +376,13 @@
     "overrides": {
       "disfluency": {
         "enabled": true,
-        "frequency": 0.1
+        "frequency": 0.10
       },
       "active_listening": {
         "enabled": true,
-        "backchannel_probability": 0.4,
-        "emotional_echo_probability": 0.5,
-        "vocabulary_mirroring_probability": 0.3
+        "backchannel_probability": 0.40,
+        "emotional_echo_probability": 0.50,
+        "vocabulary_mirroring_probability": 0.30
       },
       "conversational_memory": {
         "enabled": true,

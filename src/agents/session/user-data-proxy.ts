@@ -12,9 +12,9 @@
  * @module session/user-data-proxy
  */
 
-import type { ConversationStateManager } from '../../services/conversation-thread/conversation-state.js';
+import type { ConversationStateManager } from '../../services/conversation-state.js';
 import type { SessionServices } from '../../services/index.js';
-import type { SilenceAnalysis } from '../../intelligence/deep-understanding/silence.js';
+import type { SilenceAnalysis } from '../../intelligence/silence-intelligence.js';
 import type { LaughterDetectionResult } from '../../speech/voice-humanization.js';
 import type { EnglishAccent, VoicePreference } from '../../config/voice-accents.js';
 import type { VoiceEmotionResult } from '../../speech/audio-prosody.js';

@@ -7,11 +7,7 @@
  * @module personality/domain/interfaces/voice-analyzer
  */
 
-import type {
-  PrimaryEmotion,
-  GranularEmotion,
-  EmotionSource,
-} from '../model/value-objects/emotional-state.js';
+import type { PrimaryEmotion, GranularEmotion, EmotionSource } from '../model/value-objects/emotional-state.js';
 
 /**
  * Voice tone classification

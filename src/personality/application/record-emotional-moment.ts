@@ -10,15 +10,8 @@
 import type { PersonalityRepository } from '../domain/interfaces/personality-repository.js';
 import type { EmotionDetector } from '../domain/interfaces/emotion-detector.js';
 import type { VoiceAnalyzer, VoiceFeatures } from '../domain/interfaces/voice-analyzer.js';
-import type {
-  PersonalityProfile,
-  PersonalityDomainEvent,
-} from '../domain/model/personality-profile.js';
-import {
-  EmotionalState,
-  type PrimaryEmotion,
-  type GranularEmotion,
-} from '../domain/model/value-objects/emotional-state.js';
+import type { PersonalityProfile, PersonalityDomainEvent } from '../domain/model/personality-profile.js';
+import { EmotionalState, type PrimaryEmotion, type GranularEmotion } from '../domain/model/value-objects/emotional-state.js';
 import { VulnerabilityScorer } from '../domain/services/vulnerability-scorer.js';
 import { invalidateBuildContextCache } from './build-personality-context.js';
 
@@ -178,18 +171,9 @@ export class RecordEmotionalMoment {
 
       // Check for temporal patterns (day of week, time of day)
       const now = new Date();
-      const dayNames = [
-        'sunday',
-        'monday',
-        'tuesday',
-        'wednesday',
-        'thursday',
-        'friday',
-        'saturday',
-      ];
+      const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
       const currentDay = dayNames[now.getDay()];
-      const timeOfDay =
-        now.getHours() < 12 ? 'morning' : now.getHours() < 18 ? 'afternoon' : 'evening';
+      const timeOfDay = now.getHours() < 12 ? 'morning' : now.getHours() < 18 ? 'afternoon' : 'evening';
 
       if (detectedState.isNegative && detectedState.intensity > 0.5) {
         profile.recordPatternEvidence(
@@ -206,11 +190,8 @@ export class RecordEmotionalMoment {
     // 8. Update trust signal based on acknowledgment quality
     if (input.acknowledgmentQuality) {
       const trustDelta =
-        input.acknowledgmentQuality === 'positive'
-          ? 1
-          : input.acknowledgmentQuality === 'negative'
-            ? -2
-            : 0;
+        input.acknowledgmentQuality === 'positive' ? 1 :
+        input.acknowledgmentQuality === 'negative' ? -2 : 0;
       profile.recordTrustSignal(trustDelta);
     }
 

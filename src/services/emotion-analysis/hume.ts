@@ -13,7 +13,7 @@
 
 import { getLogger } from '../../utils/safe-logger.js';
 import { registerInterval, clearNamedInterval } from '../../utils/interval-manager.js';
-import { getDefaultModel } from '../llm/model-config.js';
+import { getDefaultModel } from '../model-config.js';
 
 const logger = getLogger().child({ service: 'VoiceEmotion' });
 

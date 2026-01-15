@@ -13,11 +13,7 @@
 
 import { createLogger } from '../../../utils/safe-logger.js';
 import { embed, cosineSimilarity, findTopK } from '../../../memory/embeddings.js';
-import type {
-  CognitiveFingerprint,
-  DecisionStyle,
-  StressResponse,
-} from '../cognitive-fingerprint.js';
+import type { CognitiveFingerprint, DecisionStyle, StressResponse } from '../cognitive-fingerprint.js';
 
 const log = createLogger({ module: 'CognitiveSimilarity' });
 
@@ -27,19 +23,19 @@ const log = createLogger({ module: 'CognitiveSimilarity' });
 
 export interface CognitiveFingerprintEmbedding {
   userId: string;
-
+  
   // Component embeddings
-  overallEmbedding: number[]; // Full fingerprint
+  overallEmbedding: number[];       // Full fingerprint
   decisionStyleEmbedding: number[];
   stressResponseEmbedding: number[];
   communicationEmbedding: number[];
   growthPatternEmbedding: number[];
-
+  
   // Key traits (for efficient filtering)
   primaryDecisionStyle: DecisionStyle;
   primaryStressResponse: StressResponse;
   changeVelocity: 'fast' | 'moderate' | 'slow';
-
+  
   // Quality indicators
   observationCount: number;
   confidence: number;
@@ -47,7 +43,7 @@ export interface CognitiveFingerprintEmbedding {
 }
 
 export interface SimilarProfile {
-  userId: string; // Anonymized in results
+  userId: string;  // Anonymized in results
   similarity: number;
   similarAspects: string[];
   differentAspects: string[];
@@ -55,8 +51,8 @@ export interface SimilarProfile {
 
 export interface CommunityInsight {
   insight: string;
-  applicability: number; // 0-1, how applicable to this user
-  basedOnCount: number; // How many similar users
+  applicability: number;  // 0-1, how applicable to this user
+  basedOnCount: number;   // How many similar users
   confidence: number;
 }
 
@@ -72,17 +68,11 @@ export interface InterventionSuccessData {
 // ============================================================================
 
 const communityFingerprints = new Map<string, CognitiveFingerprintEmbedding>();
-const communityInterventionOutcomes = new Map<
-  string,
-  Map<
-    string,
-    {
-      successes: number;
-      failures: number;
-      conditions: string[];
-    }
-  >
->();
+const communityInterventionOutcomes = new Map<string, Map<string, {
+  successes: number;
+  failures: number;
+  conditions: string[];
+}>>();
 
 // ============================================================================
 // CORE FUNCTIONS
@@ -102,7 +92,7 @@ export async function registerFingerprintForCommunity(
   const stressText = buildStressResponseText(fingerprint);
   const communicationText = buildCommunicationText(fingerprint);
   const growthText = buildGrowthPatternText(fingerprint);
-
+  
   // Generate embeddings (batch for efficiency)
   const [
     overallEmbedding,
@@ -117,7 +107,7 @@ export async function registerFingerprintForCommunity(
     embed(communicationText),
     embed(growthText),
   ]);
-
+  
   const fingerprintEmbedding: CognitiveFingerprintEmbedding = {
     userId,
     overallEmbedding,
@@ -132,66 +122,64 @@ export async function registerFingerprintForCommunity(
     confidence: calculateOverallConfidence(fingerprint),
     lastUpdated: Date.now(),
   };
-
+  
   communityFingerprints.set(userId, fingerprintEmbedding);
-
+  
   log.debug(
     { userId, observationCount: fingerprint.totalObservations },
     '🧬 Registered fingerprint for community learning'
   );
-
+  
   return fingerprintEmbedding;
 }
 
 /**
  * Find users with similar cognitive profiles
  */
-export async function findSimilarProfiles(userId: string, k = 10): Promise<SimilarProfile[]> {
+export async function findSimilarProfiles(
+  userId: string,
+  k = 10
+): Promise<SimilarProfile[]> {
   const myFingerprint = communityFingerprints.get(userId);
   if (!myFingerprint) return [];
-
+  
   const similar: SimilarProfile[] = [];
-
+  
   for (const [otherId, otherFingerprint] of communityFingerprints) {
     if (otherId === userId) continue;
-
+    
     // Calculate component similarities
-    const overallSim = cosineSimilarity(
-      myFingerprint.overallEmbedding,
-      otherFingerprint.overallEmbedding
-    );
-    const decisionSim = cosineSimilarity(
-      myFingerprint.decisionStyleEmbedding,
-      otherFingerprint.decisionStyleEmbedding
-    );
-    const stressSim = cosineSimilarity(
-      myFingerprint.stressResponseEmbedding,
-      otherFingerprint.stressResponseEmbedding
-    );
-    const commSim = cosineSimilarity(
-      myFingerprint.communicationEmbedding,
-      otherFingerprint.communicationEmbedding
-    );
-    const growthSim = cosineSimilarity(
-      myFingerprint.growthPatternEmbedding,
-      otherFingerprint.growthPatternEmbedding
-    );
-
+    const overallSim = cosineSimilarity(myFingerprint.overallEmbedding, otherFingerprint.overallEmbedding);
+    const decisionSim = cosineSimilarity(myFingerprint.decisionStyleEmbedding, otherFingerprint.decisionStyleEmbedding);
+    const stressSim = cosineSimilarity(myFingerprint.stressResponseEmbedding, otherFingerprint.stressResponseEmbedding);
+    const commSim = cosineSimilarity(myFingerprint.communicationEmbedding, otherFingerprint.communicationEmbedding);
+    const growthSim = cosineSimilarity(myFingerprint.growthPatternEmbedding, otherFingerprint.growthPatternEmbedding);
+    
     // Weighted overall similarity
-    const similarity =
-      overallSim * 0.3 + decisionSim * 0.2 + stressSim * 0.2 + commSim * 0.15 + growthSim * 0.15;
-
+    const similarity = 
+      overallSim * 0.3 +
+      decisionSim * 0.2 +
+      stressSim * 0.2 +
+      commSim * 0.15 +
+      growthSim * 0.15;
+    
     if (similarity > 0.6) {
       similar.push({
-        userId: `anon-${otherId.slice(0, 8)}`, // Anonymize
+        userId: `anon-${otherId.slice(0, 8)}`,  // Anonymize
         similarity,
-        similarAspects: identifySimilarAspects({ decisionSim, stressSim, commSim, growthSim }),
-        differentAspects: identifyDifferentAspects({ decisionSim, stressSim, commSim, growthSim }),
+        similarAspects: identifySimilarAspects(
+          { decisionSim, stressSim, commSim, growthSim }
+        ),
+        differentAspects: identifyDifferentAspects(
+          { decisionSim, stressSim, commSim, growthSim }
+        ),
       });
     }
   }
-
-  return similar.sort((a, b) => b.similarity - a.similarity).slice(0, k);
+  
+  return similar
+    .sort((a, b) => b.similarity - a.similarity)
+    .slice(0, k);
 }
 
 /**
@@ -203,20 +191,20 @@ export async function getCommunityInsights(
 ): Promise<CommunityInsight[]> {
   const similarProfiles = await findSimilarProfiles(userId, 20);
   if (similarProfiles.length < 3) return [];
-
+  
   const insights: CommunityInsight[] = [];
-
+  
   // Aggregate insights from similar profiles
   const myFingerprint = communityFingerprints.get(userId);
   if (!myFingerprint) return [];
-
+  
   // Decision style insights
   if (!aspect || aspect === 'growth') {
     const sameDecisionStyle = similarProfiles.filter((p) => {
       const other = communityFingerprints.get(p.userId.replace('anon-', ''));
       return other?.primaryDecisionStyle === myFingerprint.primaryDecisionStyle;
     });
-
+    
     if (sameDecisionStyle.length >= 3) {
       insights.push({
         insight: `People with your ${myFingerprint.primaryDecisionStyle} decision style tend to benefit from ${getDecisionStyleAdvice(myFingerprint.primaryDecisionStyle)}`,
@@ -226,14 +214,14 @@ export async function getCommunityInsights(
       });
     }
   }
-
+  
   // Stress response insights
   if (!aspect || aspect === 'stress') {
     const sameStressResponse = similarProfiles.filter((p) => {
       const other = communityFingerprints.get(p.userId.replace('anon-', ''));
       return other?.primaryStressResponse === myFingerprint.primaryStressResponse;
     });
-
+    
     if (sameStressResponse.length >= 3) {
       insights.push({
         insight: `Those with your stress response pattern (${myFingerprint.primaryStressResponse}) often find ${getStressResponseAdvice(myFingerprint.primaryStressResponse)} helpful`,
@@ -243,14 +231,14 @@ export async function getCommunityInsights(
       });
     }
   }
-
+  
   // Change velocity insights
   if (!aspect || aspect === 'growth') {
     const sameVelocity = similarProfiles.filter((p) => {
       const other = communityFingerprints.get(p.userId.replace('anon-', ''));
       return other?.changeVelocity === myFingerprint.changeVelocity;
     });
-
+    
     if (sameVelocity.length >= 3) {
       insights.push({
         insight: `People with your change pace (${myFingerprint.changeVelocity}) typically ${getChangeVelocityAdvice(myFingerprint.changeVelocity)}`,
@@ -260,7 +248,7 @@ export async function getCommunityInsights(
       });
     }
   }
-
+  
   return insights.sort((a, b) => b.applicability - a.applicability);
 }
 
@@ -273,15 +261,15 @@ export async function getCommunityInterventionSuccess(
 ): Promise<InterventionSuccessData | null> {
   const similarProfiles = await findSimilarProfiles(userId, 20);
   if (similarProfiles.length < 3) return null;
-
+  
   let totalSuccesses = 0;
   let totalAttempts = 0;
   const allConditions: string[] = [];
-
+  
   for (const profile of similarProfiles) {
     const realUserId = profile.userId.replace('anon-', '');
     const outcomes = communityInterventionOutcomes.get(realUserId);
-
+    
     if (outcomes) {
       const interventionOutcome = outcomes.get(interventionType);
       if (interventionOutcome) {
@@ -291,20 +279,20 @@ export async function getCommunityInterventionSuccess(
       }
     }
   }
-
+  
   if (totalAttempts < 5) return null;
-
+  
   // Find most common successful conditions
   const conditionCounts: Record<string, number> = {};
   for (const condition of allConditions) {
     conditionCounts[condition] = (conditionCounts[condition] || 0) + 1;
   }
-
+  
   const optimalConditions = Object.entries(conditionCounts)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 3)
     .map(([condition]) => condition);
-
+  
   return {
     interventionType,
     successRate: totalSuccesses / totalAttempts,
@@ -328,14 +316,14 @@ export function recordInterventionOutcome(
     failures: 0,
     conditions: [],
   };
-
+  
   if (success) {
     existing.successes++;
     existing.conditions.push(...conditions);
   } else {
     existing.failures++;
   }
-
+  
   userOutcomes.set(interventionType, existing);
   communityInterventionOutcomes.set(userId, userOutcomes);
 }
@@ -350,19 +338,17 @@ export function getCommunityStats(): {
   stressResponseDistribution: Record<string, number>;
 } {
   const profiles = Array.from(communityFingerprints.values());
-
+  
   const decisionDist: Record<string, number> = {};
   const stressDist: Record<string, number> = {};
   let totalConfidence = 0;
-
+  
   for (const profile of profiles) {
-    decisionDist[profile.primaryDecisionStyle] =
-      (decisionDist[profile.primaryDecisionStyle] || 0) + 1;
-    stressDist[profile.primaryStressResponse] =
-      (stressDist[profile.primaryStressResponse] || 0) + 1;
+    decisionDist[profile.primaryDecisionStyle] = (decisionDist[profile.primaryDecisionStyle] || 0) + 1;
+    stressDist[profile.primaryStressResponse] = (stressDist[profile.primaryStressResponse] || 0) + 1;
     totalConfidence += profile.confidence;
   }
-
+  
   return {
     totalProfiles: profiles.length,
     averageConfidence: profiles.length > 0 ? totalConfidence / profiles.length : 0,
@@ -389,21 +375,17 @@ function buildDecisionStyleText(fp: CognitiveFingerprint): string {
   return [
     `primary: ${fp.decisionStyle.primary}`,
     fp.decisionStyle.secondary ? `secondary: ${fp.decisionStyle.secondary}` : '',
-  ]
-    .filter(Boolean)
-    .join('. ');
+  ].filter(Boolean).join('. ');
 }
 
 function buildStressResponseText(fp: CognitiveFingerprint): string {
   return [
     `primary response: ${fp.stressResponse.primary}`,
     `recovery time: ${fp.stressResponse.recoveryTime} hours`,
-    fp.stressResponse.deEscalationTriggers.length > 0
+    fp.stressResponse.deEscalationTriggers.length > 0 
       ? `helps: ${fp.stressResponse.deEscalationTriggers.join(', ')}`
       : '',
-  ]
-    .filter(Boolean)
-    .join('. ');
+  ].filter(Boolean).join('. ');
 }
 
 function buildCommunicationText(fp: CognitiveFingerprint): string {
@@ -413,9 +395,7 @@ function buildCommunicationText(fp: CognitiveFingerprint): string {
     fp.communicationPatterns.trustBuilders.length > 0
       ? `trust builders: ${fp.communicationPatterns.trustBuilders.join(', ')}`
       : '',
-  ]
-    .filter(Boolean)
-    .join('. ');
+  ].filter(Boolean).join('. ');
 }
 
 function buildGrowthPatternText(fp: CognitiveFingerprint): string {
@@ -425,9 +405,7 @@ function buildGrowthPatternText(fp: CognitiveFingerprint): string {
     fp.growthPatterns.breakthroughCatalysts.length > 0
       ? `catalysts: ${fp.growthPatterns.breakthroughCatalysts.join(', ')}`
       : '',
-  ]
-    .filter(Boolean)
-    .join('. ');
+  ].filter(Boolean).join('. ');
 }
 
 function categorizeChangeVelocity(speed: number): 'fast' | 'moderate' | 'slow' {
@@ -512,19 +490,19 @@ function getChangeVelocityAdvice(velocity: 'fast' | 'moderate' | 'slow'): string
 export async function buildCommunityLearningContext(userId: string): Promise<string> {
   const insights = await getCommunityInsights(userId);
   const similarCount = (await findSimilarProfiles(userId, 10)).length;
-
+  
   if (insights.length === 0 && similarCount === 0) return '';
-
+  
   const sections: string[] = ['[COMMUNITY LEARNING INTELLIGENCE]'];
-
+  
   if (similarCount > 0) {
     sections.push(`\nBased on ${similarCount} people with similar cognitive patterns:`);
   }
-
+  
   for (const insight of insights.slice(0, 3)) {
     sections.push(`• ${insight.insight}`);
   }
-
+  
   return sections.join('\n');
 }
 
@@ -548,7 +526,7 @@ export interface CognitiveSimilarityPersistenceData {
 export function getStateForPersistence(userId: string): CognitiveSimilarityPersistenceData {
   const fingerprint = communityFingerprints.get(userId) || null;
   const outcomes = communityInterventionOutcomes.get(userId);
-
+  
   const interventionOutcomes: CognitiveSimilarityPersistenceData['interventionOutcomes'] = [];
   if (outcomes) {
     for (const [interventionType, data] of outcomes) {
@@ -560,7 +538,7 @@ export function getStateForPersistence(userId: string): CognitiveSimilarityPersi
       });
     }
   }
-
+  
   return { fingerprint, interventionOutcomes };
 }
 
@@ -575,12 +553,9 @@ export function hydrateFromPersistence(
     communityFingerprints.set(userId, data.fingerprint);
     log.debug({ userId }, '💧 Hydrated cognitive fingerprint');
   }
-
+  
   if (data.interventionOutcomes && data.interventionOutcomes.length > 0) {
-    const outcomes = new Map<
-      string,
-      { successes: number; failures: number; conditions: string[] }
-    >();
+    const outcomes = new Map<string, { successes: number; failures: number; conditions: string[] }>();
     for (const o of data.interventionOutcomes) {
       outcomes.set(o.interventionType, {
         successes: o.successes,
@@ -589,10 +564,7 @@ export function hydrateFromPersistence(
       });
     }
     communityInterventionOutcomes.set(userId, outcomes);
-    log.debug(
-      { userId, count: data.interventionOutcomes.length },
-      '💧 Hydrated intervention outcomes'
-    );
+    log.debug({ userId, count: data.interventionOutcomes.length }, '💧 Hydrated intervention outcomes');
   }
 }
 

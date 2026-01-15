@@ -13,10 +13,7 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
-import {
-  getAgentEvolution,
-  type PersonaExperiment,
-} from '../../intelligence/collective/agent-evolution.js';
+import { getAgentEvolution, type PersonaExperiment } from '../../intelligence/agent-evolution.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import {
   sendExperimentConclusionAlert,
@@ -521,7 +518,7 @@ function checkExperimentConclusion(experimentId: string, personaId: string): voi
     void (async () => {
       try {
         const { saveAgentEvolutionToFirestore } =
-          await import('../../intelligence/collective/agent-evolution.js');
+          await import('../../intelligence/agent-evolution.js');
         await saveAgentEvolutionToFirestore();
         getLogger().debug({ experimentId }, 'Experiment conclusion persisted to Firestore');
 

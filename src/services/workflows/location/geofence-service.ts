@@ -51,24 +51,24 @@ export interface Geofence {
   description?: string;
   shape: GeofenceShape;
   triggers: GeofenceTriggerType[];
-
+  
   // For 'near' trigger
   proximityMeters?: number;
-
+  
   // For 'dwell' trigger
   dwellTimeMinutes?: number;
-
+  
   // Associated workflow
   workflowId?: string;
-
+  
   // Active status
   enabled: boolean;
-
+  
   // Metadata
   address?: string;
   category?: 'home' | 'work' | 'gym' | 'store' | 'restaurant' | 'custom';
   icon?: string;
-
+  
   // Timestamps
   createdAt: Date;
   updatedAt: Date;
@@ -78,11 +78,11 @@ export interface UserLocationState {
   userId: string;
   currentLocation?: Coordinates;
   lastUpdated?: Date;
-
+  
   // Current geofence states
   insideGeofences: string[]; // Geofence IDs
-  nearGeofences: string[]; // Geofence IDs
-
+  nearGeofences: string[];   // Geofence IDs
+  
   // Dwell tracking
   dwellTimers: Record<string, { geofenceId: string; enteredAt: Date }>;
 }
@@ -138,7 +138,10 @@ export class GeofenceService {
     this.geofences.set(geofence.id, geofence);
     await this.persistGeofence(geofence);
 
-    log.info({ geofenceId: geofence.id, name: geofence.name }, 'Geofence created');
+    log.info(
+      { geofenceId: geofence.id, name: geofence.name },
+      'Geofence created'
+    );
 
     return geofence;
   }
@@ -167,7 +170,7 @@ export class GeofenceService {
     if (!geofence) return false;
 
     this.geofences.delete(geofenceId);
-
+    
     // Clear any dwell timers
     const timerKey = `${geofence.userId}:${geofenceId}`;
     const timer = this.dwellTimers.get(timerKey);
@@ -187,7 +190,9 @@ export class GeofenceService {
    * Get user's geofences
    */
   getUserGeofences(userId: string): Geofence[] {
-    return Array.from(this.geofences.values()).filter((g) => g.userId === userId);
+    return Array.from(this.geofences.values()).filter(
+      (g) => g.userId === userId
+    );
   }
 
   /**
@@ -204,7 +209,10 @@ export class GeofenceService {
   /**
    * Update user's location and check geofences
    */
-  async updateUserLocation(userId: string, location: Coordinates): Promise<GeofenceEvent[]> {
+  async updateUserLocation(
+    userId: string,
+    location: Coordinates
+  ): Promise<GeofenceEvent[]> {
     const events: GeofenceEvent[] = [];
     const userGeofences = this.getUserGeofences(userId).filter((g) => g.enabled);
 
@@ -228,7 +236,9 @@ export class GeofenceService {
     for (const geofence of userGeofences) {
       const distance = this.calculateDistance(location, geofence.shape);
       const isInside = distance <= 0;
-      const isNear = geofence.proximityMeters ? distance <= geofence.proximityMeters : false;
+      const isNear = geofence.proximityMeters
+        ? distance <= geofence.proximityMeters
+        : false;
 
       // Check enter trigger
       if (isInside && !previousInside.has(geofence.id)) {
@@ -273,12 +283,8 @@ export class GeofenceService {
     for (const event of events) {
       await getEventBus().publish({
         userId,
-        eventType:
-          event.eventType === 'enter'
-            ? 'location_entered'
-            : event.eventType === 'exit'
-              ? 'location_exited'
-              : 'location_near',
+        eventType: event.eventType === 'enter' ? 'location_entered' : 
+                   event.eventType === 'exit' ? 'location_exited' : 'location_near',
         source: 'geofence-service',
         data: {
           geofenceId: event.geofenceId,
@@ -330,7 +336,8 @@ export class GeofenceService {
     const deltaLon = this.toRadians(point2.longitude - point1.longitude);
 
     const a =
-      Math.sin(deltaLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(deltaLon / 2) ** 2;
+      Math.sin(deltaLat / 2) ** 2 +
+      Math.cos(lat1) * Math.cos(lat2) * Math.sin(deltaLon / 2) ** 2;
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
     return EARTH_RADIUS_METERS * c;
@@ -339,7 +346,10 @@ export class GeofenceService {
   /**
    * Check if point is inside polygon and get distance
    */
-  private pointToPolygonDistance(point: Coordinates, vertices: Coordinates[]): number {
+  private pointToPolygonDistance(
+    point: Coordinates,
+    vertices: Coordinates[]
+  ): number {
     if (this.isPointInPolygon(point, vertices)) {
       return 0;
     }
@@ -369,7 +379,7 @@ export class GeofenceService {
       const xj = vertices[j].longitude;
       const yj = vertices[j].latitude;
 
-      if (yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) {
+      if ((yi > y) !== (yj > y) && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) {
         inside = !inside;
       }
     }
@@ -392,7 +402,10 @@ export class GeofenceService {
     if (dLine === 0) return d1;
 
     // Project point onto line
-    const t = Math.max(0, Math.min(1, (d1 ** 2 - d2 ** 2 + dLine ** 2) / (2 * dLine ** 2)));
+    const t = Math.max(
+      0,
+      Math.min(1, ((d1 ** 2 - d2 ** 2 + dLine ** 2) / (2 * dLine ** 2)))
+    );
 
     const projLat = lineStart.latitude + t * (lineEnd.latitude - lineStart.latitude);
     const projLon = lineStart.longitude + t * (lineEnd.longitude - lineStart.longitude);
@@ -411,9 +424,13 @@ export class GeofenceService {
   /**
    * Start dwell timer for a geofence
    */
-  private startDwellTimer(userId: string, geofence: Geofence, location: Coordinates): void {
+  private startDwellTimer(
+    userId: string,
+    geofence: Geofence,
+    location: Coordinates
+  ): void {
     const timerKey = `${userId}:${geofence.id}`;
-
+    
     // Cancel existing timer if any
     this.cancelDwellTimer(userId, geofence.id);
 
@@ -424,7 +441,7 @@ export class GeofenceService {
       const state = this.userStates.get(userId);
       if (state?.insideGeofences.includes(geofence.id)) {
         const event = this.createEvent(geofence, 'dwell', location);
-
+        
         await getEventBus().publish({
           userId,
           eventType: 'location_entered',
@@ -507,13 +524,11 @@ export class GeofenceService {
         .collection('geofences')
         .doc(geofence.id);
 
-      await docRef.set(
-        cleanForFirestore({
-          ...geofence,
-          createdAt: geofence.createdAt.toISOString(),
-          updatedAt: geofence.updatedAt.toISOString(),
-        })
-      );
+      await docRef.set(cleanForFirestore({
+        ...geofence,
+        createdAt: geofence.createdAt.toISOString(),
+        updatedAt: geofence.updatedAt.toISOString(),
+      }));
     } catch (error) {
       log.error({ error: String(error) }, 'Failed to persist geofence');
     }
@@ -522,12 +537,20 @@ export class GeofenceService {
   /**
    * Delete geofence from store
    */
-  private async deleteGeofenceFromStore(userId: string, geofenceId: string): Promise<void> {
+  private async deleteGeofenceFromStore(
+    userId: string,
+    geofenceId: string
+  ): Promise<void> {
     const db = getFirestoreDb();
     if (!db) return;
 
     try {
-      await db.collection('users').doc(userId).collection('geofences').doc(geofenceId).delete();
+      await db
+        .collection('users')
+        .doc(userId)
+        .collection('geofences')
+        .doc(geofenceId)
+        .delete();
     } catch (error) {
       log.error({ error: String(error) }, 'Failed to delete geofence from store');
     }
@@ -544,7 +567,11 @@ export class GeofenceService {
     }
 
     try {
-      const snapshot = await db.collection('users').doc(userId).collection('geofences').get();
+      const snapshot = await db
+        .collection('users')
+        .doc(userId)
+        .collection('geofences')
+        .get();
 
       for (const doc of snapshot.docs) {
         const data = doc.data();

@@ -99,12 +99,17 @@ describe('Entity Resolver Full Implementation', () => {
       if (!store) return;
 
       // First create an entity
-      const entity = await store.createEntity(TEST_USER_ID, 'person', 'TestPerson1', {
-        _type: 'person',
-        relationship: 'friend',
-        relationshipCategory: 'friend',
-        sentiment: 0.5,
-      } as PersonAttributes);
+      const entity = await store.createEntity(
+        TEST_USER_ID,
+        'person',
+        'TestPerson1',
+        {
+          _type: 'person',
+          relationship: 'friend',
+          relationshipCategory: 'friend',
+          sentiment: 0.5,
+        } as PersonAttributes
+      );
       createdEntityIds.push(entity.id);
 
       // Now resolve it
@@ -121,12 +126,17 @@ describe('Entity Resolver Full Implementation', () => {
       if (!store) return;
 
       // Create an entity with specific relationship
-      const entity = await store.createEntity(TEST_USER_ID, 'person', 'TestMom', {
-        _type: 'person',
-        relationship: 'mother',
-        relationshipCategory: 'family',
-        sentiment: 0.9,
-      } as PersonAttributes);
+      const entity = await store.createEntity(
+        TEST_USER_ID,
+        'person',
+        'TestMom',
+        {
+          _type: 'person',
+          relationship: 'mother',
+          relationshipCategory: 'family',
+          sentiment: 0.9,
+        } as PersonAttributes
+      );
       createdEntityIds.push(entity.id);
 
       // Resolve by relationship
@@ -172,20 +182,30 @@ describe('Entity Resolver Full Implementation', () => {
       if (!store) return;
 
       // Create two entities
-      const entity1 = await store.createEntity(TEST_USER_ID, 'person', 'Alice', {
-        _type: 'person',
-        relationship: 'friend',
-        relationshipCategory: 'friend',
-        sentiment: 0.7,
-      } as PersonAttributes);
+      const entity1 = await store.createEntity(
+        TEST_USER_ID,
+        'person',
+        'Alice',
+        {
+          _type: 'person',
+          relationship: 'friend',
+          relationshipCategory: 'friend',
+          sentiment: 0.7,
+        } as PersonAttributes
+      );
       createdEntityIds.push(entity1.id);
 
-      const entity2 = await store.createEntity(TEST_USER_ID, 'person', 'Bob', {
-        _type: 'person',
-        relationship: 'friend',
-        relationshipCategory: 'friend',
-        sentiment: 0.6,
-      } as PersonAttributes);
+      const entity2 = await store.createEntity(
+        TEST_USER_ID,
+        'person',
+        'Bob',
+        {
+          _type: 'person',
+          relationship: 'friend',
+          relationshipCategory: 'friend',
+          sentiment: 0.6,
+        } as PersonAttributes
+      );
       createdEntityIds.push(entity2.id);
 
       // Add relationship
@@ -205,20 +225,30 @@ describe('Entity Resolver Full Implementation', () => {
     it('should handle different relationship types', async () => {
       if (!store) return;
 
-      const entity1 = await store.createEntity(TEST_USER_ID, 'person', 'Employee1', {
-        _type: 'person',
-        relationship: 'colleague',
-        relationshipCategory: 'colleague',
-        sentiment: 0.5,
-      } as PersonAttributes);
+      const entity1 = await store.createEntity(
+        TEST_USER_ID,
+        'person',
+        'Employee1',
+        {
+          _type: 'person',
+          relationship: 'colleague',
+          relationshipCategory: 'colleague',
+          sentiment: 0.5,
+        } as PersonAttributes
+      );
       createdEntityIds.push(entity1.id);
 
-      const entity2 = await store.createEntity(TEST_USER_ID, 'person', 'Boss1', {
-        _type: 'person',
-        relationship: 'boss',
-        relationshipCategory: 'professional',
-        sentiment: 0.4,
-      } as PersonAttributes);
+      const entity2 = await store.createEntity(
+        TEST_USER_ID,
+        'person',
+        'Boss1',
+        {
+          _type: 'person',
+          relationship: 'boss',
+          relationshipCategory: 'professional',
+          sentiment: 0.4,
+        } as PersonAttributes
+      );
       createdEntityIds.push(entity2.id);
 
       await resolver.addRelationship(TEST_USER_ID, entity1.id, entity2.id, 'reports_to');
@@ -324,7 +354,7 @@ describe('Entity Resolver Full Implementation', () => {
         name: `GetEntityTest_${uuidv4().substring(0, 6)}`,
         relationship: 'friend',
       });
-
+      
       if (!resolved) {
         console.warn('Could not create entity for test');
         return;
@@ -378,7 +408,7 @@ describe('Entity Resolver Full Implementation', () => {
         name: `FactsTestPerson_${uuidv4().substring(0, 6)}`,
         relationship: 'friend',
       });
-
+      
       if (!entity) {
         console.warn('Could not create entity for test');
         return;
@@ -401,7 +431,7 @@ describe('Knowledge Graph Integration', () => {
   it('should have entity resolver with full implementations', () => {
     // Check that the resolver has all the expected methods
     const resolver = getEntityResolver();
-
+    
     expect(resolver.resolveMention).toBeTypeOf('function');
     expect(resolver.addRelationship).toBeTypeOf('function');
     expect(resolver.resolve).toBeTypeOf('function');
@@ -414,15 +444,15 @@ describe('Knowledge Graph Integration', () => {
   it('should have proper implementations (not just stubs)', async () => {
     // Verify that the implementations actually do something
     const resolver = getEntityResolver();
-
+    
     // getPeople should return an array (even if empty)
     const people = await resolver.getPeople(TEST_USER_ID);
     expect(Array.isArray(people)).toBe(true);
-
+    
     // getEntitiesByType should return an array
     const entities = await resolver.getEntitiesByType(TEST_USER_ID, 'person');
     expect(Array.isArray(entities)).toBe(true);
-
+    
     // resolve with non-existent ID should return null (not throw)
     const resolved = await resolver.resolve(TEST_USER_ID, 'non-existent-id');
     expect(resolved).toBeNull();

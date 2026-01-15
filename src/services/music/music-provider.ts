@@ -123,7 +123,10 @@ export function selectBestSource(
 ): MusicSource {
   const { explicitSonos, explicitSpotify, roomSpecified } = options ?? {};
 
-  log.debug({ intent, config, options }, '🎵 Selecting best music source');
+  log.debug(
+    { intent, config, options },
+    '🎵 Selecting best music source'
+  );
 
   // Explicit routing takes precedence
   if (explicitSonos && config.sonos.available) {
@@ -144,10 +147,7 @@ export function selectBestSource(
         roomSpecified.toLowerCase().includes(r.toLowerCase())
     );
     if (roomMatch) {
-      log.info(
-        { reason: 'room_specified', room: roomSpecified },
-        '🎵 Using Sonos (room specified)'
-      );
+      log.info({ reason: 'room_specified', room: roomSpecified }, '🎵 Using Sonos (room specified)');
       return 'sonos';
     }
   }

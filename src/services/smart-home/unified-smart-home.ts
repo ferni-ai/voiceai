@@ -83,7 +83,7 @@ export async function controlLights(
         for (const light of lights) {
           await hk.queueDeviceCommand(userId, light.id, {
             on: state !== 'off',
-            brightness: state === 'dim' ? brightness || 50 : brightness,
+            brightness: state === 'dim' ? (brightness || 50) : brightness,
           });
         }
         log.info({ userId, zone, state, via: 'homekit' }, '💡 Lights controlled');
@@ -165,7 +165,10 @@ export async function setThermostat(
 /**
  * Activate a smart home scene (e.g., "Movie Night", "Good Morning")
  */
-export async function activateScene(userId: string, sceneName: string): Promise<SmartHomeResult> {
+export async function activateScene(
+  userId: string,
+  sceneName: string
+): Promise<SmartHomeResult> {
   log.debug({ userId, sceneName }, '🎬 Activating scene');
 
   try {
@@ -190,9 +193,8 @@ export async function activateScene(userId: string, sceneName: string): Promise<
       // Find matching scene
       const scenes = await hk.getScenes(userId);
       const match = scenes.find(
-        (s) =>
-          s.name.toLowerCase().includes(sceneName.toLowerCase()) ||
-          sceneName.toLowerCase().includes(s.name.toLowerCase())
+        (s) => s.name.toLowerCase().includes(sceneName.toLowerCase()) ||
+               sceneName.toLowerCase().includes(s.name.toLowerCase())
       );
       if (match) {
         await hk.queueSceneCommand(userId, match.id);

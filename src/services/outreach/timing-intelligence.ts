@@ -14,7 +14,7 @@
  * Philosophy: Reach out when they're receptive, not when it's convenient for us.
  */
 
-import { getDefaultStore } from '../memory/in-memory-store.js';
+import { getDefaultStore } from '../../memory/in-memory-store.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import type { OutreachPriority } from './decision-engine.js';
 import { loadOutreachProfile, saveOutreachProfile } from './firestore-persistence.js';

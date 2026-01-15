@@ -12,12 +12,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import type {
-  UserProfile,
-  KeyMoment,
-  EmotionalPattern,
-  ConversationSummary,
-} from '../../types/user-profile.js';
+import type { UserProfile, KeyMoment, EmotionalPattern, ConversationSummary } from '../../types/user-profile.js';
 
 const log = createLogger({ module: 'ProfilePruning' });
 
@@ -183,7 +178,8 @@ function pruneKeyMoments(
   const scored = moments.map((m) => ({
     moment: m,
     score:
-      (weightMap[m.emotionalWeight] || 1) * (typeWeight[m.type] || 1) + (m.followUpNeeded ? 5 : 0),
+      (weightMap[m.emotionalWeight] || 1) * (typeWeight[m.type] || 1) +
+      (m.followUpNeeded ? 5 : 0),
   }));
 
   // Sort by score (desc), then by date (desc)
@@ -327,12 +323,7 @@ export function pruneProfile(
   // Prune shared stories (simple recent pruning)
   if (prunedProfile.sharedStories && prunedProfile.sharedStories.length > cfg.maxSharedStories) {
     const storiesResult = pruneRecentArray(
-      prunedProfile.sharedStories as Array<{
-        timestamp?: Date;
-        createdAt?: Date;
-        playedAt?: Date;
-        sharedAt?: Date;
-      }>,
+      prunedProfile.sharedStories as Array<{ timestamp?: Date; createdAt?: Date; playedAt?: Date; sharedAt?: Date }>,
       cfg.maxSharedStories,
       'timestamp'
     );
@@ -342,10 +333,7 @@ export function pruneProfile(
   }
 
   // Prune investment events
-  if (
-    prunedProfile.investmentEvents &&
-    prunedProfile.investmentEvents.length > cfg.maxInvestmentEvents
-  ) {
+  if (prunedProfile.investmentEvents && prunedProfile.investmentEvents.length > cfg.maxInvestmentEvents) {
     const eventsResult = pruneRecentArray(prunedProfile.investmentEvents, cfg.maxInvestmentEvents);
     prunedProfile.investmentEvents = eventsResult.pruned;
     result.itemsPruned.investmentEvents = eventsResult.count;
@@ -365,9 +353,8 @@ export function pruneProfile(
 
     const keepInactive = cfg.maxFinancialGoals - active.length;
     const prunedInactive = inactive
-      .sort(
-        (a: (typeof inactive)[0], b: (typeof inactive)[0]) =>
-          new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime()
+      .sort((a: typeof inactive[0], b: typeof inactive[0]) => 
+        new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime()
       )
       .slice(0, Math.max(0, keepInactive));
 
@@ -392,15 +379,8 @@ export function pruneProfile(
   // Prune game memory
   if (prunedProfile.gameMemory) {
     // Prune recent games
-    if (
-      prunedProfile.gameMemory.recentGames &&
-      prunedProfile.gameMemory.recentGames.length > cfg.maxGameSessions
-    ) {
-      const gamesResult = pruneRecentArray(
-        prunedProfile.gameMemory.recentGames,
-        cfg.maxGameSessions,
-        'playedAt'
-      );
+    if (prunedProfile.gameMemory.recentGames && prunedProfile.gameMemory.recentGames.length > cfg.maxGameSessions) {
+      const gamesResult = pruneRecentArray(prunedProfile.gameMemory.recentGames, cfg.maxGameSessions, 'playedAt');
       prunedProfile.gameMemory.recentGames = gamesResult.pruned;
       result.itemsPruned.gameSessions = gamesResult.count;
       result.profileModified = true;
@@ -410,10 +390,7 @@ export function pruneProfile(
     // Guess timing records are now stored directly in gameStats per game type
 
     // Prune milestones (keep celebrated ones)
-    if (
-      prunedProfile.gameMemory.milestones &&
-      prunedProfile.gameMemory.milestones.length > cfg.maxGameMilestones
-    ) {
+    if (prunedProfile.gameMemory.milestones && prunedProfile.gameMemory.milestones.length > cfg.maxGameMilestones) {
       // Keep celebrated ones, prune oldest uncelebrated
       const celebrated = prunedProfile.gameMemory.milestones.filter((m) => m.celebrated);
       const uncelebrated = prunedProfile.gameMemory.milestones.filter((m) => !m.celebrated);
@@ -484,7 +461,7 @@ export async function pruneAllProfiles(options?: {
   };
 
   try {
-    const { getStore } = await import('../memory/store-factory.js');
+    const { getStore } = await import('../../memory/store-factory.js');
     const store = await getStore();
 
     // Get all users (with limit)
@@ -544,7 +521,7 @@ export async function pruneProfileOnSessionEnd(
   options?: { saveImmediately?: boolean }
 ): Promise<PruningResult | null> {
   try {
-    const { getStore } = await import('../memory/store-factory.js');
+    const { getStore } = await import('../../memory/store-factory.js');
     const store = await getStore();
 
     const profile = await store.getProfile(userId);

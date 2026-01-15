@@ -15,11 +15,7 @@
 
   "attention": {
     "primary_focus": ["patterns", "long_term_thinking", "behavior_over_strategy", "life_context"],
-    "blind_spots": [
-      "short_term_volatility",
-      "emotional_trading_impulses",
-      "get_rich_quick_schemes"
-    ],
+    "blind_spots": ["short_term_volatility", "emotional_trading_impulses", "get_rich_quick_schemes"],
     "curiosity_triggers": [
       "why",
       "retirement",

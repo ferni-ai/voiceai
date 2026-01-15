@@ -27,11 +27,6 @@ import {
   type EnrichedMessage,
   type EnrichmentContext,
 } from './message-enrichment.js';
-import {
-  initializeTranscriptCapture,
-  analyzeCompletedCall,
-  type SuperhumanCallResult,
-} from './call-transcript-intelligence.js';
 
 const log = getLogger().child({ service: 'on-behalf-call-orchestrator' });
 
@@ -77,9 +72,6 @@ export interface OnBehalfCall {
 
   // Outcome
   outcome?: CallOutcome;
-
-  // Superhuman transcript analysis
-  superhumanResult?: SuperhumanCallResult;
 }
 
 export interface OnBehalfCallConfig {
@@ -263,10 +255,6 @@ class OnBehalfCallOrchestrator extends EventEmitter {
 
       call.twilioCallSid = callSid;
       call.status = 'ringing';
-
-      // Initialize transcript capture for superhuman analysis
-      initializeTranscriptCapture(callId, contact.name, contact.relationship);
-      log.debug({ callId }, '📝 Transcript capture initialized');
 
       activeCallsStore.set(callId, call);
       this.emit('call-initiated', call);
@@ -765,120 +753,6 @@ class OnBehalfCallOrchestrator extends EventEmitter {
       'On-behalf call completed'
     );
 
-    // Calculate call duration
-    const durationSeconds = call.answeredAt
-      ? Math.round((Date.now() - call.answeredAt.getTime()) / 1000)
-      : 0;
-
-    // =========================================================================
-    // SUPERHUMAN ANALYSIS - Analyze transcript with LLM
-    // =========================================================================
-    if (call.status === 'completed' && durationSeconds > 10) {
-      try {
-        const superhumanResult = await analyzeCompletedCall(
-          call.id,
-          durationSeconds,
-          call.request.purpose,
-          call.request.userName
-        );
-
-        if (superhumanResult) {
-          call.superhumanResult = superhumanResult;
-          log.info(
-            {
-              callId: call.id,
-              sentiment: superhumanResult.insights.emotionalTone.overallSentiment,
-              objectiveAchieved: superhumanResult.insights.objectiveAchieved,
-              actionItems: superhumanResult.insights.actionItems.length,
-            },
-            '✨ Superhuman call analysis complete'
-          );
-
-          // =========================================================================
-          // RELATIONSHIP HEALTH TRACKING - Monitor quality over time
-          // =========================================================================
-          if (call.request.resolvedContact?.phone) {
-            try {
-              const { recordCallQuality, extractCallQualityFromAnalysis } =
-                await import('./relationship-health-tracker.js');
-
-              const qualityMetrics = extractCallQualityFromAnalysis(
-                call.id,
-                durationSeconds,
-                superhumanResult.insights
-              );
-
-              await recordCallQuality(
-                call.request.userId,
-                call.request.resolvedContact.phone,
-                qualityMetrics,
-                {
-                  name: call.request.resolvedContact.name,
-                  relationship: call.request.resolvedContact.relationship,
-                }
-              );
-
-              log.debug({ callId: call.id }, '📊 Recorded relationship health metrics');
-            } catch (healthError) {
-              log.debug(
-                { error: String(healthError) },
-                'Relationship health tracking failed (non-blocking)'
-              );
-            }
-          }
-        }
-      } catch (error) {
-        log.warn(
-          { error: String(error), callId: call.id },
-          'Superhuman analysis failed (non-blocking)'
-        );
-      }
-    }
-
-    // =========================================================================
-    // SMART CALLBACK QUEUE - Auto-retry failed calls at optimal times
-    // =========================================================================
-    if (call.status === 'no_answer' || call.status === 'busy' || call.status === 'voicemail') {
-      try {
-        const { queueCallbackRetry } = await import('./smart-callback-queue.js');
-
-        const retryQueued = await queueCallbackRetry(
-          call.request.userId,
-          call.id,
-          call.request.contactQuery,
-          call.request.resolvedContact?.name,
-          call.request.resolvedContact?.phone,
-          call.request.purpose,
-          undefined, // Message will be regenerated on retry
-          call.status as 'no_answer' | 'busy' | 'voicemail'
-        );
-
-        if (retryQueued) {
-          log.info(
-            {
-              callId: call.id,
-              status: call.status,
-              nextRetry: retryQueued.scheduledFor,
-              attemptCount: retryQueued.attemptCount,
-            },
-            '📅 Auto-scheduled callback retry'
-          );
-        }
-      } catch (error) {
-        log.debug({ error: String(error) }, 'Failed to queue callback retry (non-blocking)');
-      }
-    }
-
-    // Record successful call for reachability learning
-    if (call.status === 'completed' && call.request.resolvedContact?.phone) {
-      try {
-        const { recordSuccessfulCall } = await import('./smart-callback-queue.js');
-        await recordSuccessfulCall(call.request.userId, call.request.resolvedContact.phone);
-      } catch {
-        // Non-critical
-      }
-    }
-
     // Notify the original session
     await this.notifyOriginalSession(call);
 
@@ -894,34 +768,17 @@ class OnBehalfCallOrchestrator extends EventEmitter {
       // Dynamic import to avoid circular dependencies
       const { captureCallResult } = await import('./call-result-capture.js');
 
-      // Use superhuman insights if available, otherwise fall back to basic summary
-      const hasSuperhuman = !!call.superhumanResult;
-      const insights = call.superhumanResult?.insights;
-
       const outcome: CallOutcome = {
         callId: call.id,
         status: call.status as CallOutcome['status'],
-        objectiveAchieved: hasSuperhuman
-          ? insights!.objectiveAchieved
-          : call.status === 'completed',
-        outcome: hasSuperhuman
-          ? call.superhumanResult!.friendlyReport
-          : this.generateOutcomeSummary(call),
-        callbackRequired: hasSuperhuman
-          ? insights!.callbackRequested
-          : call.status === 'no_answer' || call.status === 'busy',
-        callbackTime: insights?.callbackDetails,
-        actionItems: insights?.actionItems,
-        messagesForUser: insights?.messagesForUser,
-        transcriptSummary: insights?.detailedSummary,
+        objectiveAchieved: call.status === 'completed',
+        outcome: this.generateOutcomeSummary(call),
+        callbackRequired: call.status === 'no_answer' || call.status === 'busy',
       };
 
       await captureCallResult(call.id, outcome, call.request);
 
-      log.info(
-        { callId: call.id, superhuman: hasSuperhuman },
-        'Notified original session of call result'
-      );
+      log.info({ callId: call.id }, 'Notified original session of call result');
     } catch (error) {
       log.error({ error: String(error), callId: call.id }, 'Failed to notify original session');
     }

@@ -134,8 +134,9 @@ export class GrowthTracker {
     entityId?: string
   ): Promise<EvolutionTimeline | null> {
     try {
-      const { getAllEntities, getMentionsForEntity, searchEntities } =
-        await import('../../entity-store/storage.js');
+      const { getAllEntities, getMentionsForEntity, searchEntities } = await import(
+        '../../entity-store/storage.js'
+      );
 
       // Find relevant mentions
       let mentions: Mention[] = [];
@@ -223,7 +224,7 @@ export class GrowthTracker {
     // Acknowledge struggles
     const negative = observations.filter((o) => o.trajectory.direction === 'negative');
     if (negative.length > 0 && positive.length > 0) {
-      parts.push('\nSome areas where things have been harder:');
+      parts.push("\nSome areas where things have been harder:");
       for (const obs of negative.slice(0, 2)) {
         parts.push(`• ${obs.insightText}`);
       }
@@ -239,9 +240,7 @@ export class GrowthTracker {
     } else if (positiveRatio > 0.4) {
       parts.push("\nLife is a mix of growth and challenges. You're handling it.");
     } else {
-      parts.push(
-        "\nThings have been tough. But showing up and talking about it? That's growth too."
-      );
+      parts.push("\nThings have been tough. But showing up and talking about it? That's growth too.");
     }
 
     return parts.join('\n');
@@ -271,9 +270,7 @@ export class GrowthTracker {
             subject: `feelings about ${association.entityName}`,
             entityId: association.entityId,
             baseline: {
-              state: this.describeEmotionalState(
-                association.overallValence - association.recentTrend
-              ),
+              state: this.describeEmotionalState(association.overallValence - association.recentTrend),
               date: association.firstRecorded,
               evidence: 'Early conversations',
             },
@@ -304,8 +301,9 @@ export class GrowthTracker {
     const observations: GrowthObservation[] = [];
 
     try {
-      const { getAllEntities, getMentionsForEntity } =
-        await import('../../entity-store/storage.js');
+      const { getAllEntities, getMentionsForEntity } = await import(
+        '../../entity-store/storage.js'
+      );
 
       const entities = await getAllEntities(userId, {
         types: ['person'],
@@ -394,13 +392,7 @@ export class GrowthTracker {
         const lastSession = thread.sessions[thread.sessions.length - 1];
 
         // Skip if missing required data
-        if (
-          !firstEmotion ||
-          !lastEmotion ||
-          !firstSession?.date ||
-          !lastSession?.date ||
-          !thread.topic
-        ) {
+        if (!firstEmotion || !lastEmotion || !firstSession?.date || !lastSession?.date || !thread.topic) {
           continue;
         }
 
@@ -453,14 +445,8 @@ export class GrowthTracker {
 
   private calculateMentionSentiment(mention: Mention): number {
     const valenceMap: Record<string, number> = {
-      happy: 0.8,
-      joy: 0.9,
-      excited: 0.7,
-      grateful: 0.8,
-      sad: -0.7,
-      angry: -0.6,
-      anxious: -0.5,
-      stressed: -0.4,
+      happy: 0.8, joy: 0.9, excited: 0.7, grateful: 0.8,
+      sad: -0.7, angry: -0.6, anxious: -0.5, stressed: -0.4,
       neutral: 0,
     };
     return valenceMap[mention.emotion || 'neutral'] || 0;
@@ -494,10 +480,9 @@ export class GrowthTracker {
       if (Math.abs(afterAvg - beforeAvg) > 0.3) {
         shifts.push({
           date: events[i].date,
-          description:
-            afterAvg > beforeAvg
-              ? 'Shift toward more positive feelings'
-              : 'Shift toward more difficult feelings',
+          description: afterAvg > beforeAvg
+            ? 'Shift toward more positive feelings'
+            : 'Shift toward more difficult feelings',
           sentiment: afterAvg,
           significance: Math.abs(afterAvg - beforeAvg),
         });
@@ -518,9 +503,7 @@ export class GrowthTracker {
     parts.push(`Your journey with ${subject} has ${events.length} recorded moments.`);
 
     if (shifts.length > 0) {
-      parts.push(
-        `There have been ${shifts.length} significant shift${shifts.length > 1 ? 's' : ''}.`
-      );
+      parts.push(`There have been ${shifts.length} significant shift${shifts.length > 1 ? 's' : ''}.`);
     }
 
     if (avgSentiment > 0.3) {
@@ -557,10 +540,7 @@ export class GrowthTracker {
     return 'very difficult';
   }
 
-  private compareEmotionalArcs(
-    first: string,
-    last: string
-  ): GrowthObservation['trajectory']['direction'] {
+  private compareEmotionalArcs(first: string, last: string): GrowthObservation['trajectory']['direction'] {
     const positiveArcs = ['hopeful', 'resolved', 'relieved', 'empowered', 'peaceful'];
     const negativeArcs = ['worried', 'anxious', 'frustrated', 'stuck', 'overwhelmed'];
 
@@ -603,7 +583,11 @@ export class GrowthTracker {
     return `Your dynamic with ${name} has been evolving.`;
   }
 
-  private generateTopicGrowthInsight(topic: string, firstArc: string, lastArc: string): string {
+  private generateTopicGrowthInsight(
+    topic: string,
+    firstArc: string,
+    lastArc: string
+  ): string {
     return `When you first talked about ${topic}, you felt ${firstArc}. Now you're ${lastArc}. That's evolution.`;
   }
 }

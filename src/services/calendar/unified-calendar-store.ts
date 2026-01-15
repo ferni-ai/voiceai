@@ -959,7 +959,7 @@ export async function setCalendarPreference(
   try {
     const docId = cleanForFirestore(`${preference.provider}_${preference.calendarId}`);
     const collectionPath = getUserPreferencesCollection(userId);
-
+    
     const prefWithTimestamp: CalendarPreference = {
       ...preference,
       updatedAt: new Date().toISOString(),
@@ -985,7 +985,10 @@ export async function setCalendarPreference(
 /**
  * Check if a calendar is enabled for sync
  */
-export async function isCalendarEnabled(userId: string, calendarId: string): Promise<boolean> {
+export async function isCalendarEnabled(
+  userId: string,
+  calendarId: string
+): Promise<boolean> {
   const pref = await getCalendarPreference(userId, calendarId);
   // Default to enabled if no preference set
   return pref?.enabled ?? true;
@@ -996,13 +999,15 @@ export async function isCalendarEnabled(userId: string, calendarId: string): Pro
  */
 export async function getEnabledCalendarIds(userId: string): Promise<string[]> {
   const preferences = await getCalendarPreferences(userId);
-
+  
   // If no preferences, all calendars are enabled by default
   if (preferences.length === 0) {
     return [];
   }
 
-  return preferences.filter((p) => p.enabled).map((p) => p.calendarId);
+  return preferences
+    .filter((p) => p.enabled)
+    .map((p) => p.calendarId);
 }
 
 /**
@@ -1024,12 +1029,12 @@ export async function setCalendarPreferences(
     for (const pref of preferences) {
       const docId = cleanForFirestore(`${pref.provider}_${pref.calendarId}`);
       const docRef = firestore.collection(collectionPath).doc(docId);
-
+      
       const prefWithTimestamp: CalendarPreference = {
         ...pref,
         updatedAt: new Date().toISOString(),
       };
-
+      
       batch.set(docRef, prefWithTimestamp);
     }
 
@@ -1104,7 +1109,7 @@ export interface UnifiedCalendarView {
 export async function getUnifiedCalendarView(userId: string): Promise<UnifiedCalendarView[]> {
   // Get calendars from all providers
   const { getSelectedCalendars } = await import('./calendar-selection.js');
-
+  
   const [googleCalendars, appleCalendars, outlookCalendars, preferences] = await Promise.all([
     getSelectedCalendars(userId, 'google'),
     getSelectedCalendars(userId, 'apple'),
@@ -1120,14 +1125,14 @@ export async function getUnifiedCalendarView(userId: string): Promise<UnifiedCal
 
   // Merge all calendars with their preferences
   const allCalendars = [
-    ...googleCalendars.map((c) => ({ ...c, provider: 'google' as CalendarProvider })),
-    ...appleCalendars.map((c) => ({ ...c, provider: 'apple' as CalendarProvider })),
-    ...outlookCalendars.map((c) => ({ ...c, provider: 'outlook' as CalendarProvider })),
+    ...googleCalendars.map(c => ({ ...c, provider: 'google' as CalendarProvider })),
+    ...appleCalendars.map(c => ({ ...c, provider: 'apple' as CalendarProvider })),
+    ...outlookCalendars.map(c => ({ ...c, provider: 'outlook' as CalendarProvider })),
   ];
 
   return allCalendars.map((cal): UnifiedCalendarView => {
     const pref = prefsMap.get(`${cal.provider}_${cal.id}`);
-
+    
     return {
       id: cal.id,
       displayName: pref?.nickname || cal.name,

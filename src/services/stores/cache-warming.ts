@@ -15,7 +15,7 @@
 import { createLogger } from '../../utils/safe-logger.js';
 import { loadBundleById, discoverBundles } from '../../personas/bundles/index.js';
 import { loadPersonaBehaviors } from './persona-content-loader.js';
-import { getEmbeddingCache } from '../memory/embedding-cache.js';
+import { getEmbeddingCache } from '../../memory/embedding-cache.js';
 
 const log = createLogger({ module: 'cache-warming' });
 

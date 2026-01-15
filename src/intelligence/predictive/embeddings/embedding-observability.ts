@@ -202,7 +202,10 @@ export function recordPredictionOutcome(
 /**
  * Record persistence operation
  */
-export function recordPersistence(operation: 'hydration' | 'flush', success: boolean): void {
+export function recordPersistence(
+  operation: 'hydration' | 'flush',
+  success: boolean
+): void {
   if (operation === 'hydration') {
     if (success) metrics.hydrationsPerformed++;
     else metrics.persistenceErrors++;
@@ -262,8 +265,7 @@ export function getMetricsSummary(): {
       ? metrics.embeddingLatencyMs.reduce((a, b) => a + b, 0) / metrics.embeddingLatencyMs.length
       : 0;
 
-  const trajectoryTotal =
-    metrics.trajectoryPredictionsCorrect + metrics.trajectoryPredictionsIncorrect;
+  const trajectoryTotal = metrics.trajectoryPredictionsCorrect + metrics.trajectoryPredictionsIncorrect;
   const interventionTotal = metrics.interventionsSuccessful + metrics.interventionsFailed;
 
   return {
@@ -285,10 +287,8 @@ export function getMetricsSummary(): {
       community: metrics.communityInsights,
     },
     effectiveness: {
-      trajectoryAccuracy:
-        trajectoryTotal > 0 ? metrics.trajectoryPredictionsCorrect / trajectoryTotal : 0,
-      interventionSuccessRate:
-        interventionTotal > 0 ? metrics.interventionsSuccessful / interventionTotal : 0,
+      trajectoryAccuracy: trajectoryTotal > 0 ? metrics.trajectoryPredictionsCorrect / trajectoryTotal : 0,
+      interventionSuccessRate: interventionTotal > 0 ? metrics.interventionsSuccessful / interventionTotal : 0,
     },
     persistence: {
       hydrations: metrics.hydrationsPerformed,

@@ -67,8 +67,7 @@ export async function warmupResources(log: LogFn): Promise<WarmupResult> {
     // ⚡ Initialize background agents delivery (lightweight - just push/email)
     // This enables "while you were away" notifications without the full outreach system
     try {
-      const { initializeBackgroundDelivery } =
-        await import('../../services/background-agents/index.js');
+      const { initializeBackgroundDelivery } = await import('../../services/background-agents/index.js');
       await initializeBackgroundDelivery();
       log('✅ Background agents delivery initialized');
     } catch (e) {
@@ -168,8 +167,9 @@ export async function warmupResources(log: LogFn): Promise<WarmupResult> {
       (async () => {
         try {
           const embeddingsStart = Date.now();
-          const { loadPrecomputedEmbeddings } =
-            await import('../../tools/semantic-router/precomputed-embeddings.js');
+          const { loadPrecomputedEmbeddings } = await import(
+            '../../tools/semantic-router/precomputed-embeddings.js'
+          );
           const embeddings = await loadPrecomputedEmbeddings();
           log('⚡ Pre-computed embeddings loaded (30-50x faster than API)', {
             durationMs: Date.now() - embeddingsStart,
@@ -216,7 +216,7 @@ export async function warmupResources(log: LogFn): Promise<WarmupResult> {
       (async () => {
         try {
           const convStart = Date.now();
-          await import('../../services/conversation-thread/conversation-manager.js');
+          await import('../../services/conversation-manager.js');
           log('✅ Conversation manager loaded', { durationMs: Date.now() - convStart });
         } catch (e) {
           log('⚠️ Conversation manager load failed (non-fatal)', { error: String(e) });
@@ -276,8 +276,8 @@ export async function warmupResources(log: LogFn): Promise<WarmupResult> {
           await Promise.all([
             import('../shared/performance/index.js'),
             import('../../services/pubsub/pubsub-client.js'),
-            import('../../intelligence/core/batched-llm-analysis.js'),
-            import('../../intelligence/core/context-service.js'),
+            import('../../intelligence/batched-llm-analysis.js'),
+            import('../../intelligence/context-service.js'),
             import('../../memory/parallel-memory-search.js'),
           ]);
           log('✅ Performance optimization modules pre-loaded', {
@@ -365,30 +365,6 @@ export async function warmupResources(log: LogFn): Promise<WarmupResult> {
           log('⚠️ Fast-join init failed (non-fatal, will create sessions on demand)', {
             error: String(e),
           });
-        }
-      })()
-    );
-
-    // 13. ⚡ DAY AWARENESS CACHE: Pre-warm shared day context (date, holidays, season)
-    // First user of the day gets instant day awareness instead of computing fresh.
-    // Refreshes in background every 5 minutes to stay current.
-    tasks.push(
-      (async () => {
-        try {
-          const dayAwarenessStart = Date.now();
-          const { initDayAwarenessCache, getDayAwareness } =
-            await import('../../services/context-awareness/day-awareness-cache.js');
-          initDayAwarenessCache();
-          // Force initial cache population
-          const context = getDayAwareness();
-          log('✅ Day awareness cache warmed', {
-            durationMs: Date.now() - dayAwarenessStart,
-            timeOfDay: context.timeOfDay,
-            dayOfWeek: context.dayOfWeek,
-            holiday: context.holiday?.name,
-          });
-        } catch (e) {
-          log('⚠️ Day awareness cache init failed (non-fatal)', { error: String(e) });
         }
       })()
     );

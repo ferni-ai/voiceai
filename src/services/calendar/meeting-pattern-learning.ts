@@ -30,13 +30,13 @@ const log = createLogger({ module: 'MeetingPatternLearning' });
 export interface MeetingPattern {
   // Preferred start times by day (0=Sunday, 6=Saturday)
   preferredStartTimes: Record<number, number[]>; // Day -> array of preferred hours (0-23)
-
+  
   // Days user typically avoids meetings
   avoidDays: number[]; // 0-6 for days to avoid
-
-  // Hours user typically avoids meetings
+  
+  // Hours user typically avoids meetings  
   avoidHours: number[]; // 0-23 for hours to avoid
-
+  
   // Optimal meeting durations (learned from history)
   optimalDurationByType: {
     oneOnOne: number; // minutes
@@ -45,19 +45,19 @@ export interface MeetingPattern {
     standup: number;
     general: number;
   };
-
+  
   // Energy peaks (hours when user schedules important meetings)
   energyPeaks: number[]; // Hours 0-23 with highest energy
-
+  
   // Focus time preference
   focusTimePreference: 'morning' | 'afternoon' | 'evening' | 'variable';
-
+  
   // Meeting clustering preference
   clusteringPreference: 'batched' | 'spread' | 'variable';
-
+  
   // Learned from how many events
   learnedFromEventCount: number;
-
+  
   // Last updated
   updatedAt: string;
 }
@@ -153,11 +153,7 @@ export async function getMeetingPatterns(userId: string): Promise<MeetingPattern
       return { ...DEFAULT_PATTERNS };
     }
 
-    const docRef = db
-      .collection('users')
-      .doc(cleanForFirestore(userId))
-      .collection('calendar')
-      .doc('meeting_patterns');
+    const docRef = db.collection('users').doc(cleanForFirestore(userId)).collection('calendar').doc('meeting_patterns');
     const doc = await docRef.get();
 
     if (doc.exists) {
@@ -186,9 +182,9 @@ export async function learnMeetingPatterns(userId: string): Promise<MeetingPatte
     const threeMonthsAgo = new Date();
     threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
     const now = new Date();
-
+    
     const events = await getEvents(userId, threeMonthsAgo, now);
-
+    
     if (events.length < 10) {
       log.debug({ userId, eventCount: events.length }, 'Not enough events to learn patterns');
       return { ...DEFAULT_PATTERNS, learnedFromEventCount: events.length };
@@ -196,15 +192,11 @@ export async function learnMeetingPatterns(userId: string): Promise<MeetingPatte
 
     // Analyze patterns
     const patterns = analyzeEventPatterns(events);
-
+    
     // Save to Firestore
     const db = await getFirestore();
     if (db) {
-      const docRef = db
-        .collection('users')
-        .doc(cleanForFirestore(userId))
-        .collection('calendar')
-        .doc('meeting_patterns');
+      const docRef = db.collection('users').doc(cleanForFirestore(userId)).collection('calendar').doc('meeting_patterns');
       await docRef.set(patterns);
       log.info({ userId, eventCount: events.length }, 'Meeting patterns learned and saved');
     }
@@ -237,7 +229,7 @@ export async function getOptimalMeetingTimes(
     if (patterns.avoidDays.includes(day)) continue;
 
     const preferredHours = patterns.preferredStartTimes[day] || [];
-
+    
     for (let hour = 7; hour < 20; hour++) {
       // Skip avoid hours
       if (patterns.avoidHours.includes(hour)) continue;
@@ -331,17 +323,17 @@ function analyzeEventPatterns(events: CalendarEvent[]): MeetingPattern {
   // Count events by day and hour
   const dayHourCounts: Map<string, DayTimeStats> = new Map();
   const durationsByType: Map<string, number[]> = new Map();
-
+  
   for (const event of events) {
     // Skip all-day events
     if (event.isAllDay) continue;
-
+    
     const startTime = new Date(event.startTime);
     const endTime = new Date(event.endTime);
     const day = startTime.getDay();
     const hour = startTime.getHours();
     const duration = (endTime.getTime() - startTime.getTime()) / (1000 * 60); // minutes
-
+    
     // Track day/hour stats
     const key = `${day}-${hour}`;
     const existing = dayHourCounts.get(key) || {
@@ -356,7 +348,7 @@ function analyzeEventPatterns(events: CalendarEvent[]): MeetingPattern {
     // Note: Would need event status tracking for accepted/declined/rescheduled
     existing.acceptedCount++;
     dayHourCounts.set(key, existing);
-
+    
     // Track durations by type
     const type = inferMeetingType(event);
     const durations = durationsByType.get(type) || [];
@@ -376,7 +368,7 @@ function analyzeEventPatterns(events: CalendarEvent[]): MeetingPattern {
     }
     // Top hours for this day
     dayHours.sort((a, b) => b.count - a.count);
-    preferredStartTimes[day] = dayHours.slice(0, 4).map((h) => h.hour);
+    preferredStartTimes[day] = dayHours.slice(0, 4).map(h => h.hour);
   }
 
   // Analyze avoid days (days with few meetings)
@@ -388,8 +380,8 @@ function analyzeEventPatterns(events: CalendarEvent[]): MeetingPattern {
   const avgDayCount = dayTotals.reduce((a, b) => a + b, 0) / 7;
   const avoidDays = dayTotals
     .map((count, day) => ({ day, count }))
-    .filter((d) => d.count < avgDayCount * 0.2)
-    .map((d) => d.day);
+    .filter(d => d.count < avgDayCount * 0.2)
+    .map(d => d.day);
 
   // Analyze avoid hours
   const hourTotals: number[] = new Array(24).fill(0);
@@ -400,8 +392,8 @@ function analyzeEventPatterns(events: CalendarEvent[]): MeetingPattern {
   const avgHourCount = hourTotals.reduce((a, b) => a + b, 0) / 24;
   const avoidHours = hourTotals
     .map((count, hour) => ({ hour, count }))
-    .filter((h) => h.count < avgHourCount * 0.1)
-    .map((h) => h.hour);
+    .filter(h => h.count < avgHourCount * 0.1)
+    .map(h => h.hour);
 
   // Analyze optimal durations
   const optimalDurationByType = {
@@ -415,16 +407,16 @@ function analyzeEventPatterns(events: CalendarEvent[]): MeetingPattern {
   // Analyze energy peaks (hours with most meetings)
   const energyPeaks = hourTotals
     .map((count, hour) => ({ hour, count }))
-    .filter((h) => h.count > avgHourCount * 1.5)
+    .filter(h => h.count > avgHourCount * 1.5)
     .sort((a, b) => b.count - a.count)
     .slice(0, 4)
-    .map((h) => h.hour);
+    .map(h => h.hour);
 
   // Analyze focus time preference
   const morningMeetings = hourTotals.slice(8, 12).reduce((a, b) => a + b, 0);
   const afternoonMeetings = hourTotals.slice(13, 17).reduce((a, b) => a + b, 0);
   const eveningMeetings = hourTotals.slice(17, 20).reduce((a, b) => a + b, 0);
-
+  
   let focusTimePreference: 'morning' | 'afternoon' | 'evening' | 'variable' = 'variable';
   if (morningMeetings < afternoonMeetings * 0.5) {
     focusTimePreference = 'morning';
@@ -451,7 +443,7 @@ function analyzeEventPatterns(events: CalendarEvent[]): MeetingPattern {
 
 function inferMeetingType(event: CalendarEvent): string {
   const title = (event.title || '').toLowerCase();
-
+  
   if (title.includes('1:1') || title.includes('one-on-one') || title.includes('catch up')) {
     return 'oneOnOne';
   }
@@ -464,7 +456,7 @@ function inferMeetingType(event: CalendarEvent): string {
   if (title.includes('team') || title.includes('all hands') || title.includes('sync')) {
     return 'teamMeeting';
   }
-
+  
   return 'general';
 }
 
@@ -472,7 +464,9 @@ function calculateMedian(values: number[]): number {
   if (values.length === 0) return 30;
   const sorted = [...values].sort((a, b) => a - b);
   const mid = Math.floor(sorted.length / 2);
-  return sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
+  return sorted.length % 2 === 0 
+    ? (sorted[mid - 1] + sorted[mid]) / 2 
+    : sorted[mid];
 }
 
 export default {

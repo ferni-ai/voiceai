@@ -13,7 +13,7 @@
  * @module services/user-identification
  */
 
-import { getDefaultStore, type MemoryStore } from '../memory/index.js';
+import { getDefaultStore, type MemoryStore } from '../../memory/index.js';
 import { createUserId, type UserId } from '../../types/branded.js';
 import type { UserProfile, VoiceSketch } from '../../types/user-profile.js';
 import { getLogger } from '../../utils/safe-logger.js';

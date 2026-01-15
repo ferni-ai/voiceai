@@ -13,7 +13,7 @@ import { EventEmitter } from 'events';
 import type { Room, RemoteParticipant } from '@livekit/rtc-node';
 import Twilio, { type Twilio as TwilioClient } from 'twilio';
 import { getLogger } from '../../utils/safe-logger.js';
-import { diag } from '../../services/observability/diagnostic-logger.js';
+import { diag } from '../../services/diagnostic-logger.js';
 import { GroupConversationManager } from './group-conversation-manager.js';
 import { createExternalParticipant } from './participant-registry.js';
 import type {

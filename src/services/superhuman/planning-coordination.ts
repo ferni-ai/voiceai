@@ -129,19 +129,12 @@ export interface PlanningCoordinationProfile {
 
 const COLLECTION = 'planning_coordination';
 
-async function loadCoordinationProfile(
-  userId: string
-): Promise<PlanningCoordinationProfile | null> {
+async function loadCoordinationProfile(userId: string): Promise<PlanningCoordinationProfile | null> {
   const db = getFirestoreDb();
   if (!db) return null;
 
   try {
-    const doc = await db
-      .collection('bogle_users')
-      .doc(userId)
-      .collection(COLLECTION)
-      .doc('profile')
-      .get();
+    const doc = await db.collection('bogle_users').doc(userId).collection(COLLECTION).doc('profile').get();
     if (doc.exists) {
       return doc.data() as PlanningCoordinationProfile;
     }
@@ -152,10 +145,7 @@ async function loadCoordinationProfile(
   }
 }
 
-async function saveCoordinationProfile(
-  userId: string,
-  profile: PlanningCoordinationProfile
-): Promise<void> {
+async function saveCoordinationProfile(userId: string, profile: PlanningCoordinationProfile): Promise<void> {
   const db = getFirestoreDb();
   if (!db) return;
 
@@ -188,7 +178,7 @@ async function fetchFinancialReadiness(
 ): Promise<FinancialReadiness> {
   // Uses Firestore financial_data collection when available
   // Falls back to sensible defaults if user hasn't tracked finances
-
+  
   const db = getFirestoreDb();
   if (!db) {
     return createDefaultFinancialReadiness(eventBudget);
@@ -196,46 +186,26 @@ async function fetchFinancialReadiness(
 
   try {
     // Try to fetch from user's financial data
-    const financialDoc = await db
-      .collection('bogle_users')
-      .doc(userId)
-      .collection('financial_data')
-      .doc('summary')
-      .get();
-
+    const financialDoc = await db.collection('bogle_users').doc(userId).collection('financial_data').doc('summary').get();
+    
     if (financialDoc.exists) {
       const data = financialDoc.data();
       const monthlyIncome = data?.monthlyIncome || 5000;
       const monthlySavings = data?.monthlySavings || 500;
       const emergencyFund = data?.emergencyFund || 0;
       const monthlyExpenses = data?.monthlyExpenses || 3000;
-
+      
       const monthsToSave = eventBudget / Math.max(100, monthlySavings);
       const budgetHealth = Math.min(100, ((monthlyIncome - monthlyExpenses) / monthlyIncome) * 100);
-
+      
       return {
-        canAfford: eventBudget <= monthlySavings * 6, // Can save in 6 months
+        canAfford: eventBudget <= (monthlySavings * 6), // Can save in 6 months
         budgetHealth: Math.round(budgetHealth),
-        savingsVelocity:
-          monthsToSave <= 3
-            ? 'ahead'
-            : monthsToSave <= 6
-              ? 'on_track'
-              : monthsToSave <= 12
-                ? 'slow'
-                : 'none',
-        emergencyFundStatus:
-          emergencyFund >= monthlyExpenses * 6
-            ? 'strong'
-            : emergencyFund >= monthlyExpenses * 3
-              ? 'adequate'
-              : emergencyFund > 0
-                ? 'partial'
-                : 'none',
-        concerns:
-          eventBudget > monthlySavings * 3
-            ? ['This is a significant expense relative to savings rate']
-            : [],
+        savingsVelocity: monthsToSave <= 3 ? 'ahead' : monthsToSave <= 6 ? 'on_track' : monthsToSave <= 12 ? 'slow' : 'none',
+        emergencyFundStatus: emergencyFund >= monthlyExpenses * 6 ? 'strong' : 
+                            emergencyFund >= monthlyExpenses * 3 ? 'adequate' :
+                            emergencyFund > 0 ? 'partial' : 'none',
+        concerns: eventBudget > monthlySavings * 3 ? ['This is a significant expense relative to savings rate'] : [],
         recommendations: [],
       };
     }
@@ -266,14 +236,9 @@ async function fetchCalendarCapacity(
       // Assume 40h work week, so 30h+ meetings = overloaded
       const loadScore = Math.min(1, calendarLoad.weeklyMeetingHours / 40);
 
-      const density =
-        loadScore >= 0.8
-          ? 'overloaded'
-          : loadScore >= 0.6
-            ? 'busy'
-            : loadScore >= 0.3
-              ? 'moderate'
-              : 'light';
+      const density = loadScore >= 0.8 ? 'overloaded' :
+                      loadScore >= 0.6 ? 'busy' :
+                      loadScore >= 0.3 ? 'moderate' : 'light';
 
       const capacityScore = Math.round((1 - loadScore) * 100);
 
@@ -285,20 +250,15 @@ async function fetchCalendarCapacity(
           event: 'Heavy meeting day',
           severity: 'moderate' as const,
         })),
-        bestPlanningWindows: calendarLoad.lightestDayThisWeek
-          ? [
-              {
-                start: calendarLoad.lightestDayThisWeek,
-                end: '',
-                reason: 'Lightest day this week',
-              },
-              { start: 'Weekends', end: '', reason: 'Usually clearer' },
-            ]
-          : [{ start: 'Weekends', end: '', reason: 'Usually clearer' }],
-        recommendations:
-          density === 'overloaded'
-            ? ['Consider delegating some planning tasks', 'Block dedicated planning time']
-            : [],
+        bestPlanningWindows: calendarLoad.lightestDayThisWeek ? [
+          { start: calendarLoad.lightestDayThisWeek, end: '', reason: 'Lightest day this week' },
+          { start: 'Weekends', end: '', reason: 'Usually clearer' },
+        ] : [
+          { start: 'Weekends', end: '', reason: 'Usually clearer' },
+        ],
+        recommendations: density === 'overloaded'
+          ? ['Consider delegating some planning tasks', 'Block dedicated planning time']
+          : [],
       };
     }
   } catch (error) {
@@ -312,29 +272,19 @@ async function fetchCalendarCapacity(
   }
 
   try {
-    const calendarDoc = await db
-      .collection('bogle_users')
-      .doc(userId)
-      .collection('calendar_data')
-      .doc('density')
-      .get();
-
+    const calendarDoc = await db.collection('bogle_users').doc(userId).collection('calendar_data').doc('density').get();
+    
     if (calendarDoc.exists) {
       const data = calendarDoc.data();
       const weeklyMeetings = data?.avgWeeklyMeetings || 10;
       const busyDaysPerWeek = data?.busyDaysPerWeek || 3;
-
-      const density =
-        busyDaysPerWeek >= 5
-          ? 'overloaded'
-          : busyDaysPerWeek >= 4
-            ? 'busy'
-            : busyDaysPerWeek >= 2
-              ? 'moderate'
-              : 'light';
-
-      const capacityScore = Math.max(0, 100 - busyDaysPerWeek * 15 - weeklyMeetings * 2);
-
+      
+      const density = busyDaysPerWeek >= 5 ? 'overloaded' :
+                      busyDaysPerWeek >= 4 ? 'busy' :
+                      busyDaysPerWeek >= 2 ? 'moderate' : 'light';
+      
+      const capacityScore = Math.max(0, 100 - (busyDaysPerWeek * 15) - (weeklyMeetings * 2));
+      
       return {
         capacityScore: Math.round(capacityScore),
         calendarDensity: density,
@@ -343,10 +293,9 @@ async function fetchCalendarCapacity(
           { start: 'Weekends', end: '', reason: 'Usually clearer' },
           { start: 'Early mornings', end: '', reason: 'Before meetings start' },
         ],
-        recommendations:
-          density === 'overloaded'
-            ? ['Consider delegating some planning tasks', 'Block dedicated planning time']
-            : [],
+        recommendations: density === 'overloaded' 
+          ? ['Consider delegating some planning tasks', 'Block dedicated planning time']
+          : [],
       };
     }
   } catch (error) {
@@ -372,20 +321,13 @@ async function fetchEnergyAlignment(userId: string): Promise<EnergyAlignment> {
 
     if (burnoutAssessment) {
       // Calculate average energy from recent readings
-      const avgEnergy =
-        energyReadings.length > 0
-          ? Math.round(
-              energyReadings.reduce((sum, r) => sum + r.energyScore, 0) / energyReadings.length
-            )
-          : 70; // Default if no readings
+      const avgEnergy = energyReadings.length > 0
+        ? Math.round(energyReadings.reduce((sum, r) => sum + r.energyScore, 0) / energyReadings.length)
+        : 70; // Default if no readings
 
       // Determine trend from burnout assessment
-      const trend =
-        burnoutAssessment.trendDirection === 'worsening'
-          ? 'declining'
-          : burnoutAssessment.trendDirection === 'improving'
-            ? 'improving'
-            : 'stable';
+      const trend = burnoutAssessment.trendDirection === 'worsening' ? 'declining' :
+                    burnoutAssessment.trendDirection === 'improving' ? 'improving' : 'stable';
 
       // Extract supporting and at-risk habits from factors
       const supportingHabits: string[] = [];
@@ -397,12 +339,9 @@ async function fetchEnergyAlignment(userId: string): Promise<EnergyAlignment> {
       }
 
       // Map burnout risk to our expected format
-      const burnoutRisk =
-        burnoutAssessment.risk === 'critical' || burnoutAssessment.risk === 'high'
-          ? 'high'
-          : burnoutAssessment.risk === 'elevated' || burnoutAssessment.risk === 'moderate'
-            ? 'moderate'
-            : 'low';
+      const burnoutRisk = burnoutAssessment.risk === 'critical' || burnoutAssessment.risk === 'high'
+        ? 'high' : burnoutAssessment.risk === 'elevated' || burnoutAssessment.risk === 'moderate'
+        ? 'moderate' : 'low';
 
       return {
         currentEnergy: avgEnergy,
@@ -424,33 +363,27 @@ async function fetchEnergyAlignment(userId: string): Promise<EnergyAlignment> {
   }
 
   try {
-    const energyDoc = await db
-      .collection('bogle_users')
-      .doc(userId)
-      .collection('energy_data')
-      .doc('current')
-      .get();
-
+    const energyDoc = await db.collection('bogle_users').doc(userId).collection('energy_data').doc('current').get();
+    
     if (energyDoc.exists) {
       const data = energyDoc.data();
       const currentEnergy = data?.currentLevel || 70;
       const trend = data?.trend || 'stable';
       const activeHabits = data?.activeHabits || [];
-
+      
       return {
         currentEnergy,
         energyTrend: trend,
-        supportingHabits: activeHabits.filter((h: string) =>
-          ['exercise', 'sleep', 'meditation', 'planning'].some((k) => h.toLowerCase().includes(k))
+        supportingHabits: activeHabits.filter((h: string) => 
+          ['exercise', 'sleep', 'meditation', 'planning'].some(k => h.toLowerCase().includes(k))
         ),
-        atRiskHabits: activeHabits.filter((h: string) =>
-          ['gym', 'reading', 'hobby'].some((k) => h.toLowerCase().includes(k))
+        atRiskHabits: activeHabits.filter((h: string) => 
+          ['gym', 'reading', 'hobby'].some(k => h.toLowerCase().includes(k))
         ),
         burnoutRisk: currentEnergy < 40 ? 'high' : currentEnergy < 60 ? 'moderate' : 'low',
-        recommendations:
-          currentEnergy < 50
-            ? ['Consider a lighter planning schedule', 'Prioritize energy-restoring activities']
-            : [],
+        recommendations: currentEnergy < 50 
+          ? ['Consider a lighter planning schedule', 'Prioritize energy-restoring activities']
+          : [],
       };
     }
   } catch (error) {
@@ -465,7 +398,10 @@ async function fetchEnergyAlignment(userId: string): Promise<EnergyAlignment> {
  * TODO: Integrate with self-awareness service when available
  * Currently returns sensible defaults based on event type
  */
-async function fetchLifeStageContext(userId: string, eventType: string): Promise<LifeStageContext> {
+async function fetchLifeStageContext(
+  userId: string,
+  eventType: string
+): Promise<LifeStageContext> {
   // TODO: Integration with self-awareness service
   // The self-awareness module doesn't exist yet at the expected path.
   // For now, return sensible defaults based on event type.
@@ -477,27 +413,15 @@ async function fetchLifeStageContext(userId: string, eventType: string): Promise
   const valuesAlignment: string[] = [];
   const wisdomNotes: string[] = [];
 
-  if (
-    eventLower.includes('wedding') ||
-    eventLower.includes('party') ||
-    eventLower.includes('celebration')
-  ) {
+  if (eventLower.includes('wedding') || eventLower.includes('party') || eventLower.includes('celebration')) {
     valuesAlignment.push('connection', 'celebration', 'relationships');
     wisdomNotes.push('Events are investments in memory and connection');
     fitWithStage = 'good_fit';
-  } else if (
-    eventLower.includes('career') ||
-    eventLower.includes('business') ||
-    eventLower.includes('conference')
-  ) {
+  } else if (eventLower.includes('career') || eventLower.includes('business') || eventLower.includes('conference')) {
     valuesAlignment.push('growth', 'achievement', 'career');
     wisdomNotes.push('Professional growth events can catalyze personal development');
     fitWithStage = 'good_fit';
-  } else if (
-    eventLower.includes('trip') ||
-    eventLower.includes('vacation') ||
-    eventLower.includes('travel')
-  ) {
+  } else if (eventLower.includes('trip') || eventLower.includes('vacation') || eventLower.includes('travel')) {
     valuesAlignment.push('adventure', 'experience', 'freedom');
     wisdomNotes.push('Travel broadens perspective and renews energy');
     fitWithStage = 'good_fit';
@@ -537,22 +461,18 @@ export async function checkPlanningReadiness(
   ]);
 
   // Calculate overall score
-  const financialScore = financial.canAfford
-    ? financial.budgetHealth * 0.8 + 20
-    : financial.budgetHealth * 0.5;
+  const financialScore = financial.canAfford ? (financial.budgetHealth * 0.8 + 20) : financial.budgetHealth * 0.5;
   const calendarScore = calendar.capacityScore;
   const energyScore = energy.currentEnergy;
-  const stageScore =
-    lifeStage.fitWithStage === 'perfect_fit'
-      ? 100
-      : lifeStage.fitWithStage === 'good_fit'
-        ? 80
-        : lifeStage.fitWithStage === 'neutral'
-          ? 60
-          : 40;
+  const stageScore = lifeStage.fitWithStage === 'perfect_fit' ? 100 :
+                     lifeStage.fitWithStage === 'good_fit' ? 80 :
+                     lifeStage.fitWithStage === 'neutral' ? 60 : 40;
 
   const overallScore = Math.round(
-    financialScore * 0.35 + calendarScore * 0.25 + energyScore * 0.25 + stageScore * 0.15
+    (financialScore * 0.35) +
+    (calendarScore * 0.25) +
+    (energyScore * 0.25) +
+    (stageScore * 0.15)
   );
 
   // Determine status
@@ -594,12 +514,9 @@ export async function checkPlanningReadiness(
   }
 
   // Recommended start time
-  const recommendedStartTime =
-    status === 'green'
-      ? 'Now is good!'
-      : status === 'yellow'
-        ? 'In 2-4 weeks, after addressing key items'
-        : 'In 1-2 months, after stabilizing finances/energy';
+  const recommendedStartTime = status === 'green' ? 'Now is good!' :
+                               status === 'yellow' ? 'In 2-4 weeks, after addressing key items' :
+                               'In 1-2 months, after stabilizing finances/energy';
 
   const assessment: PlanningReadinessAssessment = {
     overallScore,
@@ -616,10 +533,7 @@ export async function checkPlanningReadiness(
   // Cache the assessment
   await cacheAssessment(userId, eventType, budget, assessment);
 
-  log.info(
-    { userId, eventType, budget, status, overallScore },
-    'Completed planning readiness check'
-  );
+  log.info({ userId, eventType, budget, status, overallScore }, 'Completed planning readiness check');
 
   return assessment;
 }
@@ -664,7 +578,7 @@ export async function checkGoalAlignment(
 }> {
   const supportingGoals: string[] = [];
   const potentialConflicts: string[] = [];
-
+  
   try {
     // INTEGRATION: Check dreams for alignment
     const { loadUserDreams } = await import('./dream-keeper.js');
@@ -679,12 +593,10 @@ export async function checkGoalAlignment(
 
         // Check for positive alignment
         if (
-          (dreamLower.includes('family') &&
-            (eventLower.includes('wedding') || eventLower.includes('reunion'))) ||
+          (dreamLower.includes('family') && (eventLower.includes('wedding') || eventLower.includes('reunion'))) ||
           (dreamLower.includes('travel') && eventLower.includes('trip')) ||
           (dreamLower.includes('career') && eventLower.includes('business')) ||
-          dreamStatement.includes(eventLower) ||
-          dreamLower.includes(eventLower)
+          dreamStatement.includes(eventLower) || dreamLower.includes(eventLower)
         ) {
           supportingGoals.push(dream.title);
         }
@@ -695,7 +607,7 @@ export async function checkGoalAlignment(
   } catch (error) {
     log.debug({ error: String(error) }, 'Dream keeper not available');
   }
-
+  
   try {
     // INTEGRATION: Check commitments for conflicts
     const { loadUserCommitments } = await import('./commitment-keeper.js');
@@ -727,15 +639,14 @@ export async function checkGoalAlignment(
   } catch (error) {
     log.debug({ error: String(error) }, 'Commitment keeper not available');
   }
-
+  
   const aligned = supportingGoals.length > 0 || potentialConflicts.length === 0;
-  const recommendation =
-    potentialConflicts.length > 0
-      ? `Consider timing: ${potentialConflicts[0]}`
-      : supportingGoals.length > 0
-        ? `This aligns with your goals: ${supportingGoals[0]}`
-        : 'Looks good to proceed!';
-
+  const recommendation = potentialConflicts.length > 0
+    ? `Consider timing: ${potentialConflicts[0]}`
+    : supportingGoals.length > 0
+      ? `This aligns with your goals: ${supportingGoals[0]}`
+      : 'Looks good to proceed!';
+  
   if (supportingGoals.length === 0 && potentialConflicts.length === 0) {
     // Default fallback when no specific data found
     return {
@@ -745,7 +656,7 @@ export async function checkGoalAlignment(
       recommendation: 'This event supports your life goals around connection and celebration.',
     };
   }
-
+  
   return {
     aligned,
     supportingGoals,
@@ -773,12 +684,10 @@ export async function buildPlanningCoordinationContext(
   lines.push(`${statusEmoji} Status: ${quick.status.toUpperCase()} - ${quick.reason}`);
 
   if (quick.status !== 'green') {
-    lines.push(
-      '\nBefore diving into planning details, consider addressing the readiness concerns.'
-    );
+    lines.push('\nBefore diving into planning details, consider addressing the readiness concerns.');
     lines.push('I can help you prepare so this event brings joy, not stress.');
   } else {
-    lines.push("\nYou have good capacity for this! Let's make it amazing.");
+    lines.push('\nYou have good capacity for this! Let\'s make it amazing.');
   }
 
   return lines.join('\n');

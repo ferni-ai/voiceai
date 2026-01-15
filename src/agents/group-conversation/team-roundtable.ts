@@ -13,7 +13,7 @@ import { EventEmitter } from 'events';
 import type { JobContext } from '@livekit/agents';
 import type { Room, RemoteParticipant } from '@livekit/rtc-node';
 import { getLogger } from '../../utils/safe-logger.js';
-import { diag } from '../../services/observability/diagnostic-logger.js';
+import { diag } from '../../services/diagnostic-logger.js';
 import {
   GroupConversationManager,
   type GroupConversationConfig,
@@ -118,10 +118,10 @@ export interface TeamRoundtableResult {
 const PERSONA_NAMES: Record<string, string> = {
   ferni: 'Ferni',
   'peter-john': 'Peter',
-  'maya-santos': 'Maya',
+  'maya-habits': 'Maya',
   'alex-chen': 'Alex',
   'jordan-taylor': 'Jordan',
-  'nayan-patel': 'Nayan',
+  'nayan-sharma': 'Nayan',
 };
 
 // ============================================================================
@@ -410,10 +410,10 @@ export class TeamRoundtable extends EventEmitter {
     const domainKeywords: Record<string, string[]> = {
       ferni: ['feeling', 'think', 'support', 'help', 'life', 'overall'],
       'peter-john': ['research', 'data', 'market', 'analysis', 'numbers', 'facts', 'study'],
-      'maya-santos': ['habit', 'routine', 'morning', 'exercise', 'sleep', 'energy', 'wellness'],
+      'maya-habits': ['habit', 'routine', 'morning', 'exercise', 'sleep', 'energy', 'wellness'],
       'alex-chen': ['communicate', 'email', 'meeting', 'schedule', 'organize', 'plan'],
       'jordan-taylor': ['event', 'party', 'celebration', 'birthday', 'wedding', 'trip'],
-      'nayan-patel': ['meaning', 'philosophy', 'wisdom', 'purpose', 'values', 'legacy'],
+      'nayan-sharma': ['meaning', 'philosophy', 'wisdom', 'purpose', 'values', 'legacy'],
     };
 
     const keywords = domainKeywords[personaId] ?? [];

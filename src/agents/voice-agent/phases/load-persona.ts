@@ -296,8 +296,7 @@ export async function loadPersonaPhase(ctx: JobContext): Promise<PersonaPhaseRes
       domains: ['general'],
       qualifiedTopics: ['life coaching', 'personal growth', 'emotional support'],
       outOfScopeTopics: ['medical-diagnosis', 'legal-advice'],
-      outOfScopeResponse:
-        "That's outside my expertise, but I can help you think through who might be able to help.",
+      outOfScopeResponse: "That's outside my expertise, but I can help you think through who might be able to help.",
     },
   };
 

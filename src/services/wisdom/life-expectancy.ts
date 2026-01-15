@@ -129,10 +129,10 @@ const LIFE_TABLE_FEMALE: Record<number, number> = {
 const SURVIVAL_PROBABILITY: Record<number, Record<number, number>> = {
   // From age 30, probability of reaching...
   30: { 50: 0.96, 60: 0.92, 70: 0.84, 80: 0.67, 90: 0.32, 100: 0.04 },
-  40: { 50: 0.97, 60: 0.93, 70: 0.86, 80: 0.7, 90: 0.35, 100: 0.05 },
+  40: { 50: 0.97, 60: 0.93, 70: 0.86, 80: 0.70, 90: 0.35, 100: 0.05 },
   50: { 60: 0.95, 70: 0.88, 80: 0.73, 90: 0.38, 100: 0.06 },
   60: { 70: 0.91, 80: 0.77, 90: 0.42, 100: 0.08 },
-  70: { 80: 0.82, 90: 0.48, 100: 0.1 },
+  70: { 80: 0.82, 90: 0.48, 100: 0.10 },
   80: { 90: 0.55, 100: 0.14 },
 };
 
@@ -187,8 +187,7 @@ export function calculateLifeExpectancy(input: LifeExpectancyInput): LifeExpecta
     }
 
     if (exerciseFrequency) {
-      const exerciseKey =
-        `exercise${exerciseFrequency.charAt(0).toUpperCase()}${exerciseFrequency.slice(1)}` as keyof typeof HEALTH_ADJUSTMENTS;
+      const exerciseKey = `exercise${exerciseFrequency.charAt(0).toUpperCase()}${exerciseFrequency.slice(1)}` as keyof typeof HEALTH_ADJUSTMENTS;
       if (exerciseKey in HEALTH_ADJUSTMENTS) {
         expectedYearsRemaining += HEALTH_ADJUSTMENTS[exerciseKey];
       }
@@ -239,7 +238,10 @@ export function calculateLifeExpectancy(input: LifeExpectancyInput): LifeExpecta
   // Generate wisdom context
   const context = generateWisdomContext(currentAge, expectedYearsRemaining);
 
-  log.debug({ currentAge, expectedYearsRemaining, sex: input.sex }, 'Calculated life expectancy');
+  log.debug(
+    { currentAge, expectedYearsRemaining, sex: input.sex },
+    'Calculated life expectancy'
+  );
 
   return {
     expectedYearsRemaining,
@@ -320,7 +322,8 @@ export function generateMortalityPerspective(
 
     return {
       statement: `You have approximately ${workingMondays.toLocaleString()} work Mondays left.`,
-      wisdom: 'Your career is not forever. It is a season. Are you spending it on what matters?',
+      wisdom:
+        'Your career is not forever. It is a season. Are you spending it on what matters?',
       prompt: `If this job ends in ${workingYearsLeft} years, what do you want to have built?`,
     };
   }
@@ -338,7 +341,8 @@ export function generateMortalityPerspective(
   // Default perspective
   return {
     statement: `You have approximately ${timeRemaining.days.toLocaleString()} days remaining. ${timeRemaining.summers} more summers. ${timeRemaining.christmases} more Christmases.`,
-    wisdom: 'The number of days is finite and knowable. This is not morbid - it is clarifying.',
+    wisdom:
+      'The number of days is finite and knowable. This is not morbid - it is clarifying.',
     prompt: 'Knowing this, what becomes more important? What becomes less?',
   };
 }
@@ -399,11 +403,13 @@ export function calculateRemainingInstances(
     },
     tuesday: {
       count: Math.round(expectedYearsRemaining * 52),
-      wisdom: 'Tuesday seems ordinary. But you only have so many. What will you do with this one?',
+      wisdom:
+        'Tuesday seems ordinary. But you only have so many. What will you do with this one?',
     },
     weekend: {
       count: Math.round(expectedYearsRemaining * 52),
-      wisdom: 'Weekends feel endless when you are young. They become precious when you count them.',
+      wisdom:
+        'Weekends feel endless when you are young. They become precious when you count them.',
     },
     sunrise: {
       count: Math.round(expectedYearsRemaining * 365.25),
@@ -412,7 +418,8 @@ export function calculateRemainingInstances(
     },
     conversation: {
       count: Math.round(expectedYearsRemaining * 365 * 10), // ~10 meaningful conversations per day
-      wisdom: 'Every conversation is a chance to connect. How many have you wasted on small talk?',
+      wisdom:
+        'Every conversation is a chance to connect. How many have you wasted on small talk?',
     },
   };
 
@@ -439,10 +446,7 @@ export function generateSuperhumanMortalityMoment(
     return `You have ${timeRemaining.tuesdays.toLocaleString()} Tuesdays left. Is "I'll do it later" really what you want to say ${Math.round(timeRemaining.tuesdays / 52)} years from now?`;
   }
 
-  if (
-    currentTopic?.toLowerCase().includes('parent') ||
-    currentTopic?.toLowerCase().includes('family')
-  ) {
+  if (currentTopic?.toLowerCase().includes('parent') || currentTopic?.toLowerCase().includes('family')) {
     return `Time with family is countable. Finite. Knowable. What would you say if you knew exactly how many conversations were left?`;
   }
 

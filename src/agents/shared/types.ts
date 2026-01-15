@@ -9,9 +9,9 @@ import type {
   MoodState,
   PersonaMood,
 } from '../../intelligence/context-builders/personas/persona-mood.js';
-import type { SilenceAnalysis } from '../../intelligence/deep-understanding/silence.js';
+import type { SilenceAnalysis } from '../../intelligence/silence-intelligence.js';
 import type { BundleRuntimeState, UserBundleState } from '../../personas/bundles/index.js';
-import type { ConversationStateManager } from '../../services/conversation-thread/conversation-state.js';
+import type { ConversationStateManager } from '../../services/conversation-state.js';
 import type { SessionServices } from '../../services/index.js';
 import type { VoiceEmotionResult } from '../../speech/audio-prosody.js';
 import type { VoiceEmotionModulation } from '../../speech/emotion-matching.js';
@@ -87,13 +87,11 @@ export interface UserData {
   /** Preferred language for speech recognition validation (default: 'en') */
   preferredLanguage?: string;
 
-  /** User's IP-detected location (for weather, local info, timezone) */
+  /** User's IP-detected location (for weather, local info personalization) */
   userLocation?: {
     city?: string;
     regionCode?: string;
     countryCode?: string;
-    /** IANA timezone (e.g., "America/New_York") */
-    timezone?: string;
   };
 
   // Timing
@@ -148,8 +146,6 @@ export interface UserData {
 
   // Conversation context for humanization
   lastUserMessage?: string;
-  /** Latest partial transcript (for fast recovery while final transcript streams) */
-  lastPartialTranscript?: string;
   lastAgentResponse?: string; // For response quality tracking + echo detection
   lastAgentResponseTime?: number; // For engagement scoring
   /** Timestamp when agent finished speaking (for echo prevention cooldown) */
@@ -210,17 +206,6 @@ export interface UserData {
     trend: 'improving' | 'declining' | 'stable';
     needsAttention: boolean;
   };
-
-  // ============================================================
-  // LEARNING ENGINE - Memory Reaction Tracking
-  // Tracks surfaced memories to record user reactions for learning
-  // ============================================================
-
-  /** Last surfaced memory event ID (for recording reaction) */
-  lastSurfacedMemoryEventId?: string;
-
-  /** Topics from the last surfaced memory (for topic change detection) */
-  lastSurfacedMemoryTopics?: string[];
 
   // ============================================================
   // HUMANIZING STATE
@@ -324,17 +309,6 @@ export interface UserData {
 
   /** Whether voice insight was delivered this session */
   deliveredVoiceInsight?: boolean;
-
-  // ============================================================
-  // NEWS FOLLOW-UP STATE
-  // Tracks pending news results awaiting user preference
-  // ============================================================
-
-  /** Pending news response to read if user asks for it */
-  pendingNewsResponse?: {
-    response: string;
-    createdAt: number;
-  };
 
   // ============================================================
   // DEEP UNDERSTANDING: Silence Intelligence

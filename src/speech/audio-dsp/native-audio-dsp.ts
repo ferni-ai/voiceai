@@ -119,7 +119,7 @@ interface FerniAudioDspModule {
     minPitch?: number,
     maxPitch?: number
   ) => { pitchHz: number; confidence: number; periodSamples: number };
-
+  
   batchEstimatePitchYin: (
     samples: Float32Array,
     sampleRate: number,
@@ -271,7 +271,8 @@ function computeZcrFallback(samples: Float32Array): number {
   if (samples.length < 2) return 0;
   let crossings = 0;
   for (let i = 1; i < samples.length; i++) {
-    if ((samples[i] >= 0 && samples[i - 1] < 0) || (samples[i] < 0 && samples[i - 1] >= 0)) {
+    if ((samples[i] >= 0 && samples[i - 1] < 0) ||
+        (samples[i] < 0 && samples[i - 1] >= 0)) {
       crossings++;
     }
   }
@@ -414,7 +415,7 @@ export function detectPitch(
   maxPitch = 500
 ): PitchResult {
   const mod = tryLoadNativeModule();
-
+  
   if (mod?.estimatePitchYin) {
     const result = mod.estimatePitchYin(samples, sampleRate, minPitch, maxPitch);
     return {
@@ -449,9 +450,8 @@ export function detectPitchBatch(
   const mod = tryLoadNativeModule();
 
   if (mod?.batchEstimatePitchYin) {
-    return mod
-      .batchEstimatePitchYin(samples, sampleRate, frameSize, hopSize, minPitch, maxPitch)
-      .map((r) => ({
+    return mod.batchEstimatePitchYin(samples, sampleRate, frameSize, hopSize, minPitch, maxPitch)
+      .map(r => ({
         pitchHz: r.pitchHz,
         confidence: r.confidence,
         periodSamples: r.periodSamples,
@@ -653,17 +653,15 @@ export function createPreSttProcessor(config?: PreSttConfig): PreSttProcessor {
 
   if (mod?.NativePreSttProcessor) {
     try {
-      const native = config
-        ? new mod.NativePreSttProcessor({
-            sampleRate: config.sampleRate,
-            enableAgc: config.enableAgc,
-            enableNoiseSuppression: config.enableNoiseSuppression,
-            enableHighpass: config.enableHighpass,
-            highpassCutoffHz: config.highpassCutoffHz,
-            enableBandwidthExtension: config.enableBandwidthExtension,
-            inputIs8khz: config.inputIs8khz,
-          })
-        : mod.NativePreSttProcessor.withDefaults();
+      const native = config ? new mod.NativePreSttProcessor({
+        sampleRate: config.sampleRate,
+        enableAgc: config.enableAgc,
+        enableNoiseSuppression: config.enableNoiseSuppression,
+        enableHighpass: config.enableHighpass,
+        highpassCutoffHz: config.highpassCutoffHz,
+        enableBandwidthExtension: config.enableBandwidthExtension,
+        inputIs8khz: config.inputIs8khz,
+      }) : mod.NativePreSttProcessor.withDefaults();
 
       return {
         processFrame: (samples, isSpeech) => native.processFrame(samples, isSpeech),
@@ -680,7 +678,7 @@ export function createPreSttProcessor(config?: PreSttConfig): PreSttProcessor {
 
   // Fallback: passthrough processor (no enhancement)
   log.debug('Using passthrough Pre-STT processor (native unavailable)');
-
+  
   let framesProcessed = 0;
 
   return {
@@ -704,9 +702,7 @@ export function createPreSttProcessor(config?: PreSttConfig): PreSttProcessor {
       bandwidthExtended: false,
     }),
     resetNoiseEstimate: () => {},
-    reset: () => {
-      framesProcessed = 0;
-    },
+    reset: () => { framesProcessed = 0; },
     isNative: false,
   };
 }
@@ -758,11 +754,11 @@ export function applyAgc(sessionId: string, samples: Float32Array): number {
   const rms = computeRmsFallback(samples);
   const targetRms = 0.1;
   const gain = rms > 0.001 ? Math.min(targetRms / rms, 10) : 1;
-
+  
   for (let i = 0; i < samples.length; i++) {
     samples[i] *= gain;
   }
-
+  
   return gain;
 }
 

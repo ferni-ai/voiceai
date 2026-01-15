@@ -26,7 +26,7 @@ import { recordTrustSystemsData } from './index.js';
 import {
   onUserEngagedWithCapability,
   getRecentlySurfacedDomains,
-} from '../../intelligence/tracking/capabilities.js';
+} from '../../intelligence/capability-learning.js';
 
 // "Our Songs" - shared musical memories ("Better Than Human" feature)
 import { getMusicPlayer } from '../../audio/music-player.js';

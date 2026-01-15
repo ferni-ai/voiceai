@@ -18,15 +18,17 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 describe('Session Gap Awareness', () => {
   it('should export the session gap awareness builder', async () => {
-    const module =
-      await import('../../intelligence/context-builders/awareness/session-gap-awareness.js');
+    const module = await import(
+      '../../intelligence/context-builders/awareness/session-gap-awareness.js'
+    );
     expect(module.sessionGapAwarenessBuilder).toBeDefined();
     expect(module.sessionGapAwarenessBuilder.name).toBe('session-gap-awareness');
   });
 
   it('should have correct builder configuration', async () => {
-    const module =
-      await import('../../intelligence/context-builders/awareness/session-gap-awareness.js');
+    const module = await import(
+      '../../intelligence/context-builders/awareness/session-gap-awareness.js'
+    );
     const builder = module.sessionGapAwarenessBuilder;
 
     expect(builder.priority).toBe(30); // Early for session awareness
@@ -35,8 +37,9 @@ describe('Session Gap Awareness', () => {
   });
 
   it('should return empty array without userId', async () => {
-    const module =
-      await import('../../intelligence/context-builders/awareness/session-gap-awareness.js');
+    const module = await import(
+      '../../intelligence/context-builders/awareness/session-gap-awareness.js'
+    );
     const builder = module.sessionGapAwarenessBuilder;
 
     const result = await builder.build({
@@ -49,8 +52,9 @@ describe('Session Gap Awareness', () => {
   });
 
   it('should return empty array on turns > 3', async () => {
-    const module =
-      await import('../../intelligence/context-builders/awareness/session-gap-awareness.js');
+    const module = await import(
+      '../../intelligence/context-builders/awareness/session-gap-awareness.js'
+    );
     const builder = module.sessionGapAwarenessBuilder;
 
     const result = await builder.build({
@@ -69,8 +73,9 @@ describe('Session Gap Awareness', () => {
 
 describe('Proactive Session Context', () => {
   it('should export proactive session context functions', async () => {
-    const module =
-      await import('../../intelligence/context-builders/external/proactive-session-context.js');
+    const module = await import(
+      '../../intelligence/context-builders/external/proactive-session-context.js'
+    );
 
     expect(module.setProactiveSessionContext).toBeDefined();
     expect(module.getProactiveSessionContext).toBeDefined();
@@ -80,8 +85,9 @@ describe('Proactive Session Context', () => {
   });
 
   it('should store and retrieve proactive context', async () => {
-    const module =
-      await import('../../intelligence/context-builders/external/proactive-session-context.js');
+    const module = await import(
+      '../../intelligence/context-builders/external/proactive-session-context.js'
+    );
 
     const sessionId = 'test-session-' + Date.now();
     const context = {
@@ -104,8 +110,9 @@ describe('Proactive Session Context', () => {
   });
 
   it('should detect proactive sessions', async () => {
-    const module =
-      await import('../../intelligence/context-builders/external/proactive-session-context.js');
+    const module = await import(
+      '../../intelligence/context-builders/external/proactive-session-context.js'
+    );
 
     const sessionId = 'test-proactive-' + Date.now();
 
@@ -178,16 +185,18 @@ describe('Handoff Trust Context Wiring', () => {
 
 describe('Tool Failure Awareness', () => {
   it('should export tool failure awareness builder', async () => {
-    const module =
-      await import('../../intelligence/context-builders/awareness/tool-failure-awareness.js');
+    const module = await import(
+      '../../intelligence/context-builders/awareness/tool-failure-awareness.js'
+    );
 
     expect(module.toolFailureAwarenessBuilder).toBeDefined();
     expect(module.toolFailureAwarenessBuilder.name).toBe('tool-failure-awareness');
   });
 
   it('should have correct builder configuration', async () => {
-    const module =
-      await import('../../intelligence/context-builders/awareness/tool-failure-awareness.js');
+    const module = await import(
+      '../../intelligence/context-builders/awareness/tool-failure-awareness.js'
+    );
     const builder = module.toolFailureAwarenessBuilder;
 
     expect(builder.priority).toBe(15); // Early - failures should be addressed promptly
@@ -196,8 +205,9 @@ describe('Tool Failure Awareness', () => {
   });
 
   it('should return empty array without sessionId', async () => {
-    const module =
-      await import('../../intelligence/context-builders/awareness/tool-failure-awareness.js');
+    const module = await import(
+      '../../intelligence/context-builders/awareness/tool-failure-awareness.js'
+    );
     const builder = module.toolFailureAwarenessBuilder;
 
     const result = await builder.build({
@@ -230,7 +240,9 @@ describe('Redis Tool Failure Tracking', () => {
 
 describe('Builder Registration', () => {
   it('should have all new builders in builder-imports', async () => {
-    const module = await import('../../intelligence/context-builders/core/builder-imports.js');
+    const module = await import(
+      '../../intelligence/context-builders/core/builder-imports.js'
+    );
 
     const imports = module.BUILDER_IMPORTS;
 
@@ -249,7 +261,9 @@ describe('Builder Registration', () => {
   });
 
   it('should be able to dynamically import all new builders', async () => {
-    const module = await import('../../intelligence/context-builders/core/builder-imports.js');
+    const module = await import(
+      '../../intelligence/context-builders/core/builder-imports.js'
+    );
 
     const imports = module.BUILDER_IMPORTS;
 
@@ -302,7 +316,10 @@ describe('Agent Setup - Handoff Context Integration', () => {
     const fs = await import('fs/promises');
     const path = await import('path');
 
-    const agentSetupPath = path.join(process.cwd(), 'src/agents/multi-agent/agent-setup.ts');
+    const agentSetupPath = path.join(
+      process.cwd(),
+      'src/agents/multi-agent/agent-setup.ts'
+    );
 
     const content = await fs.readFile(agentSetupPath, 'utf-8');
 

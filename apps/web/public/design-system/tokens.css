@@ -4,7 +4,7 @@
  * Auto-generated from design tokens.
  * DO NOT EDIT DIRECTLY - modify tokens/*.json and rebuild.
  *
- * Build: 2026-01-14T23:54:59.399Z
+ * Build: 2026-01-12T19:50:53.896Z
  */
 
 /* ========================================
@@ -43,7 +43,7 @@
   --color-text-primary: #faf6f0;
   --color-text-secondary: #f0ebe4;
   --color-text-muted: #e8e2da;
-  --color-text-dimmed: #e0d8ce;
+  --color-text-dimmed: #ddd6cc;
   --color-text-inverse: #2a2420;
   --color-border-subtle: rgba(215, 185, 145, 0.12);
   --color-border-medium: rgba(215, 185, 145, 0.20);
@@ -135,7 +135,7 @@
   --color-text-primary: #faf6f0;
   --color-text-secondary: #f0ebe4;
   --color-text-muted: #e8e2da;
-  --color-text-dimmed: #e0d8ce;
+  --color-text-dimmed: #ddd6cc;
   --color-text-inverse: #2a2420;
   --color-border-subtle: rgba(215, 185, 145, 0.12);
   --color-border-medium: rgba(215, 185, 145, 0.20);

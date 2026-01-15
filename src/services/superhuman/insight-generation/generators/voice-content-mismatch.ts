@@ -35,11 +35,11 @@ const MISMATCH_TEMPLATES = {
   ],
   dismissive_but_emotional: [
     "You brushed that off pretty quickly, but your voice cracked a little. That might matter more than you're letting on.",
-    'I caught something in your voice when you said that. It sounded like it touched something deeper.',
+    "I caught something in your voice when you said that. It sounded like it touched something deeper.",
     "Your words said 'no big deal,' but your voice said otherwise. Want to sit with that for a second?",
   ],
   excited_but_anxious: [
-    'I hear excitement in your words, but also some anxiety in your voice. Both can be true at once.',
+    "I hear excitement in your words, but also some anxiety in your voice. Both can be true at once.",
     "You sound excited and nervous at the same time. That's a lot to hold. How are you managing?",
     "There's eagerness in what you're saying but I'm sensing some stress too. What's making you nervous?",
   ],
@@ -49,8 +49,8 @@ const MISMATCH_TEMPLATES = {
     "I hear you trying to stay steady, but there's an edge in your voice. What's pulling at you?",
   ],
   energy_drop: [
-    'I noticed your energy drop just now. What happened there?',
-    'Something shifted in your voice when you said that. Want to explore what came up?',
+    "I noticed your energy drop just now. What happened there?",
+    "Something shifted in your voice when you said that. Want to explore what came up?",
     "Your voice changed when that topic came up. I'm curious what's behind that.",
   ],
 };
@@ -94,12 +94,7 @@ async function detectMismatch(
   let deviationResult: { isDeviation: boolean; description?: string } | undefined;
   try {
     // Map emotion and intensity to valence and energy for baseline check
-    const valence =
-      context.currentEmotion === 'positive'
-        ? 0.7
-        : context.currentEmotion === 'negative'
-          ? 0.3
-          : 0.5;
+    const valence = context.currentEmotion === 'positive' ? 0.7 : context.currentEmotion === 'negative' ? 0.3 : 0.5;
     deviationResult = await checkBaselineDeviation(userId, { valence, energy: energy || 0.5 });
   } catch {
     // Continue without deviation data

@@ -30,6 +30,7 @@ const log = createLogger({ module: 'workflow-routes' });
  * Register workflow routes on an Express router
  */
 export function registerWorkflowRoutes(router: Router): void {
+
   // ==========================================================================
   // WORKFLOW CRUD
   // ==========================================================================
@@ -89,8 +90,7 @@ export function registerWorkflowRoutes(router: Router): void {
    */
   router.post('/api/workflows', async (req: Request, res: Response) => {
     try {
-      const { userId, name, description, trigger, conditions, actions, tags, icon, color } =
-        req.body;
+      const { userId, name, description, trigger, conditions, actions, tags, icon, color } = req.body;
 
       if (!userId || !name || !trigger) {
         res.status(400).json({ error: 'Missing required fields: userId, name, trigger' });
@@ -446,7 +446,10 @@ export function registerWorkflowRoutes(router: Router): void {
       data.workflows.push(workflow);
       await saveWorkflowData(userId, data);
 
-      log.info({ workflowId: workflow.id, templateId, userId }, 'Workflow created from template');
+      log.info(
+        { workflowId: workflow.id, templateId, userId },
+        'Workflow created from template'
+      );
       res.status(201).json({ workflow });
     } catch (error) {
       log.error({ error: String(error) }, 'Failed to create from template');
@@ -515,7 +518,7 @@ export function registerWorkflowRoutes(router: Router): void {
     try {
       const { userId, name, params } = req.body;
       const workflowId = req.params.id;
-      const { actionId } = req.params;
+      const actionId = req.params.actionId;
 
       if (!userId) {
         res.status(400).json({ error: 'Missing userId' });
@@ -556,7 +559,7 @@ export function registerWorkflowRoutes(router: Router): void {
     try {
       const userId = req.query.userId as string;
       const workflowId = req.params.id;
-      const { actionId } = req.params;
+      const actionId = req.params.actionId;
 
       if (!userId) {
         res.status(400).json({ error: 'Missing userId' });

@@ -12,7 +12,7 @@
 
 import { EventEmitter } from 'events';
 
-import { getDefaultStore } from '../memory/index.js';
+import { getDefaultStore } from '../../memory/index.js';
 import { clearNamedInterval, registerInterval } from '../../utils/interval-manager.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import { getAgentBus, type AgentId } from '../agent-bus.js';

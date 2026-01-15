@@ -1,8 +1,9 @@
 /**
- * Session Context
+ * Session Context Service
  *
- * @deprecated Import from '../session-manager/index.js' instead.
- * This directory has been consolidated into session-manager/.
+ * Voice ↔ App session synchronization and context management.
+ *
+ * @module services/session-context
  */
 
-export * from '../session-manager/session-summary.js';
+export * from './session-summary.js';

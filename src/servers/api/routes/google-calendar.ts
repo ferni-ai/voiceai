@@ -43,8 +43,7 @@ export async function handleGoogleCalendarRoutes(
   if (pathname === '/auth/google/login' || pathname === '/auth/google/calendar') {
     // Support both user_id and userId query params for flexibility
     const userId = parsedUrl.searchParams.get('user_id') || parsedUrl.searchParams.get('userId');
-    const returnUrl =
-      parsedUrl.searchParams.get('return_url') || parsedUrl.searchParams.get('redirect');
+    const returnUrl = parsedUrl.searchParams.get('return_url') || parsedUrl.searchParams.get('redirect');
 
     if (!GOOGLE_CALENDAR_CLIENT_ID || !GOOGLE_CALENDAR_CLIENT_SECRET) {
       res.writeHead(503, { 'Content-Type': 'application/json' });

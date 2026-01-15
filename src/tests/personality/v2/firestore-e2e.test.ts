@@ -34,14 +34,12 @@ skipIfNoEmulator('Personality v2 Firestore E2E', () => {
 
   beforeAll(async () => {
     // Import modules
-    const repoModule =
-      await import('../../../personality/infrastructure/firestore-personality-repository.js');
+    const repoModule = await import('../../../personality/infrastructure/firestore-personality-repository.js');
     const profileModule = await import('../../../personality/domain/model/personality-profile.js');
     const patternModule = await import('../../../personality/domain/model/emotional-pattern.js');
     const vulnModule = await import('../../../personality/domain/model/vulnerability-deposit.js');
     const milestoneModule = await import('../../../personality/domain/model/growth-milestone.js');
-    const stateModule =
-      await import('../../../personality/domain/model/value-objects/emotional-state.js');
+    const stateModule = await import('../../../personality/domain/model/value-objects/emotional-state.js');
 
     FirestorePersonalityRepository = repoModule.FirestorePersonalityRepository;
     PersonalityProfile = profileModule.PersonalityProfile;
@@ -295,13 +293,11 @@ skipIfNoEmulator('Personality v2 Firestore E2E', () => {
         description: 'Better boundaries',
         baseline: 'Always said yes',
         significanceLevel: 'notable',
-        evidence: [
-          {
-            timestamp: new Date(),
-            observation: 'Said no to request',
-            context: 'Work context',
-          },
-        ],
+        evidence: [{
+          timestamp: new Date(),
+          observation: 'Said no to request',
+          context: 'Work context',
+        }],
       });
 
       const celebrated = GrowthMilestone.create({
@@ -310,13 +306,11 @@ skipIfNoEmulator('Personality v2 Firestore E2E', () => {
         description: 'Less panic attacks',
         baseline: 'Daily panic',
         significanceLevel: 'significant',
-        evidence: [
-          {
-            timestamp: new Date(),
-            observation: 'Week without panic',
-            context: 'General',
-          },
-        ],
+        evidence: [{
+          timestamp: new Date(),
+          observation: 'Week without panic',
+          context: 'General',
+        }],
       });
       celebrated.markCelebrated();
 
@@ -337,13 +331,11 @@ skipIfNoEmulator('Personality v2 Firestore E2E', () => {
         description: 'More self-kindness',
         baseline: 'Very self-critical',
         significanceLevel: 'notable',
-        evidence: [
-          {
-            timestamp: new Date(),
-            observation: 'Showed self-compassion',
-            context: 'After mistake',
-          },
-        ],
+        evidence: [{
+          timestamp: new Date(),
+          observation: 'Showed self-compassion',
+          context: 'After mistake',
+        }],
       });
 
       await repository.saveMilestone(milestone);
@@ -387,13 +379,11 @@ skipIfNoEmulator('Personality v2 Firestore E2E', () => {
         description: 'Test milestone',
         baseline: 'Test baseline',
         significanceLevel: 'notable',
-        evidence: [
-          {
-            timestamp: new Date(),
-            observation: 'Test',
-            context: 'Test',
-          },
-        ],
+        evidence: [{
+          timestamp: new Date(),
+          observation: 'Test',
+          context: 'Test',
+        }],
       });
       await repository.saveMilestone(milestone);
 
@@ -415,13 +405,18 @@ skipIfNoEmulator('Personality v2 Firestore E2E', () => {
       const profile = PersonalityProfile.create(testUserId, testPersonaId);
 
       // Add pattern evidence
-      profile.recordPatternEvidence('topic_emotion', 'Work → anxiety', ['work'], {
-        timestamp: new Date(),
-        context: 'Discussion about deadlines',
-        emotion: 'fear',
-        intensity: 0.7,
-        topics: ['work', 'deadlines'],
-      });
+      profile.recordPatternEvidence(
+        'topic_emotion',
+        'Work → anxiety',
+        ['work'],
+        {
+          timestamp: new Date(),
+          context: 'Discussion about deadlines',
+          emotion: 'fear',
+          intensity: 0.7,
+          topics: ['work', 'deadlines'],
+        }
+      );
 
       // Add vulnerability
       profile.recordVulnerability({
@@ -443,12 +438,8 @@ skipIfNoEmulator('Personality v2 Firestore E2E', () => {
       });
 
       // Load with all related
-      const {
-        profile: loaded,
-        patterns,
-        vulnerabilities,
-        milestones,
-      } = await repository.loadProfileWithRelated(testUserId, testPersonaId);
+      const { profile: loaded, patterns, vulnerabilities, milestones } =
+        await repository.loadProfileWithRelated(testUserId, testPersonaId);
 
       expect(loaded).not.toBeNull();
       expect(patterns.length).toBeGreaterThanOrEqual(1);

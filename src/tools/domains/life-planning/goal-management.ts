@@ -194,7 +194,7 @@ const portfolios = new Map<string, LifePortfolio>();
 // ============================================================================
 // NOTE: These templates serve as starting points for goal exploration.
 // For truly dynamic questioning during goal discovery, consider using:
-// import { generateQuestion } from '../../../intelligence/coaching/dynamic-questions.js'
+// import { generateQuestion } from '../../../intelligence/dynamic-questions.js'
 // with questionType 'deepening' and context about the goal category.
 // ============================================================================
 

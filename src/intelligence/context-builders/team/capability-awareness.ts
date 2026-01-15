@@ -83,42 +83,15 @@ export const TEAM_CAPABILITIES: TeamCapabilityMap = {
       'Games and light interaction',
     ],
     deferTo: {
-      'habits and routines': {
-        persona: 'maya',
-        reason: 'Maya specializes in habit science and behavior change',
-      },
-      'budgeting and spending': {
-        persona: 'maya',
-        reason: 'Maya handles financial wellness and money habits',
-      },
-      'research and data patterns': {
-        persona: 'peter',
-        reason: 'Peter excels at finding patterns across data',
-      },
-      'stock market analysis': {
-        persona: 'peter',
-        reason: 'Peter handles market research and investment patterns',
-      },
-      'calendar and scheduling': {
-        persona: 'alex',
-        reason: 'Alex manages calendars and scheduling',
-      },
-      'emails and communication': {
-        persona: 'alex',
-        reason: 'Alex specializes in communication and outreach',
-      },
-      'life planning and milestones': {
-        persona: 'jordan',
-        reason: 'Jordan is our life planner and celebration expert',
-      },
-      'events and transitions': {
-        persona: 'jordan',
-        reason: 'Jordan handles major life transitions and events',
-      },
-      'deep philosophy': {
-        persona: 'nayan',
-        reason: 'Nayan brings ancient wisdom to modern questions',
-      },
+      'habits and routines': { persona: 'maya', reason: 'Maya specializes in habit science and behavior change' },
+      'budgeting and spending': { persona: 'maya', reason: 'Maya handles financial wellness and money habits' },
+      'research and data patterns': { persona: 'peter', reason: 'Peter excels at finding patterns across data' },
+      'stock market analysis': { persona: 'peter', reason: 'Peter handles market research and investment patterns' },
+      'calendar and scheduling': { persona: 'alex', reason: 'Alex manages calendars and scheduling' },
+      'emails and communication': { persona: 'alex', reason: 'Alex specializes in communication and outreach' },
+      'life planning and milestones': { persona: 'jordan', reason: 'Jordan is our life planner and celebration expert' },
+      'events and transitions': { persona: 'jordan', reason: 'Jordan handles major life transitions and events' },
+      'deep philosophy': { persona: 'nayan', reason: 'Nayan brings ancient wisdom to modern questions' },
     },
     sharedDomains: {
       'meaning and purpose': ['nayan'],
@@ -156,7 +129,10 @@ export const TEAM_CAPABILITIES: TeamCapabilityMap = {
       'health and wellness': ['ferni'],
       'financial wellness': ['jordan'],
     },
-    boundaries: ['Complex financial planning beyond budgets', 'Calendar management and scheduling'],
+    boundaries: [
+      'Complex financial planning beyond budgets',
+      'Calendar management and scheduling',
+    ],
   },
 
   peter: {
@@ -207,15 +183,18 @@ export const TEAM_CAPABILITIES: TeamCapabilityMap = {
     deferTo: {
       'emotional support': { persona: 'ferni', reason: 'Ferni handles emotions' },
       'habit building': { persona: 'maya', reason: 'Maya specializes in habits' },
-      research: { persona: 'peter', reason: 'Peter handles research' },
+      'research': { persona: 'peter', reason: 'Peter handles research' },
       'long-term planning': { persona: 'jordan', reason: 'Jordan does life planning' },
       'philosophical depth': { persona: 'nayan', reason: 'Nayan explores meaning' },
     },
     sharedDomains: {
-      productivity: ['maya', 'jordan'],
+      'productivity': ['maya', 'jordan'],
       'event coordination': ['jordan'],
     },
-    boundaries: ['Deep emotional processing', 'Long-term life strategy'],
+    boundaries: [
+      'Deep emotional processing',
+      'Long-term life strategy',
+    ],
   },
 
   jordan: {
@@ -258,19 +237,26 @@ export const TEAM_CAPABILITIES: TeamCapabilityMap = {
       'Life perspective and big picture thinking',
       'Integration of East/West wisdom',
     ],
-    generalCapabilities: ['Deep listening', 'Reflective conversations', 'Perspective shifting'],
+    generalCapabilities: [
+      'Deep listening',
+      'Reflective conversations',
+      'Perspective shifting',
+    ],
     deferTo: {
       'practical action': { persona: 'ferni', reason: 'Ferni coordinates practical steps' },
       'habit building': { persona: 'maya', reason: 'Maya handles behavior change' },
-      research: { persona: 'peter', reason: 'Peter handles analysis' },
-      scheduling: { persona: 'alex', reason: 'Alex manages logistics' },
+      'research': { persona: 'peter', reason: 'Peter handles analysis' },
+      'scheduling': { persona: 'alex', reason: 'Alex manages logistics' },
       'concrete planning': { persona: 'jordan', reason: 'Jordan handles planning' },
     },
     sharedDomains: {
       'meaning and purpose': ['ferni'],
       'contemplative practices': ['maya'],
     },
-    boundaries: ['Tactical execution (others handle this)', 'Data analysis (Peter handles this)'],
+    boundaries: [
+      'Tactical execution (others handle this)',
+      'Data analysis (Peter handles this)',
+    ],
   },
 };
 
@@ -398,10 +384,7 @@ export function findSpecialistFor(topic: string): AgentId | null {
   // Check each persona's core strengths
   for (const [personaId, profile] of Object.entries(TEAM_CAPABILITIES)) {
     for (const strength of profile.coreStrengths) {
-      if (
-        strength.toLowerCase().includes(topicLower) ||
-        topicLower.includes(strength.toLowerCase())
-      ) {
+      if (strength.toLowerCase().includes(topicLower) || topicLower.includes(strength.toLowerCase())) {
         return personaId as AgentId;
       }
     }
@@ -447,10 +430,11 @@ async function buildCapabilityAwarenessContextBuilder(
 
   if (capabilityContext) {
     injections.push(
-      createStandardInjection('capability_awareness', capabilityContext, {
-        category: 'team',
-        confidence: 1.0,
-      })
+      createStandardInjection(
+        'capability_awareness',
+        capabilityContext,
+        { category: 'team', confidence: 1.0 }
+      )
     );
 
     log.debug(
@@ -463,7 +447,11 @@ async function buildCapabilityAwarenessContextBuilder(
   if (turnCount === 0 || turnCount === 1) {
     const teamOverview = buildTeamOverview();
     injections.push(
-      createStandardInjection('team_overview', teamOverview, { category: 'team', confidence: 1.0 })
+      createStandardInjection(
+        'team_overview',
+        teamOverview,
+        { category: 'team', confidence: 1.0 }
+      )
     );
   }
 

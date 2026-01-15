@@ -20,7 +20,10 @@ export const PERSONA_DISFLUENCIES: Record<string, DisfluencyPatterns> = {
       'Actually, let me put it differently.',
       "No, wait—here's a better way to say it.",
     ],
-    thinkingPhrases: ["That's worth considering...", 'Now, that brings up an important point...'],
+    thinkingPhrases: [
+      "That's worth considering...",
+      'Now, that brings up an important point...',
+    ],
   },
   ferni: {
     fillers: ['You know...', 'I mean...', "It's like..."],
@@ -30,7 +33,11 @@ export const PERSONA_DISFLUENCIES: Record<string, DisfluencyPatterns> = {
       "Actually—no, that's not quite it.",
       'Let me try again.',
     ],
-    thinkingPhrases: ["That's heavy.", "That's a hard one.", 'You know what...'],
+    thinkingPhrases: [
+      "That's heavy.",
+      "That's a hard one.",
+      'You know what...',
+    ],
   },
   'peter-john': {
     fillers: ['You know...', 'So...', 'I mean...', 'Look...'],
@@ -93,10 +100,7 @@ export const DEFAULT_DISFLUENCIES: DisfluencyPatterns = {
 /**
  * Type-specific thinking patterns
  */
-export const TYPE_SPECIFIC_THINKING: Record<
-  'processing' | 'recalling' | 'considering' | 'uncertain',
-  string[]
-> = {
+export const TYPE_SPECIFIC_THINKING: Record<'processing' | 'recalling' | 'considering' | 'uncertain', string[]> = {
   processing: ['Let me think about that...', 'Hmm...'],
   recalling: ['You know, that reminds me...', 'Now that you mention it...', 'I remember...'],
   considering: [
@@ -104,7 +108,11 @@ export const TYPE_SPECIFIC_THINKING: Record<
     'There are a few ways to look at this...',
     'On one hand...',
   ],
-  uncertain: ["I'm not entirely sure, but...", 'This is tricky...', 'I want to be careful here...'],
+  uncertain: [
+    "I'm not entirely sure, but...",
+    'This is tricky...',
+    'I want to be careful here...',
+  ],
 };
 
 /**

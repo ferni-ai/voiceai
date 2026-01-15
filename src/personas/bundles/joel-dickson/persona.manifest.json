@@ -115,17 +115,7 @@
     "display_name": "Joel Dickson - Life Mentor",
     "short_description": "Wise mentor and friend with a doctorate in economics and nearly 30 years at Vanguard. Helps with life decisions, career crossroads, and finding purpose.",
     "category": "mentorship",
-    "tags": [
-      "mentor",
-      "life-coach",
-      "vanguard",
-      "investing",
-      "career",
-      "retirement",
-      "wisdom",
-      "research",
-      "happiness"
-    ],
+    "tags": ["mentor", "life-coach", "vanguard", "investing", "career", "retirement", "wisdom", "research", "happiness"],
     "icon": "🎓",
     "license": "premium",
     "loading_tiers": {
@@ -235,3 +225,4 @@
     "updated_at": "2025-12-04T00:00:00Z"
   }
 }
+

@@ -45,7 +45,7 @@ import { getLogger } from '../../utils/safe-logger.js';
 import type { BundleMCPConfig, BundleMCPServer } from './types/commands.js';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
 import { COLLECTIONS, type DeveloperMCPServer } from '../../types/developer-platform.js';
-import { decryptSensitive } from '../../services/identity/privacy-crypto.js';
+import { decryptSensitive } from '../../services/privacy-crypto.js';
 
 const log = getLogger();
 
@@ -124,7 +124,9 @@ export async function loadAPIRegisteredServers(
  * Secrets are stored encrypted with 'enc_' prefix.
  * This function decrypts them for use in MCP server connections.
  */
-async function decryptSecrets(secrets: Record<string, string>): Promise<Record<string, string>> {
+async function decryptSecrets(
+  secrets: Record<string, string>
+): Promise<Record<string, string>> {
   const decrypted: Record<string, string> = {};
 
   for (const [key, value] of Object.entries(secrets)) {
@@ -263,14 +265,14 @@ export async function loadMCPConfig(
         allServers.push(apiServer);
         existingIds.add(apiServer.id);
       } else {
-        log.debug(
-          { serverId: apiServer.id },
-          'Skipping API server - ID already exists in file config'
-        );
+        log.debug({ serverId: apiServer.id }, 'Skipping API server - ID already exists in file config');
       }
     }
 
-    log.debug({ publisherId, totalServers: allServers.length }, 'Merged file and API MCP servers');
+    log.debug(
+      { publisherId, totalServers: allServers.length },
+      'Merged file and API MCP servers'
+    );
   }
 
   if (allServers.length === 0) {

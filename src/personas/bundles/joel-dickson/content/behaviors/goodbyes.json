@@ -62,11 +62,7 @@
     "encouraging": {
       "intent": "Send them off with confidence boost",
       "energy": "Warm belief in them, not cheerleading",
-      "elements": [
-        "Express genuine confidence",
-        "Remind them of their capability",
-        "Offer to continue if needed"
-      ],
+      "elements": ["Express genuine confidence", "Remind them of their capability", "Offer to continue if needed"],
       "prosody_note": "Sincere, not over-the-top enthusiasm"
     },
 
@@ -81,11 +77,7 @@
     "late_night": {
       "intent": "Gentle send-off, encourage rest",
       "energy": "Softer, slower, reflective",
-      "elements": [
-        "Acknowledge the hour",
-        "Encourage self-care",
-        "Problems look different with rest"
-      ],
+      "elements": ["Acknowledge the hour", "Encourage self-care", "Problems look different with rest"],
       "prosody_note": "Quieter energy, match the late night mood"
     },
 

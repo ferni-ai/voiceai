@@ -53,7 +53,7 @@ import {
   type SpreadingActivationResult,
 } from '../memory/memory-graph.js';
 import { getProtectionEngine } from '../memory/protection-engine.js';
-import { ragLookup, semanticSearch } from '../memory/semantic-rag.js';
+import { ragLookup, semanticSearch } from '../../memory/semantic-rag.js';
 // Spreading activation for associative memory recall
 import { getSpreadingActivation } from '../memory/spreading-activation.js';
 import { createLogger } from '../../utils/safe-logger.js';

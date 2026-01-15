@@ -97,7 +97,7 @@ export async function warmSessionCaches(
     {
       name: 'redis-connection',
       fn: async () => {
-        const { getRedisCache } = await import('../memory/redis-cache.js');
+        const { getRedisCache } = await import('../../memory/redis-cache.js');
         const redis = getRedisCache();
         await redis.initialize();
         if (redis.isConnected()) {
@@ -111,7 +111,7 @@ export async function warmSessionCaches(
         // ⚡ Pre-warm user profile cache for faster session init
         // This is the biggest latency win - profile load is ~100-500ms from Firestore
         const { getProfileWithCache } = await import('./data-layer/profile-cache.js');
-        const { getStore } = await import('../memory/store-factory.js');
+        const { getStore } = await import('../../memory/store-factory.js');
         const store = await getStore();
         const profile = await getProfileWithCache(userId, async (uid) => store.getProfile(uid));
         if (profile) {
@@ -122,7 +122,7 @@ export async function warmSessionCaches(
     {
       name: 'persona-affinity',
       fn: async () => {
-        const { getRedisCache } = await import('../memory/redis-cache.js');
+        const { getRedisCache } = await import('../../memory/redis-cache.js');
         const redis = getRedisCache();
         const affinity = await redis.getPersonaAffinityCache(userId);
         if (affinity) {
@@ -133,7 +133,7 @@ export async function warmSessionCaches(
     {
       name: 'emotional-state',
       fn: async () => {
-        const { getRedisCache } = await import('../memory/redis-cache.js');
+        const { getRedisCache } = await import('../../memory/redis-cache.js');
         const redis = getRedisCache();
         const emotion = await redis.getEmotionalState(userId);
         if (emotion) {
@@ -144,7 +144,7 @@ export async function warmSessionCaches(
     {
       name: 'user-presence',
       fn: async () => {
-        const { getRedisCache } = await import('../memory/redis-cache.js');
+        const { getRedisCache } = await import('../../memory/redis-cache.js');
         const redis = getRedisCache();
         const presence = await redis.getUserPresence(userId);
         if (presence) {
@@ -182,7 +182,7 @@ export async function warmSessionCaches(
       name: 'embedding-cache',
       fn: async () => {
         try {
-          const { precomputeUserMemoryEmbeddings } = await import('../memory/embedding-cache.js');
+          const { precomputeUserMemoryEmbeddings } = await import('../../memory/embedding-cache.js');
           // Trigger precomputation with empty array just to initialize the cache
           // Real memories will be loaded when conversation starts
           precomputeUserMemoryEmbeddings([]);

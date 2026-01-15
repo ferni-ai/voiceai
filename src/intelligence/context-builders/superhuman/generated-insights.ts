@@ -79,13 +79,13 @@ export const generatedInsightsBuilder: ContextBuilder = {
         hourOfDay: new Date().getHours(),
         dayOfWeek: new Date().getDay(),
         recentTopics: analysis?.topics?.detected,
-        voiceMetrics: voiceEmotion
-          ? {
+      voiceMetrics: voiceEmotion
+        ? {
               energy: voiceEmotion.arousal,
               stress: voiceEmotion.stressLevel,
               pace: voiceEmotion.speechRate,
             }
-          : undefined,
+        : undefined,
       };
 
       // Get insights to surface

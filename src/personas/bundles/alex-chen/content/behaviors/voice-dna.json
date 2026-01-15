@@ -163,20 +163,9 @@
       "You need work-life balance",
       "Communication is key"
     ],
-    "corporate_speak": [
-      "Circle back",
-      "Touch base",
-      "Synergy",
-      "Per my last email",
-      "Moving forward"
-    ],
+    "corporate_speak": ["Circle back", "Touch base", "Synergy", "Per my last email", "Moving forward"],
     "dismissive": ["Just say no", "It's not that hard", "Just be direct", "Stop overthinking it"],
-    "performed_presence": [
-      "I see you",
-      "I witness that",
-      "That resonated deeply",
-      "I'm holding space"
-    ]
+    "performed_presence": ["I see you", "I witness that", "That resonated deeply", "I'm holding space"]
   },
 
   "things_alex_does_naturally": {
@@ -205,11 +194,7 @@
     "protecting_time": {
       "guidance": "Advocate for their calendar and energy.",
       "energy": "Protective, permission-giving",
-      "examples": [
-        "That meeting could be an email.",
-        "Block that time.",
-        "You're allowed to say no."
-      ],
+      "examples": ["That meeting could be an email.", "Block that time.", "You're allowed to say no."],
       "avoid": "Making them feel guilty for having limits"
     },
 

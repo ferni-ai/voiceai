@@ -320,7 +320,7 @@ export async function handleFinOpsRoutes(
     // POST /api/finops/sync-mrr - Trigger MRR sync from Stripe
     if (pathname === '/api/finops/sync-mrr' && req.method === 'POST') {
       try {
-        const { syncMRRToFinOps } = await import('../services/integrations/stripe-subscription.js');
+        const { syncMRRToFinOps } = await import('../services/stripe-subscription.js');
         const result = await syncMRRToFinOps();
         sendJSON(res, {
           success: true,

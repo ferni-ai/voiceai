@@ -295,8 +295,10 @@ export class UberClient {
    * Cancel a ride
    */
   async cancelRide(requestId?: string): Promise<ApiResponse<void>> {
-    const path = requestId ? `/requests/${requestId}` : '/requests/current';
-
+    const path = requestId
+      ? `/requests/${requestId}`
+      : '/requests/current';
+    
     return this.hub.request<void>(this.userId, 'uber', {
       method: 'DELETE',
       path,

@@ -60,20 +60,20 @@ const log = createLogger({ module: 'health-server' });
 
 // Lazy imports to avoid circular dependencies
 let cognitiveBroadcast:
-  | typeof import('../../services/cognitive-intelligence/cognitive-broadcast.js').cognitiveBroadcast
+  | typeof import('../../services/cognitive-broadcast.js').cognitiveBroadcast
   | null = null;
 let persistenceMetrics:
   | typeof import('../../services/analytics/persistence-metrics.js').persistenceMetrics
   | null = null;
-let cognitiveWebSocket: typeof import('../../services/cognitive-intelligence/cognitive-websocket.js') | null = null;
+let cognitiveWebSocket: typeof import('../../services/cognitive-websocket.js') | null = null;
 let sessionDataManager: ReturnType<
-  typeof import('../../services/session-manager/session-data-manager.js').getSessionDataManager
+  typeof import('../../services/session-data-manager.js').getSessionDataManager
 > | null = null;
 
 async function getCognitiveBroadcast() {
   if (!cognitiveBroadcast) {
     try {
-      const module = await import('../../services/cognitive-intelligence/cognitive-broadcast.js');
+      const module = await import('../../services/cognitive-broadcast.js');
       cognitiveBroadcast = module.cognitiveBroadcast;
     } catch {
       return null;
@@ -97,7 +97,7 @@ async function getPersistenceMetrics() {
 async function getSessionDataManager() {
   if (!sessionDataManager) {
     try {
-      const module = await import('../../services/session-manager/session-data-manager.js');
+      const module = await import('../../services/session-data-manager.js');
       sessionDataManager = module.getSessionDataManager();
     } catch {
       return null;
@@ -109,7 +109,7 @@ async function getSessionDataManager() {
 async function initWebSocketServer(httpServer: Server) {
   if (!cognitiveWebSocket) {
     try {
-      const module = await import('../../services/cognitive-intelligence/cognitive-websocket.js');
+      const module = await import('../../services/cognitive-websocket.js');
       cognitiveWebSocket = module;
       module.initCognitiveWebSocket(httpServer);
       if (DEBUG_STARTUP) {

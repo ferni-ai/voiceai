@@ -75,7 +75,7 @@ export {
   stopAutoSave,
   type IntelligenceState,
   type PersistenceConfig,
-} from './cross-persona/intelligence-persistence.js';
+} from './intelligence-persistence.js';
 
 // ============================================================================
 // PERSISTENCE METRICS
@@ -98,13 +98,13 @@ export {
   trackHandoff,
   trackVoiceSession,
   withErrorTracking,
-} from './observability/error-tracking.js';
+} from './error-tracking.js';
 
 // ============================================================================
 // PERFORMANCE PROFILING
 // ============================================================================
 
-export { performanceProfiler, Timed, withTiming } from './performance/performance-profiler.js';
+export { performanceProfiler, Timed, withTiming } from './performance-profiler.js';
 
 // Performance instrumentation (memory & startup timing)
 export {
@@ -116,7 +116,7 @@ export {
   type PerformanceReport,
   type PhaseTimng,
   type ToolLoadMetrics,
-} from './performance/performance-instrumentation.js';
+} from './performance-instrumentation.js';
 
 // ============================================================================
 // SESSION MANAGEMENT
@@ -161,7 +161,7 @@ export {
   type ToolExecutionData,
   type TopicContext,
   type UserContext,
-} from './conversation-thread/conversation-state.js';
+} from './conversation-state.js';
 
 // ============================================================================
 // USER IDENTIFICATION
@@ -258,7 +258,7 @@ export {
   initializeTeamManager,
   resetTeamManager,
   TeamManager,
-} from './monetization/team-manager.js';
+} from './team-manager.js';
 
 // ============================================================================
 // MAYA GAMIFICATION
@@ -392,7 +392,7 @@ export {
   getQueueTeaser,
   getReadTheRoomAction,
   getSpontaneousMusicOffer,
-} from './music/dj-service.js';
+} from './dj-service.js';
 
 export {
   getProactiveScheduler,
@@ -611,7 +611,7 @@ export {
   getWALStatistics,
   isWALHealthy,
   type WritePriority,
-} from './data-layer/firestore-wal-integration.js';
+} from './firestore-wal-integration.js';
 
 export {
   WriteAheadLog,
@@ -626,7 +626,7 @@ export {
   type WALEntry,
   type WALStats,
   type WALConfig,
-} from './data-layer/write-ahead-log.js';
+} from './write-ahead-log.js';
 
 // ============================================================================
 // LIFE AUTOMATION SERVICES (NEW - Phase 1 Foundation)

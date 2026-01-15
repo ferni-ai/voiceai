@@ -46,7 +46,8 @@ export async function getEmotionalTrajectory(
 
     // Calculate average distress (inverse of valence for negative emotions)
     const avgValence =
-      recentWaypoints.reduce((sum, w) => sum + (w.valence || 0), 0) / (recentWaypoints.length || 1);
+      recentWaypoints.reduce((sum, w) => sum + (w.valence || 0), 0) /
+      (recentWaypoints.length || 1);
     const avgDistress = avgValence < 0 ? Math.abs(avgValence) : 0;
 
     return {

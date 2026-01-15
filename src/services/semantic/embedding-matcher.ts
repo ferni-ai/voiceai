@@ -16,7 +16,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 // Centralized similarity operations - uses SIMD-ready implementation from rust-accelerator
-import { cosineSimilarity } from '../memory/rust-accelerator.js';
+import { cosineSimilarity } from '../../memory/rust-accelerator.js';
 
 const log = createLogger({ module: 'EmbeddingMatcher' });
 

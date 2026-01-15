@@ -13,14 +13,14 @@ const mockRecordEngagementSignal = vi.fn();
 const mockCreateAdjustment = vi.fn();
 const mockUpdateStoryRankings = vi.fn();
 
-vi.mock('../../intelligence/collective/community-insights.js', () => ({
+vi.mock('../../intelligence/community-insights.js', () => ({
   getCommunityInsights: vi.fn(() => ({
     recordEngagementSignal: mockRecordEngagementSignal,
   })),
   saveCommunityInsightsToFirestore: vi.fn().mockResolvedValue(undefined),
 }));
 
-vi.mock('../../intelligence/collective/agent-evolution.js', () => ({
+vi.mock('../../intelligence/agent-evolution.js', () => ({
   getAgentEvolution: vi.fn(() => ({
     createAdjustmentFromCommunityPattern: mockCreateAdjustment,
     updateStoryRankings: mockUpdateStoryRankings,
@@ -35,11 +35,11 @@ import { AnalyticsWorker } from '../analytics-worker.js';
 import {
   getCommunityInsights,
   saveCommunityInsightsToFirestore,
-} from '../../intelligence/collective/community-insights.js';
+} from '../../intelligence/community-insights.js';
 import {
   getAgentEvolution,
   saveAgentEvolutionToFirestore,
-} from '../../intelligence/collective/agent-evolution.js';
+} from '../../intelligence/agent-evolution.js';
 
 describe('AnalyticsWorker', () => {
   let worker: AnalyticsWorker;

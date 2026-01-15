@@ -61,7 +61,7 @@ vi.mock('../utils/safe-logger.js', () => ({
   getLogger: vi.fn(() => mockLogger),
 }));
 
-import { getDataExportService, type ExportCategory } from '../services/data-layer/data-export.js';
+import { getDataExportService, type ExportCategory } from '../services/data-export.js';
 
 // ============================================================================
 // TEST DATA

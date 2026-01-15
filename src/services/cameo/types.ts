@@ -18,10 +18,7 @@ import type { CanonicalPersonaId } from '../../personas/persona-ids.js';
  * Personas that can do cameos (everyone except Ferni, who is the host,
  * and standalone personas like Joel who aren't part of the team)
  */
-export type CameoPersonaId = Exclude<
-  CanonicalPersonaId,
-  'ferni' | 'jack-b' | 'generic-advisor' | 'joel-dickson'
->;
+export type CameoPersonaId = Exclude<CanonicalPersonaId, 'ferni' | 'jack-b' | 'generic-advisor' | 'joel-dickson'>;
 
 /**
  * Types of cameo triggers - what prompted the cameo

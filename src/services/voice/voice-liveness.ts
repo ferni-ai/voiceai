@@ -17,7 +17,7 @@
  */
 
 import pino from 'pino';
-import { getRedisCache } from '../memory/redis-cache.js';
+import { getRedisCache } from '../../memory/redis-cache.js';
 
 const log = pino({ name: 'voice-liveness' });
 

@@ -1837,7 +1837,7 @@ export function getRecommendedPreset(personaId: string): keyof typeof PostTTSPre
     'alex-chen': 'clearEnergetic',
     alex: 'clearEnergetic',
     // Nayan (wisdom) - ultra-realistic for deep conversations
-    'nayan-patel': 'ultraRealistic',
+    'nayan-sharma': 'ultraRealistic',
     nayan: 'ultraRealistic',
   };
 

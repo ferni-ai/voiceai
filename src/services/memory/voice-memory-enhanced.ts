@@ -13,7 +13,7 @@ import { createRequire } from 'module';
 import { getLogger } from '../../utils/safe-logger.js';
 import { voiceHumanizationFlags } from '../../config/voice-humanization-flags.js';
 // Centralized similarity operations - uses SIMD-ready implementation from rust-accelerator
-import { cosineSimilarity } from '../memory/rust-accelerator.js';
+import { cosineSimilarity } from '../../memory/rust-accelerator.js';
 
 // Create require function for ESM compatibility with native modules
 const require = createRequire(import.meta.url);

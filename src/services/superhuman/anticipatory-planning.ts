@@ -118,17 +118,14 @@ export interface AnticipatoryPlanningProfile {
 // TRANSITION DETECTION PATTERNS
 // ============================================================================
 
-const TRANSITION_PATTERNS: Record<
-  LifeTransition,
-  {
-    keywords: string[];
-    phrases: string[];
-    demographicHints: (demo: AnticipatoryPlanningProfile['demographics']) => boolean;
-    suggestedPlanning: string[];
-    exploratoryQuestions: string[];
-    relevantTeam: Array<{ persona: string; why: string }>;
-  }
-> = {
+const TRANSITION_PATTERNS: Record<LifeTransition, {
+  keywords: string[];
+  phrases: string[];
+  demographicHints: (demo: AnticipatoryPlanningProfile['demographics']) => boolean;
+  suggestedPlanning: string[];
+  exploratoryQuestions: string[];
+  relevantTeam: Array<{ persona: string; why: string }>;
+}> = {
   empty_nest: {
     keywords: ['college', 'leaving home', 'dorm', 'graduation', 'nest', 'empty'],
     phrases: [
@@ -139,7 +136,7 @@ const TRANSITION_PATTERNS: Record<
       'just the two of us',
       'kids growing up',
     ],
-    demographicHints: (d) => d?.kidsAges?.some((age) => age >= 16 && age <= 20) ?? false,
+    demographicHints: (d) => (d?.kidsAges?.some((age) => age >= 16 && age <= 20) ?? false),
     suggestedPlanning: [
       'Celebrate the transition (graduation party, send-off)',
       'Plan the first empty-nest date night',
@@ -147,9 +144,9 @@ const TRANSITION_PATTERNS: Record<
       'Consider new activities as a couple',
     ],
     exploratoryQuestions: [
-      'How are you feeling about the upcoming change?',
-      'What are you looking forward to?',
-      'Is there any grief mixed with the excitement?',
+      "How are you feeling about the upcoming change?",
+      "What are you looking forward to?",
+      "Is there any grief mixed with the excitement?",
     ],
     relevantTeam: [
       { persona: 'jordan', why: 'Life milestone planning' },
@@ -177,9 +174,9 @@ const TRANSITION_PATTERNS: Record<
       'Legacy/purpose planning',
     ],
     exploratoryQuestions: [
-      'What does retirement look like in your mind?',
-      'What do you want your days to look like?',
-      'Any fears or concerns about the transition?',
+      "What does retirement look like in your mind?",
+      "What do you want your days to look like?",
+      "Any fears or concerns about the transition?",
     ],
     relevantTeam: [
       { persona: 'jordan', why: 'Milestone celebration planning' },
@@ -208,9 +205,9 @@ const TRANSITION_PATTERNS: Record<
       'Support system setup',
     ],
     exploratoryQuestions: [
-      'How are you feeling about becoming a parent?',
-      'What kind of support would be most helpful?',
-      'Any traditions you want to start?',
+      "How are you feeling about becoming a parent?",
+      "What kind of support would be most helpful?",
+      "Any traditions you want to start?",
     ],
     relevantTeam: [
       { persona: 'jordan', why: 'Milestone planning and celebration' },
@@ -239,8 +236,8 @@ const TRANSITION_PATTERNS: Record<
     ],
     exploratoryQuestions: [
       "What's most important to you for the big day?",
-      'How are you feeling about all the planning?',
-      'Any family dynamics to navigate?',
+      "How are you feeling about all the planning?",
+      "Any family dynamics to navigate?",
     ],
     relevantTeam: [
       { persona: 'jordan', why: 'Event planning expertise' },
@@ -268,8 +265,8 @@ const TRANSITION_PATTERNS: Record<
     ],
     exploratoryQuestions: [
       "What's driving the change?",
-      'What are you hoping for in the new chapter?',
-      'Any fears or excitement to process?',
+      "What are you hoping for in the new chapter?",
+      "Any fears or excitement to process?",
     ],
     relevantTeam: [
       { persona: 'jordan', why: 'Milestone marking' },
@@ -297,8 +294,8 @@ const TRANSITION_PATTERNS: Record<
     ],
     exploratoryQuestions: [
       "What's prompting the move?",
-      'What will you miss most?',
-      'What are you excited about?',
+      "What will you miss most?",
+      "What are you excited about?",
     ],
     relevantTeam: [
       { persona: 'jordan', why: 'Move planning and celebration' },
@@ -324,9 +321,9 @@ const TRANSITION_PATTERNS: Record<
       'Wellness routine development',
     ],
     exploratoryQuestions: [
-      'How are you feeling about this journey?',
-      'What support would help most?',
-      'What milestones would be meaningful to mark?',
+      "How are you feeling about this journey?",
+      "What support would help most?",
+      "What milestones would be meaningful to mark?",
     ],
     relevantTeam: [
       { persona: 'jordan', why: 'Milestone tracking' },
@@ -339,7 +336,7 @@ const TRANSITION_PATTERNS: Record<
     keywords: ['divorce', 'separated', 'custody', 'settlement'],
     phrases: [
       'getting divorced',
-      'marriage ending',
+      "marriage ending",
       'separated',
       'moving forward',
       'new chapter after',
@@ -352,9 +349,9 @@ const TRANSITION_PATTERNS: Record<
       'Support circle gathering',
     ],
     exploratoryQuestions: [
-      'How are you holding up?',
-      'What does moving forward look like for you?',
-      'What support would be helpful right now?',
+      "How are you holding up?",
+      "What does moving forward look like for you?",
+      "What support would be helpful right now?",
     ],
     relevantTeam: [
       { persona: 'nayan', why: 'Deep emotional processing' },
@@ -365,7 +362,13 @@ const TRANSITION_PATTERNS: Record<
 
   loss_grief: {
     keywords: ['passed away', 'died', 'loss', 'grief', 'mourning', 'memorial'],
-    phrases: ['lost my', 'dealing with loss', 'in mourning', 'anniversary of passing', 'memorial'],
+    phrases: [
+      'lost my',
+      'dealing with loss',
+      'in mourning',
+      'anniversary of passing',
+      'memorial',
+    ],
     demographicHints: () => false,
     suggestedPlanning: [
       'Memorial planning',
@@ -374,9 +377,9 @@ const TRANSITION_PATTERNS: Record<
       'Grief milestone markers',
     ],
     exploratoryQuestions: [
-      'How can I support you right now?',
-      'Would you like to talk about them?',
-      'Are there ways you want to honor their memory?',
+      "How can I support you right now?",
+      "Would you like to talk about them?",
+      "Are there ways you want to honor their memory?",
     ],
     relevantTeam: [
       { persona: 'nayan', why: 'Grief and wisdom processing' },
@@ -401,8 +404,8 @@ const TRANSITION_PATTERNS: Record<
       'Lifestyle adjustment planning',
     ],
     exploratoryQuestions: [
-      'How does this achievement feel?',
-      'What made this possible?',
+      "How does this achievement feel?",
+      "What made this possible?",
       "What's the next goal?",
     ],
     relevantTeam: [
@@ -429,9 +432,9 @@ const TRANSITION_PATTERNS: Record<
       'Thank you notes to supporters',
     ],
     exploratoryQuestions: [
-      'How does it feel to be finishing?',
-      'What doors does this open?',
-      'Who do you want to celebrate with?',
+      "How does it feel to be finishing?",
+      "What doors does this open?",
+      "Who do you want to celebrate with?",
     ],
     relevantTeam: [
       { persona: 'jordan', why: 'Celebration planning' },
@@ -455,10 +458,12 @@ const TRANSITION_PATTERNS: Record<
       'Photo/memory compilation',
     ],
     exploratoryQuestions: [
-      'Any special way you want to mark this?',
+      "Any special way you want to mark this?",
       "What's the most meaningful part of your journey together?",
     ],
-    relevantTeam: [{ persona: 'jordan', why: 'Anniversary celebration planning' }],
+    relevantTeam: [
+      { persona: 'jordan', why: 'Anniversary celebration planning' },
+    ],
   },
 
   starting_business: {
@@ -478,9 +483,9 @@ const TRANSITION_PATTERNS: Record<
       'Milestone markers',
     ],
     exploratoryQuestions: [
-      'What inspired this venture?',
-      'What support do you need?',
-      'How do you want to celebrate wins along the way?',
+      "What inspired this venture?",
+      "What support do you need?",
+      "How do you want to celebrate wins along the way?",
     ],
     relevantTeam: [
       { persona: 'jordan', why: 'Business milestone planning' },
@@ -507,7 +512,7 @@ const TRANSITION_PATTERNS: Record<
     exploratoryQuestions: [
       "What's driving this change?",
       "What's hardest to let go of?",
-      'What are you most looking forward to?',
+      "What are you most looking forward to?",
     ],
     relevantTeam: [
       { persona: 'jordan', why: 'Transition planning' },
@@ -531,9 +536,9 @@ const TRANSITION_PATTERNS: Record<
       'Caregiver milestones recognition',
     ],
     exploratoryQuestions: [
-      'How are you managing this new role?',
-      'What support do you need?',
-      'Are you making time for yourself?',
+      "How are you managing this new role?",
+      "What support do you need?",
+      "Are you making time for yourself?",
     ],
     relevantTeam: [
       { persona: 'nayan', why: 'Processing complex emotions' },
@@ -558,8 +563,8 @@ const TRANSITION_PATTERNS: Record<
       'New chapter markers',
     ],
     exploratoryQuestions: [
-      'How can I support your journey?',
-      'What milestones would be meaningful to mark?',
+      "How can I support your journey?",
+      "What milestones would be meaningful to mark?",
       "What's helping you stay strong?",
     ],
     relevantTeam: [
@@ -576,19 +581,12 @@ const TRANSITION_PATTERNS: Record<
 
 const COLLECTION = 'anticipatory_planning';
 
-async function loadAnticipatoryProfile(
-  userId: string
-): Promise<AnticipatoryPlanningProfile | null> {
+async function loadAnticipatoryProfile(userId: string): Promise<AnticipatoryPlanningProfile | null> {
   const db = getFirestoreDb();
   if (!db) return null;
 
   try {
-    const doc = await db
-      .collection('bogle_users')
-      .doc(userId)
-      .collection(COLLECTION)
-      .doc('profile')
-      .get();
+    const doc = await db.collection('bogle_users').doc(userId).collection(COLLECTION).doc('profile').get();
     if (doc.exists) {
       return doc.data() as AnticipatoryPlanningProfile;
     }
@@ -599,10 +597,7 @@ async function loadAnticipatoryProfile(
   }
 }
 
-async function saveAnticipatoryProfile(
-  userId: string,
-  profile: AnticipatoryPlanningProfile
-): Promise<void> {
+async function saveAnticipatoryProfile(userId: string, profile: AnticipatoryPlanningProfile): Promise<void> {
   const db = getFirestoreDb();
   if (!db) return;
 
@@ -724,13 +719,14 @@ export async function getAnticipatedTransitions(
   return profile.predictions.filter((p) => {
     if (p.confidence < minConfidence) return false;
 
-    const surfaced = profile.surfacedTransitions.find((s) => s.transition === p.transition);
+    const surfaced = profile.surfacedTransitions.find(
+      (s) => s.transition === p.transition
+    );
 
     // If we surfaced it and user said "not ready" or "inaccurate", don't resurface
     if (surfaced && ['not_ready', 'inaccurate'].includes(surfaced.userResponse)) {
       // Unless it's been 90+ days
-      const daysSince =
-        (Date.now() - new Date(surfaced.surfacedAt).getTime()) / (1000 * 60 * 60 * 24);
+      const daysSince = (Date.now() - new Date(surfaced.surfacedAt).getTime()) / (1000 * 60 * 60 * 24);
       if (daysSince < 90) return false;
     }
 
@@ -750,7 +746,9 @@ export async function markTransitionSurfaced(
   if (!profile) return;
 
   // Update or add surfaced record
-  const existingIdx = profile.surfacedTransitions.findIndex((s) => s.transition === transition);
+  const existingIdx = profile.surfacedTransitions.findIndex(
+    (s) => s.transition === transition
+  );
 
   const record = {
     transition,
@@ -781,30 +779,21 @@ export async function buildAnticipatoryPlanningContext(userId: string): Promise<
 
   for (const prediction of anticipated.slice(0, 3)) {
     const pattern = TRANSITION_PATTERNS[prediction.transition];
-    lines.push(
-      `🔮 ${formatTransitionName(prediction.transition)} (${Math.round(prediction.confidence * 100)}% confidence)`
-    );
+    lines.push(`🔮 ${formatTransitionName(prediction.transition)} (${Math.round(prediction.confidence * 100)}% confidence)`);
     lines.push(`   Timeframe: ${prediction.estimatedTimeframe}`);
-    lines.push(
-      `   Signals: ${prediction.signals
-        .slice(-3)
-        .map((s) => s.triggers[0])
-        .join(', ')}`
-    );
-
+    lines.push(`   Signals: ${prediction.signals.slice(-3).map(s => s.triggers[0]).join(', ')}`);
+    
     if (prediction.suggestedPlanning.length > 0) {
       lines.push(`   💡 Worth planning: ${prediction.suggestedPlanning[0]}`);
     }
-
+    
     if (prediction.exploratoryQuestions.length > 0) {
       lines.push(`   ❓ Explore gently: "${prediction.exploratoryQuestions[0]}"`);
     }
     lines.push('');
   }
 
-  lines.push(
-    'Use this to offer proactive planning support - but be gentle. These are predictions, not certainties.'
-  );
+  lines.push('Use this to offer proactive planning support - but be gentle. These are predictions, not certainties.');
 
   return lines.join('\n');
 }
@@ -825,8 +814,7 @@ function createDefaultProfile(userId: string): AnticipatoryPlanningProfile {
 }
 
 function computePredictions(profile: AnticipatoryPlanningProfile): TransitionPrediction[] {
-  const transitionWeights: Record<LifeTransition, { weight: number; signals: TransitionSignal[] }> =
-    {} as any;
+  const transitionWeights: Record<LifeTransition, { weight: number; signals: TransitionSignal[] }> = {} as any;
 
   // Aggregate signals by transition
   for (const signal of profile.signals) {
@@ -835,8 +823,7 @@ function computePredictions(profile: AnticipatoryPlanningProfile): TransitionPre
     }
 
     // Decay weight over time (signals older than 30 days get reduced)
-    const daysSinceSignal =
-      (Date.now() - new Date(signal.detectedAt).getTime()) / (1000 * 60 * 60 * 24);
+    const daysSinceSignal = (Date.now() - new Date(signal.detectedAt).getTime()) / (1000 * 60 * 60 * 24);
     const decayedWeight = signal.weight * Math.exp(-daysSinceSignal / 60); // 60-day half-life
 
     transitionWeights[signal.transition].weight += decayedWeight;

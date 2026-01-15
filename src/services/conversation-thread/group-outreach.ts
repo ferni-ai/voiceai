@@ -105,10 +105,11 @@ export interface RoundtableSetupConfig {
 const PERSONA_DISPLAY_NAMES: Record<string, string> = {
   ferni: 'Ferni',
   'peter-john': 'Peter',
+  'maya-habits': 'Maya',
   'maya-santos': 'Maya',
   'alex-chen': 'Alex',
   'jordan-taylor': 'Jordan',
-  'nayan-patel': 'Nayan',
+  'nayan-sharma': 'Nayan',
   nayan: 'Nayan',
 };
 
@@ -225,7 +226,7 @@ export function generateGroupCallIntroductions(
       case 'peter-john':
         introductions.set(personaId, `Hey! Peter here. I've got some thoughts on this.`);
         break;
-      case 'maya-santos':
+      case 'maya-habits':
       case 'maya-santos':
         introductions.set(personaId, `Hi! Maya here. Happy to help brainstorm.`);
         break;
@@ -235,7 +236,7 @@ export function generateGroupCallIntroductions(
       case 'jordan-taylor':
         introductions.set(personaId, `Jordan here! Excited to plan this with you.`);
         break;
-      case 'nayan-patel':
+      case 'nayan-sharma':
       case 'nayan':
         introductions.set(personaId, `Nayan here. I'll offer some perspective.`);
         break;
@@ -403,7 +404,7 @@ export async function mayaJordanPlanningOutreach(
 ): Promise<GroupOutreachResult> {
   return initiateGroupOutreach({
     userId,
-    personas: ['maya-santos', 'jordan-taylor'],
+    personas: ['maya-habits', 'jordan-taylor'],
     leadPersona: 'jordan-taylor',
     preferredChannel: 'sms',
     triggerType: 'planning',
@@ -453,7 +454,7 @@ export async function teamCelebrationOutreach(
 ): Promise<GroupOutreachResult> {
   return initiateGroupOutreach({
     userId,
-    personas: ['ferni', 'maya-santos', 'jordan-taylor'],
+    personas: ['ferni', 'maya-habits', 'jordan-taylor'],
     leadPersona: 'ferni',
     preferredChannel: 'sms',
     triggerType: 'celebration',
@@ -480,7 +481,7 @@ export async function fullTeamSupportOutreach(
 ): Promise<GroupOutreachResult> {
   return initiateGroupOutreach({
     userId,
-    personas: ['ferni', 'maya-santos', 'nayan-patel'],
+    personas: ['ferni', 'maya-habits', 'nayan-sharma'],
     leadPersona: 'ferni',
     preferredChannel: 'sms',
     triggerType: 'collaborative_support',

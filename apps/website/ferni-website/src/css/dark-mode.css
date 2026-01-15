@@ -47,22 +47,18 @@
   --color-sand: var(--color-bg-dark-elevated);
   --color-background-subtle: var(--color-bg-dark-elevated);
 
-  /* ===== Text Colors - WCAG AA Compliant =====
-     HARDCODED from design-system/tokens/colors.json → themes.midnight.text
-     to avoid circular variable references that break dark mode!
-     All tested against #70605a (elevated background) for contrast:
-     - primary: 5.56:1 ✓  - secondary: 5.05:1 ✓  - muted: 4.65:1 ✓  - dimmed: 4.5:1 ✓ */
-  --color-text-primary: #faf6f0;
-  --color-text-secondary: #f0ebe4;
-  --color-text-muted: #e8e2da;
-  --color-text-dimmed: #e0d8ce;
+  /* ===== Text Colors - WCAG AA Compliant ===== */
+  --color-text-primary: var(--color-text-inverse);
+  --color-text-secondary: var(--color-bg-secondary);
+  --color-text-muted: var(--color-text-muted);
+  --color-text-dimmed: var(--color-text-dimmed);
 
-  /* ===== Accent Colors - Uses bright variants for dark mode ===== */
-  --color-accent: #a5c99a;
-  --color-accent-hover: #b8d4ae;
+  /* ===== Accent Colors - Uses Ferni textOnDark for contrast ===== */
+  --color-accent: var(--color-ferni-text, var(--color-success-light));
+  --color-accent-hover: var(--color-ferni-light);
   --color-accent-light: rgba(165, 201, 154, 0.2);
-  --color-highlight: #e8c870;
-  --color-highlight-glow: rgba(232, 200, 112, 0.3);
+  --color-highlight: var(--color-highlight);
+  --color-highlight-glow: rgba(212, 178, 117, 0.3);
 
   /* ===== Border Colors ===== */
   --color-border-subtle: rgba(255, 255, 255, 0.08);
@@ -130,22 +126,18 @@
     --color-sand: var(--color-bg-dark-elevated);
     --color-background-subtle: var(--color-bg-dark-elevated);
     
-    /* ===== Text Colors - WCAG AA Compliant =====
-       HARDCODED from design-system/tokens/colors.json → themes.midnight.text
-       to avoid circular variable references that break dark mode!
-       All tested against #70605a (elevated background) for contrast:
-       - primary: 5.56:1 ✓  - secondary: 5.05:1 ✓  - muted: 4.65:1 ✓  - dimmed: 4.5:1 ✓ */
-    --color-text-primary: #faf6f0;
-    --color-text-secondary: #f0ebe4;
-    --color-text-muted: #e8e2da;
-    --color-text-dimmed: #e0d8ce;
+    /* ===== Text Colors - WCAG AA Compliant ===== */
+    --color-text-primary: var(--color-text-inverse);
+    --color-text-secondary: var(--color-bg-secondary);
+    --color-text-muted: var(--color-text-muted);
+    --color-text-dimmed: var(--color-text-dimmed);
     
-    /* ===== Accent Colors - Uses bright variants for dark mode ===== */
-    --color-accent: #a5c99a;
-    --color-accent-hover: #b8d4ae;
+    /* ===== Accent Colors - Uses Ferni textOnDark for contrast ===== */
+    --color-accent: var(--color-ferni-text, var(--color-success-light));
+    --color-accent-hover: var(--color-ferni-light);
     --color-accent-light: rgba(165, 201, 154, 0.2);
-    --color-highlight: #e8c870;
-    --color-highlight-glow: rgba(232, 200, 112, 0.3);
+    --color-highlight: var(--color-highlight);
+    --color-highlight-glow: rgba(212, 178, 117, 0.3);
     
     /* ===== Border Colors ===== */
     --color-border-subtle: rgba(255, 255, 255, 0.08);

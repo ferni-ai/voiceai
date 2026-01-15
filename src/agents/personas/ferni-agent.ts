@@ -55,9 +55,7 @@ function emergencyTruncate(prompt: string, maxTokens: number): string {
 
   // Simple character-based truncation (prompt-loader should have done smart truncation)
   const maxChars = maxTokens * 4;
-  return (
-    prompt.slice(0, maxChars) + '\n\n[EMERGENCY TRUNCATION - prompt exceeded OpenAI Realtime limit]'
-  );
+  return prompt.slice(0, maxChars) + '\n\n[EMERGENCY TRUNCATION - prompt exceeded OpenAI Realtime limit]';
 }
 
 // ============================================================================

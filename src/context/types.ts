@@ -17,8 +17,8 @@ import type { PersonaId, SessionId } from '../types/branded.js';
 // ============================================================================
 
 // These are re-exported from their source modules for convenience
-export type { ConversationState, PhaseGuidance } from '../intelligence/state/conversation.js';
-export type { EmotionResult } from '../intelligence/detectors/emotion.js';
+export type { ConversationState, PhaseGuidance } from '../intelligence/conversation-state.js';
+export type { EmotionResult } from '../intelligence/emotion-detector.js';
 
 // ============================================================================
 // SPEECH INSIGHTS

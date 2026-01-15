@@ -144,12 +144,7 @@ async function loadMilestoneProfile(userId: string): Promise<MilestoneDetectorPr
   if (!db) return null;
 
   try {
-    const doc = await db
-      .collection('bogle_users')
-      .doc(userId)
-      .collection(COLLECTION)
-      .doc('profile')
-      .get();
+    const doc = await db.collection('bogle_users').doc(userId).collection(COLLECTION).doc('profile').get();
     if (doc.exists) {
       return doc.data() as MilestoneDetectorProfile;
     }
@@ -160,10 +155,7 @@ async function loadMilestoneProfile(userId: string): Promise<MilestoneDetectorPr
   }
 }
 
-async function saveMilestoneProfile(
-  userId: string,
-  profile: MilestoneDetectorProfile
-): Promise<void> {
+async function saveMilestoneProfile(userId: string, profile: MilestoneDetectorProfile): Promise<void> {
   const db = getFirestoreDb();
   if (!db) return;
 
@@ -328,10 +320,7 @@ export async function recordLifeStageSignal(
   }
 
   await saveMilestoneProfile(userId, profile);
-  log.info(
-    { userId, transition, confidence, signalCount: signals.length },
-    'Recorded life stage signal'
-  );
+  log.info({ userId, transition, confidence, signalCount: signals.length }, 'Recorded life stage signal');
 }
 
 /**
@@ -380,14 +369,15 @@ export async function detectUpcomingMilestones(
 /**
  * Get milestones worth celebrating now
  */
-export async function getMilestonesToCelebrate(userId: string): Promise<DetectedMilestone[]> {
+export async function getMilestonesToCelebrate(
+  userId: string
+): Promise<DetectedMilestone[]> {
   const upcoming = await detectUpcomingMilestones(userId, 14);
 
   // Return milestones within 7 days, or significant ones within 14 days
   return upcoming.filter((m) => {
     if (Math.abs(m.daysAway) <= 7) return true;
-    if (['major', 'life_changing'].includes(m.significance) && Math.abs(m.daysAway) <= 14)
-      return true;
+    if (['major', 'life_changing'].includes(m.significance) && Math.abs(m.daysAway) <= 14) return true;
     return false;
   });
 }
@@ -445,7 +435,7 @@ export async function buildMilestoneDetectorContext(userId: string): Promise<str
   }
 
   const lines = ['[PROACTIVE MILESTONE DETECTION - Better Than Human]'];
-  lines.push('You notice milestones humans forget to celebrate:\n');
+  lines.push("You notice milestones humans forget to celebrate:\n");
 
   if (milestones.length > 0) {
     lines.push('🎉 MILESTONES WORTH CELEBRATING:');
@@ -492,7 +482,11 @@ function createDefaultProfile(userId: string): MilestoneDetectorProfile {
   };
 }
 
-function detectDateMilestones(tracked: TrackedDate, now: Date, cutoff: Date): DetectedMilestone[] {
+function detectDateMilestones(
+  tracked: TrackedDate,
+  now: Date,
+  cutoff: Date
+): DetectedMilestone[] {
   const milestones: DetectedMilestone[] = [];
   const originalDate = new Date(tracked.date);
   const yearsSince = now.getFullYear() - originalDate.getFullYear();
@@ -512,7 +506,11 @@ function detectDateMilestones(tracked: TrackedDate, now: Date, cutoff: Date): De
     if (!isMilestone && anniversaryYear > 1) continue;
 
     // Calculate this year's anniversary date
-    const anniversaryDate = new Date(targetYear, originalDate.getMonth(), originalDate.getDate());
+    const anniversaryDate = new Date(
+      targetYear,
+      originalDate.getMonth(),
+      originalDate.getDate()
+    );
 
     // Check if within window
     if (anniversaryDate >= now && anniversaryDate <= cutoff) {
@@ -604,7 +602,7 @@ function getCelebrationSuggestion(type: MilestoneType, years: number): string {
     },
     career: {
       1: 'Reflect on your first year wins',
-      5: "Consider how much you've grown - treat yourself",
+      5: 'Consider how much you\'ve grown - treat yourself',
       10: 'A decade! Document your journey and celebrate',
     },
     friendship: {
@@ -643,19 +641,32 @@ function getSuggestedMilestonesForTransition(transition: string): string[] {
       'New chapter date night',
       'Redecorate their old room (when ready)',
     ],
-    retirement: [
+    'retirement': [
       'Retirement party',
       'First week of freedom celebration',
-      'Bucket list planning session',
+      "Bucket list planning session",
     ],
-    'new parent': ['Baby shower', 'Nursery reveal', '100 days celebration'],
-    'career change': ['Last day celebration', 'First day at new job', '90 day milestone'],
+    'new parent': [
+      'Baby shower',
+      'Nursery reveal',
+      '100 days celebration',
+    ],
+    'career change': [
+      'Last day celebration',
+      'First day at new job',
+      '90 day milestone',
+    ],
     'divorce finalized': [
       'Closure ritual',
       'New chapter celebration',
       'One year anniversary of fresh start',
     ],
-    'recovery beginning': ['First week', '30 days', '90 days', 'One year'],
+    'recovery beginning': [
+      'First week',
+      '30 days',
+      '90 days',
+      'One year',
+    ],
   };
 
   const key = Object.keys(suggestions).find((k) =>

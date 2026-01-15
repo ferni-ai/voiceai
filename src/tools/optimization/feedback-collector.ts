@@ -446,7 +446,7 @@ export class FeedbackCollector {
     if (this.feedbackBuffer.length === 0) return;
 
     // Import persistence service dynamically to avoid circular deps
-    const { optimizationPersistence } = await import('../../services/performance/optimization-persistence.js');
+    const { optimizationPersistence } = await import('../../services/optimization-persistence.js');
 
     // Buffer all feedback for batch write
     for (const feedback of this.feedbackBuffer) {

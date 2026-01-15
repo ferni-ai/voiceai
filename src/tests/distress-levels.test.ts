@@ -16,7 +16,7 @@ import {
   needsEmotionalSupport,
   shouldBeGentle,
   type DistressLevel,
-} from '../intelligence/detectors/distress.js';
+} from '../intelligence/distress-levels.js';
 
 describe('distress-levels', () => {
   describe('DISTRESS constants', () => {

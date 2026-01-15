@@ -170,7 +170,7 @@ export async function recordVoiceMatchFeedback(
   // Persist to profile if available
   if (profile) {
     try {
-      const { getDefaultStore } = await import('../memory/index.js');
+      const { getDefaultStore } = await import('../../memory/index.js');
       const store = getDefaultStore();
       if (!profile.customData) profile.customData = {};
       profile.customData.voiceThresholds = thresholds;

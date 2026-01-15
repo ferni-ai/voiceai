@@ -313,7 +313,7 @@ export function createConversationTools() {
         // 🌅 Signal the frontend that we're wrapping up
         // This changes the disconnect button to a warm "Goodbye" button
         try {
-          const { sendFrontendSignal } = await import('../../../services/pubsub/frontend-signal.js');
+          const { sendFrontendSignal } = await import('../../../services/frontend-signal.js');
           const sent = await sendFrontendSignal('wrap_up', {
             sentiment,
             // Don't include the message - let the frontend handle UI
@@ -369,7 +369,7 @@ export function createConversationTools() {
 
         // 🌅 Signal the frontend to auto-disconnect
         try {
-          const { sendFrontendSignal } = await import('../../../services/pubsub/frontend-signal.js');
+          const { sendFrontendSignal } = await import('../../../services/frontend-signal.js');
           const sent = await sendFrontendSignal('conversation_end', {
             reason: reason === 'natural_end' ? 'goodbye_complete' : reason,
             disconnectDelay: 2500, // Give time for farewell to be spoken
@@ -421,7 +421,7 @@ export function createConversationTools() {
 
         // 📊 Track in security events for pattern detection
         try {
-          const { recordAgentGracefulExit } = await import('../../../services/identity/security-events.js');
+          const { recordAgentGracefulExit } = await import('../../../services/security-events.js');
           await recordAgentGracefulExit({
             userId,
             sessionId,
@@ -437,7 +437,7 @@ export function createConversationTools() {
         // 🌅 Signal the frontend to disconnect with the special "agent_exit" reason
         // This triggers a different sound/animation - like hanging up the phone
         try {
-          const { sendFrontendSignal } = await import('../../../services/pubsub/frontend-signal.js');
+          const { sendFrontendSignal } = await import('../../../services/frontend-signal.js');
           const sent = await sendFrontendSignal('conversation_end', {
             reason: 'agent_exit',
             exitType: reason,

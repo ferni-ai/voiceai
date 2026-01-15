@@ -55,10 +55,7 @@ export class RecoveryManager {
    * Schedule periodic recovery attempts.
    */
   scheduleRecoveryAttempt(): void {
-    if (
-      hasInterval(RECOVERY_INTERVAL_NAME) ||
-      this.state.recoveryAttemptCount >= MAX_RECOVERY_ATTEMPTS
-    ) {
+    if (hasInterval(RECOVERY_INTERVAL_NAME) || this.state.recoveryAttemptCount >= MAX_RECOVERY_ATTEMPTS) {
       return;
     }
 

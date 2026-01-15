@@ -17,7 +17,7 @@ import {
   getFeatureRollout,
   ROLLOUT_PRESETS,
   type RolloutConfig,
-} from '../services/deployment/feature-rollout.js';
+} from '../services/feature-rollout.js';
 import { createLogger } from '../utils/safe-logger.js';
 import { rateLimit, requireAdmin } from './auth-middleware.js';
 import { parseBody, sendError, sendJSON } from './helpers.js';

@@ -23,14 +23,14 @@ export interface ReservationRequest {
   sessionId?: string;
   type: 'restaurant' | 'hotel' | 'venue' | 'activity' | 'service' | 'other';
   venue: string;
-  dateTime: string; // ISO string
+  dateTime: string;  // ISO string
   partySize?: number;
   specialRequests?: string;
   contactPhone?: string;
   contactEmail?: string;
   priority?: ResultPriority;
   initiatedBy?: string;
-  context?: string; // e.g., "anniversary dinner", "business meeting"
+  context?: string;  // e.g., "anniversary dinner", "business meeting"
 }
 
 export interface ReservationResult {
@@ -38,7 +38,7 @@ export interface ReservationResult {
   venue: string;
   dateTime: string;
   confirmationNumber?: string;
-  actualTime?: string; // May differ from requested
+  actualTime?: string;  // May differ from requested
   partySize?: number;
   specialNotes?: string;
   cancellationPolicy?: string;
@@ -240,7 +240,9 @@ async function performVenueReservation(request: ReservationRequest): Promise<Res
 /**
  * Activity reservation (tours, experiences)
  */
-async function performActivityReservation(request: ReservationRequest): Promise<ReservationResult> {
+async function performActivityReservation(
+  request: ReservationRequest
+): Promise<ReservationResult> {
   log.debug({ venue: request.venue, dateTime: request.dateTime }, 'Making activity reservation');
 
   await simulateReservationDelay();
@@ -326,7 +328,10 @@ function generateConfirmationNumber(prefix: string): string {
 /**
  * Build a human-readable reservation summary
  */
-function buildReservationSummary(request: ReservationRequest, result: ReservationResult): string {
+function buildReservationSummary(
+  request: ReservationRequest,
+  result: ReservationResult
+): string {
   const dateStr = formatDateTime(result.actualTime || request.dateTime);
 
   if (result.success) {
@@ -340,7 +345,10 @@ function buildReservationSummary(request: ReservationRequest, result: Reservatio
 /**
  * Build detailed description for storage
  */
-function buildDetailedDescription(request: ReservationRequest, result: ReservationResult): string {
+function buildDetailedDescription(
+  request: ReservationRequest,
+  result: ReservationResult
+): string {
   const lines: string[] = [];
 
   if (result.success) {

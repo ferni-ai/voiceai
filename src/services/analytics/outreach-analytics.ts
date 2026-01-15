@@ -15,7 +15,7 @@
 import { getFirestoreDatabase, getGCPProjectId } from '../../config/environment.js';
 import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
 import { getLogger } from '../../utils/safe-logger.js';
-import type { OutreachTrigger } from '../outreach/outreach-intelligence.js';
+import type { OutreachTrigger } from '../outreach-intelligence.js';
 import type { Firestore as FirestoreType } from '@google-cloud/firestore';
 
 // ============================================================================

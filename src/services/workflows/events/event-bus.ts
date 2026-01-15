@@ -124,7 +124,7 @@ export class EventBus {
       averageHandlerTime: 0,
       errors: 0,
     };
-
+    
     log.info('Event bus initialized');
   }
 
@@ -143,7 +143,8 @@ export class EventBus {
 
     // Update stats
     this.stats.totalEvents++;
-    this.stats.eventsByType[event.eventType] = (this.stats.eventsByType[event.eventType] || 0) + 1;
+    this.stats.eventsByType[event.eventType] =
+      (this.stats.eventsByType[event.eventType] || 0) + 1;
 
     log.debug(
       { eventType: event.eventType, userId: event.userId, source: event.source },
@@ -198,7 +199,7 @@ export class EventBus {
     }
   ): string {
     const id = `sub_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-
+    
     const subscription: EventSubscription = {
       id,
       eventType,
@@ -238,7 +239,7 @@ export class EventBus {
   ): Promise<EventPayload> {
     return new Promise((resolve, reject) => {
       let timeoutId: NodeJS.Timeout | null = null;
-
+      
       const wrappedHandler: EventHandler = async (event) => {
         if (timeoutId) clearTimeout(timeoutId);
         this.unsubscribe(subId);
@@ -330,7 +331,10 @@ export class EventBus {
         }
       }
 
-      log.info({ workflowId, eventType: event.eventType }, 'Workflow triggered by event');
+      log.info(
+        { workflowId, eventType: event.eventType },
+        'Workflow triggered by event'
+      );
 
       if (callback) {
         await callback(event);

@@ -11,7 +11,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import type { VoiceSketch } from '../../types/user-profile.js';
-import { getDefaultStore } from '../memory/in-memory-store.js';
+import { getDefaultStore } from '../../memory/in-memory-store.js';
 
 const log = createLogger({ module: 'VoiceSketchBuilder' });
 

@@ -29,7 +29,7 @@ import {
 
 import { type MagicMomentAnalysis } from './human-first-2fa.js';
 
-import { sendSMS } from '../communication/communication-service.js';
+import { sendSMS } from '../communication-service.js';
 import { createVerificationCode, getVerificationStatus, verifyCode } from './verification-store.js';
 
 const log = getLogger().child({ module: 'VoiceAgentIntegration' });

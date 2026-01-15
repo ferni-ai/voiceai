@@ -140,9 +140,7 @@ export async function extractRelationships(
       };
     }
 
-    const entityList = input.knownEntities
-      .map((e) => `- ${e.name} (${e.type}, id: ${e.id})`)
-      .join('\n');
+    const entityList = input.knownEntities.map((e) => `- ${e.name} (${e.type}, id: ${e.id})`).join('\n');
 
     const fullPrompt = `${RELATIONSHIP_EXTRACTION_PROMPT}
 
@@ -199,26 +197,16 @@ Extract relationships as JSON array with: fromEntityId, toEntityId, type, label,
             type: validateEdgeType(r.type),
             label: r.label ? String(r.label).trim() : undefined,
             confidence: Math.min(1, Math.max(0, Number(r.confidence) || 0.7)),
-            sentiment:
-              r.sentiment !== undefined
-                ? Math.min(1, Math.max(-1, Number(r.sentiment)))
-                : undefined,
+            sentiment: r.sentiment !== undefined ? Math.min(1, Math.max(-1, Number(r.sentiment))) : undefined,
           };
         });
     } catch (parseError) {
-      log.warn(
-        { parseError: String(parseError) },
-        'Failed to parse relationship extraction response'
-      );
+      log.warn({ parseError: String(parseError) }, 'Failed to parse relationship extraction response');
       relationships = extractRelationshipsRuleBased(input.transcript, input.knownEntities);
     }
 
     log.debug(
-      {
-        userId: input.userId,
-        relationshipCount: relationships.length,
-        processingTimeMs: Date.now() - startTime,
-      },
+      { userId: input.userId, relationshipCount: relationships.length, processingTimeMs: Date.now() - startTime },
       'Extracted relationships via LLM'
     );
 
@@ -242,22 +230,9 @@ Extract relationships as JSON array with: fromEntityId, toEntityId, type, label,
  */
 function validateEdgeType(type: string): EdgeType {
   const validTypes: EdgeType[] = [
-    'knows',
-    'family_of',
-    'friend_of',
-    'works_with',
-    'reports_to',
-    'romantic_with',
-    'interested_in',
-    'worried_about',
-    'wants',
-    'committed_to',
-    'values',
-    'related_to',
-    'causes',
-    'part_of',
-    'blocks',
-    'enables',
+    'knows', 'family_of', 'friend_of', 'works_with', 'reports_to', 'romantic_with',
+    'interested_in', 'worried_about', 'wants', 'committed_to', 'values',
+    'related_to', 'causes', 'part_of', 'blocks', 'enables',
   ];
   return validTypes.includes(type as EdgeType) ? (type as EdgeType) : 'related_to';
 }
@@ -268,14 +243,8 @@ function validateEdgeType(type: string): EdgeType {
 
 const RELATIONSHIP_PATTERNS = [
   // Family
-  {
-    pattern: /(\w+)(?:'s|is\s+(?:my|the))\s+(mother|father|brother|sister|son|daughter)/i,
-    type: 'family_of' as EdgeType,
-  },
-  {
-    pattern: /(\w+)\s+and\s+(\w+)\s+are\s+(?:siblings|brothers|sisters)/i,
-    type: 'family_of' as EdgeType,
-  },
+  { pattern: /(\w+)(?:'s|is\s+(?:my|the))\s+(mother|father|brother|sister|son|daughter)/i, type: 'family_of' as EdgeType },
+  { pattern: /(\w+)\s+and\s+(\w+)\s+are\s+(?:siblings|brothers|sisters)/i, type: 'family_of' as EdgeType },
 
   // Friends
   { pattern: /(\w+)\s+(?:is\s+)?(?:my|a)\s+friend/i, type: 'friend_of' as EdgeType },

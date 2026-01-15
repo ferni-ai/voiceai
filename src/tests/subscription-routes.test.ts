@@ -19,7 +19,7 @@ import {
 } from '../api/subscription-routes.js';
 
 // Mock the stripe-subscription service
-vi.mock('../services/integrations/stripe-subscription.js', () => ({
+vi.mock('../services/stripe-subscription.js', () => ({
   isStripeConfigured: vi.fn(() => true),
   createCheckoutSession: vi.fn(),
   createPortalSession: vi.fn(),
@@ -40,7 +40,7 @@ import {
   isStripeConfigured,
   recordConversation,
   verifyWebhook,
-} from '../services/integrations/stripe-subscription.js';
+} from '../services/stripe-subscription.js';
 
 const mockedIsStripeConfigured = vi.mocked(isStripeConfigured);
 const mockedGetSubscriptionInfo = vi.mocked(getSubscriptionInfo);

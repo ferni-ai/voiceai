@@ -34,12 +34,7 @@
 // CORE REDIS CACHE
 // ============================================================================
 
-export {
-  getRedisCache,
-  getRedisCacheAsync,
-  resetRedisCache,
-  RedisCache,
-} from '../memory/redis-cache.js';
+export { getRedisCache, getRedisCacheAsync, resetRedisCache, RedisCache } from '../../memory/redis-cache.js';
 
 // ============================================================================
 // REDIS-BACKED MANAGED CACHE (L1 Memory + L2 Redis)
@@ -73,7 +68,7 @@ export {
   type MessageHandler,
   type PubSubConfig,
   type Channel,
-} from '../pubsub/redis-pubsub.js';
+} from '../redis-pubsub.js';
 
 // ============================================================================
 // REDIS CIRCUIT BREAKER
@@ -118,7 +113,7 @@ export {
  */
 export async function isRedisAvailable(): Promise<boolean> {
   try {
-    const { getRedisCache } = await import('../memory/redis-cache.js');
+    const { getRedisCache } = await import('../../memory/redis-cache.js');
     const cache = getRedisCache();
     await cache.initialize();
     return cache.isConnected();
@@ -146,20 +141,19 @@ export async function initializeAllRedisServices(): Promise<{
   const [redisResult, pubsubResult, routerResult] = await Promise.allSettled([
     // Core Redis
     (async () => {
-      const { getRedisCache } = await import('../memory/redis-cache.js');
+      const { getRedisCache } = await import('../../memory/redis-cache.js');
       const cache = getRedisCache();
       await cache.initialize();
       return cache.isConnected();
     })(),
     // Pub/Sub
     (async () => {
-      const { initializeRedisPubSub } = await import('../pubsub/redis-pubsub.js');
+      const { initializeRedisPubSub } = await import('../redis-pubsub.js');
       return initializeRedisPubSub();
     })(),
     // Semantic Router Cache
     (async () => {
-      const { initializeCache } =
-        await import('../../tools/semantic-router/integration/redis-cache.js');
+      const { initializeCache } = await import('../../tools/semantic-router/integration/redis-cache.js');
       await initializeCache();
       return true;
     })(),
@@ -180,18 +174,17 @@ export async function shutdownAllRedisServices(): Promise<void> {
   await Promise.allSettled([
     // Pub/Sub
     (async () => {
-      const { shutdownRedisPubSub } = await import('../pubsub/redis-pubsub.js');
+      const { shutdownRedisPubSub } = await import('../redis-pubsub.js');
       await shutdownRedisPubSub();
     })(),
     // Circuit breakers
     (async () => {
-      const { shutdownAllRedisCircuitBreakers } =
-        await import('../self-healing/redis-circuit-breaker.js');
+      const { shutdownAllRedisCircuitBreakers } = await import('../self-healing/redis-circuit-breaker.js');
       await shutdownAllRedisCircuitBreakers();
     })(),
     // Core Redis
     (async () => {
-      const { resetRedisCache } = await import('../memory/redis-cache.js');
+      const { resetRedisCache } = await import('../../memory/redis-cache.js');
       await resetRedisCache();
     })(),
   ]);

@@ -70,14 +70,14 @@ export class WorkflowEngine {
   start(): void {
     if (this.running) return;
     this.running = true;
-
+    
     // Check time-based triggers every minute
     this.checkInterval = setInterval(() => {
       this.checkTimeTriggers().catch((err) => {
         log.error({ error: String(err) }, 'Error checking time triggers');
       });
     }, 60000);
-
+    
     log.info({ userId: this.userId }, 'Workflow engine started');
   }
 
@@ -102,18 +102,18 @@ export class WorkflowEngine {
    */
   async checkTimeTriggers(): Promise<void> {
     const workflows = await getActiveWorkflows(this.userId);
-
+    
     const now = new Date();
-
+    
     for (const workflow of workflows) {
       if (workflow.trigger.type !== 'time') continue;
-
+      
       const trigger = workflow.trigger as TimeTrigger;
-
+      
       // Parse cron expression (simplified - just check hour:minute for now)
       // Real implementation would use a cron parser
       if (!this.cronMatchesNow(trigger.schedule, now)) continue;
-
+      
       // Execute the workflow
       await this.executeWorkflow(workflow, `Time trigger: ${trigger.schedule}`);
     }
@@ -129,7 +129,7 @@ export class WorkflowEngine {
       const [hour, minute] = schedule.split(':').map(Number);
       return now.getHours() === hour && now.getMinutes() === minute;
     }
-
+    
     // Handle "0 HH * * *" cron format (every day at HH:00)
     const cronParts = schedule.split(' ');
     if (cronParts.length === 5) {
@@ -138,7 +138,7 @@ export class WorkflowEngine {
       const cronHour = hour === '*' ? now.getHours() : parseInt(hour, 10);
       return now.getHours() === cronHour && now.getMinutes() === cronMin;
     }
-
+    
     return false;
   }
 
@@ -147,27 +147,27 @@ export class WorkflowEngine {
    */
   async handlePhraseTrigger(phrase: string): Promise<Workflow | null> {
     const workflows = await getActiveWorkflows(this.userId);
-
+    
     const normalizedPhrase = phrase.toLowerCase().trim();
-
+    
     for (const workflow of workflows) {
       if (workflow.trigger.type !== 'phrase') continue;
-
+      
       const trigger = workflow.trigger as PhraseTrigger;
-
+      
       const matches = trigger.phrases.some((p) => {
         if (trigger.requireExactMatch) {
           return normalizedPhrase === p.toLowerCase();
         }
         return normalizedPhrase.includes(p.toLowerCase());
       });
-
+      
       if (matches) {
         await this.executeWorkflow(workflow, `Phrase trigger: "${phrase}"`);
         return workflow;
       }
     }
-
+    
     return null;
   }
 
@@ -176,13 +176,13 @@ export class WorkflowEngine {
    */
   async handleEventTrigger(eventType: string, eventData?: Record<string, unknown>): Promise<void> {
     const workflows = await getActiveWorkflows(this.userId);
-
+    
     for (const workflow of workflows) {
       if (workflow.trigger.type !== 'event') continue;
-
+      
       const trigger = workflow.trigger as EventTrigger;
       if (trigger.eventName !== eventType) continue;
-
+      
       // Check conditions if specified
       if (trigger.conditions && eventData) {
         const conditionsMet = Object.entries(trigger.conditions).every(([key, value]) => {
@@ -190,7 +190,7 @@ export class WorkflowEngine {
         });
         if (!conditionsMet) continue;
       }
-
+      
       await this.executeWorkflow(workflow, `Event trigger: ${eventType}`, eventData);
     }
   }
@@ -204,44 +204,33 @@ export class WorkflowEngine {
     calendarEvent: { title: string; calendarId?: string; isAllDay?: boolean }
   ): Promise<void> {
     const workflows = await getActiveWorkflows(this.userId);
-
+    
     for (const workflow of workflows) {
       if (workflow.trigger.type !== 'calendar') continue;
-
+      
       const trigger = workflow.trigger;
       if (!('triggerOn' in trigger) || trigger.triggerOn !== eventType) continue;
-
+      
       // Check calendar filter
-      if (
-        'calendarId' in trigger &&
-        trigger.calendarId &&
-        trigger.calendarId !== calendarEvent.calendarId
-      ) {
+      if ('calendarId' in trigger && trigger.calendarId && trigger.calendarId !== calendarEvent.calendarId) {
         continue;
       }
-
+      
       // Check event filter (title contains, all-day)
       if ('eventFilter' in trigger && trigger.eventFilter) {
         const filter = trigger.eventFilter;
-        if (
-          filter.titleContains &&
-          !calendarEvent.title.toLowerCase().includes(filter.titleContains.toLowerCase())
-        ) {
+        if (filter.titleContains && !calendarEvent.title.toLowerCase().includes(filter.titleContains.toLowerCase())) {
           continue;
         }
         if (filter.isAllDay !== undefined && filter.isAllDay !== calendarEvent.isAllDay) {
           continue;
         }
       }
-
-      await this.executeWorkflow(
-        workflow,
-        `Calendar trigger: ${eventType} - ${calendarEvent.title}`,
-        {
-          eventTitle: calendarEvent.title,
-          eventType,
-        }
-      );
+      
+      await this.executeWorkflow(workflow, `Calendar trigger: ${eventType} - ${calendarEvent.title}`, {
+        eventTitle: calendarEvent.title,
+        eventType,
+      });
     }
   }
 
@@ -266,21 +255,20 @@ export class WorkflowEngine {
     location: { name?: string; latitude: number; longitude: number }
   ): Promise<void> {
     const workflows = await getActiveWorkflows(this.userId);
-
+    
     for (const workflow of workflows) {
       if (workflow.trigger.type !== 'location') continue;
-
+      
       const trigger = workflow.trigger;
       if (!('triggerOn' in trigger)) continue;
-
+      
       // Check trigger action
       const triggerOn = trigger.triggerOn;
       if (triggerOn !== 'both' && triggerOn !== action) continue;
-
+      
       // Check location match (by name or coordinates)
       if ('locationName' in trigger && trigger.locationName) {
-        const nameMatch =
-          trigger.locationName.toLowerCase() === (location.name?.toLowerCase() || '');
+        const nameMatch = trigger.locationName.toLowerCase() === (location.name?.toLowerCase() || '');
         if (!nameMatch) continue;
       } else if ('latitude' in trigger && 'longitude' in trigger) {
         // Check distance (simplified - within radius)
@@ -293,17 +281,13 @@ export class WorkflowEngine {
         const radiusMeters = 'radiusMeters' in trigger ? trigger.radiusMeters : 100;
         if (distance > radiusMeters) continue;
       }
-
-      await this.executeWorkflow(
-        workflow,
-        `Location trigger: ${action} ${location.name || 'location'}`,
-        {
-          action,
-          locationName: location.name,
-          latitude: location.latitude,
-          longitude: location.longitude,
-        }
-      );
+      
+      await this.executeWorkflow(workflow, `Location trigger: ${action} ${location.name || 'location'}`, {
+        action,
+        locationName: location.name,
+        latitude: location.latitude,
+        longitude: location.longitude,
+      });
     }
   }
 
@@ -313,15 +297,13 @@ export class WorkflowEngine {
   private haversineDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
     const R = 6371000; // Earth's radius in meters
     const toRad = (deg: number) => (deg * Math.PI) / 180;
-
+    
     const dLat = toRad(lat2 - lat1);
     const dLon = toRad(lon2 - lon1);
-
-    const a =
-      Math.sin(dLat / 2) ** 2 +
-      Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+    
+    const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-
+    
     return R * c;
   }
 
@@ -338,7 +320,7 @@ export class WorkflowEngine {
     eventData?: Record<string, unknown>
   ): Promise<WorkflowExecution> {
     const execution = await startExecution(this.userId, workflow.id, triggeredBy);
-
+    
     const context: WorkflowContext = {
       userId: this.userId,
       workflowId: workflow.id,
@@ -347,9 +329,9 @@ export class WorkflowEngine {
       triggeredAt: new Date(),
       variables: { ...workflow.variables, ...eventData },
     };
-
+    
     log.info({ workflowId: workflow.id, executionId: execution.id }, 'Starting workflow execution');
-
+    
     try {
       // Check conditions
       if (workflow.conditions.length > 0) {
@@ -360,32 +342,32 @@ export class WorkflowEngine {
           return execution;
         }
       }
-
+      
       // Execute actions in sequence
       for (let i = 0; i < workflow.actions.length; i++) {
         const action = workflow.actions[i];
-
+        
         await updateExecutionAction(this.userId, execution.id, action.id, {
           status: 'running',
           startedAt: new Date().toISOString(),
         });
-
+        
         try {
           const result = await this.executeAction(action, context);
-
+          
           await updateExecutionAction(this.userId, execution.id, action.id, {
             status: result.success ? 'completed' : 'failed',
             completedAt: new Date().toISOString(),
             result: result.output,
             error: result.error,
           });
-
+          
           context.variables[`action_${i}_result`] = result;
-
+          
           if (!result.success && action.onError !== 'continue') {
             throw new Error(result.error || 'Action failed');
           }
-
+          
           // Add delay if wait action
           if (action.waitSeconds && i < workflow.actions.length - 1) {
             await this.delay(action.waitSeconds * 1000);
@@ -395,20 +377,20 @@ export class WorkflowEngine {
             { workflowId: workflow.id, actionId: action.id, error: String(error) },
             'Action execution failed'
           );
-
+          
           await updateExecutionAction(this.userId, execution.id, action.id, {
             status: 'failed',
             completedAt: new Date().toISOString(),
             error: String(error),
           });
-
+          
           if (action.onError !== 'continue') {
             await failExecution(this.userId, execution.id, String(error));
             return execution;
           }
         }
       }
-
+      
       await completeExecution(this.userId, execution.id, 'completed');
       return execution;
     } catch (error) {
@@ -427,7 +409,7 @@ export class WorkflowEngine {
   ): Promise<boolean> {
     for (const condition of conditions) {
       let value: unknown;
-
+      
       // Get the value to check
       if (condition.variable.startsWith('var:')) {
         value = context.variables[condition.variable.substring(4)];
@@ -438,7 +420,7 @@ export class WorkflowEngine {
       } else {
         value = context.variables[condition.variable];
       }
-
+      
       // Evaluate the condition
       let result = false;
       switch (condition.operator) {
@@ -461,10 +443,10 @@ export class WorkflowEngine {
           result = value !== undefined && value !== null;
           break;
       }
-
+      
       if (!result) return false;
     }
-
+    
     return true;
   }
 
@@ -506,7 +488,7 @@ export class WorkflowEngine {
     };
 
     const result = await executeRealAction(action, executionContext);
-
+    
     return {
       success: result.success,
       output: result.output,
@@ -532,11 +514,7 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
     name: 'Morning Routine',
     description: 'Start your day with weather, calendar, and news',
     category: 'daily-routines',
-    trigger: {
-      type: 'phrase',
-      phrases: ['good morning', 'start my day'],
-      requireExactMatch: false,
-    },
+    trigger: { type: 'phrase', phrases: ['good morning', 'start my day'], requireExactMatch: false },
     conditions: [],
     actions: [
       { id: 'a1', type: 'custom', name: 'Get Weather', params: { toolId: 'getWeather' } },
@@ -558,12 +536,7 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
     actions: [
       { id: 'a1', type: 'custom', name: 'Get Progress', params: { toolId: 'getWeeklyProgress' } },
       { id: 'a2', type: 'custom', name: 'Get Tasks', params: { toolId: 'getTaskSummary' } },
-      {
-        id: 'a3',
-        type: 'send_notification',
-        name: 'Notify',
-        params: { message: 'Time for your weekly review!', channel: 'push' },
-      },
+      { id: 'a3', type: 'send_notification', name: 'Notify', params: { message: 'Time for your weekly review!', channel: 'push' } },
     ],
     tags: ['weekly', 'review', 'reflection'],
     icon: '📊',
@@ -573,21 +546,12 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
   {
     id: 'bedtime-routine',
     name: 'Bedtime Routine',
-    description: "Wind down with tomorrow's preview and relaxation",
+    description: 'Wind down with tomorrow\'s preview and relaxation',
     category: 'daily-routines',
-    trigger: {
-      type: 'phrase',
-      phrases: ['good night', 'bedtime', 'going to bed'],
-      requireExactMatch: false,
-    },
+    trigger: { type: 'phrase', phrases: ['good night', 'bedtime', 'going to bed'], requireExactMatch: false },
     conditions: [],
     actions: [
-      {
-        id: 'a1',
-        type: 'custom',
-        name: 'Tomorrow Calendar',
-        params: { toolId: 'getTomorrowCalendar' },
-      },
+      { id: 'a1', type: 'custom', name: 'Tomorrow Calendar', params: { toolId: 'getTomorrowCalendar' } },
       { id: 'a2', type: 'custom', name: 'Set Alarm', params: { toolId: 'setAlarm' } },
     ],
     tags: ['bedtime', 'routine', 'daily'],
@@ -600,11 +564,7 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
     name: 'Commute Start',
     description: 'Get traffic and weather when you start commuting',
     category: 'commute',
-    trigger: {
-      type: 'phrase',
-      phrases: ['heading to work', 'starting commute'],
-      requireExactMatch: false,
-    },
+    trigger: { type: 'phrase', phrases: ['heading to work', 'starting commute'], requireExactMatch: false },
     conditions: [],
     actions: [
       { id: 'a1', type: 'custom', name: 'Get Commute', params: { toolId: 'getCommuteTime' } },
@@ -625,12 +585,7 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
     conditions: [],
     actions: [
       { id: 'a1', type: 'custom', name: 'Get List', params: { toolId: 'getShoppingList' } },
-      {
-        id: 'a2',
-        type: 'send_notification',
-        name: 'Notify',
-        params: { message: "You're near the store! Here's your list:", channel: 'push' },
-      },
+      { id: 'a2', type: 'send_notification', name: 'Notify', params: { message: "You're near the store! Here's your list:", channel: 'push' } },
     ],
     tags: ['shopping', 'location', 'reminder'],
     icon: '🛒',

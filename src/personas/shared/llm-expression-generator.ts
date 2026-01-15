@@ -20,7 +20,7 @@
  * @module personas/shared/llm-expression-generator
  */
 
-import type { ThemeCategory } from '../../services/session-manager/session-variety-tracker.js';
+import type { ThemeCategory } from '../../services/session-variety-tracker.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import { getVoiceDNAPrompt } from './voice-dna-loader.js';
@@ -644,7 +644,7 @@ export async function getBestExpression(
 
   // 4. Fall back to pool-based (try persona-specific behavior files)
   try {
-    const { loadPersonaContent } = await import('../../services/persona-service/persona-content-loader.js');
+    const { loadPersonaContent } = await import('../../services/persona-content-loader.js');
     // Convert theme to behavior key (snake_case)
     const behaviorKey = themeToBehaviorKey(theme);
     if (behaviorKey) {

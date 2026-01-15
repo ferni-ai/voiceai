@@ -18,7 +18,12 @@
  */
 
 import type { ContextBuilderInput } from '../../core/types.js';
-import type { BehavioralSignals, ToneModifier, StyleModifier, QuestionStyle } from '../signals.js';
+import type {
+  BehavioralSignals,
+  ToneModifier,
+  StyleModifier,
+  QuestionStyle,
+} from '../signals.js';
 import { createCallback } from '../signals.js';
 import { registerBehavioralBuilder } from '../orchestrator.js';
 
@@ -146,7 +151,7 @@ async function buildPredictiveBehavior(input: ContextBuilderInput): Promise<Beha
     const toAvoid = allRecommendations
       .filter((r) => r.riskLevel === 'high')
       .map((r) => r.interventionType.replace(/_/g, ' '));
-
+    
     if (toAvoid.length > 0) {
       signals.avoidances = [...(signals.avoidances || []), ...toAvoid.slice(0, 3)];
     }
@@ -155,7 +160,7 @@ async function buildPredictiveBehavior(input: ContextBuilderInput): Promise<Beha
     // 2. COGNITIVE FINGERPRINT - Their unique patterns
     // =========================================
     const adjustments = cognitiveFingerprint.getPredictionAdjustments(userId);
-
+    
     // Apply their preferred tone
     if (adjustments.optimalTone) {
       signals.tone = mapPreferredTone(adjustments.optimalTone);
@@ -167,7 +172,7 @@ async function buildPredictiveBehavior(input: ContextBuilderInput): Promise<Beha
       signals.callbacks!.push(
         createCallback(
           'pattern',
-          "They typically need time to process changes. Don't rush toward solutions.",
+          'They typically need time to process changes. Don\'t rush toward solutions.',
           'gentle'
         )
       );
@@ -175,7 +180,7 @@ async function buildPredictiveBehavior(input: ContextBuilderInput): Promise<Beha
       signals.callbacks!.push(
         createCallback(
           'pattern',
-          "They're typically ready to move quickly once they understand. Can be more direct.",
+          'They\'re typically ready to move quickly once they understand. Can be more direct.',
           'natural'
         )
       );
@@ -193,22 +198,20 @@ async function buildPredictiveBehavior(input: ContextBuilderInput): Promise<Beha
     // 3. LIFE PHASE - Their personal season
     // =========================================
     const phaseInfo = lifePhasePrediction.getPhaseInfo(userId);
-
+    
     if (phaseInfo && phaseInfo.confidence > 0.5) {
       signals.tone = mapPhaseToTone(phaseInfo.phase);
-
+      
       // Phase-specific guidance
       const phaseCallbacks: Record<string, string> = {
-        expansion: "They're in a growth phase. Support stretching but watch for overextension.",
-        consolidation:
-          "They're stabilizing. Validate that consolidation is success, not stagnation.",
-        transition: "They're between chapters. Patient with uncertainty. Don't push for clarity.",
-        recovery:
-          'They\'re healing. Permission to rest. Don\'t push toward "getting back to normal."',
-        crisis: "They're in crisis mode. Stay present. Practical help over advice.",
-        flowering: "They're thriving. Celebrate and witness. Don't dampen the joy.",
+        expansion: 'They\'re in a growth phase. Support stretching but watch for overextension.',
+        consolidation: 'They\'re stabilizing. Validate that consolidation is success, not stagnation.',
+        transition: 'They\'re between chapters. Patient with uncertainty. Don\'t push for clarity.',
+        recovery: 'They\'re healing. Permission to rest. Don\'t push toward "getting back to normal."',
+        crisis: 'They\'re in crisis mode. Stay present. Practical help over advice.',
+        flowering: 'They\'re thriving. Celebrate and witness. Don\'t dampen the joy.',
       };
-
+      
       const phaseCallback = phaseCallbacks[phaseInfo.phase];
       if (phaseCallback) {
         signals.callbacks!.push(createCallback('pattern', phaseCallback, 'important'));
@@ -219,15 +222,15 @@ async function buildPredictiveBehavior(input: ContextBuilderInput): Promise<Beha
     // 4. BREAKTHROUGH PROXIMITY - Insight forming?
     // =========================================
     const breakthroughs = breakthroughProximity.getImminentBreakthroughs(userId);
-
+    
     if (breakthroughs.length > 0) {
       const topBreakthrough = breakthroughs[0];
-
+      
       if (topBreakthrough.proximity === 'threshold' || topBreakthrough.proximity === 'imminent') {
         signals.style = 'exploratory';
         signals.questionStyle = 'reflective';
         signals.modes = { ...signals.modes, breakthroughMode: true };
-
+        
         signals.callbacks!.push(
           createCallback(
             'breakthrough',
@@ -260,10 +263,10 @@ async function buildPredictiveBehavior(input: ContextBuilderInput): Promise<Beha
     // 5. AVOIDANCE PREDICTION - What they're not saying
     // =========================================
     const imminentTopics = avoidancePrediction.getImminentTopics(userId, 0.5);
-
+    
     if (imminentTopics.length > 0) {
       const topAvoidance = imminentTopics[0];
-
+      
       if (topAvoidance.pressureLevel > 0.6) {
         signals.callbacks!.push(
           createCallback(
@@ -272,7 +275,7 @@ async function buildPredictiveBehavior(input: ContextBuilderInput): Promise<Beha
             'important'
           )
         );
-
+        
         if (topAvoidance.optimalApproach.leadInTopics.length > 0) {
           signals.callbacks!.push(
             createCallback(
@@ -289,10 +292,10 @@ async function buildPredictiveBehavior(input: ContextBuilderInput): Promise<Beha
     // 6. PRE-TRAJECTORY DETECTION - Storm coming?
     // =========================================
     const trajectoryAlerts = preTrajectoryDetection.getTrajectoryAlerts(userId);
-
+    
     if (trajectoryAlerts.length > 0) {
       const topAlert = trajectoryAlerts[0];
-
+      
       if (topAlert.severity === 'alert' || topAlert.severity === 'warning') {
         signals.callbacks!.push(
           createCallback(
@@ -313,12 +316,7 @@ async function buildPredictiveBehavior(input: ContextBuilderInput): Promise<Beha
         }
 
         // Adjust tone for negative trajectories
-        const negativeTrajectories = [
-          'mood_decline',
-          'anxiety_spike',
-          'burnout_cascade',
-          'depression_dip',
-        ];
+        const negativeTrajectories = ['mood_decline', 'anxiety_spike', 'burnout_cascade', 'depression_dip'];
         if (negativeTrajectories.some((t) => topAlert.trajectory.includes(t))) {
           signals.tone = 'gentle';
           signals.style = 'supportive';
@@ -330,22 +328,28 @@ async function buildPredictiveBehavior(input: ContextBuilderInput): Promise<Beha
     // 7. RIPPLE EFFECTS - Cross-domain cascades
     // =========================================
     const rippleStatus = rippleEffectPrediction.getRippleStatus(userId);
-
+    
     if (rippleStatus.overallRisk === 'high') {
       signals.callbacks!.push(
         createCallback(
           'ripple',
-          "Multiple life domains are strained. Be holistic - don't isolate one issue.",
+          'Multiple life domains are strained. Be holistic - don\'t isolate one issue.',
           'important'
         )
       );
-
+      
       // Find leverage points
-      const leverage = rippleStatus.activeRipples.flatMap((r) => r.leveragePoints).slice(0, 2);
-
+      const leverage = rippleStatus.activeRipples
+        .flatMap((r) => r.leveragePoints)
+        .slice(0, 2);
+      
       if (leverage.length > 0) {
         signals.callbacks!.push(
-          createCallback('leverage', `Leverage point: ${leverage[0].action}`, 'natural')
+          createCallback(
+            'leverage',
+            `Leverage point: ${leverage[0].action}`,
+            'natural'
+          )
         );
       }
     }
@@ -367,11 +371,11 @@ async function buildPredictiveBehavior(input: ContextBuilderInput): Promise<Beha
     // 8. CONVERSATION PREPARATION - What they need
     // =========================================
     const prep = conversationPreparation.prepareForConversation(userId);
-
+    
     // Apply predicted needs
     if (prep.predictedNeeds.length > 0) {
       const topNeed = prep.predictedNeeds[0];
-
+      
       if (topNeed.probability > 0.5) {
         const needToStyle: Record<string, StyleModifier> = {
           validation: 'supportive',
@@ -386,12 +390,12 @@ async function buildPredictiveBehavior(input: ContextBuilderInput): Promise<Beha
           reassurance: 'grounding',
           accountability: 'coaching',
         };
-
+        
         const needStyle = needToStyle[topNeed.need];
         if (needStyle && !signals.style) {
           signals.style = needStyle;
         }
-
+        
         // Add venting mode
         if (topNeed.need === 'venting') {
           signals.modes = { ...signals.modes, ventingMode: true };
@@ -408,7 +412,7 @@ async function buildPredictiveBehavior(input: ContextBuilderInput): Promise<Beha
       } else if (prep.pacing.recommendedLength === 'brief') {
         signals.length = 'brief';
       }
-
+      
       if (prep.pacing.depthLevel === 'deep') {
         signals.depth = 'deep';
       }
@@ -439,6 +443,7 @@ async function buildPredictiveBehavior(input: ContextBuilderInput): Promise<Beha
     }
 
     return signals;
+
   } catch (error) {
     // Log but don't fail
     return {

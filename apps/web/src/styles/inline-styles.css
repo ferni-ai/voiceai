@@ -6672,86 +6672,23 @@ body {
        Locked members are shown but visually muted.
        ======================================================================== */
 
-/* Locked member - silhouette appearance (intriguing, not disabled) */
+/* Locked member - muted appearance */
 .team-member--locked {
-  opacity: 0.6;
-  filter: grayscale(0.6) brightness(0.8);
-  position: relative;
+  opacity: 0.5;
+  filter: grayscale(0.4);
 }
 
 .team-member--locked:hover {
-  opacity: 0.75;
-  filter: grayscale(0.3) brightness(0.9);
+  opacity: 0.65;
+  filter: grayscale(0.2);
 }
 
-/* Locked avatar - silhouette effect */
+/* Locked avatar - subtle desaturation */
 .team-member--locked .team-avatar--locked {
-  filter: saturate(0.3) brightness(0.7);
-  position: relative;
+  filter: saturate(0.6);
 }
 
-/* Silhouette overlay for locked members */
-.team-member--locked .team-avatar--locked::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    135deg,
-    rgba(44, 37, 32, 0.4) 0%,
-    rgba(44, 37, 32, 0.2) 50%,
-    rgba(44, 37, 32, 0.4) 100%
-  );
-  border-radius: 50%;
-  pointer-events: none;
-}
-
-/* Sparkle animation on hover for locked members */
-.team-member--locked:hover .team-avatar--locked::before {
-  content: '';
-  position: absolute;
-  inset: -4px;
-  background: radial-gradient(
-    circle at 30% 30%,
-    rgba(255, 255, 255, 0.4) 0%,
-    transparent 50%
-  );
-  border-radius: 50%;
-  animation: lockedSparkle 1.5s ease-in-out infinite;
-  pointer-events: none;
-  z-index: 1;
-}
-
-@keyframes lockedSparkle {
-  0%, 100% {
-    opacity: 0.3;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.6;
-    transform: scale(1.05);
-  }
-}
-
-/* Mystery indicator - replaces lock icon with "?" */
-.team-mystery-indicator {
-  position: absolute;
-  bottom: -2px;
-  right: -2px;
-  width: 18px;
-  height: 18px;
-  background: var(--color-background-elevated, rgba(44, 37, 32, 0.95));
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: var(--shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.2));
-  z-index: var(--z-docked);
-  font-size: var(--text-xs, 10px);
-  font-weight: var(--font-weight-semibold, 600);
-  color: var(--color-text-muted, #a89d90);
-}
-
-/* Legacy lock indicator - keep for backward compatibility */
+/* Lock indicator - positioned at bottom-right of avatar */
 .team-lock-indicator {
   position: absolute;
   bottom: -2px;
@@ -6787,60 +6724,15 @@ body {
   transition: stroke-dasharray 0.5s ease;
 }
 
-/* Progress hint label */
-.team-progress-hint {
-  position: absolute;
-  bottom: -22px;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: var(--text-2xs, 9px);
-  color: var(--color-text-muted, #a89d90);
-  white-space: nowrap;
-  opacity: 0;
-  transition: opacity 0.2s ease;
-  pointer-events: none;
-}
-
-.team-member--locked:hover .team-progress-hint {
-  opacity: 1;
-}
-
-/* Almost unlocked (80%+) - "almost here" glow effect */
+/* Almost unlocked - subtle glow to show progress */
 .team-member--almost-unlocked {
-  opacity: 0.85;
-  filter: grayscale(0.1) brightness(0.95);
+  opacity: 0.7;
+  filter: grayscale(0.2);
 }
 
 .team-member--almost-unlocked:hover {
-  opacity: 1;
+  opacity: 0.85;
   filter: grayscale(0);
-}
-
-/* "Almost here" pulse glow for members near unlock */
-.team-member--almost-unlocked .team-avatar-container::before {
-  content: '';
-  position: absolute;
-  inset: -6px;
-  border-radius: 50%;
-  background: radial-gradient(
-    circle,
-    var(--persona-tint, rgba(74, 103, 65, 0.3)) 0%,
-    transparent 70%
-  );
-  animation: almostHereGlow 2s ease-in-out infinite;
-  pointer-events: none;
-  z-index: -1;
-}
-
-@keyframes almostHereGlow {
-  0%, 100% {
-    opacity: 0.4;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.7;
-    transform: scale(1.1);
-  }
 }
 
 /* Locked feedback animation - gentle shake when tapped */

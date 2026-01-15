@@ -16,10 +16,7 @@ import type {
   BreathAnalysisResult,
   VoiceTone,
 } from '../../domain/interfaces/voice-analyzer.js';
-import type {
-  PrimaryEmotion,
-  GranularEmotion,
-} from '../../domain/model/value-objects/emotional-state.js';
+import type { PrimaryEmotion, GranularEmotion } from '../../domain/model/value-objects/emotional-state.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'VoiceAnalyzerAdapter' });
@@ -27,10 +24,7 @@ const log = createLogger({ module: 'VoiceAnalyzerAdapter' });
 /**
  * Map arousal/valence to primary emotions
  */
-function mapToEmotion(
-  arousal: number,
-  valence: number
-): { primary: PrimaryEmotion; granular: GranularEmotion | null } {
+function mapToEmotion(arousal: number, valence: number): { primary: PrimaryEmotion; granular: GranularEmotion | null } {
   // High arousal, positive valence = joy
   if (arousal > 0.6 && valence > 0.3) {
     return { primary: 'joy', granular: arousal > 0.8 ? 'ecstatic' : 'happy' };
@@ -258,12 +252,7 @@ export class VoiceAnalyzerAdapter implements VoiceAnalyzer {
     }
 
     // Low energy with slow rate = deep/contemplative breathing
-    if (
-      features.energyLevel &&
-      features.energyLevel < -10 &&
-      features.speakingRate &&
-      features.speakingRate < 120
-    ) {
+    if (features.energyLevel && features.energyLevel < -10 && features.speakingRate && features.speakingRate < 120) {
       pattern = 'deep';
       emotionalIndicator = 'Contemplation or calm';
     }
@@ -322,12 +311,7 @@ export class VoiceAnalyzerAdapter implements VoiceAnalyzer {
     }
 
     // Falling pitch (often indicates sadness)
-    if (
-      features.pitchMean &&
-      features.pitchMean < 150 &&
-      features.energyLevel &&
-      features.energyLevel < -10
-    ) {
+    if (features.pitchMean && features.pitchMean < 150 && features.energyLevel && features.energyLevel < -10) {
       return 'falling';
     }
 
@@ -337,12 +321,7 @@ export class VoiceAnalyzerAdapter implements VoiceAnalyzer {
     }
 
     // Warm (positive energy, moderate everything)
-    if (
-      features.voiceQuality &&
-      features.voiceQuality > 0.7 &&
-      features.energyLevel &&
-      features.energyLevel > 0
-    ) {
+    if (features.voiceQuality && features.voiceQuality > 0.7 && features.energyLevel && features.energyLevel > 0) {
       return 'warm';
     }
 
@@ -402,15 +381,9 @@ export class VoiceAnalyzerAdapter implements VoiceAnalyzer {
 
     let suggestedInterpretation: string | undefined;
     if (significantChange) {
-      if (
-        deviations.some((d) => d.includes('faster')) &&
-        deviations.some((d) => d.includes('Higher'))
-      ) {
+      if (deviations.some((d) => d.includes('faster')) && deviations.some((d) => d.includes('Higher'))) {
         suggestedInterpretation = 'May be excited or anxious';
-      } else if (
-        deviations.some((d) => d.includes('slower')) &&
-        deviations.some((d) => d.includes('Less'))
-      ) {
+      } else if (deviations.some((d) => d.includes('slower')) && deviations.some((d) => d.includes('Less'))) {
         suggestedInterpretation = 'May be tired or sad';
       }
     }

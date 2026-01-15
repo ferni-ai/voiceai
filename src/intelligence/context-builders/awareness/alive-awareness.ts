@@ -18,14 +18,14 @@ import { getLogger } from '../../../utils/safe-logger.js';
 import {
   getTeamContext,
   formatCrossAgentContextForPrompt,
-} from '../../../services/cross-persona/cross-agent-awareness.js';
+} from '../../../services/cross-agent-awareness.js';
 import {
   updateSessionState,
   getPhysicalStateComment,
   getMetacognitiveComment,
   getTemporalAnchor,
-} from '../../../services/context-awareness/embodied-awareness.js';
-import { processMoodDrift, getMoodExpression, getMoodState } from '../../../services/emotion-analysis/mood-drift.js';
+} from '../../../services/embodied-awareness.js';
+import { processMoodDrift, getMoodExpression, getMoodState } from '../../../services/mood-drift.js';
 
 // ============================================================================
 // TYPES

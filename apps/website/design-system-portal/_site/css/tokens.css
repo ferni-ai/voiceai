@@ -4,7 +4,7 @@
  *
  * 🎨 AUTO-GENERATED FROM design-system/tokens/
  * Do not edit directly - run: pnpm tokens:sync
- * Generated: 2026-01-14T23:57:02.718Z
+ * Generated: 2026-01-12T19:50:54.943Z
  */
 
 :root {
@@ -26,7 +26,7 @@
   --text-primary: #faf6f0;
   --text-secondary: #f0ebe4;
   --text-muted: #e8e2da;
-  --text-dimmed: #e0d8ce;
+  --text-dimmed: #ddd6cc;
   --text-inverse: #2a2420;
 
   /* Accent - Gold */

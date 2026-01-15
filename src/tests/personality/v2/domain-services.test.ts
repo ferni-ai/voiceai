@@ -44,7 +44,7 @@ describe('AnticipationEngine', () => {
     });
 
     it('should detect vulnerability openers', () => {
-      const anticipated = engine.anticipateFromSpeechPattern('I need to tell you something...');
+      const anticipated = engine.anticipateFromSpeechPattern("I need to tell you something...");
 
       expect(anticipated).not.toBeNull();
       expect(anticipated?.emotion).toBe('fear');
@@ -129,7 +129,10 @@ describe('AnticipationEngine', () => {
         topics: ['work'],
       });
 
-      const anticipated = engine.anticipateFromContext({ topics: ['work', 'deadline'] }, [pattern]);
+      const anticipated = engine.anticipateFromContext(
+        { topics: ['work', 'deadline'] },
+        [pattern]
+      );
 
       expect(anticipated).not.toBeNull();
       expect(anticipated?.emotion).toBe('fear');
@@ -198,8 +201,7 @@ describe('TimingCalculator', () => {
     });
 
     it('should detect just_venting for frustrated messages', () => {
-      const ventingMessage =
-        "I can't believe they did that AGAIN! So frustrated!! They always do this.";
+      const ventingMessage = "I can't believe they did that AGAIN! So frustrated!! They always do this.";
 
       const result = calculator.analyzeMessageTiming(ventingMessage);
 
@@ -218,8 +220,7 @@ describe('TimingCalculator', () => {
     });
 
     it('should detect vulnerable_share for intimate revelations', () => {
-      const vulnerableMessage =
-        "I've never told anyone this, but I'm really scared about the future.";
+      const vulnerableMessage = "I've never told anyone this, but I'm really scared about the future.";
 
       const result = calculator.analyzeMessageTiming(vulnerableMessage);
 
@@ -313,7 +314,11 @@ describe('TimingCalculator', () => {
     const neutralState = EmotionalState.neutral();
 
     it('should allow callback during checking_in', () => {
-      const result = calculator.shouldBringUpCallback('Hey, how are you?', 'medium', neutralState);
+      const result = calculator.shouldBringUpCallback(
+        'Hey, how are you?',
+        'medium',
+        neutralState
+      );
 
       expect(result.should).toBe(true);
     });
@@ -415,9 +420,7 @@ describe('VulnerabilityScorer', () => {
 
   describe('detectVulnerability', () => {
     it('should detect sacred level vulnerability', () => {
-      const result = scorer.detectVulnerability(
-        "I've never told anyone this, but I struggle with depression."
-      );
+      const result = scorer.detectVulnerability("I've never told anyone this, but I struggle with depression.");
 
       expect(result.isVulnerable).toBe(true);
       expect(result.level).toBe('sacred');
@@ -434,9 +437,7 @@ describe('VulnerabilityScorer', () => {
     });
 
     it('should detect personal level for relationship issues', () => {
-      const result = scorer.detectVulnerability(
-        "I'm having some relationship issues with my partner."
-      );
+      const result = scorer.detectVulnerability("I'm having some relationship issues with my partner.");
 
       expect(result.isVulnerable).toBe(true);
       expect(result.level).toBe('personal');
@@ -457,9 +458,7 @@ describe('VulnerabilityScorer', () => {
     });
 
     it('should detect first-time markers', () => {
-      const result = scorer.detectVulnerability(
-        'Can I tell you something? This is really personal.'
-      );
+      const result = scorer.detectVulnerability("Can I tell you something? This is really personal.");
 
       expect(result.isFirstTime).toBe(true);
       expect(result.firstTimeMarkers).toContain('permission_seeking');
@@ -472,33 +471,27 @@ describe('VulnerabilityScorer', () => {
     });
 
     it('should detect minimizing language', () => {
-      const result = scorer.detectVulnerability(
-        "It's probably nothing, but I've been feeling really down."
-      );
+      const result = scorer.detectVulnerability("It's probably nothing, but I've been feeling really down.");
 
       expect(result.firstTimeMarkers).toContain('minimizing_language');
     });
 
     it('should calculate appropriate trust impact', () => {
       const sacredResult = scorer.detectVulnerability("I've never told anyone about my trauma.");
-      const personalResult = scorer.detectVulnerability('I have some money problems right now.');
+      const personalResult = scorer.detectVulnerability("I have some money problems right now.");
 
       expect(sacredResult.trustImpact).toBeGreaterThan(personalResult.trustImpact);
     });
 
     it('should provide suggested acknowledgment', () => {
-      const result = scorer.detectVulnerability(
-        "I've been struggling with grief after losing my dad."
-      );
+      const result = scorer.detectVulnerability("I've been struggling with grief after losing my dad.");
 
       expect(result.suggestedAcknowledgment).toBeTruthy();
       expect(result.suggestedAcknowledgment.length).toBeGreaterThan(0);
     });
 
     it('should extract keywords', () => {
-      const result = scorer.detectVulnerability(
-        "I've been struggling with anxiety at work lately."
-      );
+      const result = scorer.detectVulnerability("I've been struggling with anxiety at work lately.");
 
       expect(result.keywords).toContain('struggling');
       expect(result.keywords).toContain('anxiety');
@@ -535,9 +528,7 @@ describe('VulnerabilityScorer', () => {
     });
 
     it('should need acknowledgment for first-time vulnerable shares', () => {
-      const result = scorer.needsImmediateAcknowledgment(
-        "I've never told anyone, but I struggle with anxiety."
-      );
+      const result = scorer.needsImmediateAcknowledgment("I've never told anyone, but I struggle with anxiety.");
 
       expect(result).toBe(true);
     });

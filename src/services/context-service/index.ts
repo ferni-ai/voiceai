@@ -249,7 +249,7 @@ class ContextServiceClient {
 
     // 2. Get user profile
     try {
-      const memoryModule = await import('../memory/index.js');
+      const memoryModule = await import('../../memory/index.js');
       const store = await memoryModule.createStore();
       const profile = await store.getProfile(userId);
       if (profile) {
@@ -313,7 +313,7 @@ class ContextServiceClient {
     const { query, limit = 5 } = request;
 
     try {
-      const memoryModule = await import('../memory/index.js');
+      const memoryModule = await import('../../memory/index.js');
 
       // Try to get the vector store
       const vectorStore = memoryModule.getVectorStore?.();

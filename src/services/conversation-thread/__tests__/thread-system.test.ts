@@ -100,7 +100,7 @@ describe('ThreadManager', () => {
     it('should return existing thread if not stale', async () => {
       const userId = uniqueUserId();
       const thread1 = await threadManager.getOrCreateThread(userId, testChannel, testAgentId);
-      const thread2 = await threadManager.getOrCreateThread(userId, 'sms', 'maya-santos');
+      const thread2 = await threadManager.getOrCreateThread(userId, 'sms', 'maya-habits');
 
       expect(thread2.id).toBe(thread1.id);
       // Original agent retained
@@ -187,13 +187,13 @@ describe('ThreadManager', () => {
       const userId = uniqueUserId();
       const thread = await threadManager.getOrCreateThread(userId, testChannel, testAgentId);
 
-      await threadManager.transferOwnership(thread.id, 'maya-santos', 'User wants habit help');
+      await threadManager.transferOwnership(thread.id, 'maya-habits', 'User wants habit help');
 
       const updatedThread = await threadManager.getThread(thread.id);
-      expect(updatedThread?.currentOwnerId).toBe('maya-santos');
+      expect(updatedThread?.currentOwnerId).toBe('maya-habits');
       expect(updatedThread?.ownershipHistory).toHaveLength(1);
       expect(updatedThread?.ownershipHistory[0].fromAgentId).toBe('ferni');
-      expect(updatedThread?.ownershipHistory[0].toAgentId).toBe('maya-santos');
+      expect(updatedThread?.ownershipHistory[0].toAgentId).toBe('maya-habits');
       expect(updatedThread?.ownershipHistory[0].reason).toBe('User wants habit help');
     });
   });
@@ -217,7 +217,7 @@ describe('ThreadManager', () => {
         agentId: testAgentId,
         channel: 'voice',
         direction: 'outbound',
-        content: "I'd love to help with that!",
+        content: 'I\'d love to help with that!',
         timestamp: new Date(),
       });
 
@@ -236,7 +236,7 @@ describe('ThreadManager', () => {
       const userId = uniqueUserId();
       const thread = await threadManager.getOrCreateThread(userId, testChannel, testAgentId);
 
-      const context = await threadManager.buildAgentContext(thread.id, 'maya-santos', {
+      const context = await threadManager.buildAgentContext(thread.id, 'maya-habits', {
         userInitiated: true,
       });
 
@@ -246,9 +246,9 @@ describe('ThreadManager', () => {
     it('should include handoff context', async () => {
       const userId = uniqueUserId();
       const thread = await threadManager.getOrCreateThread(userId, testChannel, testAgentId);
-      await threadManager.transferOwnership(thread.id, 'maya-santos', 'Habit coaching');
+      await threadManager.transferOwnership(thread.id, 'maya-habits', 'Habit coaching');
 
-      const context = await threadManager.buildAgentContext(thread.id, 'maya-santos', {
+      const context = await threadManager.buildAgentContext(thread.id, 'maya-habits', {
         userInitiated: true,
       });
 
@@ -297,7 +297,7 @@ describe('GroupOutreach', () => {
     it('should create a group outreach with multiple personas', async () => {
       const result = await groupOutreach.initiateGroupOutreach({
         userId: testUserId,
-        personas: ['ferni', 'maya-santos'],
+        personas: ['ferni', 'maya-habits'],
         leadPersona: 'ferni',
         preferredChannel: 'sms',
         triggerType: 'team_insight',
@@ -309,14 +309,14 @@ describe('GroupOutreach', () => {
       expect(result.outreachId).toBeDefined();
       expect(result.threadId).toBeDefined();
       expect(result.personas).toContain('ferni');
-      expect(result.personas).toContain('maya-santos');
+      expect(result.personas).toContain('maya-habits');
       expect(result.message).toBeDefined();
     });
 
     it('should generate roundtable config for voice calls', async () => {
       const result = await groupOutreach.initiateGroupOutreach({
         userId: testUserId,
-        personas: ['ferni', 'peter-john', 'maya-santos'],
+        personas: ['ferni', 'peter-john', 'maya-habits'],
         leadPersona: 'ferni',
         preferredChannel: 'voice',
         triggerType: 'collaborative_support',
@@ -341,7 +341,7 @@ describe('GroupOutreach', () => {
       });
 
       expect(result.success).toBe(true);
-      expect(result.personas).toContain('maya-santos');
+      expect(result.personas).toContain('maya-habits');
       expect(result.personas).toContain('jordan-taylor');
     });
 
@@ -353,7 +353,7 @@ describe('GroupOutreach', () => {
 
       expect(result.success).toBe(true);
       expect(result.personas).toContain('ferni');
-      expect(result.personas).toContain('maya-santos');
+      expect(result.personas).toContain('maya-habits');
       expect(result.personas).toContain('jordan-taylor');
     });
 
@@ -365,21 +365,21 @@ describe('GroupOutreach', () => {
 
       expect(result.success).toBe(true);
       expect(result.personas).toContain('ferni');
-      expect(result.personas).toContain('nayan-patel');
+      expect(result.personas).toContain('nayan-sharma');
     });
   });
 
   describe('generateGroupCallIntroductions', () => {
     it('should generate introductions for each persona', () => {
       const intros = groupOutreach.generateGroupCallIntroductions(
-        ['ferni', 'maya-santos', 'peter-john'],
+        ['ferni', 'maya-habits', 'peter-john'],
         'Career planning',
         'ferni'
       );
 
       expect(intros.get('ferni')).toContain('Ferni');
       expect(intros.get('ferni')).toContain('Career planning');
-      expect(intros.get('maya-santos')).toContain('Maya');
+      expect(intros.get('maya-habits')).toContain('Maya');
       expect(intros.get('peter-john')).toContain('Peter');
     });
   });
@@ -481,7 +481,7 @@ describe('Outreach → Inbound Flow', () => {
     const userId = 'outreach-response-user';
 
     // Create thread with outreach context
-    const thread = await threadManager.getOrCreateThread(userId, 'sms', 'maya-santos', {
+    const thread = await threadManager.getOrCreateThread(userId, 'sms', 'maya-habits', {
       triggerType: 'commitment_check',
       outreachId: 'outreach-xyz',
     });
@@ -495,7 +495,7 @@ describe('Outreach → Inbound Flow', () => {
       timestamp: new Date(),
     });
 
-    const context = await threadManager.buildAgentContext(thread.id, 'maya-santos', {
+    const context = await threadManager.buildAgentContext(thread.id, 'maya-habits', {
       userInitiated: true,
     });
 
@@ -536,13 +536,9 @@ describe('Agent Handoff Flow', () => {
     });
 
     // Handoff to Maya for habits around travel
-    await threadManager.transferOwnership(
-      thread.id,
-      'maya-santos',
-      'Workout habits while traveling'
-    );
+    await threadManager.transferOwnership(thread.id, 'maya-habits', 'Workout habits while traveling');
 
-    const context = await threadManager.buildAgentContext(thread.id, 'maya-santos');
+    const context = await threadManager.buildAgentContext(thread.id, 'maya-habits');
 
     // Should show full ownership chain
     expect(context.thread.ownershipHistory).toHaveLength(2);

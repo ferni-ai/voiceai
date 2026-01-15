@@ -7,7 +7,7 @@
  * NOW USES PERSONA-SPECIFIC BACKCHANNELS for distinct personalities!
  */
 
-import type { EmotionResult } from '../intelligence/detectors/emotion.js';
+import type { EmotionResult } from '../intelligence/emotion-detector.js';
 import { getEnhancedBackchannel } from '../personas/theatrical.js';
 import { getLogger } from '../utils/safe-logger.js';
 import type { TopicWeight } from './speech-context.js';

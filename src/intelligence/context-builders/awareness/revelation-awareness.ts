@@ -192,8 +192,7 @@ Just be present and warm. Don't show off.`,
       // If we have available revelations, provide permission guidance
       if (availableRevelations.length > 0 && sessionNumber >= 3) {
         // Map revelation types to capability categories
-        const { revelationToCategory } =
-          await import('../../../services/revelation-moments/types.js');
+        const { revelationToCategory } = await import('../../../services/revelation-moments/types.js');
         const availableCategories = availableRevelations.map((r) => revelationToCategory(r));
 
         const permissionGuidance = getPermissionGuidance(availableCategories, trustLevel);

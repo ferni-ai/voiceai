@@ -14,7 +14,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { SlackNotificationService } from '../integrations/slack-notifications.js';
+import { SlackNotificationService } from '../slack-notifications.js';
 import { getCallQualityMonitor } from '../analytics/call-quality-monitor.js';
 
 const log = createLogger({ module: 'CanaryDeployment' });

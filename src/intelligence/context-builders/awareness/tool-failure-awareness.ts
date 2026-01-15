@@ -36,7 +36,7 @@ interface FailureTemplate {
 const FAILURE_TEMPLATES: Record<string, FailureTemplate> = {
   // Music/Spotify
   playMusic: {
-    acknowledgment: 'Having some trouble with Spotify right now. Let me try that again.',
+    acknowledgment: "Having some trouble with Spotify right now. Let me try that again.",
     offerRetry: true,
   },
   pauseMusic: {
@@ -70,7 +70,7 @@ const FAILURE_TEMPLATES: Record<string, FailureTemplate> = {
     offerRetry: true,
   },
   getCalendar: {
-    acknowledgment: 'Having trouble pulling up your calendar.',
+    acknowledgment: "Having trouble pulling up your calendar.",
     offerRetry: true,
   },
 
@@ -116,9 +116,7 @@ function formatFailureForLLM(
   for (const failure of failures) {
     const template = FAILURE_TEMPLATES[failure.toolName] || FAILURE_TEMPLATES.default;
 
-    parts.push(
-      `\n${failure.toolName} failed${failure.attemptedAction ? ` (tried to: ${failure.attemptedAction})` : ''}`
-    );
+    parts.push(`\n${failure.toolName} failed${failure.attemptedAction ? ` (tried to: ${failure.attemptedAction})` : ''}`);
     parts.push(`→ Say something like: "${template.acknowledgment}"`);
 
     if (template.offerRetry) {

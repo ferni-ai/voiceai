@@ -41,7 +41,7 @@ import {
   type DifficultConversationsVoice,
   type LifeTransitionsVoice,
   type QuietGrowthVoice,
-} from '../../../services/persona-service/persona-content-loader.js';
+} from '../../../services/persona-content-loader.js';
 
 const log = createLogger({ module: 'LifeCoachingContext' });
 

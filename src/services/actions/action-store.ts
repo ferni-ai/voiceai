@@ -65,10 +65,7 @@ export class ActionStore {
   /**
    * Update an action
    */
-  update<T extends ActionPayload>(
-    actionId: string,
-    updates: Partial<Action<T>>
-  ): Action<T> | undefined {
+  update<T extends ActionPayload>(actionId: string, updates: Partial<Action<T>>): Action<T> | undefined {
     const existing = this.actions.get(actionId);
     if (!existing) {
       return undefined;
@@ -198,7 +195,9 @@ export class ActionStore {
    * Get recent audit entries for a user
    */
   getUserAuditLog(userId: string, limit = 50): ActionAuditEntry[] {
-    return this.auditLog.filter((e) => e.userId === userId).slice(-limit);
+    return this.auditLog
+      .filter((e) => e.userId === userId)
+      .slice(-limit);
   }
 
   /**

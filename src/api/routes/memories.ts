@@ -273,8 +273,7 @@ export async function handleGetSuperhumanInsights(
 
   try {
     const { getDefaultStore } = await import('../../memory/index.js');
-    const { buildSuperhumanContext } =
-      await import('../../intelligence/superhuman-memory/index.js');
+    const { buildSuperhumanContext } = await import('../../intelligence/superhuman-memory.js');
 
     const store = getDefaultStore();
     const profile = await store.getProfile(userId);
@@ -358,8 +357,9 @@ export async function handleGetOnThisDay(
   if (!userId) return;
 
   try {
-    const { getOnThisDayHighlights, collectAllMemories } =
-      await import('../../services/memory-lane/index.js');
+    const { getOnThisDayHighlights, collectAllMemories } = await import(
+      '../../services/memory-lane/index.js'
+    );
 
     // Collect any new memories first (lightweight operation)
     await collectAllMemories(userId);
@@ -382,8 +382,7 @@ export async function handleGetOnThisDay(
       topicTags: m.topicTags,
       yearAgo: calculateYearsAgo(m.occurredAt),
       score: m.score,
-      userReaction:
-        m.reactions.length > 0 ? m.reactions[m.reactions.length - 1].reaction : undefined,
+      userReaction: m.reactions.length > 0 ? m.reactions[m.reactions.length - 1].reaction : undefined,
     }));
 
     sendJSONCached(
@@ -401,11 +400,7 @@ export async function handleGetOnThisDay(
     );
   } catch (err) {
     log.error({ error: err, userId }, 'Failed to get on-this-day memories');
-    sendJSON(
-      res,
-      { memories: [], today: { month: 0, date: 0, formatted: '' }, hasContent: false },
-      500
-    );
+    sendJSON(res, { memories: [], today: { month: 0, date: 0, formatted: '' }, hasContent: false }, 500);
   }
 }
 
@@ -428,8 +423,9 @@ export async function handleGetHighlights(
   if (!userId) return;
 
   try {
-    const { getHighlights, collectAllMemories } =
-      await import('../../services/memory-lane/index.js');
+    const { getHighlights, collectAllMemories } = await import(
+      '../../services/memory-lane/index.js'
+    );
 
     // Parse query params
     const limit = parseInt(parsedUrl.searchParams.get('limit') || '20', 10);
@@ -463,8 +459,7 @@ export async function handleGetHighlights(
       topicTags: m.topicTags,
       yearAgo: calculateYearsAgo(m.occurredAt),
       score: m.score,
-      userReaction:
-        m.reactions.length > 0 ? m.reactions[m.reactions.length - 1].reaction : undefined,
+      userReaction: m.reactions.length > 0 ? m.reactions[m.reactions.length - 1].reaction : undefined,
     }));
 
     sendJSONCached(
@@ -614,8 +609,7 @@ function groupMemoriesByPeriod(
   const groups = new Map<string, MemoryGroup>();
 
   for (const memory of memories) {
-    const date =
-      memory.occurredAt instanceof Date ? memory.occurredAt : new Date(memory.occurredAt);
+    const date = memory.occurredAt instanceof Date ? memory.occurredAt : new Date(memory.occurredAt);
     let key: string;
     let label: string;
 
@@ -639,7 +633,9 @@ function groupMemoriesByPeriod(
   }
 
   // Sort groups by date (most recent first)
-  return Array.from(groups.values()).sort((a, b) => b.startDate.getTime() - a.startDate.getTime());
+  return Array.from(groups.values()).sort(
+    (a, b) => b.startDate.getTime() - a.startDate.getTime()
+  );
 }
 
 function calculateYearsAgo(occurredAt: Date | string): number {

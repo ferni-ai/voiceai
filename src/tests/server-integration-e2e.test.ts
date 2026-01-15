@@ -972,7 +972,7 @@ describe('Service Integration', () => {
 
   describe('Stripe Integration', () => {
     it('should have Stripe subscription service', async () => {
-      const module = await import('../services/integrations/stripe-subscription.js');
+      const module = await import('../services/stripe-subscription.js');
       expect(module.createCheckoutSession).toBeDefined();
       expect(module.isStripeConfigured).toBeDefined();
     });

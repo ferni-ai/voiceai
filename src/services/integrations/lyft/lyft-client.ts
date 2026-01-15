@@ -265,7 +265,10 @@ export class LyftClient {
   /**
    * Cancel a ride
    */
-  async cancelRide(rideId: string, cancelConfirmationToken?: string): Promise<ApiResponse<void>> {
+  async cancelRide(
+    rideId: string,
+    cancelConfirmationToken?: string
+  ): Promise<ApiResponse<void>> {
     return this.hub.request<void>(this.userId, 'lyft', {
       method: 'POST',
       path: `/rides/${rideId}/cancel`,
@@ -331,13 +334,11 @@ export class LyftClient {
   /**
    * Get driver location for active ride
    */
-  async getDriverLocation(rideId: string): Promise<
-    ApiResponse<{
-      lat: number;
-      lng: number;
-      bearing?: number;
-    }>
-  > {
+  async getDriverLocation(rideId: string): Promise<ApiResponse<{
+    lat: number;
+    lng: number;
+    bearing?: number;
+  }>> {
     // Get ride details which includes driver location
     const response = await this.getRide(rideId);
     if (!response.success || !response.data?.vehicle) {
@@ -348,7 +349,7 @@ export class LyftClient {
         headers: {},
       };
     }
-
+    
     // The ride details typically include driver's current location
     // when the ride is in accepted/arrived/pickedUp status
     return {

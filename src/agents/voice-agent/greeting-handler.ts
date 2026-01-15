@@ -24,13 +24,13 @@ import type { BundleRuntimeEngine } from '../../personas/bundles/index.js';
 import { generateGreeting, type PersonaMemoryForGreeting } from '../../personas/greetings.js';
 import { convertFromUserProfileEvents } from '../../personas/shared/life-events.js';
 import type { PersonaConfig } from '../../personas/types.js';
-import { diag } from '../../services/observability/diagnostic-logger.js';
-import { getTrialWelcomePrompt } from '../../services/monetization/first-taste-trial.js';
+import { diag } from '../../services/diagnostic-logger.js';
+import { getTrialWelcomePrompt } from '../../services/first-taste-trial.js';
 import {
   applyHumanizingStateToProfile,
   getHumanizingState,
   recordGreetingUsage,
-} from '../../services/session-manager/humanizing-state.js';
+} from '../../services/humanizing-state.js';
 import type { SessionServices } from '../../services/index.js';
 import type { SpeechContext } from '../../speech/types/index.js';
 import { getDJController } from '../../audio/dj-controller.js';
@@ -355,15 +355,9 @@ export async function generateAndSpeakGreeting(ctx: GreetingContext): Promise<Gr
     diag.error('Greeting failed', { error: String(e) });
   }
 
-  // Add to conversation history (internal tracking + on-behalf call capture)
-  try {
-    const { recordAgentTurn } = await import('./agent-turn-recorder.js');
-    await recordAgentTurn(sessionId, services, greeting);
-  } catch {
-    // Fallback to direct recording if recorder fails
-    if (services && typeof services.addTurn === 'function') {
-      services.addTurn('assistant', greeting);
-    }
+  // Add to conversation history (internal tracking)
+  if (services && typeof services.addTurn === 'function') {
+    services.addTurn('assistant', greeting);
   }
 
   // =========================================================================
@@ -830,7 +824,7 @@ async function appendMusicCallback(
   }
 
   try {
-    const { getCrossSessionMusicCallback } = await import('../../services/music/dj-service.js');
+    const { getCrossSessionMusicCallback } = await import('../../services/dj-service.js');
     const musicCallback = getCrossSessionMusicCallback(
       sessionPersona.id,
       services.userProfile.musicMemory

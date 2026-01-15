@@ -163,7 +163,7 @@ async function performStockResearch(
 ): Promise<ResearchFinding[]> {
   // For now, this returns placeholder findings
   // In production, this would call financial APIs (Alpha Vantage, Yahoo Finance, etc.)
-
+  
   log.debug({ query, depth }, 'Performing stock research');
 
   // Simulate research time based on depth
@@ -313,23 +313,25 @@ async function simulateResearchDelay(depth: 'quick' | 'standard' | 'comprehensiv
     standard: 1000,
     comprehensive: 2000,
   };
-
+  
   await new Promise((resolve) => setTimeout(resolve, delays[depth]));
 }
 
 /**
  * Build a human-readable research summary
  */
-function buildResearchSummary(query: string, findings: ResearchFinding[], type: string): string {
+function buildResearchSummary(
+  query: string,
+  findings: ResearchFinding[],
+  type: string
+): string {
   if (findings.length === 0) {
     return `I searched for information about "${query}" but couldn't find substantial findings.`;
   }
 
   const lines: string[] = [];
-
-  lines.push(
-    `Research on "${query}" found ${findings.length} key insight${findings.length > 1 ? 's' : ''}:`
-  );
+  
+  lines.push(`Research on "${query}" found ${findings.length} key insight${findings.length > 1 ? 's' : ''}:`);
   lines.push('');
 
   for (const finding of findings) {

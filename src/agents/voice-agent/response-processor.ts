@@ -42,7 +42,7 @@
 
 import { getResponseDynamicsEngine } from '../../conversation/index.js';
 import type { PersonaConfig } from '../../personas/types.js';
-import { diag } from '../../services/observability/diagnostic-logger.js';
+import { diag } from '../../services/diagnostic-logger.js';
 import type { SessionServices } from '../../services/index.js';
 import type { CartesiaEmotion } from '../../speech/cartesia-expressiveness.js';
 import {
@@ -536,7 +536,7 @@ async function signalConversationEnd(sessionId: string | undefined): Promise<voi
   }
 
   try {
-    const { sendFrontendSignal } = await import('../../services/pubsub/frontend-signal.js');
+    const { sendFrontendSignal } = await import('../../services/frontend-signal.js');
     await sendFrontendSignal('conversation_end', {
       reason: 'goodbye_complete',
       disconnectDelay: 2500, // Give time for farewell to be spoken
@@ -666,7 +666,7 @@ async function applySsmlTagging(
 
   try {
     const currentPhase = services.getPromptContext()
-      .phase as import('../../intelligence/state/conversation.js').ConversationPhase;
+      .phase as import('../../intelligence/conversation-state.js').ConversationPhase;
     const speechContext = services.getSpeechContext();
 
     if (currentPhase && speechContext) {

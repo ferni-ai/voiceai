@@ -29,51 +29,51 @@ const log = createLogger({ module: 'CognitiveFingerprint' });
 
 /** Decision-making styles */
 export type DecisionStyle =
-  | 'analytical' // Weighs pros/cons, wants data
-  | 'intuitive' // Goes with gut feeling
-  | 'social_validation' // Needs others' input
-  | 'procrastinate_leap' // Delays then decides suddenly
-  | 'incremental' // Makes small decisions toward big ones
-  | 'deadline_driven' // Needs external pressure
-  | 'values_based' // Aligns with core values
-  | 'emotion_driven'; // Decides based on how they feel
+  | 'analytical'          // Weighs pros/cons, wants data
+  | 'intuitive'           // Goes with gut feeling
+  | 'social_validation'   // Needs others' input
+  | 'procrastinate_leap'  // Delays then decides suddenly
+  | 'incremental'         // Makes small decisions toward big ones
+  | 'deadline_driven'     // Needs external pressure
+  | 'values_based'        // Aligns with core values
+  | 'emotion_driven';     // Decides based on how they feel
 
 /** Stress response patterns */
 export type StressResponse =
-  | 'fight' // Confronts, gets active
-  | 'flight' // Avoids, withdraws
-  | 'freeze' // Shuts down, unable to act
-  | 'fawn' // People-pleases, over-accommodates
-  | 'analyze' // Over-thinks, seeks control through understanding
-  | 'numb' // Disconnects emotionally
-  | 'distract' // Keeps busy to avoid feeling
-  | 'express'; // Processes through expressing
+  | 'fight'     // Confronts, gets active
+  | 'flight'    // Avoids, withdraws
+  | 'freeze'    // Shuts down, unable to act
+  | 'fawn'      // People-pleases, over-accommodates
+  | 'analyze'   // Over-thinks, seeks control through understanding
+  | 'numb'      // Disconnects emotionally
+  | 'distract'  // Keeps busy to avoid feeling
+  | 'express';  // Processes through expressing
 
 /** Learning/growth styles */
 export type LearningStyle =
-  | 'conceptual' // Needs to understand why
-  | 'experiential' // Learns by doing
-  | 'social' // Learns through others
-  | 'reflective' // Learns through contemplation
-  | 'structured' // Needs clear frameworks
-  | 'exploratory'; // Learns through discovery
+  | 'conceptual'      // Needs to understand why
+  | 'experiential'    // Learns by doing
+  | 'social'          // Learns through others
+  | 'reflective'      // Learns through contemplation
+  | 'structured'      // Needs clear frameworks
+  | 'exploratory';    // Learns through discovery
 
 /** How they signal readiness for growth */
 export type ReadinessSignal =
-  | 'asking_questions' // Starts asking more questions
-  | 'future_talk' // Talks about future differently
-  | 'past_acceptance' // More accepting of past
-  | 'energy_shift' // Noticeable energy change
-  | 'direct_statement' // Explicitly says they're ready
-  | 'action_taking' // Starts doing things
-  | 'vulnerability' // Opens up more
-  | 'boundary_setting' // Sets new boundaries
-  | 'letting_go'; // Releases something held tightly
+  | 'asking_questions'    // Starts asking more questions
+  | 'future_talk'         // Talks about future differently
+  | 'past_acceptance'     // More accepting of past
+  | 'energy_shift'        // Noticeable energy change
+  | 'direct_statement'    // Explicitly says they're ready
+  | 'action_taking'       // Starts doing things
+  | 'vulnerability'       // Opens up more
+  | 'boundary_setting'    // Sets new boundaries
+  | 'letting_go';         // Releases something held tightly
 
 /** Full cognitive fingerprint */
 export interface CognitiveFingerprint {
   userId: string;
-
+  
   // Decision patterns
   decisionStyle: {
     primary: DecisionStyle;
@@ -81,18 +81,18 @@ export interface CognitiveFingerprint {
     confidence: number;
     observations: number;
   };
-
+  
   // Stress patterns
   stressResponse: {
     primary: StressResponse;
     secondary?: StressResponse;
-    recoveryTime: number; // Typical hours to recover
-    escalationPattern: string[]; // How stress escalates
-    deEscalationTriggers: string[]; // What helps
+    recoveryTime: number;  // Typical hours to recover
+    escalationPattern: string[];  // How stress escalates
+    deEscalationTriggers: string[];  // What helps
     confidence: number;
     observations: number;
   };
-
+  
   // Change velocity
   changeVelocity: {
     /** How fast they change when ready (0-1) */
@@ -105,7 +105,7 @@ export interface CognitiveFingerprint {
     preference: 'gradual' | 'sudden' | 'context_dependent';
     confidence: number;
   };
-
+  
   // Emotional patterns
   emotionalPatterns: {
     /** What precedes specific emotions */
@@ -120,7 +120,7 @@ export interface CognitiveFingerprint {
     avoidedEmotions: string[];
     confidence: number;
   };
-
+  
   // Communication patterns
   communicationPatterns: {
     /** How they deflect from topics */
@@ -137,7 +137,7 @@ export interface CognitiveFingerprint {
     spaceNeeds: 'minimal' | 'moderate' | 'significant';
     confidence: number;
   };
-
+  
   // Growth patterns
   growthPatterns: {
     /** How they learn best */
@@ -152,18 +152,18 @@ export interface CognitiveFingerprint {
     concurrentCapacity: number;
     confidence: number;
   };
-
+  
   // Temporal patterns
   temporalPatterns: {
     /** Best time for deep conversations */
     optimalConversationTimes: Array<{ dayOfWeek: number; hour: number; effectiveness: number }>;
     /** Energy patterns through week */
-    weeklyEnergyPattern: number[]; // 0-1 for each day
+    weeklyEnergyPattern: number[];  // 0-1 for each day
     /** Seasonal patterns */
     seasonalPatterns: Array<{ season: string; tendency: string }>;
     confidence: number;
   };
-
+  
   // Vulnerability patterns
   vulnerabilityPatterns: {
     /** How they show vulnerability */
@@ -176,7 +176,7 @@ export interface CognitiveFingerprint {
     protectedTopics: string[];
     confidence: number;
   };
-
+  
   // Meta
   lastUpdated: number;
   totalObservations: number;
@@ -276,7 +276,7 @@ export function recordDecision(
   userId: string,
   decision: {
     style: DecisionStyle;
-    timeToDecision: number; // hours
+    timeToDecision: number;  // hours
     outcome?: 'satisfied' | 'regret' | 'neutral';
     context?: string;
   }
@@ -300,9 +300,9 @@ export function recordStressResponse(
   userId: string,
   response: {
     style: StressResponse;
-    stressLevel: number; // 0-1
+    stressLevel: number;  // 0-1
     trigger?: string;
-    recoveryTime?: number; // hours
+    recoveryTime?: number;  // hours
   }
 ): void {
   recordObservation(userId, {
@@ -324,7 +324,7 @@ export function recordChangeEvent(
   userId: string,
   event: {
     type: 'insight' | 'action' | 'integration';
-    timeSincePrevious?: number; // hours since previous stage
+    timeSincePrevious?: number;  // hours since previous stage
     catalyst?: string;
     resistance?: string;
   }
@@ -365,7 +365,7 @@ export function recordConversationEffectiveness(
   data: {
     dayOfWeek: number;
     hour: number;
-    effectiveness: number; // 0-1
+    effectiveness: number;  // 0-1
     tone: 'warm' | 'direct' | 'gentle' | 'challenging' | 'playful';
     depthReached: 'surface' | 'moderate' | 'deep';
   }
@@ -435,15 +435,15 @@ export function getFingerprintAspect<K extends keyof CognitiveFingerprint>(
   if (!fingerprint) return null;
 
   const value = fingerprint[aspect];
-
+  
   // Get confidence for this aspect
-  let confidence = 0.3; // Default low confidence
-
+  let confidence = 0.3;  // Default low confidence
+  
   if (typeof value === 'object' && value !== null && 'confidence' in value) {
     confidence = (value as { confidence: number }).confidence;
   }
 
-  if (confidence < 0.4) return null; // Not reliable enough
+  if (confidence < 0.4) return null;  // Not reliable enough
 
   return { value, confidence };
 }
@@ -463,7 +463,7 @@ export function getPredictionAdjustments(userId: string): {
   avoidPatterns: string[];
 } {
   const fingerprint = fingerprints.get(userId);
-
+  
   if (!fingerprint) {
     return {
       emotionalVelocity: 1.0,
@@ -477,18 +477,15 @@ export function getPredictionAdjustments(userId: string): {
 
   return {
     emotionalVelocity: fingerprint.changeVelocity.speed,
-    changeReadiness:
-      fingerprint.growthPatterns.confidence > 0.5
-        ? 0.3 + (1 - fingerprint.growthPatterns.resistancePatterns.length * 0.1)
-        : 0.5,
-    vulnerabilityOpenness:
-      fingerprint.vulnerabilityPatterns.confidence > 0.5
-        ? 0.3 + (1 - fingerprint.vulnerabilityPatterns.warmupTime / 60)
-        : 0.5,
-    stressResilience:
-      fingerprint.stressResponse.confidence > 0.5
-        ? Math.min(1, fingerprint.stressResponse.recoveryTime / 48)
-        : 0.5,
+    changeReadiness: fingerprint.growthPatterns.confidence > 0.5 
+      ? 0.3 + (1 - fingerprint.growthPatterns.resistancePatterns.length * 0.1)
+      : 0.5,
+    vulnerabilityOpenness: fingerprint.vulnerabilityPatterns.confidence > 0.5
+      ? 0.3 + (1 - fingerprint.vulnerabilityPatterns.warmupTime / 60)
+      : 0.5,
+    stressResilience: fingerprint.stressResponse.confidence > 0.5
+      ? Math.min(1, fingerprint.stressResponse.recoveryTime / 48)
+      : 0.5,
     optimalTone: fingerprint.communicationPatterns.preferredTone,
     avoidPatterns: fingerprint.communicationPatterns.trustBreakers,
   };
@@ -525,39 +522,27 @@ export function buildFingerprintContext(userId: string): string {
   if (fingerprint.stressResponse.confidence > 0.5) {
     sections.push(`**Stress Response:** ${fingerprint.stressResponse.primary}`);
     if (fingerprint.stressResponse.deEscalationTriggers.length > 0) {
-      sections.push(
-        `  → What helps: ${fingerprint.stressResponse.deEscalationTriggers.slice(0, 2).join(', ')}`
-      );
+      sections.push(`  → What helps: ${fingerprint.stressResponse.deEscalationTriggers.slice(0, 2).join(', ')}`);
     }
     sections.push(`  → Recovery time: ~${fingerprint.stressResponse.recoveryTime}h`);
   }
 
   // Change velocity
   if (fingerprint.changeVelocity.confidence > 0.5) {
-    const speedDesc =
-      fingerprint.changeVelocity.speed > 0.7
-        ? 'fast'
-        : fingerprint.changeVelocity.speed > 0.4
-          ? 'moderate'
-          : 'gradual';
+    const speedDesc = fingerprint.changeVelocity.speed > 0.7 ? 'fast' :
+      fingerprint.changeVelocity.speed > 0.4 ? 'moderate' : 'gradual';
     sections.push(`**Change Velocity:** ${speedDesc} (${fingerprint.changeVelocity.preference})`);
     sections.push(`  → Insight to action: ~${fingerprint.changeVelocity.insightToAction}h`);
   }
 
   // Communication
   if (fingerprint.communicationPatterns.confidence > 0.5) {
-    sections.push(
-      `**Communication:** Prefers ${fingerprint.communicationPatterns.preferredTone} tone`
-    );
+    sections.push(`**Communication:** Prefers ${fingerprint.communicationPatterns.preferredTone} tone`);
     if (fingerprint.communicationPatterns.readinessSignals.length > 0) {
-      sections.push(
-        `  → Readiness signals: ${fingerprint.communicationPatterns.readinessSignals.slice(0, 2).join(', ')}`
-      );
+      sections.push(`  → Readiness signals: ${fingerprint.communicationPatterns.readinessSignals.slice(0, 2).join(', ')}`);
     }
     if (fingerprint.communicationPatterns.trustBuilders.length > 0) {
-      sections.push(
-        `  → Builds trust: ${fingerprint.communicationPatterns.trustBuilders.slice(0, 2).join(', ')}`
-      );
+      sections.push(`  → Builds trust: ${fingerprint.communicationPatterns.trustBuilders.slice(0, 2).join(', ')}`);
     }
   }
 
@@ -571,9 +556,7 @@ export function buildFingerprintContext(userId: string): string {
   if (fingerprint.growthPatterns.confidence > 0.5) {
     sections.push(`**Growth Style:** ${fingerprint.growthPatterns.learningStyle}`);
     if (fingerprint.growthPatterns.resistancePatterns.length > 0) {
-      sections.push(
-        `  → Watch for: ${fingerprint.growthPatterns.resistancePatterns.slice(0, 2).join(', ')}`
-      );
+      sections.push(`  → Watch for: ${fingerprint.growthPatterns.resistancePatterns.slice(0, 2).join(', ')}`);
     }
   }
 
@@ -648,7 +631,7 @@ function createDefaultFingerprint(userId: string): CognitiveFingerprint {
     },
     temporalPatterns: {
       optimalConversationTimes: [],
-      weeklyEnergyPattern: [0.5, 0.6, 0.7, 0.7, 0.6, 0.5, 0.4], // Default curve
+      weeklyEnergyPattern: [0.5, 0.6, 0.7, 0.7, 0.6, 0.5, 0.4],  // Default curve
       seasonalPatterns: [],
       confidence: 0.2,
     },
@@ -693,7 +676,7 @@ function updateDecisionStyle(
     // Might be primary now
     if (ds.observations > CONFIG.MIN_OBSERVATIONS) {
       // Check if secondary should become primary
-      ds.confidence *= 1 - lr;
+      ds.confidence *= (1 - lr);
     }
   } else {
     // New style observed - might become secondary
@@ -729,7 +712,7 @@ function updateStressPatterns(
     sr.secondary = response.style;
     // Might need to swap if secondary is more common
   } else {
-    sr.confidence *= 1 - lr * 0.5;
+    sr.confidence *= (1 - lr * 0.5);
   }
 
   // Update recovery time
@@ -761,7 +744,7 @@ function updateChangeVelocity(
     if (event.type === 'action') {
       cv.insightToAction = cv.insightToAction * (1 - lr) + event.timeSincePrevious * lr;
       // Update speed based on insight-to-action time
-      const speedFromTime = Math.max(0.1, 1 - event.timeSincePrevious / 168); // 168h = 1 week
+      const speedFromTime = Math.max(0.1, 1 - event.timeSincePrevious / 168);  // 168h = 1 week
       cv.speed = cv.speed * (1 - lr) + speedFromTime * lr;
     } else if (event.type === 'integration') {
       cv.integrationTime = cv.integrationTime * (1 - lr) + (event.timeSincePrevious / 24) * lr;
@@ -790,7 +773,8 @@ function updateTemporalPatterns(
   );
 
   if (existingTime) {
-    existingTime.effectiveness = existingTime.effectiveness * (1 - lr) + data.effectiveness * lr;
+    existingTime.effectiveness =
+      existingTime.effectiveness * (1 - lr) + data.effectiveness * lr;
   } else if (data.effectiveness > 0.6) {
     tp.optimalConversationTimes.push({
       dayOfWeek: data.dayOfWeek,
@@ -813,10 +797,8 @@ function updateTemporalPatterns(
   if (data.effectiveness > 0.7) {
     fingerprint.communicationPatterns.preferredTone =
       data.tone as typeof fingerprint.communicationPatterns.preferredTone;
-    fingerprint.communicationPatterns.confidence = Math.min(
-      0.9,
-      fingerprint.communicationPatterns.confidence + lr * 0.3
-    );
+    fingerprint.communicationPatterns.confidence =
+      Math.min(0.9, fingerprint.communicationPatterns.confidence + lr * 0.3);
   }
 }
 

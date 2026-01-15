@@ -69,15 +69,13 @@ export async function getEmailIntelligenceData(
     }
 
     const data = doc.data() as EmailIntelligenceData;
-
+    
     // Hydrate dates
     if (data.senderProfiles) {
       for (const profile of Object.values(data.senderProfiles)) {
         if (profile.updatedAt) profile.updatedAt = new Date(profile.updatedAt as unknown as string);
-        if (profile.lastEmailAt)
-          profile.lastEmailAt = new Date(profile.lastEmailAt as unknown as string);
-        if (profile.lastResponseAt)
-          profile.lastResponseAt = new Date(profile.lastResponseAt as unknown as string);
+        if (profile.lastEmailAt) profile.lastEmailAt = new Date(profile.lastEmailAt as unknown as string);
+        if (profile.lastResponseAt) profile.lastResponseAt = new Date(profile.lastResponseAt as unknown as string);
       }
     }
 
@@ -85,14 +83,10 @@ export async function getEmailIntelligenceData(
       for (const followUp of Object.values(data.followUps)) {
         if (followUp.sentAt) followUp.sentAt = new Date(followUp.sentAt as unknown as string);
         if (followUp.dueDate) followUp.dueDate = new Date(followUp.dueDate as unknown as string);
-        if (followUp.responseReceivedAt)
-          followUp.responseReceivedAt = new Date(followUp.responseReceivedAt as unknown as string);
-        if (followUp.reminderSentAt)
-          followUp.reminderSentAt = new Date(followUp.reminderSentAt as unknown as string);
-        if (followUp.createdAt)
-          followUp.createdAt = new Date(followUp.createdAt as unknown as string);
-        if (followUp.updatedAt)
-          followUp.updatedAt = new Date(followUp.updatedAt as unknown as string);
+        if (followUp.responseReceivedAt) followUp.responseReceivedAt = new Date(followUp.responseReceivedAt as unknown as string);
+        if (followUp.reminderSentAt) followUp.reminderSentAt = new Date(followUp.reminderSentAt as unknown as string);
+        if (followUp.createdAt) followUp.createdAt = new Date(followUp.createdAt as unknown as string);
+        if (followUp.updatedAt) followUp.updatedAt = new Date(followUp.updatedAt as unknown as string);
       }
     }
 
@@ -104,23 +98,17 @@ export async function getEmailIntelligenceData(
 
     if (data.newsletters) {
       for (const newsletter of Object.values(data.newsletters)) {
-        if (newsletter.firstSeenAt)
-          newsletter.firstSeenAt = new Date(newsletter.firstSeenAt as unknown as string);
-        if (newsletter.lastSeenAt)
-          newsletter.lastSeenAt = new Date(newsletter.lastSeenAt as unknown as string);
-        if (newsletter.unsubscribedAt)
-          newsletter.unsubscribedAt = new Date(newsletter.unsubscribedAt as unknown as string);
+        if (newsletter.firstSeenAt) newsletter.firstSeenAt = new Date(newsletter.firstSeenAt as unknown as string);
+        if (newsletter.lastSeenAt) newsletter.lastSeenAt = new Date(newsletter.lastSeenAt as unknown as string);
+        if (newsletter.unsubscribedAt) newsletter.unsubscribedAt = new Date(newsletter.unsubscribedAt as unknown as string);
       }
     }
 
     if (data.unsubscribeRequests) {
       for (const request of Object.values(data.unsubscribeRequests)) {
-        if (request.requestedAt)
-          request.requestedAt = new Date(request.requestedAt as unknown as string);
-        if (request.completedAt)
-          request.completedAt = new Date(request.completedAt as unknown as string);
-        if (request.link?.detectedAt)
-          request.link.detectedAt = new Date(request.link.detectedAt as unknown as string);
+        if (request.requestedAt) request.requestedAt = new Date(request.requestedAt as unknown as string);
+        if (request.completedAt) request.completedAt = new Date(request.completedAt as unknown as string);
+        if (request.link?.detectedAt) request.link.detectedAt = new Date(request.link.detectedAt as unknown as string);
       }
     }
 

@@ -14,7 +14,10 @@
  */
 
 import { createLogger } from '../../../utils/safe-logger.js';
-import { getActiveWorkflows, type Workflow } from '../../../services/stores/workflow-store.js';
+import {
+  getActiveWorkflows,
+  type Workflow,
+} from '../../../services/stores/workflow-store.js';
 import {
   registerContextBuilder,
   createStandardInjection,
@@ -67,20 +70,20 @@ const RECENTLY_RUN_HOURS = 24;
  */
 function formatTrigger(workflow: Workflow): string {
   const trigger = workflow.trigger;
-
+  
   switch (trigger.type) {
     case 'time':
       if ('schedule' in trigger) {
         return formatTimeFromCron(trigger.schedule || '');
       }
       return 'at a scheduled time';
-
+      
     case 'phrase':
       if ('phrases' in trigger && trigger.phrases?.length) {
         return `when you say "${trigger.phrases[0]}"`;
       }
       return 'when you say a phrase';
-
+      
     case 'location':
       if ('locationName' in trigger) {
         const action = 'triggerOn' in trigger ? trigger.triggerOn : 'enter';
@@ -89,16 +92,16 @@ function formatTrigger(workflow: Workflow): string {
           : `when you leave ${trigger.locationName}`;
       }
       return 'based on your location';
-
+      
     case 'calendar':
       return 'before your calendar events';
-
+      
     case 'event':
       if ('eventName' in trigger) {
         return `when ${formatEventName(trigger.eventName || '')}`;
       }
       return 'when something happens';
-
+      
     default:
       return 'automatically';
   }
@@ -144,9 +147,10 @@ function formatEventName(eventName: string): string {
  */
 function workflowToSummary(workflow: Workflow): RoutineSummary {
   // Map workflow status to our expected type
-  const status: 'active' | 'paused' | 'error' =
-    workflow.status === 'active' ? 'active' : workflow.status === 'paused' ? 'paused' : 'error';
-
+  const status: 'active' | 'paused' | 'error' = 
+    workflow.status === 'active' ? 'active' :
+    workflow.status === 'paused' ? 'paused' : 'error';
+  
   return {
     id: workflow.id,
     name: workflow.name,
@@ -175,7 +179,7 @@ async function buildRoutineAwareness(
   // Check if persona should have routine awareness
   const personaId = input.persona?.id || 'ferni';
   const isRoutineAware = ROUTINE_AWARE_PERSONAS.some((p) => personaId.includes(p));
-
+  
   // Ferni always gets awareness, others only if specifically enabled
   if (!isRoutineAware && personaId !== 'ferni') {
     return null;
@@ -183,7 +187,7 @@ async function buildRoutineAwareness(
 
   try {
     const workflows = await getActiveWorkflows(userId);
-
+    
     if (workflows.length === 0) {
       // No routines - return minimal context
       return {
@@ -197,7 +201,7 @@ async function buildRoutineAwareness(
 
     // Get routine summaries
     const allRoutines = workflows.map(workflowToSummary);
-
+    
     // Find recently run routines (within 24 hours)
     const recentThreshold = Date.now() - RECENTLY_RUN_HOURS * 60 * 60 * 1000;
     const recentlyRun = allRoutines.filter((r) => {
@@ -236,10 +240,8 @@ function buildContextInjection(
 
   // Overview
   if (routines.length > 0) {
-    parts.push(
-      `You have ${routines.length} active routine${routines.length === 1 ? '' : 's'} set up for this user.`
-    );
-
+    parts.push(`You have ${routines.length} active routine${routines.length === 1 ? '' : 's'} set up for this user.`);
+    
     // List a few examples
     const examples = routines.slice(0, 3);
     if (examples.length > 0) {
@@ -261,9 +263,7 @@ function buildContextInjection(
 
   // Guidance for Ferni
   if (parts.length > 0) {
-    parts.push(
-      'You can proactively mention these if relevant, or offer to adjust them if the user seems interested.'
-    );
+    parts.push('You can proactively mention these if relevant, or offer to adjust them if the user seems interested.');
   }
 
   return parts.length > 0 ? parts.join(' ') : null;
@@ -278,10 +278,10 @@ const routineAwarenessBuilder: ContextBuilder = {
   description: 'Injects context about user automated routines (What I Do For You)',
   category: BuilderCategory.CONTEXT,
   priority: 45, // Medium priority - after session awareness, before tool awareness
-
+  
   async build(input: ContextBuilderInput): Promise<ContextInjection[]> {
     const context = await buildRoutineAwareness(input);
-
+    
     if (!context || !context.contextInjection) {
       return [];
     }
@@ -289,18 +289,26 @@ const routineAwarenessBuilder: ContextBuilder = {
     // Use higher priority if there are issues needing attention
     if (context.needsAttention.length > 0) {
       return [
-        createStandardInjection('routine-awareness', context.contextInjection, {
-          category: 'awareness',
-          confidence: 0.9,
-        }),
+        createStandardInjection(
+          'routine-awareness',
+          context.contextInjection,
+          {
+            category: 'awareness',
+            confidence: 0.9,
+          }
+        ),
       ];
     }
 
     return [
-      createHintInjection('routine-awareness', context.contextInjection, {
-        category: 'awareness',
-        confidence: 0.8,
-      }),
+      createHintInjection(
+        'routine-awareness',
+        context.contextInjection,
+        {
+          category: 'awareness',
+          confidence: 0.8,
+        }
+      ),
     ];
   },
 };

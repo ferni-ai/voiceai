@@ -433,8 +433,7 @@ export function analyzeTurnSignals(sessionId: string, context: TurnContext): Tur
     shouldBackchannel,
     backchannelSuggestion,
     // Action requests don't want to continue - they want the action executed
-    wantsToContinue:
-      !isActionRequest && (hasContinuationMarker || (isHesitating && completionConfidence < 0.5)),
+    wantsToContinue: !isActionRequest && (hasContinuationMarker || (isHesitating && completionConfidence < 0.5)),
     isUrgent: isUrgent || isActionRequest, // Action requests have implicit urgency
     isHesitating,
     recommendedDelay: isActionRequest ? 80 : recommendedDelay, // Respond faster to action requests

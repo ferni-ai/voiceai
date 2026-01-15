@@ -36,7 +36,7 @@ import {
 import type { ContextBuilder, ContextBuilderInput, ContextInjection } from '../index.js';
 import { createStandardInjection, createHintInjection, registerContextBuilder } from '../index.js';
 import { BuilderCategory } from '../core/categories.js';
-import { DISTRESS } from '../../detectors/distress.js';
+import { DISTRESS } from '../../distress-levels.js';
 
 const log = createLogger({ module: 'context:unified-humanizing' });
 

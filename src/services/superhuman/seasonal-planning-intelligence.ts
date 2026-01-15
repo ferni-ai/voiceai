@@ -101,140 +101,28 @@ export interface SeasonalPlanningProfile {
 
 const CULTURAL_DATES: CulturalDate[] = [
   // Major US Holidays
-  {
-    date: '01-01',
-    name: "New Year's Day",
-    cultures: ['US', 'Western'],
-    planningAdvice: 'avoid',
-    notes: 'Recovery day, venues closed',
-    moveable: false,
-  },
-  {
-    date: '07-04',
-    name: 'Independence Day',
-    cultures: ['US'],
-    planningAdvice: 'be_aware',
-    notes: 'Great for patriotic themes, but outdoor events compete with fireworks',
-    moveable: false,
-  },
-  {
-    date: '11-28',
-    name: 'Thanksgiving (US)',
-    cultures: ['US'],
-    planningAdvice: 'avoid',
-    notes: 'Family time, travel chaos',
-    moveable: true,
-  },
-  {
-    date: '12-25',
-    name: 'Christmas',
-    cultures: ['Christian', 'Western'],
-    planningAdvice: 'avoid',
-    notes: 'Family holiday, most venues closed',
-    moveable: false,
-  },
-  {
-    date: '12-31',
-    name: "New Year's Eve",
-    cultures: ['US', 'Western'],
-    planningAdvice: 'premium_pricing',
-    notes: 'Premium pricing, high demand',
-    moveable: false,
-  },
-
+  { date: '01-01', name: 'New Year\'s Day', cultures: ['US', 'Western'], planningAdvice: 'avoid', notes: 'Recovery day, venues closed', moveable: false },
+  { date: '07-04', name: 'Independence Day', cultures: ['US'], planningAdvice: 'be_aware', notes: 'Great for patriotic themes, but outdoor events compete with fireworks', moveable: false },
+  { date: '11-28', name: 'Thanksgiving (US)', cultures: ['US'], planningAdvice: 'avoid', notes: 'Family time, travel chaos', moveable: true },
+  { date: '12-25', name: 'Christmas', cultures: ['Christian', 'Western'], planningAdvice: 'avoid', notes: 'Family holiday, most venues closed', moveable: false },
+  { date: '12-31', name: 'New Year\'s Eve', cultures: ['US', 'Western'], planningAdvice: 'premium_pricing', notes: 'Premium pricing, high demand', moveable: false },
+  
   // Religious Holidays (approximate - many are moveable)
-  {
-    date: '03-17',
-    name: "St. Patrick's Day",
-    cultures: ['Irish', 'US'],
-    planningAdvice: 'be_aware',
-    notes: 'Great for Irish themes, but venues busy',
-    moveable: false,
-  },
-  {
-    date: '04-01',
-    name: 'Easter (approximate)',
-    cultures: ['Christian'],
-    planningAdvice: 'avoid',
-    notes: 'Religious observance, family gatherings',
-    moveable: true,
-  },
-  {
-    date: '09-15',
-    name: 'Rosh Hashanah (approximate)',
-    cultures: ['Jewish'],
-    planningAdvice: 'avoid',
-    notes: 'Jewish New Year - be respectful',
-    moveable: true,
-  },
-  {
-    date: '09-25',
-    name: 'Yom Kippur (approximate)',
-    cultures: ['Jewish'],
-    planningAdvice: 'avoid',
-    notes: 'Holiest day in Judaism',
-    moveable: true,
-  },
-  {
-    date: '10-31',
-    name: 'Halloween',
-    cultures: ['US', 'Western'],
-    planningAdvice: 'embrace',
-    notes: 'Great for themed events',
-    moveable: false,
-  },
-  {
-    date: '11-01',
-    name: 'Día de los Muertos',
-    cultures: ['Mexican', 'Latin American'],
-    planningAdvice: 'be_aware',
-    notes: 'Important cultural observance',
-    moveable: false,
-  },
-
+  { date: '03-17', name: 'St. Patrick\'s Day', cultures: ['Irish', 'US'], planningAdvice: 'be_aware', notes: 'Great for Irish themes, but venues busy', moveable: false },
+  { date: '04-01', name: 'Easter (approximate)', cultures: ['Christian'], planningAdvice: 'avoid', notes: 'Religious observance, family gatherings', moveable: true },
+  { date: '09-15', name: 'Rosh Hashanah (approximate)', cultures: ['Jewish'], planningAdvice: 'avoid', notes: 'Jewish New Year - be respectful', moveable: true },
+  { date: '09-25', name: 'Yom Kippur (approximate)', cultures: ['Jewish'], planningAdvice: 'avoid', notes: 'Holiest day in Judaism', moveable: true },
+  { date: '10-31', name: 'Halloween', cultures: ['US', 'Western'], planningAdvice: 'embrace', notes: 'Great for themed events', moveable: false },
+  { date: '11-01', name: 'Día de los Muertos', cultures: ['Mexican', 'Latin American'], planningAdvice: 'be_aware', notes: 'Important cultural observance', moveable: false },
+  
   // Cultural Celebrations
-  {
-    date: '02-14',
-    name: "Valentine's Day",
-    cultures: ['Western'],
-    planningAdvice: 'premium_pricing',
-    notes: 'High demand for romantic venues',
-    moveable: false,
-  },
-  {
-    date: '05-05',
-    name: 'Cinco de Mayo',
-    cultures: ['Mexican', 'US'],
-    planningAdvice: 'embrace',
-    notes: 'Great for festive celebrations',
-    moveable: false,
-  },
-
+  { date: '02-14', name: 'Valentine\'s Day', cultures: ['Western'], planningAdvice: 'premium_pricing', notes: 'High demand for romantic venues', moveable: false },
+  { date: '05-05', name: 'Cinco de Mayo', cultures: ['Mexican', 'US'], planningAdvice: 'embrace', notes: 'Great for festive celebrations', moveable: false },
+  
   // Cultural Events (approximate dates)
-  {
-    date: '01-25',
-    name: 'Lunar New Year (approximate)',
-    cultures: ['Chinese', 'Vietnamese', 'Korean', 'Asian'],
-    planningAdvice: 'be_aware',
-    notes: 'Major celebration - embrace or respect',
-    moveable: true,
-  },
-  {
-    date: '10-15',
-    name: 'Diwali (approximate)',
-    cultures: ['Hindu', 'Indian'],
-    planningAdvice: 'embrace',
-    notes: 'Festival of lights - beautiful for events',
-    moveable: true,
-  },
-  {
-    date: '03-20',
-    name: 'Nowruz',
-    cultures: ['Persian', 'Iranian'],
-    planningAdvice: 'be_aware',
-    notes: 'Persian New Year',
-    moveable: false,
-  },
+  { date: '01-25', name: 'Lunar New Year (approximate)', cultures: ['Chinese', 'Vietnamese', 'Korean', 'Asian'], planningAdvice: 'be_aware', notes: 'Major celebration - embrace or respect', moveable: true },
+  { date: '10-15', name: 'Diwali (approximate)', cultures: ['Hindu', 'Indian'], planningAdvice: 'embrace', notes: 'Festival of lights - beautiful for events', moveable: true },
+  { date: '03-20', name: 'Nowruz', cultures: ['Persian', 'Iranian'], planningAdvice: 'be_aware', notes: 'Persian New Year', moveable: false },
 ];
 
 const SEASONAL_PATTERNS: SeasonalPattern[] = [
@@ -253,7 +141,7 @@ const SEASONAL_PATTERNS: SeasonalPattern[] = [
     impact: 'optimal',
     notes: 'Better pricing, more availability, but weather considerations',
   },
-
+  
   // Graduation Season
   {
     name: 'Graduation Season',
@@ -262,7 +150,7 @@ const SEASONAL_PATTERNS: SeasonalPattern[] = [
     impact: 'high_demand',
     notes: 'Venues book early, restaurant reservations tough',
   },
-
+  
   // Holiday Season
   {
     name: 'Holiday Party Season',
@@ -271,7 +159,7 @@ const SEASONAL_PATTERNS: SeasonalPattern[] = [
     impact: 'high_demand',
     notes: 'Venues and caterers in high demand, book early',
   },
-
+  
   // Summer Events
   {
     name: 'Summer Outdoor Season',
@@ -280,7 +168,7 @@ const SEASONAL_PATTERNS: SeasonalPattern[] = [
     impact: 'weather_risk',
     notes: 'Great for outdoor events but have backup plans',
   },
-
+  
   // Tax Season
   {
     name: 'Tax Season',
@@ -302,12 +190,7 @@ async function loadSeasonalProfile(userId: string): Promise<SeasonalPlanningProf
   if (!db) return null;
 
   try {
-    const doc = await db
-      .collection('bogle_users')
-      .doc(userId)
-      .collection(COLLECTION)
-      .doc('profile')
-      .get();
+    const doc = await db.collection('bogle_users').doc(userId).collection(COLLECTION).doc('profile').get();
     if (doc.exists) {
       return doc.data() as SeasonalPlanningProfile;
     }
@@ -318,10 +201,7 @@ async function loadSeasonalProfile(userId: string): Promise<SeasonalPlanningProf
   }
 }
 
-async function saveSeasonalProfile(
-  userId: string,
-  profile: SeasonalPlanningProfile
-): Promise<void> {
+async function saveSeasonalProfile(userId: string, profile: SeasonalPlanningProfile): Promise<void> {
   const db = getFirestoreDb();
   if (!db) return;
 
@@ -360,12 +240,14 @@ export async function getRelevantCulturalDates(
 
   return CULTURAL_DATES.filter((date) => {
     // Check if relevant to user's cultures
-    const isRelevant = date.cultures.some((c) => cultures.includes(c) || cultures.includes('all'));
+    const isRelevant = date.cultures.some(
+      (c) => cultures.includes(c) || cultures.includes('all')
+    );
     if (!isRelevant) return false;
 
     // Check if date falls within range
     const [month, day] = date.date.split('-').map(Number);
-
+    
     // Check each year in range
     for (let year = start.getFullYear(); year <= end.getFullYear(); year++) {
       const dateThisYear = new Date(year, month - 1, day);
@@ -403,7 +285,9 @@ export function getSeasonalPatterns(
 
     // Check if event type matches (if specified)
     if (eventType) {
-      return pattern.affectedEventTypes.some((t) => t === eventType || eventType.includes(t));
+      return pattern.affectedEventTypes.some(
+        (t) => t === eventType || eventType.includes(t)
+      );
     }
     return true;
   });
@@ -412,7 +296,10 @@ export function getSeasonalPatterns(
 /**
  * Update user's cultural backgrounds
  */
-export async function updateCulturalBackgrounds(userId: string, cultures: string[]): Promise<void> {
+export async function updateCulturalBackgrounds(
+  userId: string,
+  cultures: string[]
+): Promise<void> {
   const profile = (await loadSeasonalProfile(userId)) || createDefaultProfile(userId);
   profile.culturalBackgrounds = cultures;
   await saveSeasonalProfile(userId, profile);
@@ -457,14 +344,11 @@ export async function recordEventOutcome(
   const successfulMonths = profile.eventHistory
     .filter((e) => e.satisfactionScore >= 8)
     .map((e) => e.month);
-
-  const monthCounts = successfulMonths.reduce(
-    (acc, month) => {
-      acc[month] = (acc[month] || 0) + 1;
-      return acc;
-    },
-    {} as Record<number, number>
-  );
+  
+  const monthCounts = successfulMonths.reduce((acc, month) => {
+    acc[month] = (acc[month] || 0) + 1;
+    return acc;
+  }, {} as Record<number, number>);
 
   // Months with 2+ successful events become preferred
   profile.personalPatterns.preferredCelebrationMonths = Object.entries(monthCounts)
@@ -472,10 +356,7 @@ export async function recordEventOutcome(
     .map(([month]) => parseInt(month));
 
   await saveSeasonalProfile(userId, profile);
-  log.info(
-    { userId, eventType, month: eventDate.getMonth() + 1, satisfactionScore },
-    'Recorded event outcome'
-  );
+  log.info({ userId, eventType, month: eventDate.getMonth() + 1, satisfactionScore }, 'Recorded event outcome');
 }
 
 /**
@@ -492,7 +373,7 @@ export async function suggestOptimalTiming(
 
   const recommendations: TimingRecommendation[] = [];
   const now = new Date();
-
+  
   // Check next 12 months
   for (let monthOffset = 1; monthOffset <= 12; monthOffset++) {
     const targetDate = new Date(now.getFullYear(), now.getMonth() + monthOffset, 1);
@@ -536,9 +417,8 @@ export async function suggestOptimalTiming(
 
     // Check seasonal patterns
     const seasonalEffects = SEASONAL_PATTERNS.filter(
-      (p) =>
-        p.months.includes(month) &&
-        p.affectedEventTypes.some((t) => eventType.includes(t) || t === eventType)
+      (p) => p.months.includes(month) && 
+             p.affectedEventTypes.some((t) => eventType.includes(t) || t === eventType)
     );
 
     for (const effect of seasonalEffects) {
@@ -628,14 +508,12 @@ export async function checkDateConflicts(
 
   // Determine recommendation
   const avoidDates = culturalConflicts.filter((c) => c.planningAdvice === 'avoid');
-  const hasMajorConflict =
-    avoidDates.length > 0 || personalConflicts.some((p) => p.includes('difficult'));
+  const hasMajorConflict = avoidDates.length > 0 || 
+                          personalConflicts.some((p) => p.includes('difficult'));
 
-  const recommendation = hasMajorConflict
-    ? 'avoid'
-    : culturalConflicts.length > 0 || personalConflicts.length > 0
-      ? 'caution'
-      : 'clear';
+  const recommendation = hasMajorConflict ? 'avoid' :
+                        (culturalConflicts.length > 0 || personalConflicts.length > 0) ? 'caution' :
+                        'clear';
 
   return {
     culturalConflicts,
@@ -660,7 +538,7 @@ export async function buildSeasonalPlanningContext(
 
   if (targetDate) {
     const conflicts = await checkDateConflicts(userId, targetDate);
-
+    
     if (conflicts.recommendation === 'avoid') {
       lines.push(`⚠️ ${targetDate} has conflicts:`);
       for (const c of conflicts.culturalConflicts.filter((c) => c.planningAdvice === 'avoid')) {
@@ -685,10 +563,7 @@ export async function buildSeasonalPlanningContext(
 
     lines.push(`\n📅 Best months for ${eventType}:`);
     for (const rec of top3) {
-      const month = new Date(rec.dateRange.start).toLocaleString('en-US', {
-        month: 'long',
-        year: 'numeric',
-      });
+      const month = new Date(rec.dateRange.start).toLocaleString('en-US', { month: 'long', year: 'numeric' });
       lines.push(`  • ${month} (score: ${rec.score}/100)`);
       if (rec.reasons.length > 0) {
         lines.push(`    ✓ ${rec.reasons[0]}`);

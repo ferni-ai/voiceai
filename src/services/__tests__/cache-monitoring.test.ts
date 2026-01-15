@@ -47,7 +47,7 @@ vi.mock('../../personas/cognitive-advanced.js', () => ({
   })),
 }));
 
-vi.mock('../memory/embedding-cache.js', () => ({
+vi.mock('../../memory/embedding-cache.js', () => ({
   getEmbeddingCache: vi.fn(() => ({
     getStats: () => ({
       size: 100,
@@ -60,7 +60,7 @@ vi.mock('../memory/embedding-cache.js', () => ({
   })),
 }));
 
-vi.mock('../memory/redis-cache.js', () => ({
+vi.mock('../../memory/redis-cache.js', () => ({
   getRedisCache: vi.fn(() => ({
     isConnected: () => true,
   })),
@@ -198,7 +198,7 @@ describe('Cache Monitoring Service', () => {
 
   describe('startCacheMaintenance / stopCacheMaintenance', () => {
     it('should start periodic maintenance', async () => {
-      const { pruneExpiredContent } = await import('../persona-service/persona-content-loader.js');
+      const { pruneExpiredContent } = await import('../persona-content-loader.js');
       vi.mocked(pruneExpiredContent).mockClear();
 
       startCacheMaintenance(1000); // 1 second interval
@@ -211,7 +211,7 @@ describe('Cache Monitoring Service', () => {
     });
 
     it('should stop periodic maintenance', async () => {
-      const { pruneExpiredContent } = await import('../persona-service/persona-content-loader.js');
+      const { pruneExpiredContent } = await import('../persona-content-loader.js');
 
       startCacheMaintenance(1000);
       stopCacheMaintenance();
@@ -224,7 +224,7 @@ describe('Cache Monitoring Service', () => {
     });
 
     it('should not start multiple intervals', async () => {
-      const { pruneExpiredContent } = await import('../persona-service/persona-content-loader.js');
+      const { pruneExpiredContent } = await import('../persona-content-loader.js');
       vi.mocked(pruneExpiredContent).mockClear();
 
       startCacheMaintenance(1000);

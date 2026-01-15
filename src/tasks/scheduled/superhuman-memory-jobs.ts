@@ -14,7 +14,7 @@ import {
   buildSuperhumanContext,
   cleanupDeliveryRecords,
   type SuperhumanContext,
-} from '../../intelligence/superhuman-memory/index.js';
+} from '../../intelligence/superhuman-memory.js';
 import { indexUserMemories, type IndexingResult } from '../../memory/user-memory-indexer.js';
 import type { UserProfile } from '../../types/user-profile.js';
 import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';

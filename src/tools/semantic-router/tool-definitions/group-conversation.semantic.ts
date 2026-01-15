@@ -85,7 +85,7 @@ export const startRoundtableTool: SemanticToolDefinition = {
         /(?:with|and)\s+(peter|maya|alex|jordan|nayan)/gi,
         /(peter|maya|alex|jordan|nayan)(?:\s+(?:and|,)\s+)?(peter|maya|alex|jordan|nayan)?/gi,
       ],
-      enumValues: ['peter-john', 'maya-santos', 'alex-chen', 'jordan-taylor', 'nayan-patel'],
+      enumValues: ['peter-john', 'maya-habits', 'alex-chen', 'jordan-taylor', 'nayan-sharma'],
     },
     {
       name: 'topic',
@@ -108,7 +108,7 @@ export const startRoundtableTool: SemanticToolDefinition = {
   ],
 
   execute: async (args): Promise<ToolExecutionResult> => {
-    const personas = args.personas || ['peter-john', 'maya-santos'];
+    const personas = args.personas || ['peter-john', 'maya-habits'];
     const topic = args.topic;
 
     return {

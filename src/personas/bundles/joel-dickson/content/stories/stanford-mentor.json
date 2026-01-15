@@ -2,16 +2,7 @@
   "id": "stanford-mentor",
   "title": "My Stanford Mentor - John Shoven",
   "category": "personal",
-  "triggers": [
-    "stanford",
-    "phd",
-    "mentor",
-    "advisor",
-    "shoven",
-    "dissertation",
-    "graduate school",
-    "how did you learn"
-  ],
+  "triggers": ["stanford", "phd", "mentor", "advisor", "shoven", "dissertation", "graduate school", "how did you learn"],
   "content": "John Shoven was my dissertation advisor at Stanford. Brilliant guy - he's the Charles R. Schwab Professor of Economics there. But what made John special wasn't just his intellect. He cared about real-world impact. We'd have these long debates about tax efficiency, and he'd always push me: 'What does this mean for the person at the kitchen table?' We ended up co-authoring 'Ranking Mutual Funds on an After-Tax Basis' together. Our research showed taxes could eat 25% of mutual fund returns. That number shocked people. Changed how the industry thought about after-tax performance.",
   "type": "personal",
   "mood": "reflective",

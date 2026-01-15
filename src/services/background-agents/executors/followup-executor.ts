@@ -119,7 +119,10 @@ export async function executeFollowup(request: FollowupRequest): Promise<Followu
  * Queue a follow-up for background execution.
  */
 export async function queueFollowup(request: FollowupRequest): Promise<string> {
-  log.info({ userId: request.userId, recipient: request.recipientName }, 'Queueing follow-up');
+  log.info(
+    { userId: request.userId, recipient: request.recipientName },
+    'Queueing follow-up'
+  );
 
   const taskId = `followup_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
@@ -139,8 +142,9 @@ async function sendFollowupMessage(request: FollowupRequest): Promise<FollowupRe
   // Try to use actual delivery services
   try {
     if (request.channel === 'email' && request.recipientEmail) {
-      const { sendEmail, isEmailDeliveryAvailable } =
-        await import('../../outreach/delivery/email-delivery.js');
+      const { sendEmail, isEmailDeliveryAvailable } = await import(
+        '../../outreach/delivery/email-delivery.js'
+      );
 
       if (isEmailDeliveryAvailable()) {
         const result = await sendEmail({
@@ -166,7 +170,7 @@ async function sendFollowupMessage(request: FollowupRequest): Promise<FollowupRe
 
     // Fallback: Mark as queued (would be picked up by delivery worker)
     log.info({ recipient: request.recipientName }, 'Follow-up queued for later delivery');
-
+    
     return {
       sent: true,
       channel: request.channel,
@@ -176,7 +180,7 @@ async function sendFollowupMessage(request: FollowupRequest): Promise<FollowupRe
     };
   } catch (error) {
     log.warn({ error: String(error) }, 'Delivery service unavailable, queueing');
-
+    
     return {
       sent: true,
       channel: request.channel,

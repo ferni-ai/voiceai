@@ -19,7 +19,7 @@ import {
   initializeActivityLog,
   recordActivity as recordActivityToStore,
   type ActivityEvent,
-} from '../../../services/admin/admin-activity.js';
+} from '../../../services/admin-activity.js';
 import { getBetterThanHumanTelemetry } from '../../../services/analytics/better-than-human-telemetry.js';
 import { calculatePeriodAnalytics } from '../../../services/outreach/index.js';
 import { createLogger } from '../../../utils/safe-logger.js';
@@ -152,7 +152,7 @@ export async function handleAdminDashboardRoutes(
     // ========================================================================
     if (subPath === '/capability-patterns' && method === 'GET') {
       const { getAllPatterns, getMostEffectiveDomains } =
-        await import('../../../intelligence/tracking/capabilities.js');
+        await import('../../../intelligence/capability-learning.js');
 
       const allPatterns = getAllPatterns();
       const topPatterns = getMostEffectiveDomains(10);

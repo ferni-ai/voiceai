@@ -26,13 +26,13 @@ export interface UnsubscribeLink {
   senderEmail: string;
   senderName?: string;
   senderDomain: string;
-
+  
   // Unsubscribe method
   method: UnsubscribeMethod;
   url?: string;
   email?: string;
   isOneClick: boolean;
-
+  
   // Metadata
   detectedAt: Date;
 }
@@ -52,17 +52,17 @@ export interface NewsletterSubscription {
   senderEmail: string;
   senderName?: string;
   senderDomain: string;
-
+  
   // Stats
   emailCount: number;
   firstSeenAt: Date;
   lastSeenAt: Date;
-
+  
   // User preferences
   wantToKeep: boolean;
   unsubscribeRequested: boolean;
   unsubscribedAt?: Date;
-
+  
   // Unsubscribe info
   unsubscribeMethod?: UnsubscribeMethod;
   unsubscribeUrl?: string;
@@ -116,22 +116,22 @@ export class UnsubscribeDetector {
     const listUnsubscribe = headers.find(
       (h) => h.name.toLowerCase() === LIST_UNSUBSCRIBE_HEADER
     )?.value;
-
+    
     if (!listUnsubscribe) {
       return null;
     }
-
+    
     const listUnsubscribePost = headers.find(
       (h) => h.name.toLowerCase() === LIST_UNSUBSCRIBE_POST_HEADER
     )?.value;
-
+    
     // Parse List-Unsubscribe header
     // Can contain: <mailto:...>, <https://...>, or both
     const urlMatch = listUnsubscribe.match(/<(https?:\/\/[^>]+)>/);
     const emailMatch = listUnsubscribe.match(/<mailto:([^>]+)>/);
-
+    
     const isOneClick = !!listUnsubscribePost?.includes('List-Unsubscribe=One-Click');
-
+    
     const link: UnsubscribeLink = {
       emailId,
       senderEmail: fromEmail,
@@ -143,10 +143,10 @@ export class UnsubscribeDetector {
       isOneClick,
       detectedAt: new Date(),
     };
-
+    
     // Update subscription record
     this.updateSubscription(fromEmail, fromName, link);
-
+    
     return link;
   }
 
@@ -165,13 +165,13 @@ export class UnsubscribeDetector {
       const link = this.extractLinkFromHtml(emailId, htmlBody, fromEmail, fromName);
       if (link) return link;
     }
-
+    
     // Fall back to text
     if (textBody) {
       const link = this.extractLinkFromText(emailId, textBody, fromEmail, fromName);
       if (link) return link;
     }
-
+    
     return null;
   }
 
@@ -184,7 +184,7 @@ export class UnsubscribeDetector {
     // Look for anchor tags with unsubscribe text
     const anchorPattern = /<a[^>]+href=["']([^"']+)["'][^>]*>([^<]*unsubscribe[^<]*)<\/a>/gi;
     const match = anchorPattern.exec(html);
-
+    
     if (match) {
       const link: UnsubscribeLink = {
         emailId,
@@ -196,16 +196,14 @@ export class UnsubscribeDetector {
         isOneClick: false,
         detectedAt: new Date(),
       };
-
+      
       this.updateSubscription(fromEmail, fromName, link);
       return link;
     }
-
+    
     // Look for links near unsubscribe text
     for (const pattern of UNSUBSCRIBE_PATTERNS) {
-      const textMatch = html.match(
-        new RegExp(`<a[^>]+href=["']([^"']+)["'][^>]*>[^<]*${pattern.source}[^<]*<\/a>`, 'i')
-      );
+      const textMatch = html.match(new RegExp(`<a[^>]+href=["']([^"']+)["'][^>]*>[^<]*${pattern.source}[^<]*<\/a>`, 'i'));
       if (textMatch) {
         const link: UnsubscribeLink = {
           emailId,
@@ -217,12 +215,12 @@ export class UnsubscribeDetector {
           isOneClick: false,
           detectedAt: new Date(),
         };
-
+        
         this.updateSubscription(fromEmail, fromName, link);
         return link;
       }
     }
-
+    
     return null;
   }
 
@@ -234,10 +232,10 @@ export class UnsubscribeDetector {
   ): UnsubscribeLink | null {
     // Look for URLs near unsubscribe text
     const lines = text.split('\n');
-
+    
     for (const line of lines) {
       const lowerLine = line.toLowerCase();
-
+      
       for (const pattern of UNSUBSCRIBE_PATTERNS) {
         if (pattern.test(lowerLine)) {
           // Found unsubscribe text, look for URL on same or next line
@@ -253,14 +251,14 @@ export class UnsubscribeDetector {
               isOneClick: false,
               detectedAt: new Date(),
             };
-
+            
             this.updateSubscription(fromEmail, fromName, link);
             return link;
           }
         }
       }
     }
-
+    
     return null;
   }
 
@@ -278,7 +276,7 @@ export class UnsubscribeDetector {
   ): void {
     const key = senderEmail.toLowerCase();
     const existing = this.subscriptions.get(key);
-
+    
     if (existing) {
       existing.emailCount++;
       existing.lastSeenAt = new Date();
@@ -309,21 +307,26 @@ export class UnsubscribeDetector {
    * Get all tracked newsletters
    */
   getNewsletters(): NewsletterSubscription[] {
-    return Array.from(this.subscriptions.values()).sort((a, b) => b.emailCount - a.emailCount);
+    return Array.from(this.subscriptions.values())
+      .sort((a, b) => b.emailCount - a.emailCount);
   }
 
   /**
    * Get newsletters with unsubscribe capability
    */
   getUnsubscribableNewsletters(): NewsletterSubscription[] {
-    return this.getNewsletters().filter((n) => n.unsubscribeUrl || n.unsubscribeEmail);
+    return this.getNewsletters().filter(
+      (n) => n.unsubscribeUrl || n.unsubscribeEmail
+    );
   }
 
   /**
    * Get newsletters marked for unsubscribe
    */
   getPendingUnsubscribes(): NewsletterSubscription[] {
-    return this.getNewsletters().filter((n) => n.unsubscribeRequested && !n.unsubscribedAt);
+    return this.getNewsletters().filter(
+      (n) => n.unsubscribeRequested && !n.unsubscribedAt
+    );
   }
 
   /**
@@ -345,12 +348,12 @@ export class UnsubscribeDetector {
     if (!sub) {
       return null;
     }
-
+    
     if (!sub.unsubscribeUrl && !sub.unsubscribeEmail) {
       log.warn({ senderEmail }, 'No unsubscribe method available');
       return null;
     }
-
+    
     const request: UnsubscribeRequest = {
       id: `unsub_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
       userId: this.userId,
@@ -368,12 +371,12 @@ export class UnsubscribeDetector {
       status: 'pending',
       requestedAt: new Date(),
     };
-
+    
     this.unsubscribeRequests.set(request.id, request);
     sub.unsubscribeRequested = true;
-
+    
     log.info({ requestId: request.id, senderEmail }, 'Unsubscribe requested');
-
+    
     return request;
   }
 
@@ -389,7 +392,7 @@ export class UnsubscribeDetector {
     if (!request || !request.link.url || !request.link.isOneClick) {
       return false;
     }
-
+    
     try {
       const response = await fetch(request.link.url, {
         method: 'POST',
@@ -398,17 +401,17 @@ export class UnsubscribeDetector {
         },
         body: 'List-Unsubscribe=One-Click',
       });
-
+      
       if (response.ok) {
         request.status = 'completed';
         request.completedAt = new Date();
-
+        
         // Update subscription
         const sub = this.subscriptions.get(request.link.senderEmail.toLowerCase());
         if (sub) {
           sub.unsubscribedAt = new Date();
         }
-
+        
         log.info({ requestId }, 'One-click unsubscribe completed');
         return true;
       } else {
@@ -440,7 +443,7 @@ export class UnsubscribeDetector {
     if (request) {
       request.status = 'completed';
       request.completedAt = new Date();
-
+      
       const sub = this.subscriptions.get(request.link.senderEmail.toLowerCase());
       if (sub) {
         sub.unsubscribedAt = new Date();
@@ -468,7 +471,7 @@ export class UnsubscribeDetector {
     const pending = newsletters.filter((n) => n.unsubscribeRequested && !n.unsubscribedAt);
     const completed = newsletters.filter((n) => n.unsubscribedAt);
     const keepList = newsletters.filter((n) => n.wantToKeep);
-
+    
     return {
       totalNewsletters: newsletters.length,
       unsubscribable: unsubscribable.length,
@@ -490,8 +493,9 @@ export class UnsubscribeDetector {
     yearlyEstimate: number;
     topCandidates: Array<{ email: string; monthlyEmails: number }>;
   } {
-    const newsletters = this.getNewsletters().filter((n) => !n.wantToKeep && !n.unsubscribedAt);
-
+    const newsletters = this.getNewsletters()
+      .filter((n) => !n.wantToKeep && !n.unsubscribedAt);
+    
     // Estimate frequency based on email count and date range
     const now = new Date();
     const monthlyEstimates = newsletters.map((n) => {
@@ -503,9 +507,9 @@ export class UnsubscribeDetector {
       const monthlyRate = dailyRate * 30;
       return { email: n.senderEmail, monthlyEmails: Math.round(monthlyRate * 10) / 10 };
     });
-
+    
     const totalMonthly = monthlyEstimates.reduce((sum, e) => sum + e.monthlyEmails, 0);
-
+    
     return {
       monthlyEstimate: Math.round(totalMonthly),
       yearlyEstimate: Math.round(totalMonthly * 12),
@@ -524,12 +528,12 @@ const instances: Map<string, UnsubscribeDetector> = new Map();
 
 export function getUnsubscribeDetector(userId: string): UnsubscribeDetector {
   let instance = instances.get(userId);
-
+  
   if (!instance) {
     instance = new UnsubscribeDetector(userId);
     instances.set(userId, instance);
   }
-
+  
   return instance;
 }
 

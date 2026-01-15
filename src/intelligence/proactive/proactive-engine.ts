@@ -25,7 +25,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import type { ContextWindow } from '../core/context-assembler.js';
+import type { ContextWindow } from '../context-assembler.js';
 import type { CrossDomainCorrelation } from '../patterns/cross-domain-correlator.js';
 
 const log = createLogger({ module: 'proactive-engine' });
@@ -340,7 +340,7 @@ function checkOverwhelmTrigger(
     id: `overwhelm_${Date.now()}`,
     category: 'overwhelm_detection',
     message: "Sounds like you've got a lot going on. Before we dive in - how are you really doing?",
-    followUp: 'Sometimes the most productive thing is taking a breath first.',
+    followUp: "Sometimes the most productive thing is taking a breath first.",
     priority: CATEGORY_PRIORITIES.overwhelm_detection,
     surfaceMoment: moment,
     createdAt: new Date(),
@@ -367,7 +367,7 @@ function checkCommitmentTrigger(
     id: `commitment_${Date.now()}`,
     category: 'commitment_reminder',
     message: `Hey, I remember you mentioned wanting to ${commitment.toLowerCase()}. How's that going?`,
-    followUp: 'No pressure - just wanted to check in on something that seemed important to you.',
+    followUp: "No pressure - just wanted to check in on something that seemed important to you.",
     priority: CATEGORY_PRIORITIES.commitment_reminder,
     surfaceMoment: 'session_start',
     createdAt: new Date(),

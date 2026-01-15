@@ -25,7 +25,7 @@ export type FollowUpPriority = 'urgent' | 'high' | 'normal' | 'low';
 export interface FollowUp {
   id: string;
   userId: string;
-
+  
   // Original email
   sentEmailId: string;
   threadId: string;
@@ -33,26 +33,26 @@ export interface FollowUp {
   sentToName?: string;
   subject: string;
   sentAt: Date;
-
+  
   // Tracking
   status: FollowUpStatus;
   priority: FollowUpPriority;
-
+  
   // Response
   responseEmailId?: string;
   responseReceivedAt?: Date;
   responseTimeHours?: number;
-
+  
   // Follow-up settings
   expectedResponseDays: number;
   dueDate: Date;
   reminderSent: boolean;
   reminderSentAt?: Date;
-
+  
   // Notes
   notes?: string;
   closedReason?: 'received_response' | 'manually_closed' | 'no_longer_needed' | 'expired';
-
+  
   // Metadata
   createdAt: Date;
   updatedAt: Date;
@@ -61,7 +61,7 @@ export interface FollowUp {
 export interface ContactResponsePattern {
   email: string;
   name?: string;
-
+  
   // Stats
   emailsSent: number;
   responsesReceived: number;
@@ -69,15 +69,15 @@ export interface ContactResponsePattern {
   avgResponseTimeHours: number;
   fastestResponseHours: number;
   slowestResponseHours: number;
-
+  
   // Patterns
   typicalResponseDays: number;
   bestDayToContact?: string; // e.g., 'Monday'
   bestTimeToContact?: string; // e.g., '10:00 AM'
-
+  
   // Status
   pendingFollowUps: number;
-
+  
   updatedAt: Date;
 }
 
@@ -127,10 +127,10 @@ export class FollowUpTracker {
     // Get expected response time from contact pattern or use default
     const pattern = this.getContactPattern(params.sentTo);
     const expectedDays = params.expectedResponseDays || pattern.typicalResponseDays || 3;
-
+    
     const dueDate = new Date(params.sentAt);
     dueDate.setDate(dueDate.getDate() + expectedDays);
-
+    
     const followUp: FollowUp = {
       id: `fu_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
       userId: this.userId,
@@ -149,20 +149,20 @@ export class FollowUpTracker {
       createdAt: new Date(),
       updatedAt: new Date(),
     };
-
+    
     this.followUps.set(followUp.id, followUp);
-
+    
     // Update contact pattern
     pattern.emailsSent++;
     pattern.pendingFollowUps++;
     pattern.updatedAt = new Date();
     this.contactPatterns.set(params.sentTo.toLowerCase(), pattern);
-
+    
     log.info(
       { followUpId: followUp.id, sentTo: params.sentTo, dueDate: dueDate.toISOString() },
       'Follow-up created'
     );
-
+    
     return followUp;
   }
 
@@ -178,43 +178,43 @@ export class FollowUpTracker {
     if (!followUp) {
       return null;
     }
-
+    
     const responseTimeHours =
       (responseReceivedAt.getTime() - followUp.sentAt.getTime()) / (1000 * 60 * 60);
-
+    
     followUp.status = 'received';
     followUp.responseEmailId = responseEmailId;
     followUp.responseReceivedAt = responseReceivedAt;
     followUp.responseTimeHours = responseTimeHours;
     followUp.closedReason = 'received_response';
     followUp.updatedAt = new Date();
-
+    
     // Update contact pattern
     const pattern = this.getContactPattern(followUp.sentTo);
     pattern.responsesReceived++;
     pattern.pendingFollowUps = Math.max(0, pattern.pendingFollowUps - 1);
     pattern.responseRate = pattern.responsesReceived / pattern.emailsSent;
-
+    
     // Update average response time
     const totalResponseTime =
       pattern.avgResponseTimeHours * (pattern.responsesReceived - 1) + responseTimeHours;
     pattern.avgResponseTimeHours = totalResponseTime / pattern.responsesReceived;
-
+    
     // Update fastest/slowest
-    pattern.fastestResponseHours = Math.min(
-      pattern.fastestResponseHours || Infinity,
-      responseTimeHours
-    );
+    pattern.fastestResponseHours = Math.min(pattern.fastestResponseHours || Infinity, responseTimeHours);
     pattern.slowestResponseHours = Math.max(pattern.slowestResponseHours || 0, responseTimeHours);
-
+    
     // Update typical response days
     pattern.typicalResponseDays = Math.round(pattern.avgResponseTimeHours / 24);
     pattern.updatedAt = new Date();
-
+    
     this.contactPatterns.set(followUp.sentTo.toLowerCase(), pattern);
-
-    log.info({ followUpId, responseTimeHours: Math.round(responseTimeHours) }, 'Response recorded');
-
+    
+    log.info(
+      { followUpId, responseTimeHours: Math.round(responseTimeHours) },
+      'Response recorded'
+    );
+    
     return followUp;
   }
 
@@ -224,7 +224,7 @@ export class FollowUpTracker {
   checkForResponse(incomingEmail: EmailSummary): FollowUp | null {
     for (const followUp of this.followUps.values()) {
       if (followUp.status !== 'awaiting') continue;
-
+      
       // Check if same thread
       if (followUp.threadId === incomingEmail.threadId) {
         // Check if from expected recipient
@@ -233,7 +233,7 @@ export class FollowUpTracker {
         }
       }
     }
-
+    
     return null;
   }
 
@@ -248,17 +248,17 @@ export class FollowUpTracker {
     if (!followUp) {
       return null;
     }
-
+    
     followUp.status = 'closed';
     followUp.closedReason = reason;
     followUp.updatedAt = new Date();
-
+    
     // Update contact pattern
     const pattern = this.getContactPattern(followUp.sentTo);
     pattern.pendingFollowUps = Math.max(0, pattern.pendingFollowUps - 1);
     pattern.updatedAt = new Date();
     this.contactPatterns.set(followUp.sentTo.toLowerCase(), pattern);
-
+    
     return followUp;
   }
 
@@ -270,12 +270,12 @@ export class FollowUpTracker {
     if (!followUp) {
       return null;
     }
-
+    
     followUp.status = 'reminded';
     followUp.reminderSent = true;
     followUp.reminderSentAt = new Date();
     followUp.updatedAt = new Date();
-
+    
     return followUp;
   }
 
@@ -308,8 +308,10 @@ export class FollowUpTracker {
     today.setHours(0, 0, 0, 0);
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
-
-    return this.getPendingFollowUps().filter((f) => f.dueDate >= today && f.dueDate < tomorrow);
+    
+    return this.getPendingFollowUps().filter(
+      (f) => f.dueDate >= today && f.dueDate < tomorrow
+    );
   }
 
   /**
@@ -320,8 +322,10 @@ export class FollowUpTracker {
     today.setHours(0, 0, 0, 0);
     const endOfWeek = new Date(today);
     endOfWeek.setDate(endOfWeek.getDate() + 7);
-
-    return this.getPendingFollowUps().filter((f) => f.dueDate >= today && f.dueDate < endOfWeek);
+    
+    return this.getPendingFollowUps().filter(
+      (f) => f.dueDate >= today && f.dueDate < endOfWeek
+    );
   }
 
   /**
@@ -340,35 +344,35 @@ export class FollowUpTracker {
   getSummary(): FollowUpSummary {
     const pending = this.getPendingFollowUps();
     const now = new Date();
-
+    
     const overdue = pending.filter((f) => f.dueDate < now);
     const urgent = pending.filter((f) => f.priority === 'urgent');
-
+    
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
     const endOfWeek = new Date(today);
     endOfWeek.setDate(endOfWeek.getDate() + 7);
-
+    
     const dueToday = pending.filter((f) => f.dueDate >= today && f.dueDate < tomorrow);
     const dueTomorrow = pending.filter(
       (f) => f.dueDate >= tomorrow && f.dueDate < new Date(tomorrow.getTime() + 86400000)
     );
     const dueThisWeek = pending.filter((f) => f.dueDate >= today && f.dueDate < endOfWeek);
-
+    
     // Calculate average wait days
     const totalWaitDays = pending.reduce((sum, f) => {
       const waitMs = now.getTime() - f.sentAt.getTime();
       return sum + waitMs / (1000 * 60 * 60 * 24);
     }, 0);
-
+    
     // Find oldest
     const oldest = pending.reduce((max, f) => {
       const days = (now.getTime() - f.sentAt.getTime()) / (1000 * 60 * 60 * 24);
       return Math.max(max, days);
     }, 0);
-
+    
     return {
       totalPending: pending.length,
       urgentCount: urgent.length,
@@ -391,7 +395,7 @@ export class FollowUpTracker {
   getContactPattern(email: string): ContactResponsePattern {
     const lowerEmail = email.toLowerCase();
     let pattern = this.contactPatterns.get(lowerEmail);
-
+    
     if (!pattern) {
       pattern = {
         email: lowerEmail,
@@ -407,7 +411,7 @@ export class FollowUpTracker {
       };
       this.contactPatterns.set(lowerEmail, pattern);
     }
-
+    
     return pattern;
   }
 
@@ -439,11 +443,11 @@ export class FollowUpTracker {
     confidence: 'high' | 'medium' | 'low';
   } {
     const pattern = this.getContactPattern(email);
-
+    
     if (pattern.emailsSent < 3) {
       return { avgResponseTime: 'unknown', confidence: 'low' };
     }
-
+    
     const avgHours = Math.round(pattern.avgResponseTimeHours);
     let avgResponseTime: string;
     if (avgHours < 24) {
@@ -451,7 +455,7 @@ export class FollowUpTracker {
     } else {
       avgResponseTime = `${Math.round(avgHours / 24)} days`;
     }
-
+    
     return {
       bestDay: pattern.bestDayToContact,
       bestTime: pattern.bestTimeToContact,
@@ -469,12 +473,12 @@ const instances: Map<string, FollowUpTracker> = new Map();
 
 export function getFollowUpTracker(userId: string): FollowUpTracker {
   let instance = instances.get(userId);
-
+  
   if (!instance) {
     instance = new FollowUpTracker(userId);
     instances.set(userId, instance);
   }
-
+  
   return instance;
 }
 

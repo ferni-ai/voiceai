@@ -14,7 +14,7 @@
 
 import { getFirestore, Timestamp } from 'firebase-admin/firestore';
 import { getLogger } from '../../utils/safe-logger.js';
-import { getRedisCache } from '../memory/redis-cache.js';
+import { getRedisCache } from '../../memory/redis-cache.js';
 import {
   onOutreachAttemptChange,
   onOutreachResponseChange,

@@ -20,7 +20,7 @@
 import type { JobContext } from '@livekit/agents';
 import type { Room, RemoteParticipant } from '@livekit/rtc-node';
 import { getLogger } from '../../utils/safe-logger.js';
-import { diag } from '../../services/observability/diagnostic-logger.js';
+import { diag } from '../../services/diagnostic-logger.js';
 import type { UserData } from '../shared/types.js';
 import { getPersonaDisplayName } from '../../personas/voice-registry.js';
 
@@ -782,10 +782,7 @@ export class AgentOrchestrator {
       agent
         .wireHandlers()
         .then(() => {
-          log.info(
-            { personaId: agent.personaId },
-            '⚡ Deferred handlers wired after handoff greeting'
-          );
+          log.info({ personaId: agent.personaId }, '⚡ Deferred handlers wired after handoff greeting');
         })
         .catch((err) => {
           log.error(

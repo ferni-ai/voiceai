@@ -160,7 +160,7 @@ describe('Personality v2 E2E', () => {
       const context = await service.buildContext({
         userId: 'user_123',
         personaId: 'ferni',
-        currentMessage: 'Let me tell you about work today...',
+        currentMessage: "Let me tell you about work today...",
         topics: ['work'],
       });
 
@@ -279,7 +279,7 @@ describe('Personality v2 E2E', () => {
         "I'm scared about what the future holds. I don't know what to do.",
         "I've never told anyone this, but I have panic attacks sometimes.",
       ];
-
+      
       for (const message of vulnerableMessages) {
         await service.recordMoment({
           userId: 'user_123',
@@ -311,7 +311,7 @@ describe('Personality v2 E2E', () => {
       await service.recordMoment({
         userId: 'user_123',
         personaId: 'ferni',
-        message: 'That was really helpful, thank you!',
+        message: "That was really helpful, thank you!",
         topics: ['gratitude'],
         acknowledgmentQuality: 'positive',
       });
@@ -331,7 +331,7 @@ describe('Personality v2 E2E', () => {
       await service.recordMoment({
         userId: 'user_123',
         personaId: 'ferni',
-        message: 'I feel so devastated and hopeless, like nothing will ever get better.',
+        message: "I feel so devastated and hopeless, like nothing will ever get better.",
         topics: ['crisis', 'despair'],
       });
 

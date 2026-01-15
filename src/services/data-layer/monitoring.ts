@@ -7,7 +7,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { getFirestoreVectorStore } from '../memory/firestore-vector-store/index.js';
+import { getFirestoreVectorStore } from '../../memory/firestore-vector-store/index.js';
 
 const log = createLogger({ module: 'SemanticMonitoring' });
 
@@ -118,7 +118,7 @@ async function checkAndSendAlert(): Promise<void> {
     lastAlertSent = Date.now();
 
     try {
-      const { notifySlack } = await import('../integrations/slack-notifications.js');
+      const { notifySlack } = await import('../slack-notifications.js');
 
       // Get recent error summary
       const recentErrorTypes = new Map<string, number>();

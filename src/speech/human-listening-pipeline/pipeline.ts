@@ -21,9 +21,9 @@ import type { HumanListeningContext, HumanListeningResult, QuickAnalysisResult }
 
 // Text-based analyzers for quick analyze and LLM context
 import { getEngagementScorer } from '../../conversation/engagement-scoring.js';
-import { getCognitiveLoadDetector } from '../../intelligence/detectors/cognitive-load.js';
-import { getHedgingDetector } from '../../intelligence/detectors/hedging.js';
-import { getSelfSoothingDetector } from '../../intelligence/detectors/self-soothing.js';
+import { getCognitiveLoadDetector } from '../../intelligence/cognitive-load.js';
+import { getHedgingDetector } from '../../intelligence/hedging-detection.js';
+import { getSelfSoothingDetector } from '../../intelligence/self-soothing-detection.js';
 
 const log = getLogger().child({ module: 'HumanListeningPipeline' });
 

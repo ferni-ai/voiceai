@@ -14,7 +14,7 @@
 import { canReachUser, scheduleText } from '../../tools/domains/proactive/outreach/index.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import { registerInterval, clearNamedInterval } from '../../utils/interval-manager.js';
-import { canSendOutreach, getPreferences } from '../outreach/outreach-intelligence.js';
+import { canSendOutreach, getPreferences } from '../outreach-intelligence.js';
 import { createPersistenceStore, type PersistenceStore } from '../persistence/index.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
 

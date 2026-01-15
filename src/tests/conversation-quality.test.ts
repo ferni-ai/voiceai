@@ -24,7 +24,7 @@ import {
   createSessionRecoveryState,
   shouldAttemptRecovery,
   getGracefulErrorResponse,
-} from '../intelligence/tracking/conversation-quality.js';
+} from '../intelligence/conversation-quality.js';
 
 describe('Conversation Quality Module', () => {
   // ============================================================================

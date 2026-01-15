@@ -22,9 +22,9 @@ import { getVoiceTremorDetector, type VoiceTremorResult } from '../voice-tremor.
 import { getVolumeDynamicsTracker, type VolumeDynamicsState } from '../volume-dynamics.js';
 
 // Text-based analyzers
-import { getCognitiveLoadDetector } from '../../intelligence/detectors/cognitive-load.js';
-import { getHedgingDetector } from '../../intelligence/detectors/hedging.js';
-import { getSelfSoothingDetector } from '../../intelligence/detectors/self-soothing.js';
+import { getCognitiveLoadDetector } from '../../intelligence/cognitive-load.js';
+import { getHedgingDetector } from '../../intelligence/hedging-detection.js';
+import { getSelfSoothingDetector } from '../../intelligence/self-soothing-detection.js';
 
 // Conversation-based analyzers
 import { getEngagementScorer } from '../../conversation/engagement-scoring.js';

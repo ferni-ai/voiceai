@@ -73,54 +73,12 @@ interface SyncMetrics {
   avgSyncDurationMs: number;
 }
 
-interface ContinuityMetrics {
-  /** Total continuity writes (session ends) */
-  totalWrites: number;
-  /** Threads updated across all writes */
-  totalThreadsUpdated: number;
-  /** Anchors created across all writes */
-  totalAnchorsCreated: number;
-  /** Capsule updates */
-  totalCapsuleUpdates: number;
-  /** Hybrid retrievals performed */
-  totalRetrievals: number;
-  /** Average retrieval latency */
-  avgRetrievalLatencyMs: number;
-  /** Spanner availability rate */
-  spannerAvailabilityRate: number;
-  /** Session cache hits */
-  cacheHits: number;
-  /** Session cache misses */
-  cacheMisses: number;
-}
-
-interface AttributionMetrics {
-  /** Total memories injected into context */
-  totalMemoriesInjected: number;
-  /** Total memories attributed (used in response) */
-  totalMemoriesAttributed: number;
-  /** Explicit attributions (tag found in response) */
-  explicitAttributions: number;
-  /** Implicit attributions (fuzzy content match) */
-  implicitAttributions: number;
-  /** Overall attribution rate (0-1) */
-  attributionRate: number;
-  /** By memory type */
-  byType: {
-    thread: { injected: number; attributed: number };
-    anchor: { injected: number; attributed: number };
-    semantic: { injected: number; attributed: number };
-  };
-}
-
 export interface DynamicMemoryMetrics {
   fastCapture: FastCaptureMetrics;
   stm: STMMetrics;
   deepExtraction: DeepExtractionMetrics;
   firestore: FirestoreMetrics;
   sync: SyncMetrics;
-  continuity: ContinuityMetrics;
-  attribution: AttributionMetrics;
   collectedAt: Date;
   uptimeMs: number;
 }
@@ -185,31 +143,6 @@ const syncMetrics: SyncMetrics = {
   avgSyncDurationMs: 0,
 };
 
-const continuityMetrics: ContinuityMetrics = {
-  totalWrites: 0,
-  totalThreadsUpdated: 0,
-  totalAnchorsCreated: 0,
-  totalCapsuleUpdates: 0,
-  totalRetrievals: 0,
-  avgRetrievalLatencyMs: 0,
-  spannerAvailabilityRate: 1.0,
-  cacheHits: 0,
-  cacheMisses: 0,
-};
-
-const attributionMetrics: AttributionMetrics = {
-  totalMemoriesInjected: 0,
-  totalMemoriesAttributed: 0,
-  explicitAttributions: 0,
-  implicitAttributions: 0,
-  attributionRate: 0,
-  byType: {
-    thread: { injected: 0, attributed: 0 },
-    anchor: { injected: 0, attributed: 0 },
-    semantic: { injected: 0, attributed: 0 },
-  },
-};
-
 // Keep last 1000 latencies for percentile calculation
 const MAX_LATENCY_SAMPLES = 1000;
 
@@ -229,8 +162,7 @@ export function recordFastCapture(
 ): void {
   fastCaptureMetrics.totalCalls++;
   fastCaptureMetrics.totalLatencyMs += latencyMs;
-  fastCaptureMetrics.avgLatencyMs =
-    fastCaptureMetrics.totalLatencyMs / fastCaptureMetrics.totalCalls;
+  fastCaptureMetrics.avgLatencyMs = fastCaptureMetrics.totalLatencyMs / fastCaptureMetrics.totalCalls;
   fastCaptureMetrics.maxLatencyMs = Math.max(fastCaptureMetrics.maxLatencyMs, latencyMs);
   fastCaptureMetrics.minLatencyMs = Math.min(fastCaptureMetrics.minLatencyMs, latencyMs);
   fastCaptureMetrics.entitiesExtracted += entityCount;
@@ -377,141 +309,10 @@ export function recordSyncCycle(
     syncMetrics.relationshipsSynced += relationshipsSynced;
   }
 
-  const successfulSyncs = success ? syncMetrics.totalSyncCycles : syncMetrics.totalSyncCycles - 1;
+  const successfulSyncs = success
+    ? syncMetrics.totalSyncCycles
+    : syncMetrics.totalSyncCycles - 1;
   syncMetrics.syncSuccessRate = successfulSyncs / syncMetrics.totalSyncCycles;
-}
-
-// ============================================================================
-// CONTINUITY METRICS
-// ============================================================================
-
-/**
- * Record continuity write (session end)
- */
-export function recordContinuityWrite(
-  threadsUpdated: number,
-  anchorsCreated: number,
-  capsuleUpdated: boolean,
-  spannerAvailable: boolean
-): void {
-  continuityMetrics.totalWrites++;
-  continuityMetrics.totalThreadsUpdated += threadsUpdated;
-  continuityMetrics.totalAnchorsCreated += anchorsCreated;
-  if (capsuleUpdated) {
-    continuityMetrics.totalCapsuleUpdates++;
-  }
-
-  // Update Spanner availability rate (rolling average)
-  const spannerValue = spannerAvailable ? 1 : 0;
-  continuityMetrics.spannerAvailabilityRate =
-    (continuityMetrics.spannerAvailabilityRate * (continuityMetrics.totalWrites - 1) +
-      spannerValue) /
-    continuityMetrics.totalWrites;
-}
-
-/**
- * Record continuity retrieval (session start or mid-session)
- */
-export function recordContinuityRetrieval(latencyMs: number, spannerAvailable: boolean): void {
-  continuityMetrics.totalRetrievals++;
-  continuityMetrics.avgRetrievalLatencyMs =
-    (continuityMetrics.avgRetrievalLatencyMs * (continuityMetrics.totalRetrievals - 1) +
-      latencyMs) /
-    continuityMetrics.totalRetrievals;
-
-  // Update Spanner availability rate
-  const spannerValue = spannerAvailable ? 1 : 0;
-  const total = continuityMetrics.totalWrites + continuityMetrics.totalRetrievals;
-  continuityMetrics.spannerAvailabilityRate =
-    (continuityMetrics.spannerAvailabilityRate * (total - 1) + spannerValue) / total;
-}
-
-/**
- * Record continuity cache access
- */
-export function recordContinuityCacheAccess(hit: boolean): void {
-  if (hit) {
-    continuityMetrics.cacheHits++;
-  } else {
-    continuityMetrics.cacheMisses++;
-  }
-}
-
-// ============================================================================
-// ATTRIBUTION METRICS
-// ============================================================================
-
-/**
- * Record memory attribution results from a single LLM response
- *
- * @param injected - Number of memories injected into context
- * @param attributed - Number of memories referenced in response
- * @param explicit - Number of explicit tag references
- * @param byType - Attribution breakdown by memory type
- */
-export function recordMemoryAttribution(
-  injected: number,
-  attributed: number,
-  explicit: number,
-  byType?: { thread?: number; anchor?: number; semantic?: number }
-): void {
-  attributionMetrics.totalMemoriesInjected += injected;
-  attributionMetrics.totalMemoriesAttributed += attributed;
-  attributionMetrics.explicitAttributions += explicit;
-  attributionMetrics.implicitAttributions += attributed - explicit;
-
-  // Update attribution rate (rolling average)
-  if (attributionMetrics.totalMemoriesInjected > 0) {
-    attributionMetrics.attributionRate =
-      attributionMetrics.totalMemoriesAttributed / attributionMetrics.totalMemoriesInjected;
-  }
-
-  // Update by-type metrics (track injected count, not just attributed)
-  if (byType) {
-    // We track attributed counts, assuming injected is proportional
-    if (byType.thread) {
-      attributionMetrics.byType.thread.attributed += byType.thread;
-    }
-    if (byType.anchor) {
-      attributionMetrics.byType.anchor.attributed += byType.anchor;
-    }
-    if (byType.semantic) {
-      attributionMetrics.byType.semantic.attributed += byType.semantic;
-    }
-  }
-}
-
-/**
- * Record injected memory counts by type (for accurate rate calculation)
- */
-export function recordMemoriesInjected(byType: {
-  thread?: number;
-  anchor?: number;
-  semantic?: number;
-}): void {
-  if (byType.thread) {
-    attributionMetrics.byType.thread.injected += byType.thread;
-  }
-  if (byType.anchor) {
-    attributionMetrics.byType.anchor.injected += byType.anchor;
-  }
-  if (byType.semantic) {
-    attributionMetrics.byType.semantic.injected += byType.semantic;
-  }
-}
-
-/**
- * Get current attribution rate
- */
-export function getAttributionRate(): number {
-  return attributionMetrics.attributionRate;
-}
-
-/**
- * Get attribution metrics summary
- */
-export function getAttributionMetrics(): AttributionMetrics {
-  return { ...attributionMetrics };
 }
 
 // ============================================================================
@@ -528,15 +329,6 @@ export function getDynamicMemoryMetrics(): DynamicMemoryMetrics {
     deepExtraction: { ...deepExtractionMetrics },
     firestore: { ...firestoreMetrics },
     sync: { ...syncMetrics },
-    continuity: { ...continuityMetrics },
-    attribution: {
-      ...attributionMetrics,
-      byType: {
-        thread: { ...attributionMetrics.byType.thread },
-        anchor: { ...attributionMetrics.byType.anchor },
-        semantic: { ...attributionMetrics.byType.semantic },
-      },
-    },
     collectedAt: new Date(),
     uptimeMs: Date.now() - startTime,
   };
@@ -546,9 +338,6 @@ export function getDynamicMemoryMetrics(): DynamicMemoryMetrics {
  * Get a summary for logging
  */
 export function getMetricsSummary(): Record<string, unknown> {
-  const cacheTotal = continuityMetrics.cacheHits + continuityMetrics.cacheMisses;
-  const cacheHitRate = cacheTotal > 0 ? continuityMetrics.cacheHits / cacheTotal : 0;
-
   return {
     fastCapture: {
       calls: fastCaptureMetrics.totalCalls,
@@ -575,22 +364,6 @@ export function getMetricsSummary(): Record<string, unknown> {
     sync: {
       cycles: syncMetrics.totalSyncCycles,
       entitiesSynced: syncMetrics.entitiesSynced,
-    },
-    continuity: {
-      writes: continuityMetrics.totalWrites,
-      threadsUpdated: continuityMetrics.totalThreadsUpdated,
-      anchorsCreated: continuityMetrics.totalAnchorsCreated,
-      retrievals: continuityMetrics.totalRetrievals,
-      avgRetrievalMs: Math.round(continuityMetrics.avgRetrievalLatencyMs * 10) / 10,
-      spannerAvailable: Math.round(continuityMetrics.spannerAvailabilityRate * 100) + '%',
-      cacheHitRate: Math.round(cacheHitRate * 100) + '%',
-    },
-    attribution: {
-      injected: attributionMetrics.totalMemoriesInjected,
-      attributed: attributionMetrics.totalMemoriesAttributed,
-      explicit: attributionMetrics.explicitAttributions,
-      implicit: attributionMetrics.implicitAttributions,
-      rate: Math.round(attributionMetrics.attributionRate * 100) + '%',
     },
     uptimeMs: Date.now() - startTime,
   };
@@ -659,30 +432,5 @@ export function resetMetrics(): void {
     syncSuccessRate: 1.0,
     lastSyncDurationMs: 0,
     avgSyncDurationMs: 0,
-  });
-
-  Object.assign(continuityMetrics, {
-    totalWrites: 0,
-    totalThreadsUpdated: 0,
-    totalAnchorsCreated: 0,
-    totalCapsuleUpdates: 0,
-    totalRetrievals: 0,
-    avgRetrievalLatencyMs: 0,
-    spannerAvailabilityRate: 1.0,
-    cacheHits: 0,
-    cacheMisses: 0,
-  });
-
-  Object.assign(attributionMetrics, {
-    totalMemoriesInjected: 0,
-    totalMemoriesAttributed: 0,
-    explicitAttributions: 0,
-    implicitAttributions: 0,
-    attributionRate: 0,
-    byType: {
-      thread: { injected: 0, attributed: 0 },
-      anchor: { injected: 0, attributed: 0 },
-      semantic: { injected: 0, attributed: 0 },
-    },
   });
 }

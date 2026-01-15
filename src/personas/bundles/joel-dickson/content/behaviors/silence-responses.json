@@ -151,7 +151,10 @@
       "Money decisions carry weight. Good that you're thinking it through.",
       "No rush on this stuff. Better to think now than regret later."
     ],
-    "loss": ["Some things don't need analysis. I'm here.", "Take all the time you need."],
+    "loss": [
+      "Some things don't need analysis. I'm here.",
+      "Take all the time you need."
+    ],
     "career": [
       "Career and finances are deeply connected. They deserve real thought.",
       "Work shapes so much of our financial lives. Worth taking time."

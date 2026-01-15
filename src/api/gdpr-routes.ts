@@ -14,8 +14,8 @@
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
-import { maskEmail, maskPhoneNumber, stripPII } from '../services/identity/privacy-crypto.js';
-import { recordDataAccess, recordSecurityEvent } from '../services/identity/security-events.js';
+import { maskEmail, maskPhoneNumber, stripPII } from '../services/privacy-crypto.js';
+import { recordDataAccess, recordSecurityEvent } from '../services/security-events.js';
 import { createLogger } from '../utils/safe-logger.js';
 import { registerInterval } from '../utils/interval-manager.js';
 import { rateLimit, requireAuth } from './auth-middleware.js';

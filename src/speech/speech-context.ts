@@ -8,8 +8,8 @@
  * so each agent sounds distinctly different (pacing, pauses, energy).
  */
 
-import type { ConversationPhase } from '../intelligence/state/conversation.js';
-import type { EmotionResult } from '../intelligence/detectors/emotion.js';
+import type { ConversationPhase } from '../intelligence/conversation-state.js';
+import type { EmotionResult } from '../intelligence/emotion-detector.js';
 import type { SpeechCharacteristics } from '../personas/types.js';
 
 // ============================================================================

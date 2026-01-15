@@ -12,7 +12,7 @@ import {
   generateContent,
   getContentWithFallback,
   type ContentContext,
-} from '../../services/llm/llm-dynamic-content.js';
+} from '../../services/llm-dynamic-content.js';
 
 import type {
   DayType,

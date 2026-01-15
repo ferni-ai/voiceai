@@ -10,27 +10,13 @@
       "id": "vfam-personalized-advice",
       "topic": "The Value of Personalized Advice (VFAM & Advisor's Alpha)",
       "file": "vfam-personalized-advice.md",
-      "domains": [
-        "advice",
-        "vfam",
-        "financial-planning",
-        "personalization",
-        "behavioral-coaching",
-        "advisors-alpha"
-      ]
+      "domains": ["advice", "vfam", "financial-planning", "personalization", "behavioral-coaching", "advisors-alpha"]
     },
     {
       "id": "tax-efficiency-research",
       "topic": "Tax-Efficient Investing Research",
       "file": "tax-efficiency-research.md",
-      "domains": [
-        "tax",
-        "tax-efficiency",
-        "asset-location",
-        "roth",
-        "tax-loss-harvesting",
-        "withdrawal"
-      ]
+      "domains": ["tax", "tax-efficiency", "asset-location", "roth", "tax-loss-harvesting", "withdrawal"]
     },
     {
       "id": "life-wisdom",

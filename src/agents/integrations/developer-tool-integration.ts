@@ -27,7 +27,11 @@
 
 import { getLogger } from '../../utils/safe-logger.js';
 import { toolRegistry } from '../../tools/registry/index.js';
-import type { ToolDefinition, Tool, ToolContext } from '../../tools/registry/types.js';
+import type {
+  ToolDefinition,
+  Tool,
+  ToolContext,
+} from '../../tools/registry/types.js';
 import type { DeveloperTool } from '../../api/v2/developers/shared/types.js';
 import { COLLECTIONS } from '../../api/v2/developers/shared/types.js';
 
@@ -281,7 +285,10 @@ function createExecutableTool(devTool: DeveloperTool): Tool {
         }
 
         const executionTime = Date.now() - startTime;
-        log.info({ toolName: devTool.name, executionTime }, 'Developer tool executed successfully');
+        log.info(
+          { toolName: devTool.name, executionTime },
+          'Developer tool executed successfully'
+        );
 
         return result;
       } catch (error) {
@@ -351,7 +358,9 @@ async function executeMCPTool(
   }
 
   // Get the MCP server
-  const { getDeveloperMCPServer } = await import('../../services/integrations/developer-mcp-registry.js');
+  const { getDeveloperMCPServer } = await import(
+    '../../services/developer-mcp-registry.js'
+  );
   const server = await getDeveloperMCPServer(tool.config.serverId, tool.publisherId);
 
   if (!server) {
@@ -359,7 +368,9 @@ async function executeMCPTool(
   }
 
   // Connect and call
-  const { callMCPTool, connectToMCPServer } = await import('../../personas/bundles/mcp-loader.js');
+  const { callMCPTool, connectToMCPServer } = await import(
+    '../../personas/bundles/mcp-loader.js'
+  );
 
   const bundleServer = {
     id: server.serverId || server.name,
@@ -377,13 +388,20 @@ async function executeMCPTool(
     throw new Error(`Failed to connect to MCP server: ${connection.error}`);
   }
 
-  return await callMCPTool(bundleServer.id, tool.config.toolName, params);
+  return await callMCPTool(
+    bundleServer.id,
+    tool.config.toolName,
+    params
+  );
 }
 
 /**
  * Execute a prompt tool by rendering the template
  */
-function executePromptTool(tool: DeveloperTool, params: Record<string, unknown>): unknown {
+function executePromptTool(
+  tool: DeveloperTool,
+  params: Record<string, unknown>
+): unknown {
   if (!tool.config.prompt) {
     throw new Error('Prompt not configured');
   }

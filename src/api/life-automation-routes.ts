@@ -674,8 +674,7 @@ async function executeAction(
     // ========================================================================
     case 'speak_message': {
       // Send as a push notification with Ferni's caring voice
-      const { sendPushNotification } =
-        await import('../services/outreach/delivery/push-notifications.js');
+      const { sendPushNotification } = await import('../services/outreach/delivery/push-notifications.js');
       const result = await sendPushNotification({
         userId,
         personaId: 'ferni',
@@ -690,8 +689,7 @@ async function executeAction(
     }
 
     case 'send_notification': {
-      const { sendPushNotification } =
-        await import('../services/outreach/delivery/push-notifications.js');
+      const { sendPushNotification } = await import('../services/outreach/delivery/push-notifications.js');
       const result = await sendPushNotification({
         userId,
         personaId: 'ferni',
@@ -740,15 +738,11 @@ async function executeAction(
             workflowId: action.id,
             personaId: 'ferni',
           });
-          log.info(
-            { userId, actionId: scheduled.id, time: reminderTime },
-            '⏰ Reminder scheduled (persistent)'
-          );
+          log.info({ userId, actionId: scheduled.id, time: reminderTime }, '⏰ Reminder scheduled (persistent)');
           return { created: true, time: reminderTime, actionId: scheduled.id };
         } else {
           // Send immediately
-          const { sendPushNotification } =
-            await import('../services/outreach/delivery/push-notifications.js');
+          const { sendPushNotification } = await import('../services/outreach/delivery/push-notifications.js');
           await sendPushNotification({
             userId,
             personaId: 'ferni',
@@ -794,10 +788,7 @@ async function executeAction(
           brightness: params.brightness ? Number(params.brightness) : undefined,
           color: params.color ? String(params.color) : undefined,
         });
-        log.info(
-          { userId, zone: params.zone, state: params.state, result },
-          '💡 Lights controlled'
-        );
+        log.info({ userId, zone: params.zone, state: params.state, result }, '💡 Lights controlled');
         return { controlled: result.success, zone: params.zone, error: result.error };
       } catch (error) {
         log.warn({ userId, error: String(error) }, 'Light control failed, continuing');
@@ -810,7 +801,7 @@ async function executeAction(
         const { setThermostat } = await import('../services/smart-home/unified-smart-home.js');
         const result = await setThermostat(userId, {
           temperature: Number(params.temperature || 72),
-          mode: params.mode ? (String(params.mode) as 'heat' | 'cool' | 'auto') : undefined,
+          mode: params.mode ? String(params.mode) as 'heat' | 'cool' | 'auto' : undefined,
         });
         log.info({ userId, temperature: params.temperature, result }, '🌡️ Thermostat set');
         return { set: result.success, temperature: params.temperature, error: result.error };

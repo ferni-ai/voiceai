@@ -306,7 +306,7 @@ export function getHabitCoachingStats(): { users: number; entries: number } {
  */
 export async function registerHabitCoachingWithSessionManager(): Promise<void> {
   try {
-    const { getSessionDataManager } = await import('../../services/session-manager/session-data-manager.js');
+    const { getSessionDataManager } = await import('../../services/session-data-manager.js');
     getSessionDataManager().registerService({
       name: 'HabitCoaching',
       clearUserData: clearUserCache,

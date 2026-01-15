@@ -9,8 +9,8 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { getFirestoreVectorStore } from '../memory/firestore-vector-store.js';
-import type { VectorStoreContract } from '../memory/vector-store-interface.js';
+import { getFirestoreVectorStore } from '../../memory/firestore-vector-store.js';
+import type { VectorStoreContract } from '../../memory/vector-store-interface.js';
 import type {
   EntityType,
   StoreType,

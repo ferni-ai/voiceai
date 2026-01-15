@@ -107,7 +107,10 @@ export interface RoutingDecision {
  * Calculate semantic similarity between two tag sets
  * Uses Jaccard similarity with weighted tags
  */
-export function calculateTagSimilarity(queryTags: string[], experimentTags: string[]): number {
+export function calculateTagSimilarity(
+  queryTags: string[],
+  experimentTags: string[]
+): number {
   if (queryTags.length === 0 || experimentTags.length === 0) return 0;
 
   const querySet = new Set(queryTags.map((t) => t.toLowerCase()));
@@ -125,7 +128,10 @@ export function calculateTagSimilarity(queryTags: string[], experimentTags: stri
  * Calculate intent match score
  * Returns 1 for exact match, 0.5 for partial, 0 for no match
  */
-export function calculateIntentMatch(queryIntent: string, experimentIntents: string[]): number {
+export function calculateIntentMatch(
+  queryIntent: string,
+  experimentIntents: string[]
+): number {
   const normalizedQuery = queryIntent.toLowerCase().trim();
 
   for (const intent of experimentIntents) {
@@ -135,7 +141,10 @@ export function calculateIntentMatch(queryIntent: string, experimentIntents: str
     if (normalizedIntent === normalizedQuery) return 1;
 
     // Partial match (query is substring of intent or vice versa)
-    if (normalizedIntent.includes(normalizedQuery) || normalizedQuery.includes(normalizedIntent)) {
+    if (
+      normalizedIntent.includes(normalizedQuery) ||
+      normalizedQuery.includes(normalizedIntent)
+    ) {
       return 0.7;
     }
 
@@ -193,13 +202,17 @@ export function checkEligibility(
 
   // Segment checks
   if (rules.requiredSegments && context.userSegments) {
-    const hasRequired = rules.requiredSegments.some((s) => context.userSegments!.includes(s));
+    const hasRequired = rules.requiredSegments.some((s) =>
+      context.userSegments!.includes(s)
+    );
     if (!hasRequired) {
       return { eligible: false, reason: 'Missing required segment' };
     }
   }
   if (rules.excludedSegments && context.userSegments) {
-    const hasExcluded = rules.excludedSegments.some((s) => context.userSegments!.includes(s));
+    const hasExcluded = rules.excludedSegments.some((s) =>
+      context.userSegments!.includes(s)
+    );
     if (hasExcluded) {
       return { eligible: false, reason: 'In excluded segment' };
     }
@@ -361,7 +374,10 @@ export function routeByTags(
 
     // Combined score with weights
     const score =
-      tagScore * 0.4 + categoryScore * 0.2 + intentScore * 0.3 + (experiment.priority / 100) * 0.1;
+      tagScore * 0.4 +
+      categoryScore * 0.2 +
+      intentScore * 0.3 +
+      (experiment.priority / 100) * 0.1;
 
     if (score > 0.1) {
       // Minimum threshold
@@ -486,10 +502,9 @@ export function createExperimentMetadata(
 /**
  * Validate experiment metadata
  */
-export function validateExperimentMetadata(metadata: ExperimentMetadata): {
-  valid: boolean;
-  errors: string[];
-} {
+export function validateExperimentMetadata(
+  metadata: ExperimentMetadata
+): { valid: boolean; errors: string[] } {
   const errors: string[] = [];
 
   if (!metadata.id || metadata.id.length < 3) {
@@ -510,7 +525,8 @@ export function validateExperimentMetadata(metadata: ExperimentMetadata): {
 
   if (
     metadata.eligibility.trafficPercentage !== undefined &&
-    (metadata.eligibility.trafficPercentage < 0 || metadata.eligibility.trafficPercentage > 100)
+    (metadata.eligibility.trafficPercentage < 0 ||
+      metadata.eligibility.trafficPercentage > 100)
   ) {
     errors.push('Traffic percentage must be between 0 and 100');
   }

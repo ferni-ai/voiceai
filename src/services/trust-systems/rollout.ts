@@ -19,7 +19,7 @@ import {
   setRolloutPercentage,
   setUserOverride,
   type TrustFlagId,
-} from '../deployment/feature-flags.js';
+} from '../feature-flags.js';
 import { observabilityHub } from '../observability/hub.js';
 
 const log = createLogger({ module: 'TrustRollout' });

@@ -25,7 +25,7 @@ import { generateToolQuestions, type QuestionFocus } from '../../utils/dynamic-t
 import {
   addCrossPersonaInsight,
   getInsightsForPersona,
-} from '../../../services/cross-persona/cross-persona-insights.js';
+} from '../../../services/cross-persona-insights.js';
 // ============================================================================
 // GRIEF PROCESSING TOOLS
 // ============================================================================

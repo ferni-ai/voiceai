@@ -19,7 +19,7 @@ import {
   detectEmotion,
   type EmotionResult,
   type PrimaryEmotion,
-} from '../intelligence/detectors/emotion.js';
+} from '../intelligence/emotion-detector.js';
 
 // ============================================================================
 // TESTS

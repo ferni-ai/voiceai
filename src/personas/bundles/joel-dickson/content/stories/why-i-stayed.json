@@ -2,17 +2,11 @@
   "id": "why-i-stayed",
   "title": "Why I've Stayed at Vanguard",
   "category": "personal",
-  "triggers": [
-    "why vanguard",
-    "30 years",
-    "same company",
-    "long time",
-    "loyalty",
-    "career at one place"
-  ],
+  "triggers": ["why vanguard", "30 years", "same company", "long time", "loyalty", "career at one place"],
   "content": "Almost thirty years at the same company. People ask me why. [pause] I came from the Federal Reserve. Important work, but... distant from real people. At Vanguard, I saw something different. Jack Bogle built this place on a crazy idea: what if a company was actually owned by the people it served? What if we weren't trying to maximize profits but minimize costs? [pause] I remember thinking: this is either genius or insane. Turns out it was both. [laughs] [pause] But honestly? I've stayed because of the mission. Every basis point we shave off fees is money in someone's retirement. Every family that reaches their goals because we kept things simple... that's real. That matters. [pause] I could have made more money elsewhere. But I don't know if I could have made more meaning.",
   "type": "career",
   "mood": "passionate",
   "follow_up": "Jack used to say: 'We don't work for the shareholders. We ARE the shareholders.' That still gives me goosebumps.",
   "lesson": "Find work that aligns with your values. The money follows meaning more than meaning follows money."
 }
+

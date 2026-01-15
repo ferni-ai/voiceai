@@ -60,8 +60,9 @@ describe('Inbound Call Context Builder', () => {
 
   describe('Context Storage', () => {
     it('should store and retrieve inbound call context', async () => {
-      const { setInboundCallContext, getInboundCallContext } =
-        await import('../../intelligence/context-builders/external/inbound-call-context.js');
+      const { setInboundCallContext, getInboundCallContext } = await import(
+        '../../intelligence/context-builders/external/inbound-call-context.js'
+      );
 
       const context = {
         callSid: TEST_CALL_SID,
@@ -83,8 +84,9 @@ describe('Inbound Call Context Builder', () => {
     });
 
     it('should return undefined for unknown session', async () => {
-      const { getInboundCallContext } =
-        await import('../../intelligence/context-builders/external/inbound-call-context.js');
+      const { getInboundCallContext } = await import(
+        '../../intelligence/context-builders/external/inbound-call-context.js'
+      );
 
       const retrieved = getInboundCallContext('unknown-session');
 
@@ -116,8 +118,9 @@ describe('Inbound Call Context Builder', () => {
 
   describe('Context Builder', () => {
     it('should return empty array for non-inbound sessions', async () => {
-      const { inboundCallContextBuilder } =
-        await import('../../intelligence/context-builders/external/inbound-call-context.js');
+      const { inboundCallContextBuilder } = await import(
+        '../../intelligence/context-builders/external/inbound-call-context.js'
+      );
 
       const result = await inboundCallContextBuilder.build({
         services: { sessionId: 'regular-session-no-inbound' },
@@ -128,8 +131,9 @@ describe('Inbound Call Context Builder', () => {
     });
 
     it('should inject caller identity for known caller', async () => {
-      const { setInboundCallContext, inboundCallContextBuilder } =
-        await import('../../intelligence/context-builders/external/inbound-call-context.js');
+      const { setInboundCallContext, inboundCallContextBuilder } = await import(
+        '../../intelligence/context-builders/external/inbound-call-context.js'
+      );
 
       // Set up inbound call context
       setInboundCallContext(TEST_SESSION_ID, {
@@ -159,8 +163,9 @@ describe('Inbound Call Context Builder', () => {
     });
 
     it('should inject unknown caller guidance for new callers', async () => {
-      const { setInboundCallContext, inboundCallContextBuilder } =
-        await import('../../intelligence/context-builders/external/inbound-call-context.js');
+      const { setInboundCallContext, inboundCallContextBuilder } = await import(
+        '../../intelligence/context-builders/external/inbound-call-context.js'
+      );
 
       // Set up inbound call context for unknown caller
       setInboundCallContext(TEST_SESSION_ID, {
@@ -182,8 +187,9 @@ describe('Inbound Call Context Builder', () => {
     });
 
     it('should inject voice verification guidance for known but unenrolled caller', async () => {
-      const { setInboundCallContext, inboundCallContextBuilder } =
-        await import('../../intelligence/context-builders/external/inbound-call-context.js');
+      const { setInboundCallContext, inboundCallContextBuilder } = await import(
+        '../../intelligence/context-builders/external/inbound-call-context.js'
+      );
 
       setInboundCallContext(TEST_SESSION_ID, {
         callSid: TEST_CALL_SID,
@@ -205,8 +211,9 @@ describe('Inbound Call Context Builder', () => {
     });
 
     it('should not inject verification guidance for voice-enrolled caller', async () => {
-      const { setInboundCallContext, inboundCallContextBuilder } =
-        await import('../../intelligence/context-builders/external/inbound-call-context.js');
+      const { setInboundCallContext, inboundCallContextBuilder } = await import(
+        '../../intelligence/context-builders/external/inbound-call-context.js'
+      );
 
       setInboundCallContext(TEST_SESSION_ID, {
         callSid: TEST_CALL_SID,
@@ -227,8 +234,9 @@ describe('Inbound Call Context Builder', () => {
     });
 
     it('should inject sponsored identity context', async () => {
-      const { setInboundCallContext, inboundCallContextBuilder } =
-        await import('../../intelligence/context-builders/external/inbound-call-context.js');
+      const { setInboundCallContext, inboundCallContextBuilder } = await import(
+        '../../intelligence/context-builders/external/inbound-call-context.js'
+      );
 
       setInboundCallContext(TEST_SESSION_ID, {
         callSid: TEST_CALL_SID,
@@ -254,8 +262,9 @@ describe('Inbound Call Context Builder', () => {
     });
 
     it('should inject access restrictions for limited callers', async () => {
-      const { setInboundCallContext, inboundCallContextBuilder } =
-        await import('../../intelligence/context-builders/external/inbound-call-context.js');
+      const { setInboundCallContext, inboundCallContextBuilder } = await import(
+        '../../intelligence/context-builders/external/inbound-call-context.js'
+      );
 
       setInboundCallContext(TEST_SESSION_ID, {
         callSid: TEST_CALL_SID,
@@ -278,8 +287,9 @@ describe('Inbound Call Context Builder', () => {
     });
 
     it('should not inject restrictions for full access callers', async () => {
-      const { setInboundCallContext, inboundCallContextBuilder } =
-        await import('../../intelligence/context-builders/external/inbound-call-context.js');
+      const { setInboundCallContext, inboundCallContextBuilder } = await import(
+        '../../intelligence/context-builders/external/inbound-call-context.js'
+      );
 
       setInboundCallContext(TEST_SESSION_ID, {
         callSid: TEST_CALL_SID,
@@ -306,8 +316,9 @@ describe('Inbound Call Context Builder', () => {
 
   describe('Builder Metadata', () => {
     it('should have correct builder metadata', async () => {
-      const { inboundCallContextBuilder } =
-        await import('../../intelligence/context-builders/external/inbound-call-context.js');
+      const { inboundCallContextBuilder } = await import(
+        '../../intelligence/context-builders/external/inbound-call-context.js'
+      );
 
       expect(inboundCallContextBuilder.name).toBe('inbound-call-context');
       expect(inboundCallContextBuilder.priority).toBeDefined();

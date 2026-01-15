@@ -28,7 +28,7 @@ import { llm } from '@livekit/agents';
 import { z } from 'zod';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { getToolDescription } from '../../utils/tool-descriptions.js';
-import { addCrossPersonaInsight } from '../../../services/cross-persona/cross-persona-insights.js';
+import { addCrossPersonaInsight } from '../../../services/cross-persona-insights.js';
 
 const log = getLogger();
 

@@ -97,7 +97,12 @@ export class ContradictionDetector {
         const conflicts = await this.findConflicts(userId, newFact);
 
         for (const conflict of conflicts) {
-          const contradiction = this.buildContradiction(userId, newFact, conflict, context);
+          const contradiction = this.buildContradiction(
+            userId,
+            newFact,
+            conflict,
+            context
+          );
           if (contradiction) {
             contradictions.push(contradiction);
           }
@@ -147,10 +152,12 @@ export class ContradictionDetector {
         const conflicts = await this.findConflicts(userId, fact);
 
         for (const conflict of conflicts) {
-          const contradiction = this.buildContradiction(userId, fact, conflict, {
-            sessionId: 'contradiction-check',
-            transcript: statement,
-          });
+          const contradiction = this.buildContradiction(
+            userId,
+            fact,
+            conflict,
+            { sessionId: 'contradiction-check', transcript: statement }
+          );
           if (contradiction) {
             contradictions.push(contradiction);
           }
@@ -297,7 +304,10 @@ export class ContradictionDetector {
   // PRIVATE METHODS
   // ============================================================================
 
-  private async findConflicts(userId: string, newFact: ExtractedFact): Promise<FactConflict[]> {
+  private async findConflicts(
+    userId: string,
+    newFact: ExtractedFact
+  ): Promise<FactConflict[]> {
     const conflicts: FactConflict[] = [];
 
     try {
@@ -410,11 +420,7 @@ export class ContradictionDetector {
       // One has "not", one doesn't
       const withoutNot1 = text1.replace(/\bnot\b/g, '').trim();
       const withoutNot2 = text2.replace(/\bnot\b/g, '').trim();
-      if (
-        withoutNot1 === withoutNot2 ||
-        withoutNot1.includes(withoutNot2) ||
-        withoutNot2.includes(withoutNot1)
-      ) {
+      if (withoutNot1 === withoutNot2 || withoutNot1.includes(withoutNot2) || withoutNot2.includes(withoutNot1)) {
         return true;
       }
     }
@@ -422,7 +428,10 @@ export class ContradictionDetector {
     return false;
   }
 
-  private calculateConflictConfidence(existing: ExtractedFact, newFact: ExtractedFact): number {
+  private calculateConflictConfidence(
+    existing: ExtractedFact,
+    newFact: ExtractedFact
+  ): number {
     let confidence = 0.5;
 
     // Higher confidence if both facts have high individual confidence

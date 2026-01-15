@@ -88,7 +88,7 @@ vi.mock('../../advanced/tool-lifecycle.js', () => ({
 }));
 
 // Mock model config (admin settings)
-vi.mock('../../../services/llm/model-config.js', () => ({
+vi.mock('../../../services/model-config.js', () => ({
   modelConfig: {
     getDefaultToolConfig: () => ({
       debugMode: false,

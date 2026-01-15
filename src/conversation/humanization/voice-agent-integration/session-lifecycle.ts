@@ -9,10 +9,7 @@ import {
   initAdvancedHumanization,
   cleanupAdvancedHumanization,
 } from '../../advanced-humanization-integration.js';
-import {
-  getCrossSessionVoiceEngine,
-  type CrossSessionVoiceMemory,
-} from '../cross-session-voice.js';
+import { getCrossSessionVoiceEngine, type CrossSessionVoiceMemory } from '../cross-session-voice.js';
 import {
   getHumanizationOrchestrator,
   resetHumanization,

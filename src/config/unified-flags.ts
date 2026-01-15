@@ -56,11 +56,11 @@ import {
 } from './voice-humanization-flags.js';
 
 // Trust system flags - lazy loaded to avoid Firestore initialization
-let trustFlagsModule: typeof import('../services/deployment/feature-flags.js') | null = null;
+let trustFlagsModule: typeof import('../services/feature-flags.js') | null = null;
 
 async function getTrustFlags() {
   if (!trustFlagsModule) {
-    trustFlagsModule = await import('../services/deployment/feature-flags.js');
+    trustFlagsModule = await import('../services/feature-flags.js');
   }
   return trustFlagsModule;
 }

@@ -210,15 +210,7 @@ async function assembleImmediate(options: AssemblyOptions): Promise<ImmediateCon
   const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
   const timeOfDay: ImmediateContext['timeOfDay'] =
-    hour < 6
-      ? 'late_night'
-      : hour < 12
-        ? 'morning'
-        : hour < 17
-          ? 'afternoon'
-          : hour < 21
-            ? 'evening'
-            : 'late_night';
+    hour < 6 ? 'late_night' : hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : hour < 21 ? 'evening' : 'late_night';
 
   const immediate: ImmediateContext = {
     timeOfDay,
@@ -449,11 +441,7 @@ function detectActiveDomains(
     if (topicLower.includes('sleep') || topicLower.includes('tired')) {
       domains.push('sleep');
     }
-    if (
-      topicLower.includes('work') ||
-      topicLower.includes('job') ||
-      topicLower.includes('career')
-    ) {
+    if (topicLower.includes('work') || topicLower.includes('job') || topicLower.includes('career')) {
       domains.push('work');
     }
     if (topicLower.includes('relationship') || topicLower.includes('family')) {

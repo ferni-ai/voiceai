@@ -131,7 +131,7 @@ describe('Subscription Store', () => {
     it('should mark subscription as cancelled', async () => {
       const sub = await addSubscription(testUserId, {
         name: 'Test Service',
-        amount: 10.0,
+        amount: 10.00,
         category: 'other',
         frequency: 'monthly',
         currency: 'USD',
@@ -144,7 +144,7 @@ describe('Subscription Store', () => {
       });
 
       await cancelSubscription(testUserId, sub.id, 'Testing');
-
+      
       const data = await getSubscriptionData(testUserId);
       const cancelled = data.subscriptions.find((s) => s.id === sub.id);
       expect(cancelled?.status).toBe('cancelled');

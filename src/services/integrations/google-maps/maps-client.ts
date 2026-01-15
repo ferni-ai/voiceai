@@ -148,7 +148,7 @@ export class GoogleMapsClient {
       url.searchParams.set('key', this.apiKey);
 
       const response = await fetch(url.toString());
-      const data = (await response.json()) as {
+      const data = await response.json() as {
         status: string;
         results: Array<{
           place_id: string;
@@ -177,7 +177,7 @@ export class GoogleMapsClient {
           latitude: result.geometry.location.lat,
           longitude: result.geometry.location.lng,
           types: result.types,
-          addressComponents: result.address_components.map((c) => ({
+          addressComponents: result.address_components.map(c => ({
             longName: c.long_name,
             shortName: c.short_name,
             types: c.types,
@@ -207,7 +207,7 @@ export class GoogleMapsClient {
       url.searchParams.set('key', this.apiKey);
 
       const response = await fetch(url.toString());
-      const data = (await response.json()) as {
+      const data = await response.json() as {
         status: string;
         results: Array<{
           place_id: string;
@@ -224,10 +224,7 @@ export class GoogleMapsClient {
       };
 
       if (data.status !== 'OK' || !data.results?.length) {
-        return {
-          success: false,
-          error: data.error_message || `Reverse geocoding failed: ${data.status}`,
-        };
+        return { success: false, error: data.error_message || `Reverse geocoding failed: ${data.status}` };
       }
 
       const result = data.results[0];
@@ -239,7 +236,7 @@ export class GoogleMapsClient {
           latitude: result.geometry.location.lat,
           longitude: result.geometry.location.lng,
           types: result.types,
-          addressComponents: result.address_components.map((c) => ({
+          addressComponents: result.address_components.map(c => ({
             longName: c.long_name,
             shortName: c.short_name,
             types: c.types,
@@ -275,7 +272,7 @@ export class GoogleMapsClient {
 
     try {
       const url = new URL(`${this.baseUrl}/directions/json`);
-
+      
       // Format origin/destination
       const formatLocation = (loc: string | { lat: number; lng: number }): string => {
         if (typeof loc === 'string') return loc;
@@ -288,10 +285,7 @@ export class GoogleMapsClient {
       url.searchParams.set('key', this.apiKey);
 
       if (params.departureTime) {
-        url.searchParams.set(
-          'departure_time',
-          Math.floor(params.departureTime.getTime() / 1000).toString()
-        );
+        url.searchParams.set('departure_time', Math.floor(params.departureTime.getTime() / 1000).toString());
       } else if (params.mode === 'driving') {
         // Use 'now' for real-time traffic
         url.searchParams.set('departure_time', 'now');
@@ -313,7 +307,7 @@ export class GoogleMapsClient {
       }
 
       const response = await fetch(url.toString());
-      const data = (await response.json()) as {
+      const data = await response.json() as {
         status: string;
         routes: Array<{
           summary: string;
@@ -345,7 +339,7 @@ export class GoogleMapsClient {
         return { success: false, error: data.error_message || `Directions failed: ${data.status}` };
       }
 
-      const routes: DirectionsRoute[] = data.routes.map((route) => {
+      const routes: DirectionsRoute[] = data.routes.map(route => {
         const leg = route.legs[0]; // Single leg for simple A to B
         return {
           summary: route.summary,
@@ -359,7 +353,7 @@ export class GoogleMapsClient {
           endAddress: leg.end_address,
           startLocation: leg.start_location,
           endLocation: leg.end_location,
-          steps: leg.steps.map((step) => ({
+          steps: leg.steps.map(step => ({
             instruction: step.html_instructions.replace(/<[^>]*>/g, ''), // Strip HTML
             distanceMeters: step.distance.value,
             distanceText: step.distance.text,
@@ -401,14 +395,12 @@ export class GoogleMapsClient {
 
     try {
       const url = new URL(`${this.baseUrl}/distancematrix/json`);
-
+      
       const formatLocations = (locs: Array<string | { lat: number; lng: number }>): string => {
-        return locs
-          .map((loc) => {
-            if (typeof loc === 'string') return loc;
-            return `${loc.lat},${loc.lng}`;
-          })
-          .join('|');
+        return locs.map(loc => {
+          if (typeof loc === 'string') return loc;
+          return `${loc.lat},${loc.lng}`;
+        }).join('|');
       };
 
       url.searchParams.set('origins', formatLocations(params.origins));
@@ -417,16 +409,13 @@ export class GoogleMapsClient {
       url.searchParams.set('key', this.apiKey);
 
       if (params.departureTime) {
-        url.searchParams.set(
-          'departure_time',
-          Math.floor(params.departureTime.getTime() / 1000).toString()
-        );
+        url.searchParams.set('departure_time', Math.floor(params.departureTime.getTime() / 1000).toString());
       } else if (params.mode === 'driving') {
         url.searchParams.set('departure_time', 'now');
       }
 
       const response = await fetch(url.toString());
-      const data = (await response.json()) as {
+      const data = await response.json() as {
         status: string;
         rows: Array<{
           elements: Array<{
@@ -440,14 +429,11 @@ export class GoogleMapsClient {
       };
 
       if (data.status !== 'OK') {
-        return {
-          success: false,
-          error: data.error_message || `Distance matrix failed: ${data.status}`,
-        };
+        return { success: false, error: data.error_message || `Distance matrix failed: ${data.status}` };
       }
 
-      const matrix: DistanceMatrixElement[][] = data.rows.map((row) =>
-        row.elements.map((el) => ({
+      const matrix: DistanceMatrixElement[][] = data.rows.map(row =>
+        row.elements.map(el => ({
           distance: el.distance || { value: 0, text: '' },
           duration: el.duration || { value: 0, text: '' },
           durationInTraffic: el.duration_in_traffic,
@@ -495,7 +481,7 @@ export class GoogleMapsClient {
       }
 
       const response = await fetch(url.toString());
-      const data = (await response.json()) as {
+      const data = await response.json() as {
         status: string;
         results: Array<{
           place_id: string;
@@ -512,13 +498,10 @@ export class GoogleMapsClient {
       };
 
       if (data.status !== 'OK' && data.status !== 'ZERO_RESULTS') {
-        return {
-          success: false,
-          error: data.error_message || `Place search failed: ${data.status}`,
-        };
+        return { success: false, error: data.error_message || `Place search failed: ${data.status}` };
       }
 
-      const places: PlaceResult[] = (data.results || []).map((place) => ({
+      const places: PlaceResult[] = (data.results || []).map(place => ({
         placeId: place.place_id,
         name: place.name,
         formattedAddress: place.formatted_address,
@@ -567,7 +550,7 @@ export class GoogleMapsClient {
       }
 
       const response = await fetch(url.toString());
-      const data = (await response.json()) as {
+      const data = await response.json() as {
         status: string;
         predictions: Array<{
           place_id: string;
@@ -582,13 +565,10 @@ export class GoogleMapsClient {
       };
 
       if (data.status !== 'OK' && data.status !== 'ZERO_RESULTS') {
-        return {
-          success: false,
-          error: data.error_message || `Autocomplete failed: ${data.status}`,
-        };
+        return { success: false, error: data.error_message || `Autocomplete failed: ${data.status}` };
       }
 
-      const suggestions: PlaceAutocompleteResult[] = (data.predictions || []).map((pred) => ({
+      const suggestions: PlaceAutocompleteResult[] = (data.predictions || []).map(pred => ({
         placeId: pred.place_id,
         description: pred.description,
         mainText: pred.structured_formatting.main_text,

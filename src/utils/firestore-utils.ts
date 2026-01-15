@@ -271,17 +271,13 @@ export function toSafeDate(value: unknown, fallback: Date = new Date()): Date {
   if (value instanceof Date) return value;
 
   // Firestore Timestamp (has toDate method)
-  if (
-    typeof value === 'object' &&
-    'toDate' in value &&
-    typeof (value as { toDate: unknown }).toDate === 'function'
-  ) {
+  if (typeof value === 'object' && 'toDate' in value && typeof (value as { toDate: unknown }).toDate === 'function') {
     return (value as { toDate: () => Date }).toDate();
   }
 
   // Plain object with seconds (serialized Firestore Timestamp)
   if (typeof value === 'object' && 'seconds' in value) {
-    const { seconds } = value as { seconds: number };
+    const seconds = (value as { seconds: number }).seconds;
     return new Date(seconds * 1000);
   }
 

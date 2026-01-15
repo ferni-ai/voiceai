@@ -13,7 +13,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import type { ThemeCategory } from '../../services/session-manager/session-variety-tracker.js';
+import type { ThemeCategory } from '../../services/session-variety-tracker.js';
 
 // VoiceEmotionResult type (inline to avoid import issues)
 export interface VoiceEmotionResult {

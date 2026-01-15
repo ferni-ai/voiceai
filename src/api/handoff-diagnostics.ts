@@ -16,7 +16,7 @@
 
 import type { Request, Response } from 'express';
 import type { IncomingMessage, ServerResponse } from 'http';
-import { handoffMetrics } from '../services/analytics/handoff-metrics.js';
+import { handoffMetrics } from '../services/handoff-metrics.js';
 import { createLogger } from '../utils/safe-logger.js';
 import { requireAuth } from './auth-middleware.js';
 import { parsePositiveInt, sendError, sendJSON } from './helpers.js';

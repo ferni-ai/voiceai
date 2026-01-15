@@ -21,7 +21,7 @@
 
 import { EventEmitter } from 'events';
 
-import { getDefaultStore } from '../memory/index.js';
+import { getDefaultStore } from '../../memory/index.js';
 import type { UserProfile } from '../../types/user-profile.js';
 import { clearNamedInterval, registerInterval } from '../../utils/interval-manager.js';
 import { getLogger } from '../../utils/safe-logger.js';

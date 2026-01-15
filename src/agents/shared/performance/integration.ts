@@ -148,8 +148,7 @@ export async function initializePerformanceOptimizations(
     initTasks.push(
       (async () => {
         try {
-          const { prewarmContextCache } =
-            await import('../../../intelligence/core/context-service.js');
+          const { prewarmContextCache } = await import('../../../intelligence/context-service.js');
           await prewarmContextCache(userId, personaId);
           metrics.contextCacheEnabled = true;
           log.info('Context cache warmed up');
@@ -240,7 +239,7 @@ export async function processOptimizedTurn(input: {
     (async () => {
       const ctxStart = Date.now();
       try {
-        const { buildTurnContext } = await import('../../../intelligence/core/context-service.js');
+        const { buildTurnContext } = await import('../../../intelligence/context-service.js');
         const result = await buildTurnContext({
           userId: input.userId,
           sessionId: input.sessionId,
@@ -267,8 +266,7 @@ export async function processOptimizedTurn(input: {
           timings.analysisMs = 0;
           return {};
         }
-        const { batchedAnalyze } =
-          await import('../../../intelligence/core/batched-llm-analysis.js');
+        const { batchedAnalyze } = await import('../../../intelligence/batched-llm-analysis.js');
         const result = await batchedAnalyze({
           message: input.userMessage,
           personaId: input.personaId,
@@ -454,8 +452,7 @@ export async function getPerformanceSummary(): Promise<Record<string, unknown>> 
 
   // Gather metrics from all subsystems
   try {
-    const { getContextServiceMetrics } =
-      await import('../../../intelligence/core/context-service.js');
+    const { getContextServiceMetrics } = await import('../../../intelligence/context-service.js');
     summary.contextService = getContextServiceMetrics();
   } catch {
     /* ignore */
@@ -463,7 +460,7 @@ export async function getPerformanceSummary(): Promise<Record<string, unknown>> 
 
   try {
     const { getBatchedAnalysisMetrics } =
-      await import('../../../intelligence/core/batched-llm-analysis.js');
+      await import('../../../intelligence/batched-llm-analysis.js');
     summary.batchedAnalysis = getBatchedAnalysisMetrics();
   } catch {
     /* ignore */

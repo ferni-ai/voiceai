@@ -15,10 +15,10 @@
 
 import pino from 'pino';
 import { EventEmitter } from 'events';
-import { extractSpeakerEmbedding, type SpeakerEmbedding } from '../memory/voice-memory-enhanced.js';
+import { extractSpeakerEmbedding, type SpeakerEmbedding } from '../voice-memory-enhanced.js';
 import { identifyHouseholdSpeaker, updateSessionSpeaker } from './voice-household.js';
 // Centralized cosine similarity - uses optimized implementation from rust-accelerator
-import { cosineSimilarity } from '../memory/rust-accelerator.js';
+import { cosineSimilarity } from '../../memory/rust-accelerator.js';
 import { registerInterval, clearNamedInterval, hasInterval } from '../../utils/interval-manager.js';
 
 const log = pino({ name: 'speaker-change' });

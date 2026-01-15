@@ -23,8 +23,8 @@ import {
   getRegistryStats,
 } from '../../intelligence/context-builders/index.js';
 import { getCognitiveStyleCacheStats } from '../../personas/cognitive-advanced.js';
-import { getEmbeddingCache } from '../memory/embedding-cache.js';
-import { getRedisCache } from '../memory/redis-cache.js';
+import { getEmbeddingCache } from '../../memory/embedding-cache.js';
+import { getRedisCache } from '../../memory/redis-cache.js';
 
 const log = createLogger({ module: 'cache-monitoring' });
 

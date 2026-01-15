@@ -22,16 +22,16 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import {
   getCognitiveLoadDetector,
   resetCognitiveLoadDetector,
-} from '../intelligence/detectors/cognitive-load.js';
+} from '../intelligence/cognitive-load.js';
 
 // Hedging Detection
-import { getHedgingDetector, resetHedgingDetector } from '../intelligence/detectors/hedging.js';
+import { getHedgingDetector, resetHedgingDetector } from '../intelligence/hedging-detection.js';
 
 // Self-Soothing Detection
 import {
   getSelfSoothingDetector,
   resetSelfSoothingDetector,
-} from '../intelligence/detectors/self-soothing.js';
+} from '../intelligence/self-soothing-detection.js';
 
 // Fluency Analysis
 import { getFluencyAnalyzer, resetFluencyAnalyzer } from '../speech/fluency-analysis.js';

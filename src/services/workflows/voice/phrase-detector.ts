@@ -23,36 +23,36 @@ export interface PhraseTrigger {
   id: string;
   userId: string;
   workflowId: string;
-
+  
   // Phrases that trigger this workflow
   phrases: string[];
-
+  
   // Matching options
   requireExactMatch: boolean;
   caseSensitive: boolean;
   fuzzyThreshold: number; // 0-1, how close the match needs to be
-
+  
   // Context requirements
   contextRequired?: {
     personaId?: string;
     timeWindow?: { start: string; end: string }; // HH:mm format
     locationId?: string;
   };
-
+  
   // Extraction patterns
   extractVariables?: Array<{
     name: string;
     pattern: string; // Regex pattern with capture group
     optional: boolean;
   }>;
-
+  
   // Confirmation
   requireConfirmation: boolean;
   confirmationPrompt?: string;
-
+  
   // Active status
   enabled: boolean;
-
+  
   // Metadata
   description?: string;
   createdAt: Date;
@@ -100,9 +100,7 @@ export class PhraseDetector {
     userId: string,
     workflowId: string,
     phrases: string[],
-    options?: Partial<
-      Omit<PhraseTrigger, 'id' | 'userId' | 'workflowId' | 'phrases' | 'createdAt' | 'updatedAt'>
-    >
+    options?: Partial<Omit<PhraseTrigger, 'id' | 'userId' | 'workflowId' | 'phrases' | 'createdAt' | 'updatedAt'>>
   ): PhraseTrigger {
     const trigger: PhraseTrigger = {
       id: `pt_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
@@ -194,11 +192,16 @@ export class PhraseDetector {
   /**
    * Detect trigger phrases in a transcript
    */
-  async detectPhrases(transcript: string, context: DetectionContext): Promise<PhraseMatch[]> {
+  async detectPhrases(
+    transcript: string,
+    context: DetectionContext
+  ): Promise<PhraseMatch[]> {
     const matches: PhraseMatch[] = [];
     const normalizedTranscript = transcript.toLowerCase().trim();
 
-    const userTriggers = this.getUserTriggers(context.userId).filter((t) => t.enabled);
+    const userTriggers = this.getUserTriggers(context.userId).filter(
+      (t) => t.enabled
+    );
 
     for (const trigger of userTriggers) {
       // Check context requirements
@@ -208,10 +211,17 @@ export class PhraseDetector {
 
       // Try to match each phrase
       for (const phrase of trigger.phrases) {
-        const matchResult = this.matchPhrase(normalizedTranscript, phrase, trigger);
+        const matchResult = this.matchPhrase(
+          normalizedTranscript,
+          phrase,
+          trigger
+        );
 
         if (matchResult.matched) {
-          const extractedVars = this.extractVariables(transcript, trigger.extractVariables);
+          const extractedVars = this.extractVariables(
+            transcript,
+            trigger.extractVariables
+          );
 
           matches.push({
             triggerId: trigger.id,
@@ -257,7 +267,10 @@ export class PhraseDetector {
   /**
    * Check if context requirements are met
    */
-  private checkContext(trigger: PhraseTrigger, context: DetectionContext): boolean {
+  private checkContext(
+    trigger: PhraseTrigger,
+    context: DetectionContext
+  ): boolean {
     const req = trigger.contextRequired;
     if (!req) return true;
 

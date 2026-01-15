@@ -26,7 +26,7 @@ import {
   markInsightDelivered,
   recordVoicePattern,
   wasRecentlyDelivered,
-} from '../superhuman-memory/index.js';
+} from '../superhuman-memory.js';
 
 // ============================================================================
 // TEST DATA FACTORIES

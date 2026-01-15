@@ -468,8 +468,8 @@ export async function summarizeConversationAsync(
     // Try LLM summarization
     let summary: string;
     try {
-      const { summarizeWithLLM } = await import('../memory/index.js');
-      const { createSummarizationLLMCaller } = await import('../llm/llm-utils.js');
+      const { summarizeWithLLM } = await import('../../memory/index.js');
+      const { createSummarizationLLMCaller } = await import('../llm-utils.js');
 
       const llmCaller = createSummarizationLLMCaller();
       const result = await summarizeWithLLM(

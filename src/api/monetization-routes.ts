@@ -36,7 +36,7 @@ import {
   handlePaymentSucceeded,
   isStripeConfigured,
   verifyPayment,
-} from '../services/integrations/stripe-payments.js';
+} from '../services/stripe-payments.js';
 import { createLogger } from '../utils/safe-logger.js';
 
 // Initialize persistence on module load

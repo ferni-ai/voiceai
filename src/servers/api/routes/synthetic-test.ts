@@ -549,8 +549,13 @@ async function handleGroupOutreachTest(req: IncomingMessage, res: ServerResponse
       case 'roundtable':
         result = await initiateTeamRoundtableCall(body.userId, {
           personas: (body.personas as Array<
-            'ferni' | 'peter-john' | 'maya-santos' | 'jordan-taylor' | 'alex-chen' | 'nayan-patel'
-          >) || ['ferni', 'maya-santos', 'jordan-taylor'],
+            | 'ferni'
+            | 'peter-john'
+            | 'maya-habits'
+            | 'jordan-milestones'
+            | 'alex-comms'
+            | 'nayan-wisdom'
+          >) || ['ferni', 'maya-habits', 'jordan-milestones'],
           topic: body.topic || 'team check-in',
           reason: 'Synthetic test - team roundtable',
           preferredName: body.preferredName,
@@ -612,10 +617,10 @@ async function handleThreadContextTest(req: IncomingMessage, res: ServerResponse
     type ValidPersonaId =
       | 'ferni'
       | 'peter-john'
-      | 'maya-santos'
-      | 'jordan-taylor'
-      | 'alex-chen'
-      | 'nayan-patel';
+      | 'maya-habits'
+      | 'jordan-milestones'
+      | 'alex-comms'
+      | 'nayan-wisdom';
 
     // Create or get a test thread
     // Signature: getOrCreateThread(userId, channel, agentId, options?)

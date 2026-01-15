@@ -68,10 +68,7 @@ import {
   type StreakAtRiskResult,
 } from '../../../services/outreach/maya-habit-outreach.js';
 // Cross-Domain: CEO Coaching energy data for energy-aware habit suggestions
-import {
-  getEnergyTrend,
-  getRecentEnergyEntries,
-} from '../../../tools/domains/ceo-coaching/storage.js';
+import { getEnergyTrend, getRecentEnergyEntries } from '../../../tools/domains/ceo-coaching/storage.js';
 
 const log = createLogger({ module: 'context:maya-habit-insights' });
 
@@ -394,16 +391,12 @@ async function generateEnergyAwareInsight(
     if (current <= 4 && trend === 'down') {
       if (energyHabits.length > 0) {
         const habitName = energyHabits[0].name;
-        return (
-          `I noticed your energy has been trending down (${current}/10 today, ${weekAverage}/10 average). ` +
+        return `I noticed your energy has been trending down (${current}/10 today, ${weekAverage}/10 average). ` +
           `When energy dips, "${habitName}" often helps - even a tiny version. ` +
-          `Want to try a 2-minute version right now?`
-        );
+          `Want to try a 2-minute version right now?`;
       } else {
-        return (
-          `Your energy has been declining lately (${current}/10 today). ` +
-          `Quick movement or sunlight can help. Would you be open to adding a 2-minute "energy reset" habit?`
-        );
+        return `Your energy has been declining lately (${current}/10 today). ` +
+          `Quick movement or sunlight can help. Would you be open to adding a 2-minute "energy reset" habit?`;
       }
     }
 
@@ -411,10 +404,8 @@ async function generateEnergyAwareInsight(
     if (current <= 4) {
       if (energyHabits.length > 0) {
         const habitName = energyHabits[0].name;
-        return (
-          `Energy at ${current}/10 today. Your "${habitName}" habit could help - ` +
-          `even the tiniest version counts. What feels doable right now?`
-        );
+        return `Energy at ${current}/10 today. Your "${habitName}" habit could help - ` +
+          `even the tiniest version counts. What feels doable right now?`;
       }
     }
 
@@ -423,20 +414,16 @@ async function generateEnergyAwareInsight(
     const lowEnergyDays = recentEnergy.filter((e) => e.level <= 4).length;
 
     if (lowEnergyDays >= 3) {
-      return (
-        `I've noticed ${lowEnergyDays} low-energy days recently. ` +
-        `Sometimes that's a sign to simplify - what if we focused on just ONE keystone habit until you feel restored?`
-      );
+      return `I've noticed ${lowEnergyDays} low-energy days recently. ` +
+        `Sometimes that's a sign to simplify - what if we focused on just ONE keystone habit until you feel restored?`;
     }
 
     // High energy - capitalize on it
     if (current >= 8 && trend !== 'down') {
       const strugglingHabits = data.atRiskHabits;
       if (strugglingHabits.length > 0) {
-        return (
-          `Energy at ${current}/10 - great momentum! ` +
-          `Good time to tackle "${strugglingHabits[0]}" which has been harder lately?`
-        );
+        return `Energy at ${current}/10 - great momentum! ` +
+          `Good time to tackle "${strugglingHabits[0]}" which has been harder lately?`;
       }
     }
 

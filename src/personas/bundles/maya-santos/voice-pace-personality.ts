@@ -19,7 +19,7 @@ import type {
   EnergyLevel,
   ConversationTempo,
   LearnedPacePreferences,
-} from '../../../intelligence/tracking/voice-pace.js';
+} from '../../../intelligence/voice-pace-adapter.js';
 
 const log = createLogger({ module: 'maya-voice-pace' });
 

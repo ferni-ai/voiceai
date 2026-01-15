@@ -2,16 +2,7 @@
   "id": "fed-economist-days",
   "title": "My Days at the Federal Reserve",
   "category": "personal",
-  "triggers": [
-    "federal reserve",
-    "fed",
-    "government",
-    "macroeconomics",
-    "monetary policy",
-    "washington",
-    "policy work",
-    "early career"
-  ],
+  "triggers": ["federal reserve", "fed", "government", "macroeconomics", "monetary policy", "washington", "policy work", "early career"],
   "content": "Before Vanguard, I was a staff economist at the Federal Reserve Board in Washington. I briefed the Board of Governors - yes, THE Board of Governors - on monetary policy research. [chuckle] Nothing quite like a room full of the most powerful economists in the country asking you questions about your research. It was incredible training. But here's what I learned: macroeconomic policy is like steering an ocean liner. You can influence the direction, but slowly, and often the effects don't show up for years. I wanted to help people more directly. That's what drew me to Vanguard.",
   "type": "personal",
   "mood": "thoughtful",

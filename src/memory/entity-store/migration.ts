@@ -8,7 +8,7 @@
  * - contact_relationships (from contact-relationship-service.ts)
  * - relationship_network (from superhuman/relationship-network.ts)
  * - relationship_nodes (from semantic-intelligence/relationship-graph.ts)
- * - guest_profiles (from event-intelligence-services.ts)
+ * - guest_profiles (from jordan-planning-services.ts)
  * - network/relationships (from research tools)
  *
  * This migration:
@@ -64,11 +64,7 @@ async function readUserContacts(userId: string): Promise<LegacyContact[]> {
   const firestore = await getFirestore();
 
   try {
-    const snapshot = await firestore
-      .collection('user_contacts')
-      .doc(userId)
-      .collection('contacts')
-      .get();
+    const snapshot = await firestore.collection('user_contacts').doc(userId).collection('contacts').get();
 
     return snapshot.docs.map((doc) => ({
       id: doc.id,
@@ -88,10 +84,7 @@ async function readContactRelationships(userId: string): Promise<LegacyContact[]
   const firestore = await getFirestore();
 
   try {
-    const snapshot = await firestore
-      .collection('contact_relationships')
-      .where('userId', '==', userId)
-      .get();
+    const snapshot = await firestore.collection('contact_relationships').where('userId', '==', userId).get();
 
     return snapshot.docs.map((doc) => ({
       id: doc.id,
@@ -214,22 +207,14 @@ interface CandidateEntity {
   lastMentioned?: Date;
   context?: string[];
   legacyId: string;
-  source:
-    | 'user_contacts'
-    | 'contact_relationships'
-    | 'relationship_network'
-    | 'relationship_nodes'
-    | 'guest_profiles';
+  source: 'user_contacts' | 'contact_relationships' | 'relationship_network' | 'relationship_nodes' | 'guest_profiles';
 }
 
 /**
  * Normalize name for comparison
  */
 function normalizeName(name: string): string {
-  return name
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z\s]/g, '');
+  return name.toLowerCase().trim().replace(/[^a-z\s]/g, '');
 }
 
 /**
@@ -294,22 +279,11 @@ function deduplicateCandidates(candidates: CandidateEntity[]): CandidateEntity[]
  */
 function mergeCandidates(group: CandidateEntity[]): Partial<Entity> {
   // Pick best name (prefer actual names over relationship terms)
-  const RELATIONSHIP_TERMS = [
-    'mom',
-    'dad',
-    'brother',
-    'sister',
-    'wife',
-    'husband',
-    'boss',
-    'friend',
-  ];
+  const RELATIONSHIP_TERMS = ['mom', 'dad', 'brother', 'sister', 'wife', 'husband', 'boss', 'friend'];
   let bestName = group[0].name;
   for (const candidate of group) {
-    if (
-      !RELATIONSHIP_TERMS.includes(candidate.name.toLowerCase()) &&
-      RELATIONSHIP_TERMS.includes(bestName.toLowerCase())
-    ) {
+    if (!RELATIONSHIP_TERMS.includes(candidate.name.toLowerCase()) &&
+        RELATIONSHIP_TERMS.includes(bestName.toLowerCase())) {
       bestName = candidate.name;
     }
   }
@@ -341,14 +315,10 @@ function mergeCandidates(group: CandidateEntity[]): Partial<Entity> {
   // Get date range
   const firstMentioned = group
     .filter((c) => c.firstMentioned)
-    .sort(
-      (a, b) => (a.firstMentioned?.getTime() || 0) - (b.firstMentioned?.getTime() || 0)
-    )[0]?.firstMentioned;
+    .sort((a, b) => (a.firstMentioned?.getTime() || 0) - (b.firstMentioned?.getTime() || 0))[0]?.firstMentioned;
   const lastMentioned = group
     .filter((c) => c.lastMentioned)
-    .sort(
-      (a, b) => (b.lastMentioned?.getTime() || 0) - (a.lastMentioned?.getTime() || 0)
-    )[0]?.lastMentioned;
+    .sort((a, b) => (b.lastMentioned?.getTime() || 0) - (a.lastMentioned?.getTime() || 0))[0]?.lastMentioned;
 
   // Collect legacy IDs
   const legacyIds: Entity['legacyIds'] = {};
@@ -394,22 +364,7 @@ function mergeCandidates(group: CandidateEntity[]): Partial<Entity> {
 function mapRelationshipType(rel: string): RelationshipType {
   const normalized = rel.toLowerCase();
 
-  if (
-    [
-      'family',
-      'mother',
-      'father',
-      'brother',
-      'sister',
-      'son',
-      'daughter',
-      'aunt',
-      'uncle',
-      'cousin',
-      'grandmother',
-      'grandfather',
-    ].includes(normalized)
-  ) {
+  if (['family', 'mother', 'father', 'brother', 'sister', 'son', 'daughter', 'aunt', 'uncle', 'cousin', 'grandmother', 'grandfather'].includes(normalized)) {
     return 'family';
   }
   if (['wife', 'husband', 'partner', 'boyfriend', 'girlfriend', 'romantic'].includes(normalized)) {
@@ -438,10 +393,7 @@ function mapRelationshipType(rel: string): RelationshipType {
 /**
  * Migrate a single user's data to the unified entity store
  */
-export async function migrateUser(
-  userId: string,
-  options: { dryRun?: boolean } = {}
-): Promise<MigrationResult> {
+export async function migrateUser(userId: string, options: { dryRun?: boolean } = {}): Promise<MigrationResult> {
   const startTime = Date.now();
   const result: MigrationResult = {
     userId,
@@ -463,19 +415,14 @@ export async function migrateUser(
 
   try {
     // Step 1: Read all legacy collections
-    const [
-      userContacts,
-      contactRelationships,
-      relationshipNetwork,
-      relationshipNodes,
-      guestProfiles,
-    ] = await Promise.all([
-      readUserContacts(userId),
-      readContactRelationships(userId),
-      readRelationshipNetwork(userId),
-      readRelationshipNodes(userId),
-      readGuestProfiles(userId),
-    ]);
+    const [userContacts, contactRelationships, relationshipNetwork, relationshipNodes, guestProfiles] =
+      await Promise.all([
+        readUserContacts(userId),
+        readContactRelationships(userId),
+        readRelationshipNetwork(userId),
+        readRelationshipNodes(userId),
+        readGuestProfiles(userId),
+      ]);
 
     result.legacyCollections = {
       userContacts: userContacts.length,
@@ -485,7 +432,10 @@ export async function migrateUser(
       guestProfiles: guestProfiles.length,
     };
 
-    log.info({ userId, ...result.legacyCollections }, 'Read legacy collections');
+    log.info(
+      { userId, ...result.legacyCollections },
+      'Read legacy collections'
+    );
 
     // Step 2: Convert to candidates
     const candidates: CandidateEntity[] = [];
@@ -568,7 +518,10 @@ export async function migrateUser(
     const groups = deduplicateCandidates(candidates);
     const mergedCount = candidates.length - groups.length;
 
-    log.info({ userId, groups: groups.length, merged: mergedCount }, 'Deduplicated candidates');
+    log.info(
+      { userId, groups: groups.length, merged: mergedCount },
+      'Deduplicated candidates'
+    );
 
     // Step 4: Create entities
     if (!options.dryRun) {
@@ -581,10 +534,7 @@ export async function migrateUser(
           if (existing) {
             // Update existing
             await updateEntity(userId, existing.id, entityData);
-            log.debug(
-              { entityId: existing.id, name: entityData.canonicalName },
-              'Updated existing entity'
-            );
+            log.debug({ entityId: existing.id, name: entityData.canonicalName }, 'Updated existing entity');
           } else {
             // Create new
             await createEntity(userId, {
@@ -597,10 +547,7 @@ export async function migrateUser(
           }
         } catch (error) {
           result.errors.push(`Failed to create entity for ${group[0].name}: ${error}`);
-          log.warn(
-            { userId, name: group[0].name, error: String(error) },
-            'Failed to create entity'
-          );
+          log.warn({ userId, name: group[0].name, error: String(error) }, 'Failed to create entity');
         }
       }
     }
@@ -693,10 +640,4 @@ export async function migrateAllUsers(options: {
 // EXPORT
 // ============================================================================
 
-export {
-  readUserContacts,
-  readContactRelationships,
-  readRelationshipNetwork,
-  readRelationshipNodes,
-  readGuestProfiles,
-};
+export { readUserContacts, readContactRelationships, readRelationshipNetwork, readRelationshipNodes, readGuestProfiles };

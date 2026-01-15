@@ -6,7 +6,7 @@
  * @module services/biometrics/token-persistence
  */
 
-import { getStore } from '../memory/store-factory.js';
+import { getStore } from '../../memory/store-factory.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import type { PersistedBiometricTokens, UserBiometrics } from './types.js';
 

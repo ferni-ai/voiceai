@@ -15,7 +15,7 @@
 
 import { execSync } from 'child_process';
 import { createLogger } from '../../utils/safe-logger.js';
-import { SlackNotificationService } from '../integrations/slack-notifications.js';
+import { SlackNotificationService } from '../slack-notifications.js';
 import { getCallQualityMonitor } from '../analytics/call-quality-monitor.js';
 import { registerInterval, clearNamedInterval } from '../../utils/interval-manager.js';
 

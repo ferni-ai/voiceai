@@ -14,7 +14,7 @@
 
 import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
 import { getLogger } from '../../utils/safe-logger.js';
-import type { EmotionalWeather, RitualStreak, UserRitualProfile } from '../scheduling/daily-rituals.js';
+import type { EmotionalWeather, RitualStreak, UserRitualProfile } from '../daily-rituals.js';
 
 // ============================================================================
 // TYPES

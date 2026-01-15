@@ -105,10 +105,7 @@ async function sendRejectionEmail(
   adminId?: string
 ): Promise<boolean> {
   if (!isEmailDeliveryAvailable()) {
-    log.warn(
-      { publisherEmail, itemName },
-      'Email delivery not available, skipping rejection email'
-    );
+    log.warn({ publisherEmail, itemName }, 'Email delivery not available, skipping rejection email');
     return false;
   }
 
@@ -143,14 +140,11 @@ async function sendRejectionEmail(
     });
 
     if (result.success) {
-      log.info(
-        {
-          publisherEmail,
-          itemName,
-          messageId: result.messageId,
-        },
-        'Rejection email sent'
-      );
+      log.info({
+        publisherEmail,
+        itemName,
+        messageId: result.messageId,
+      }, 'Rejection email sent');
     } else {
       log.error({ publisherEmail, error: result.error }, 'Failed to send rejection email');
     }
@@ -458,10 +452,7 @@ export async function handleMarketplaceAdminRoutes(
           admin.adminId
         );
       } else {
-        log.warn(
-          { itemId, publisherId: item.publisher?.id },
-          'No publisher email available for rejection notification'
-        );
+        log.warn({ itemId, publisherId: item.publisher?.id }, 'No publisher email available for rejection notification');
       }
 
       sendJson(res, 200, {

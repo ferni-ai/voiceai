@@ -18,7 +18,7 @@
 import type { PersonaConfig } from '../../../personas/types.js';
 import type { BundleRuntimeEngine } from '../../../personas/bundles/runtime.js';
 import type { VoiceEmotionResult } from '../../../speech/audio-prosody.js';
-import type { EmotionResult } from '../../detectors/emotion.js';
+import type { EmotionResult } from '../../emotion-detector.js';
 // Import all humanizing systems
 import {
   analyzeVoiceEmotionIntelligence,

@@ -84,7 +84,10 @@
   ],
 
   "by_relationship_stage": {
-    "stranger": ["<break time=\"100ms\"/>Nice work.", "<break time=\"150ms\"/>Good job."],
+    "stranger": [
+      "<break time=\"100ms\"/>Nice work.",
+      "<break time=\"150ms\"/>Good job."
+    ],
     "friend": [
       "<break time=\"150ms\"/>Look at you. <break time=\"100ms\"/>Communication pro.",
       "<break time=\"100ms\"/>We're a good team."

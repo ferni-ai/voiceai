@@ -22,21 +22,9 @@ import { createLogger } from '../../utils/safe-logger.js';
 import { avoidancePrediction, type AvoidableTopic } from './avoidance-prediction.js';
 import { breakthroughProximity, type IndicatorType } from './breakthrough-proximity.js';
 import { preTrajectoryDetection, type PrecursorSignal } from './pre-trajectory-detection.js';
-import {
-  conversationPreparation,
-  type ConversationNeed,
-  type TopicCategory,
-} from './conversation-preparation.js';
-import {
-  cognitiveFingerprint,
-  type DecisionStyle,
-  type StressResponse,
-} from './cognitive-fingerprint.js';
-import {
-  rippleEffectPrediction,
-  type LifeDomain,
-  type EventType,
-} from './ripple-effect-prediction.js';
+import { conversationPreparation, type ConversationNeed, type TopicCategory } from './conversation-preparation.js';
+import { cognitiveFingerprint, type DecisionStyle, type StressResponse } from './cognitive-fingerprint.js';
+import { rippleEffectPrediction, type LifeDomain, type EventType } from './ripple-effect-prediction.js';
 import { lifePhasePrediction, type PhaseSignal } from './life-phase-prediction.js';
 import { interventionTiming, type InterventionType } from './intervention-timing.js';
 
@@ -97,19 +85,14 @@ export async function processTurnForSuperhumanLearning(
       : undefined;
 
     preTrajectoryDetection.recordConversationSignals(userId, {
-      emotionalValence:
-        turnData.emotion?.valence === 'positive'
-          ? 0.7
-          : turnData.emotion?.valence === 'negative'
-            ? -0.7
-            : 0,
+      emotionalValence: turnData.emotion?.valence === 'positive' ? 0.7 :
+        turnData.emotion?.valence === 'negative' ? -0.7 : 0,
       emotionalVolatility,
       selfTalkValence: detectSelfTalkValence(turnData.userMessage),
       futureOrientation: detectFutureOrientation(turnData.userMessage),
       socialMentions: detectSocialMentions(turnData.userMessage),
-      topicDiversity: turnData.topic?.secondary?.length
-        ? Math.min(1, turnData.topic.secondary.length * 0.2)
-        : 0.3,
+      topicDiversity: turnData.topic?.secondary?.length ? 
+        Math.min(1, turnData.topic.secondary.length * 0.2) : 0.3,
     });
 
     // =========================================
@@ -121,7 +104,7 @@ export async function processTurnForSuperhumanLearning(
         topic: turnData.topic.primary,
         category: mapToTopicCategory(turnData.topic.category),
         emotionalIntensity: turnData.emotion?.intensity || 0.5,
-        resolved: false, // Will be updated at conversation end
+        resolved: false,  // Will be updated at conversation end
         unresolvedAspects: [],
         followUpNeeded: turnData.emotion?.needsSupport || false,
         userInitiated: true,
@@ -187,15 +170,13 @@ export async function processTurnForSuperhumanLearning(
         dayOfWeek: now.getDay(),
         hour: now.getHours(),
         effectiveness: turnData.responseData.userEngagement,
-        tone: 'warm', // Would be better from actual response
+        tone: 'warm',  // Would be better from actual response
         depthReached: turnData.responseData.depth || 'moderate',
       });
     }
 
-    log.debug(
-      { userId, topic: turnData.topic?.primary },
-      '🧠 Processed turn for superhuman learning'
-    );
+    log.debug({ userId, topic: turnData.topic?.primary }, '🧠 Processed turn for superhuman learning');
+
   } catch (error) {
     log.warn({ error: String(error), userId }, 'Failed to process turn for superhuman learning');
   }
@@ -238,16 +219,8 @@ export function recordBreakthroughMoment(
   userId: string,
   breakthrough: {
     topic: string;
-    type:
-      | 'self_understanding'
-      | 'pattern_recognition'
-      | 'belief_shift'
-      | 'emotional_release'
-      | 'decision_clarity'
-      | 'relationship_insight'
-      | 'value_alignment'
-      | 'acceptance'
-      | 'integration';
+    type: 'self_understanding' | 'pattern_recognition' | 'belief_shift' | 'emotional_release' | 
+      'decision_clarity' | 'relationship_insight' | 'value_alignment' | 'acceptance' | 'integration';
     catalyst: 'question' | 'reflection' | 'connection' | 'emotion' | 'external_event';
   }
 ): void {
@@ -258,10 +231,7 @@ export function recordBreakthroughMoment(
     breakthrough.catalyst
   );
 
-  log.info(
-    { userId, topic: breakthrough.topic, type: breakthrough.type },
-    '🎆 Breakthrough recorded'
-  );
+  log.info({ userId, topic: breakthrough.topic, type: breakthrough.type }, '🎆 Breakthrough recorded');
 }
 
 /**
@@ -277,7 +247,7 @@ export function recordLifeEvent(
   event: {
     domain: LifeDomain;
     eventType: EventType;
-    magnitude: number; // -1 to 1
+    magnitude: number;  // -1 to 1
     description: string;
   }
 ): void {
@@ -296,7 +266,7 @@ export function recordDecisionMade(
   userId: string,
   decision: {
     style: DecisionStyle;
-    timeToDecision: number; // hours
+    timeToDecision: number;  // hours
     outcome?: 'satisfied' | 'regret' | 'neutral';
   }
 ): void {
@@ -379,10 +349,7 @@ export async function processSessionStart(
     });
   }
 
-  log.debug(
-    { userId, daysSince: sessionData.daysSinceLastConversation },
-    '🎯 Session start processed'
-  );
+  log.debug({ userId, daysSince: sessionData.daysSinceLastConversation }, '🎯 Session start processed');
 }
 
 /**
@@ -409,22 +376,22 @@ export async function processSessionEnd(
     needsMet: sessionSummary.primaryNeed ? [sessionSummary.primaryNeed] : [],
     emotionalStateObserved: sessionSummary.emotionalArc || 'neutral',
     satisfactionLevel: sessionSummary.satisfactionLevel || 0.7,
-    predictedTopicsHit: [], // Would need to track predictions
+    predictedTopicsHit: [],  // Would need to track predictions
     unexpectedTopics: [],
   });
 
   // Update domain health based on session
   if (sessionSummary.emotionalArc) {
-    const mentalHealthChange = sessionSummary.satisfactionLevel
-      ? (sessionSummary.satisfactionLevel - 0.5) * 0.1
+    const mentalHealthChange = sessionSummary.satisfactionLevel 
+      ? (sessionSummary.satisfactionLevel - 0.5) * 0.1 
       : 0;
-
+    
     // Mental health improves slightly from good conversations
     if (mentalHealthChange > 0) {
       rippleEffectPrediction.updateDomainHealth(
         userId,
         'mental_health',
-        0.6 + mentalHealthChange // Relative update
+        0.6 + mentalHealthChange  // Relative update
       );
     }
   }
@@ -438,7 +405,7 @@ export async function processSessionEnd(
 
 function detectSelfTalkValence(message: string): number {
   const lower = message.toLowerCase();
-
+  
   // Negative self-talk patterns
   const negativePatterns = [
     /i('m| am) (so )?(stupid|dumb|worthless|terrible|bad|awful)/,
@@ -447,7 +414,7 @@ function detectSelfTalkValence(message: string): number {
     /what('s| is) wrong with me/,
     /i('m| am) (always|never) (good|enough)/,
   ];
-
+  
   // Positive self-talk patterns
   const positivePatterns = [
     /i('m| am) (proud|happy|excited|grateful)/,
@@ -455,7 +422,7 @@ function detectSelfTalkValence(message: string): number {
     /i('m| am) (getting|doing) better/,
     /i (learned|grew|improved)/,
   ];
-
+  
   let score = 0;
   for (const pattern of negativePatterns) {
     if (pattern.test(lower)) score -= 0.3;
@@ -463,91 +430,48 @@ function detectSelfTalkValence(message: string): number {
   for (const pattern of positivePatterns) {
     if (pattern.test(lower)) score += 0.3;
   }
-
+  
   return Math.max(-1, Math.min(1, score));
 }
 
 function detectFutureOrientation(message: string): number {
   const lower = message.toLowerCase();
-
+  
   // Future-focused words
-  const futureWords = [
-    'will',
-    'going to',
-    'plan',
-    'want to',
-    'hope',
-    'looking forward',
-    'tomorrow',
-    'next',
-    'someday',
-    'future',
-  ];
-  const pastWords = [
-    'was',
-    'were',
-    'did',
-    'used to',
-    'remember',
-    'back then',
-    'before',
-    'yesterday',
-    'last',
-  ];
-
+  const futureWords = ['will', 'going to', 'plan', 'want to', 'hope', 'looking forward', 'tomorrow', 'next', 'someday', 'future'];
+  const pastWords = ['was', 'were', 'did', 'used to', 'remember', 'back then', 'before', 'yesterday', 'last'];
+  
   let futureCount = 0;
   let pastCount = 0;
-
+  
   for (const word of futureWords) {
     if (lower.includes(word)) futureCount++;
   }
   for (const word of pastWords) {
     if (lower.includes(word)) pastCount++;
   }
-
+  
   const total = futureCount + pastCount;
   if (total === 0) return 0;
-
+  
   return (futureCount - pastCount) / total;
 }
 
 function detectSocialMentions(message: string): number {
   const lower = message.toLowerCase();
-
+  
   // Social references
   const socialWords = [
-    'friend',
-    'friends',
-    'family',
-    'mom',
-    'dad',
-    'parent',
-    'partner',
-    'husband',
-    'wife',
-    'boyfriend',
-    'girlfriend',
-    'colleague',
-    'coworker',
-    'boss',
-    'team',
-    'we',
-    'us',
-    'they',
-    'brother',
-    'sister',
-    'son',
-    'daughter',
-    'child',
-    'kids',
-    'people',
+    'friend', 'friends', 'family', 'mom', 'dad', 'parent', 'partner', 'husband', 'wife',
+    'boyfriend', 'girlfriend', 'colleague', 'coworker', 'boss', 'team', 'we', 'us', 'they',
+    'brother', 'sister', 'son', 'daughter', 'child', 'kids', 'people'
   ];
-
+  
   let count = 0;
   for (const word of socialWords) {
     if (lower.includes(word)) count++;
   }
-
+  
   return Math.min(1, count * 0.2);
 }
 
@@ -557,49 +481,45 @@ function detectConversationNeed(turnData: {
 }): ConversationNeed | null {
   const { userMessage, emotion } = turnData;
   const lower = userMessage.toLowerCase();
-
+  
   // Explicit venting
   if (emotion?.isVenting) return 'venting';
-
+  
   // Seeking validation
   if (/am i (crazy|wrong|right|normal)|is it (okay|wrong|weird|normal)/.test(lower)) {
     return 'validation';
   }
-
+  
   // Asking for advice
-  if (
-    /what (should|would you|do you think) i (do|think|try)|any (advice|suggestions|ideas)/.test(
-      lower
-    )
-  ) {
+  if (/what (should|would you|do you think) i (do|think|try)|any (advice|suggestions|ideas)/.test(lower)) {
     return 'advice';
   }
-
+  
   // Celebration
   if (/i (did it|made it|got|achieved|finished)|good news|excited (to|about)/.test(lower)) {
     return 'celebration';
   }
-
+  
   // Planning
   if (/how (can|do|should) i|plan|strategy|prepare|get ready/.test(lower)) {
     return 'planning';
   }
-
+  
   // Reassurance
   if (emotion?.primary === 'anxious' || /worried|scared|anxious|nervous/.test(lower)) {
     return 'reassurance';
   }
-
+  
   // Reflection
   if (/been thinking|realized|noticed|wondering|looking back/.test(lower)) {
     return 'reflection';
   }
-
+  
   // Processing
   if (emotion?.needsSupport && /trying to (understand|figure|make sense)/.test(lower)) {
     return 'processing';
   }
-
+  
   return null;
 }
 
@@ -614,20 +534,17 @@ function detectDeflection(turnData: {
 } {
   const { userMessage } = turnData;
   const lower = userMessage.toLowerCase();
-
+  
   // Humor deflection
-  if (
-    /haha|lol|just kidding|anyway|but whatever/.test(lower) &&
-    turnData.emotion?.primary &&
-    ['sad', 'anxious', 'stressed'].includes(turnData.emotion.primary)
-  ) {
+  if (/haha|lol|just kidding|anyway|but whatever/.test(lower) && 
+      turnData.emotion?.primary && ['sad', 'anxious', 'stressed'].includes(turnData.emotion.primary)) {
     return {
       detected: true,
       topic: turnData.topic?.primary,
       style: 'humor',
     };
   }
-
+  
   // Minimizing
   if (/it('s| is) (not a big deal|fine|nothing|okay|whatever)/.test(lower)) {
     return {
@@ -636,7 +553,7 @@ function detectDeflection(turnData: {
       style: 'minimize',
     };
   }
-
+  
   // Very brief responses to deep topics
   if (userMessage.length < 20 && turnData.topic?.primary) {
     return {
@@ -645,7 +562,7 @@ function detectDeflection(turnData: {
       style: 'brevity',
     };
   }
-
+  
   return { detected: false };
 }
 
@@ -655,31 +572,25 @@ function detectBreakthroughIndicators(turnData: {
 }): Array<{ type: IndicatorType; strength: number; topic?: string }> {
   const indicators: Array<{ type: IndicatorType; strength: number; topic?: string }> = [];
   const lower = turnData.userMessage.toLowerCase();
-
+  
   // Questioning beliefs
-  if (
-    /i (always|never) (thought|believed|assumed)|maybe i('ve| have) been wrong|what if/.test(lower)
-  ) {
+  if (/i (always|never) (thought|believed|assumed)|maybe i('ve| have) been wrong|what if/.test(lower)) {
     indicators.push({
       type: 'questioning_beliefs',
       strength: 0.7,
       topic: turnData.topic?.primary,
     });
   }
-
+  
   // Connecting dots
-  if (
-    /i (just )?realized|it('s| is) (like|similar|the same)|i (see|notice) (a )?(pattern|connection)/.test(
-      lower
-    )
-  ) {
+  if (/i (just )?realized|it('s| is) (like|similar|the same)|i (see|notice) (a )?(pattern|connection)/.test(lower)) {
     indicators.push({
       type: 'connecting_dots',
       strength: 0.8,
       topic: turnData.topic?.primary,
     });
   }
-
+  
   // Increasing reflection
   if (/i('ve| have) been thinking|looking back|when i think about/.test(lower)) {
     indicators.push({
@@ -688,20 +599,16 @@ function detectBreakthroughIndicators(turnData: {
       topic: turnData.topic?.primary,
     });
   }
-
+  
   // Past reframing
-  if (
-    /i (now )?see (it|that|things) differently|i (used to think|thought).*(but now|now i)/.test(
-      lower
-    )
-  ) {
+  if (/i (now )?see (it|that|things) differently|i (used to think|thought).*(but now|now i)/.test(lower)) {
     indicators.push({
       type: 'past_reframing',
       strength: 0.8,
       topic: turnData.topic?.primary,
     });
   }
-
+  
   // Language shift (new vocabulary)
   if (/i('d| would) call it|it('s| is) (more like|actually)|what i mean is/.test(lower)) {
     indicators.push({
@@ -710,7 +617,7 @@ function detectBreakthroughIndicators(turnData: {
       topic: turnData.topic?.primary,
     });
   }
-
+  
   // Aha adjacency
   if (/oh|wow|huh|wait|hmm.*(i (just|never)|that('s| is))/.test(lower)) {
     indicators.push({
@@ -719,7 +626,7 @@ function detectBreakthroughIndicators(turnData: {
       topic: turnData.topic?.primary,
     });
   }
-
+  
   return indicators;
 }
 
@@ -730,53 +637,53 @@ function detectPhaseSignals(turnData: {
 }): Array<{ signal: PhaseSignal; strength: number }> {
   const signals: Array<{ signal: PhaseSignal; strength: number }> = [];
   const lower = turnData.userMessage.toLowerCase();
-
+  
   // New initiatives
   if (/i('m| am) (starting|beginning|trying|going to)|new (project|job|thing|idea)/.test(lower)) {
     signals.push({ signal: 'new_initiatives', strength: 0.7 });
   }
-
+  
   // Reflection
   if (/i('ve| have) been (thinking|reflecting)|looking back|when i think about/.test(lower)) {
     signals.push({ signal: 'reflection_increase', strength: 0.6 });
   }
-
+  
   // Future planning
   if (/plan|planning|goal|want to|going to|next (year|month|week)/.test(lower)) {
     signals.push({ signal: 'future_planning', strength: 0.6 });
   }
-
+  
   // Identity questioning
   if (/who (am i|i am)|what do i (want|really)|i('m| am) not sure (who|what) i/.test(lower)) {
     signals.push({ signal: 'questioning_identity', strength: 0.8 });
   }
-
+  
   // Values questioning
   if (/what (matters|('s| is) important)|do i (care|value)|should i (even|really)/.test(lower)) {
     signals.push({ signal: 'values_questioning', strength: 0.7 });
   }
-
+  
   // Emotional processing
   if (turnData.emotion?.intensity && turnData.emotion.intensity > 0.6) {
     signals.push({ signal: 'emotional_processing', strength: turnData.emotion.intensity });
   }
-
+  
   // Learning mode
   if (/learn|learning|trying to understand|figure out|how (do|does|can)/.test(lower)) {
     signals.push({ signal: 'learning_mode', strength: 0.6 });
   }
-
+  
   // Grief presence
   if (/miss|grief|lost|gone|passed away|died/.test(lower)) {
     signals.push({ signal: 'grief_presence', strength: 0.8 });
   }
-
+  
   return signals;
 }
 
 function mapToTopicCategory(category?: string): TopicCategory {
   if (!category) return 'emotions';
-
+  
   const mapping: Record<string, TopicCategory> = {
     career: 'work',
     job: 'work',
@@ -805,12 +712,12 @@ function mapToTopicCategory(category?: string): TopicCategory {
     past: 'past',
     future: 'future',
   };
-
+  
   const lower = category.toLowerCase();
   for (const [key, value] of Object.entries(mapping)) {
     if (lower.includes(key)) return value;
   }
-
+  
   return 'emotions';
 }
 

@@ -223,7 +223,7 @@ describe('Frontend-Backend API Contract', () => {
 describe('Service Layer Integration', () => {
   describe('Stripe Subscription Service', () => {
     it('should have all subscription methods', async () => {
-      const module = await import('../services/integrations/stripe-subscription.js');
+      const module = await import('../services/stripe-subscription.js');
 
       // Core methods
       expect(module.isStripeConfigured).toBeDefined();
@@ -239,7 +239,7 @@ describe('Service Layer Integration', () => {
     });
 
     it('should check Stripe configuration', async () => {
-      const { isStripeConfigured } = await import('../services/integrations/stripe-subscription.js');
+      const { isStripeConfigured } = await import('../services/stripe-subscription.js');
 
       const configured = isStripeConfigured();
       expect(typeof configured).toBe('boolean');
@@ -299,7 +299,7 @@ describe('Service Layer Integration', () => {
 
   describe('Push Notification Service', () => {
     it('should have push notification service', async () => {
-      const module = await import('../services/outreach/push-notifications.js');
+      const module = await import('../services/push-notifications.js');
 
       expect(module.getPushNotificationsService).toBeDefined();
       expect(module.resetPushNotificationsService).toBeDefined();
@@ -309,7 +309,7 @@ describe('Service Layer Integration', () => {
 
   describe('Feature Flags Service', () => {
     it('should have feature flag methods', async () => {
-      const module = await import('../services/deployment/feature-flags.js');
+      const module = await import('../services/feature-flags.js');
 
       expect(module.isEnabled).toBeDefined();
       expect(module.getFlag).toBeDefined();
@@ -318,7 +318,7 @@ describe('Service Layer Integration', () => {
     });
 
     it('should have trust flag constants', async () => {
-      const { TRUST_FLAGS } = await import('../services/deployment/feature-flags.js');
+      const { TRUST_FLAGS } = await import('../services/feature-flags.js');
 
       expect(TRUST_FLAGS).toBeDefined();
       expect(typeof TRUST_FLAGS).toBe('object');

@@ -10,7 +10,7 @@
 
 import { llm } from '@livekit/agents';
 import { z } from 'zod';
-import { getDailyRitualsService } from '../../../services/scheduling/daily-rituals.js';
+import { getDailyRitualsService } from '../../../services/daily-rituals.js';
 import type { Tool, ToolContext, ToolDefinition } from '../../registry/types.js';
 
 import { getToolDescription } from '../../utils/tool-descriptions.js';

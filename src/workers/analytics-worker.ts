@@ -22,12 +22,12 @@ import type { EventPayload } from '../services/async-events/index.js';
 import {
   getCommunityInsights,
   saveCommunityInsightsToFirestore,
-} from '../intelligence/collective/community-insights.js';
+} from '../intelligence/community-insights.js';
 // cleanForFirestore removed - not used in this worker
 import {
   getAgentEvolution,
   saveAgentEvolutionToFirestore,
-} from '../intelligence/collective/agent-evolution.js';
+} from '../intelligence/agent-evolution.js';
 
 // ============================================================================
 // ANALYTICS WORKER

@@ -14,8 +14,8 @@
 
 import { getLogger } from '../../utils/safe-logger.js';
 import { registerInterval } from '../../utils/interval-manager.js';
-import type { ConversationState } from '../../intelligence/state/conversation.js';
-import type { TopicExtractionResult } from '../../intelligence/detectors/topic.js';
+import type { ConversationState } from '../../intelligence/conversation-state.js';
+import type { TopicExtractionResult } from '../../intelligence/topic-tracker.js';
 import { createIntelligentCurator, type IntelligentRecommendation } from './intelligent-curator.js';
 import { getCreativeDNA } from './creative-dna.js';
 import { getCreativeYouPersistence } from './persistence.js';

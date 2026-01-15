@@ -17,7 +17,7 @@
  */
 
 import { getLogger } from '../utils/safe-logger.js';
-import type { EmotionResult } from '../intelligence/detectors/emotion.js';
+import type { EmotionResult } from '../intelligence/emotion-detector.js';
 
 // ============================================================================
 // TYPES

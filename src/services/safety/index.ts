@@ -374,7 +374,7 @@ async function notifyAdminOfCriticalCrisis(event: StoredCrisisEvent): Promise<vo
 
   // Send Slack notification to safety channel
   try {
-    const { notifyCrisisAlert } = await import('../integrations/slack-notifications.js');
+    const { notifyCrisisAlert } = await import('../slack-notifications.js');
     await notifyCrisisAlert({
       userId: event.userId,
       crisisType: event.crisisType,

@@ -148,17 +148,10 @@ export async function executeAction(
               workflowId: action.id,
               personaId: 'ferni',
             });
-            log.info(
-              { userId, actionId: scheduled.id, time: reminderTime },
-              '⏰ Reminder scheduled'
-            );
-            return {
-              success: true,
-              output: { created: true, time: reminderTime, actionId: scheduled.id },
-            };
+            log.info({ userId, actionId: scheduled.id, time: reminderTime }, '⏰ Reminder scheduled');
+            return { success: true, output: { created: true, time: reminderTime, actionId: scheduled.id } };
           } else {
-            const { sendPushNotification } =
-              await import('../outreach/delivery/push-notifications.js');
+            const { sendPushNotification } = await import('../outreach/delivery/push-notifications.js');
             await sendPushNotification({
               userId,
               personaId: 'ferni',
@@ -185,11 +178,7 @@ export async function executeAction(
           const room = String(params.room || params.device || 'default');
           const result = await playInRoom(userId, room, { query });
           log.info({ userId, query, room, success: result.success }, '🎵 Music played');
-          return {
-            success: result.success,
-            output: { playing: result.success, query, room },
-            error: result.error,
-          };
+          return { success: result.success, output: { playing: result.success, query, room }, error: result.error };
         } catch (error) {
           log.warn({ userId, error: String(error) }, 'Music playback failed');
           return { success: false, error: String(error) };
@@ -209,11 +198,7 @@ export async function executeAction(
             color: params.color ? String(params.color) : undefined,
           });
           log.info({ userId, zone: params.zone, state: params.state }, '💡 Lights controlled');
-          return {
-            success: result.success,
-            output: { controlled: result.success, zone: params.zone },
-            error: result.error,
-          };
+          return { success: result.success, output: { controlled: result.success, zone: params.zone }, error: result.error };
         } catch (error) {
           log.warn({ userId, error: String(error) }, 'Light control failed');
           return { success: false, error: String(error) };
@@ -228,11 +213,7 @@ export async function executeAction(
             mode: params.mode ? (String(params.mode) as 'heat' | 'cool' | 'auto') : undefined,
           });
           log.info({ userId, temperature: params.temperature }, '🌡️ Thermostat set');
-          return {
-            success: result.success,
-            output: { set: result.success, temperature: params.temperature },
-            error: result.error,
-          };
+          return { success: result.success, output: { set: result.success, temperature: params.temperature }, error: result.error };
         } catch (error) {
           log.warn({ userId, error: String(error) }, 'Thermostat control failed');
           return { success: false, error: String(error) };

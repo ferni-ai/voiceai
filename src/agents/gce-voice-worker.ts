@@ -125,7 +125,7 @@ startWatchdog({
 log('✅ Container watchdog started');
 
 // Start Ops Orchestrator (unified monitoring & alerting)
-import { startOpsOrchestrator } from '../services/deployment/ops-orchestrator.js';
+import { startOpsOrchestrator } from '../services/ops-orchestrator.js';
 startOpsOrchestrator({
   costHourlyWarning: 5,
   costDailyWarning: 50,

@@ -558,17 +558,17 @@ export class OutlookCalendarProvider implements CalendarProviderAdapter {
   /**
    * Get user's Outlook calendars
    */
-  async getCalendars(userId: string): Promise<
-    Array<{
-      id: string;
-      name: string;
-      primary: boolean;
-      color?: string;
-      owner?: string;
-      canEdit?: boolean;
-      description?: string;
-    }>
-  > {
+  async getCalendars(
+    userId: string
+  ): Promise<Array<{
+    id: string;
+    name: string;
+    primary: boolean;
+    color?: string;
+    owner?: string;
+    canEdit?: boolean;
+    description?: string;
+  }>> {
     const tokens = await this.getTokens(userId);
     if (!tokens) {
       return [];

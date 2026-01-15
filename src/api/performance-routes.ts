@@ -25,7 +25,7 @@ import { z } from 'zod';
 import { createLogger } from '../utils/safe-logger.js';
 import { rateLimit, requireAuth } from './auth-middleware.js';
 import { handleCorsPreflightIfNeeded, parseBody, sendError, sendJSON } from './helpers.js';
-import { perfInstrumentation } from '../services/performance/performance-instrumentation.js';
+import { perfInstrumentation } from '../services/performance-instrumentation.js';
 import { getLoadedDomains, isDomainLoaded } from '../tools/index.js';
 
 // Voice agent performance metrics (via services layer to avoid architecture violation)
@@ -35,7 +35,7 @@ import {
   getToolCacheMetrics,
   getSpeculativeTTSMetrics,
   getReliabilityDashboard,
-} from '../services/performance/performance-metrics.js';
+} from '../services/performance-metrics.js';
 import {
   getTriggerAnalytics,
   resetTriggerAnalytics,

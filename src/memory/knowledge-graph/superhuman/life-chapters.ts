@@ -76,53 +76,24 @@ export type ChapterTrigger =
 
 const CHAPTER_TRIGGERING_EVENTS = [
   // Career
-  'new job',
-  'promotion',
-  'fired',
-  'laid off',
-  'quit',
-  'retired',
-  'started business',
-  'career change',
-  'graduated',
+  'new job', 'promotion', 'fired', 'laid off', 'quit', 'retired', 'started business',
+  'career change', 'graduated',
 
   // Relationships
-  'married',
-  'engaged',
-  'divorced',
-  'breakup',
-  'started dating',
-  'had a baby',
-  'had a child',
-  'became a parent',
+  'married', 'engaged', 'divorced', 'breakup', 'started dating', 'had a baby',
+  'had a child', 'became a parent',
 
   // Living
-  'moved',
-  'bought house',
-  'new apartment',
-  'relocated',
-  'immigration',
+  'moved', 'bought house', 'new apartment', 'relocated', 'immigration',
 
   // Health
-  'diagnosis',
-  'surgery',
-  'recovery',
-  'illness',
-  'treatment',
+  'diagnosis', 'surgery', 'recovery', 'illness', 'treatment',
 
   // Loss
-  'death',
-  'passed away',
-  'lost',
-  'funeral',
-  'grief',
+  'death', 'passed away', 'lost', 'funeral', 'grief',
 
   // Personal
-  'turning point',
-  'epiphany',
-  'breakthrough',
-  'hitting bottom',
-  'new beginning',
+  'turning point', 'epiphany', 'breakthrough', 'hitting bottom', 'new beginning',
 ];
 
 // ============================================================================
@@ -139,8 +110,9 @@ export class LifeChapterDetector {
 
       // 1. Load threads and mentions
       const { getActiveThreads } = await import('../storage/index.js');
-      const { getAllEntities, getMentionsForEntity } =
-        await import('../../entity-store/storage.js');
+      const { getAllEntities, getMentionsForEntity } = await import(
+        '../../entity-store/storage.js'
+      );
 
       const threads = await getActiveThreads(userId, {
         includeOpen: true,
@@ -177,21 +149,19 @@ export class LifeChapterDetector {
 
       if (allMentions.length < 10) {
         // Not enough data for chapter detection
-        return [
-          {
-            id: `chapter-${userId}-current`,
-            userId,
-            title: 'Your Story So Far',
-            startDate: allMentions[0]?.date || new Date(),
-            endDate: null,
-            themes: this.extractTopThemes(allMentions),
-            keyEntities: this.extractKeyEntities(entities),
-            keyEvents: [],
-            emotionalTone: 'growth',
-            confidence: 0.5,
-            detectedBy: 'system_analysis',
-          },
-        ];
+        return [{
+          id: `chapter-${userId}-current`,
+          userId,
+          title: 'Your Story So Far',
+          startDate: allMentions[0]?.date || new Date(),
+          endDate: null,
+          themes: this.extractTopThemes(allMentions),
+          keyEntities: this.extractKeyEntities(entities),
+          keyEvents: [],
+          emotionalTone: 'growth',
+          confidence: 0.5,
+          detectedBy: 'system_analysis',
+        }];
       }
 
       // 3. Detect chapter boundaries
@@ -277,18 +247,19 @@ export class LifeChapterDetector {
 
     const parts: string[] = [];
 
-    parts.push(
-      `I've been with you through ${chapters.length} chapter${chapters.length > 1 ? 's' : ''} of your life.`
-    );
+    parts.push(`I've been with you through ${chapters.length} chapter${chapters.length > 1 ? 's' : ''} of your life.`);
 
     for (const chapter of chapters) {
       const duration = chapter.endDate
         ? Math.round(
-            (chapter.endDate.getTime() - chapter.startDate.getTime()) / (1000 * 60 * 60 * 24 * 30)
+            (chapter.endDate.getTime() - chapter.startDate.getTime()) /
+              (1000 * 60 * 60 * 24 * 30)
           )
         : null;
 
-      const durationStr = duration ? `spanning ${duration} months` : 'which is still unfolding';
+      const durationStr = duration
+        ? `spanning ${duration} months`
+        : 'which is still unfolding';
 
       const themeStr = chapter.themes.slice(0, 2).join(' and ');
       const entityStr =
@@ -343,7 +314,9 @@ export class LifeChapterDetector {
         if (lowerTranscript.includes(event)) {
           // Check if this is significantly different from existing boundaries
           const existingNearby = boundaries.find(
-            (b) => Math.abs(b.date.getTime() - mention.date.getTime()) < 30 * 24 * 60 * 60 * 1000 // 30 days
+            (b) =>
+              Math.abs(b.date.getTime() - mention.date.getTime()) <
+              30 * 24 * 60 * 60 * 1000 // 30 days
           );
 
           if (!existingNearby) {
@@ -366,7 +339,9 @@ export class LifeChapterDetector {
 
       if (Math.abs(curr.avgValence - prev.avgValence) > 0.4) {
         const existingNearby = boundaries.find(
-          (b) => Math.abs(b.date.getTime() - curr.startDate.getTime()) < 30 * 24 * 60 * 60 * 1000
+          (b) =>
+            Math.abs(b.date.getTime() - curr.startDate.getTime()) <
+            30 * 24 * 60 * 60 * 1000
         );
 
         if (!existingNearby) {
@@ -389,7 +364,9 @@ export class LifeChapterDetector {
       if (overlap < 0.3) {
         // Topics changed significantly
         const existingNearby = boundaries.find(
-          (b) => Math.abs(b.date.getTime() - curr.startDate.getTime()) < 30 * 24 * 60 * 60 * 1000
+          (b) =>
+            Math.abs(b.date.getTime() - curr.startDate.getTime()) <
+            30 * 24 * 60 * 60 * 1000
         );
 
         if (!existingNearby) {
@@ -427,22 +404,16 @@ export class LifeChapterDetector {
     const windows: Array<{ startDate: Date; avgValence: number }> = [];
 
     const valenceMap: Record<string, number> = {
-      happy: 0.8,
-      joy: 0.9,
-      excited: 0.7,
-      grateful: 0.8,
-      hopeful: 0.6,
-      sad: -0.7,
-      angry: -0.6,
-      anxious: -0.5,
-      stressed: -0.4,
-      frustrated: -0.5,
+      happy: 0.8, joy: 0.9, excited: 0.7, grateful: 0.8, hopeful: 0.6,
+      sad: -0.7, angry: -0.6, anxious: -0.5, stressed: -0.4, frustrated: -0.5,
       neutral: 0,
     };
 
     for (let i = 0; i < mentions.length; i += windowSize) {
       const window = mentions.slice(i, i + windowSize);
-      const valences = window.filter((m) => m.emotion).map((m) => valenceMap[m.emotion!] ?? 0);
+      const valences = window
+        .filter((m) => m.emotion)
+        .map((m) => valenceMap[m.emotion!] ?? 0);
 
       if (valences.length > 0) {
         windows.push({
@@ -539,7 +510,9 @@ export class LifeChapterDetector {
     };
   }
 
-  private extractTopThemes(mentions: Array<{ topics: string[] }>): string[] {
+  private extractTopThemes(
+    mentions: Array<{ topics: string[] }>
+  ): string[] {
     const topicCounts: Record<string, number> = {};
 
     for (const mention of mentions) {
@@ -565,7 +538,8 @@ export class LifeChapterDetector {
       }
     }
 
-    const topEmotion = Object.entries(emotionCounts).sort((a, b) => b[1] - a[1])[0]?.[0];
+    const topEmotion = Object.entries(emotionCounts)
+      .sort((a, b) => b[1] - a[1])[0]?.[0];
 
     const positiveEmotions = ['happy', 'joy', 'excited', 'grateful', 'hopeful', 'proud'];
     const negativeEmotions = ['sad', 'angry', 'anxious', 'stressed', 'frustrated', 'worried'];

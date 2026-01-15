@@ -26,7 +26,7 @@ import {
 } from '../index.js';
 import { BuilderCategory } from '../core/categories.js';
 import { createLogger } from '../../../utils/safe-logger.js';
-import { loadPersonaContent } from '../../../services/persona-service/persona-content-loader.js';
+import { loadPersonaContent } from '../../../services/persona-content-loader.js';
 
 // Tonal memory - remember HOW things were said
 import {

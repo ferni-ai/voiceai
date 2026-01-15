@@ -167,7 +167,10 @@ export class InstacartClient {
   /**
    * Get product details
    */
-  async getProduct(storeId: string, productId: string): Promise<ApiResponse<InstacartProduct>> {
+  async getProduct(
+    storeId: string,
+    productId: string
+  ): Promise<ApiResponse<InstacartProduct>> {
     return this.hub.request<InstacartProduct>(this.userId, 'instacart', {
       method: 'GET',
       path: `/stores/${storeId}/products/${productId}`,
@@ -223,7 +226,10 @@ export class InstacartClient {
   /**
    * Remove item from cart
    */
-  async removeFromCart(cartId: string, productId: string): Promise<ApiResponse<InstacartCart>> {
+  async removeFromCart(
+    cartId: string,
+    productId: string
+  ): Promise<ApiResponse<InstacartCart>> {
     return this.hub.request<InstacartCart>(this.userId, 'instacart', {
       method: 'DELETE',
       path: `/carts/${cartId}/items/${productId}`,

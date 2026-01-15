@@ -24,7 +24,7 @@ describe('Distress Levels Integration', () => {
       needsEmotionalSupport,
       isCrisis,
       formatDistressForPrompt,
-    } = await import('../intelligence/detectors/distress.js');
+    } = await import('../intelligence/distress-levels.js');
 
     expect(DISTRESS).toBeDefined();
     expect(getDistressCategory).toBeDefined();
@@ -49,13 +49,13 @@ describe('Distress Levels Integration', () => {
 
 describe('Session State Integration', () => {
   beforeEach(async () => {
-    const { SessionStateManager } = await import('../intelligence/state/session.js');
+    const { SessionStateManager } = await import('../intelligence/session-state.js');
     SessionStateManager.clearAll();
   });
 
   it('should manage session state across multiple accesses', async () => {
     const { getSessionState, updateVoiceEmotion, updateEmotionalTrajectory, incrementTurnCount } =
-      await import('../intelligence/state/session.js');
+      await import('../intelligence/session-state.js');
 
     const sessionId = 'integration-test-session';
 
@@ -96,13 +96,13 @@ describe('Session State Integration', () => {
 
 describe('Voice Emotion Orchestrator Integration', () => {
   beforeEach(async () => {
-    const { SessionStateManager } = await import('../intelligence/state/session.js');
+    const { SessionStateManager } = await import('../intelligence/session-state.js');
     SessionStateManager.clearAll();
   });
 
   it('should analyze voice + text emotion together', async () => {
     const { analyzeVoiceEmotion, formatVoiceEmotionForPrompt } =
-      await import('../intelligence/core/voice-emotion-orchestrator.js');
+      await import('../intelligence/voice-emotion-orchestrator.js');
 
     const voiceInput = {
       emotion: 'anxious',
@@ -131,7 +131,7 @@ describe('Voice Emotion Orchestrator Integration', () => {
 
   it('should detect emotion suppression', async () => {
     const { detectEmotionSuppression } =
-      await import('../intelligence/core/voice-emotion-orchestrator.js');
+      await import('../intelligence/voice-emotion-orchestrator.js');
 
     const voiceInput = {
       emotion: 'distressed',
@@ -320,7 +320,7 @@ describe('Builder Loader Integration', () => {
 
 describe('Full Context Building Pipeline', () => {
   beforeEach(async () => {
-    const { SessionStateManager } = await import('../intelligence/state/session.js');
+    const { SessionStateManager } = await import('../intelligence/session-state.js');
     const { resetAllMetrics } = await import('../intelligence/context-builders/metrics.js');
     SessionStateManager.clearAll();
     resetAllMetrics();
@@ -342,7 +342,7 @@ describe('Full Context Building Pipeline', () => {
 
   it('should use distress constants in shouldUseHighEmotionMode', async () => {
     const { shouldUseHighEmotionMode } = await import('../intelligence/context-builders/index.js');
-    const { DISTRESS } = await import('../intelligence/detectors/distress.js');
+    const { DISTRESS } = await import('../intelligence/distress-levels.js');
 
     // Below HIGH threshold - should not trigger
     const lowDistress = {

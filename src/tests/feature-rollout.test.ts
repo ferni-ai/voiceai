@@ -35,7 +35,7 @@ vi.mock('../utils/safe-logger.js', () => ({
   }),
 }));
 
-vi.mock('../services/deployment/feature-flags.js', () => ({
+vi.mock('../services/feature-flags.js', () => ({
   getFeatureFlags: () => ({
     getFlag: vi.fn((id: string) => ({ id, enabled: true, rolloutPercentage: 0 })),
     updateFlag: vi.fn().mockResolvedValue(undefined),

@@ -41,7 +41,7 @@ vi.mock('../../../services/trust-systems/index.js', () => ({
 }));
 
 // Mock persona content loader
-vi.mock('../../../services/persona-service/persona-content-loader.js', () => ({
+vi.mock('../../../services/persona-content-loader.js', () => ({
   loadTrustPhrases: vi.fn().mockResolvedValue({
     reading_between_lines: {
       false_fine: ['Test phrase 1'],
@@ -213,7 +213,7 @@ describe('Trust Context Injection', () => {
 
   describe('Error Handling', () => {
     it('should handle trust phrase loading errors gracefully', async () => {
-      const { loadTrustPhrases } = await import('../../../services/persona-service/persona-content-loader.js');
+      const { loadTrustPhrases } = await import('../../../services/persona-content-loader.js');
       vi.mocked(loadTrustPhrases).mockRejectedValueOnce(new Error('File not found'));
 
       const { buildTrustAwareContext } = await import('../relationship/trust-context.js');

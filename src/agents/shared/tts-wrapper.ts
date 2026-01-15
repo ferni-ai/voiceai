@@ -97,8 +97,9 @@ async function triggerGarbageRecovery(
   // Record this as a quality degradation event
   if (sessionId) {
     try {
-      const { recordGeminiEmptyResponse } =
-        await import('../voice-agent/quality-degradation-monitor.js');
+      const { recordGeminiEmptyResponse } = await import(
+        '../voice-agent/quality-degradation-monitor.js'
+      );
       recordGeminiEmptyResponse(sessionId);
     } catch {
       // Non-critical - just logging
@@ -110,8 +111,8 @@ async function triggerGarbageRecovery(
 
   // Warm, human fallback messages (not robotic "I didn't understand")
   const fallbackMessages = [
-    'Hmm, I lost my train of thought for a second there. What were you saying?',
-    'Sorry, something slipped. Can you say that again?',
+    "Hmm, I lost my train of thought for a second there. What were you saying?",
+    "Sorry, something slipped. Can you say that again?",
     "My mind wandered for a moment. I'm back - what's up?",
     "Oops, I got a little distracted. I'm here now.",
   ];
@@ -154,7 +155,7 @@ const TOOL_ARG_SIGNATURES: Record<string, string[]> = {
 
 /**
  * Analyze leaked JSON to extract useful debugging info.
- *
+ * 
  * Attempts to identify:
  * - Which tool's function call leaked
  * - What arguments were included
@@ -168,13 +169,13 @@ function analyzeLeakedJson(leakedJson: string): {
 } {
   const detectedArgs: string[] = [];
   let probableTool: string | undefined;
-
+  
   // Check for known argument keys
   for (const [toolName, argKeys] of Object.entries(TOOL_ARG_SIGNATURES)) {
-    const matchingArgs = argKeys.filter(
-      (key) => leakedJson.includes(`"${key}"`) || leakedJson.includes(`"${key}":`)
+    const matchingArgs = argKeys.filter(key => 
+      leakedJson.includes(`"${key}"`) || leakedJson.includes(`"${key}":`)
     );
-
+    
     if (matchingArgs.length > 0) {
       detectedArgs.push(...matchingArgs);
       // Tool with most matching args is probably the source
@@ -183,7 +184,7 @@ function analyzeLeakedJson(leakedJson: string): {
       }
     }
   }
-
+  
   // Check for common argument values (helps identify even if keys don't match)
   const commonValues = ['personal', 'work', 'health', 'high', 'medium', 'low'];
   for (const value of commonValues) {
@@ -191,7 +192,7 @@ function analyzeLeakedJson(leakedJson: string): {
       detectedArgs.push(`value:${value}`);
     }
   }
-
+  
   return {
     probableTool,
     detectedArgs: [...new Set(detectedArgs)], // Dedupe
@@ -202,7 +203,7 @@ function analyzeLeakedJson(leakedJson: string): {
 
 /**
  * Record telemetry about JSON leaks for observability.
- *
+ * 
  * Uses structured logging that can be picked up by log aggregation systems.
  * This helps us:
  * - Track how often the OpenAI Realtime SDK leaks function calls
@@ -369,11 +370,11 @@ export async function wrappedTtsNode(
         ? 'semantic routing is primary'
         : 'explicitly disabled';
     log.info(`${provider.getLogPrefix()} JSON workaround DISABLED - ${reason}`);
-
+    
     // BUG FIX: Even with native function calling, OpenAI Realtime can sometimes
     // leak function call JSON into the text stream (race condition in SDK or model).
     // Add a lightweight filter to strip JSON-like content that shouldn't be spoken.
-    //
+    // 
     // Observed pattern: When model outputs BOTH text AND function call in same response,
     // part of the function call args leak into text:
     //   'tomorrow",  \n  "category": "personal",  \n  "importance": "medium" \n}'
@@ -381,7 +382,7 @@ export async function wrappedTtsNode(
     // This filter catches and strips such leaks without the full JSON workaround overhead.
     // We also capture telemetry to track this SDK/model behavior.
     let jsonLeakBuffer = ''; // Accumulate leaked chunks for analysis
-
+    
     const jsonLeakFilter = new NodeTransformStream<string, string>({
       transform(chunk, controller) {
         // Patterns that indicate leaked function call JSON (not natural speech)
@@ -400,24 +401,24 @@ export async function wrappedTtsNode(
           // Function call argument patterns (category, importance, fact, etc.)
           /"\s*(category|importance|fact|medium|high|low|personal)"\s*[:,]/i,
         ];
-
+        
         // Check if chunk looks like leaked JSON
-        const looksLikeJson = jsonLeakPatterns.some((pattern) => pattern.test(chunk));
-
+        const looksLikeJson = jsonLeakPatterns.some(pattern => pattern.test(chunk));
+        
         // Also check for specific known function call argument values
         const knownArgValues = ['personal', 'medium', 'high', 'low', 'category', 'importance'];
-        const hasKnownArgPattern = knownArgValues.some(
-          (val) => chunk.includes(`"${val}"`) && (chunk.includes(':') || chunk.includes(','))
+        const hasKnownArgPattern = knownArgValues.some(val => 
+          chunk.includes(`"${val}"`) && (chunk.includes(':') || chunk.includes(','))
         );
-
+        
         if (looksLikeJson || hasKnownArgPattern) {
           // Accumulate leaked JSON for analysis
           jsonLeakBuffer += chunk;
-
+          
           // Don't enqueue - strip from TTS stream
           return;
         }
-
+        
         // Clean chunk: pass through to TTS
         controller.enqueue(chunk);
       },
@@ -426,10 +427,10 @@ export async function wrappedTtsNode(
         if (jsonLeakBuffer.length > 0) {
           // Try to extract useful info from the leaked JSON
           const extractedInfo = analyzeLeakedJson(jsonLeakBuffer);
-
+          
           // Log with structured data for observability
           log.warn(
-            {
+            { 
               leakedJson: jsonLeakBuffer.slice(0, 200),
               leakLength: jsonLeakBuffer.length,
               sessionId,
@@ -438,16 +439,16 @@ export async function wrappedTtsNode(
             },
             '🚨 [JSON-LEAK-FILTER] Stripped leaked function call JSON from TTS stream'
           );
-
+          
           // Record telemetry for tracking this SDK behavior
           // Fire-and-forget to avoid blocking TTS
           recordJsonLeakTelemetry(sessionId, personaId, jsonLeakBuffer, extractedInfo).catch(() => {
             // Non-critical - ignore errors
           });
         }
-      },
+      }
     });
-
+    
     filteredText = text.pipeThrough(jsonLeakFilter);
   } else {
     // Legacy path: intercept JSON function calls from LLM text output
@@ -529,10 +530,7 @@ export async function wrappedTtsNode(
                 hasGeminiProblem,
                 personaId,
                 // Character codes to see invisible chars
-                charCodes: rawLLMBuffer
-                  .slice(0, 20)
-                  .split('')
-                  .map((c) => c.charCodeAt(0)),
+                charCodes: rawLLMBuffer.slice(0, 20).split('').map(c => c.charCodeAt(0)),
               },
               '🚨 GARBAGE RESPONSE DETECTED - Gemini output is meaningless!'
             );
@@ -624,25 +622,6 @@ export async function wrappedTtsNode(
           userId,
           sessionId,
         });
-
-        // 📞 ON-BEHALF CALL: Capture agent speech for superhuman transcript analysis
-        // This is the ONLY place where we have the complete agent response text
-        // in streaming mode (LLM → TTS bypasses services.addTurn)
-        if (sessionId && ttsOutputBuffer.trim().length > 0) {
-          import('../integrations/on-behalf-transcript-capture.js')
-            .then(({ isOnBehalfCall, captureAgentTurn }) => {
-              if (isOnBehalfCall(sessionId)) {
-                captureAgentTurn(sessionId, ttsOutputBuffer);
-                log.debug(
-                  { sessionId, textLength: ttsOutputBuffer.length },
-                  '📝 Captured agent turn for on-behalf call'
-                );
-              }
-            })
-            .catch(() => {
-              // On-behalf capture is non-critical
-            });
-        }
 
         // Estimate LLM output tokens (~4 chars per token)
         const estimatedOutputTokens = Math.ceil(totalCharacters / 4);

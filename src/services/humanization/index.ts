@@ -8,7 +8,7 @@
 import {
   PersonaBehaviorManager as _PersonaBehaviorManager,
   preloadAllBehaviors as _preloadAllBehaviors,
-} from '../persona-service/persona-behavior-manager.js';
+} from '../persona-behavior-manager.js';
 
 export {
   applyPacing,
@@ -31,10 +31,10 @@ export {
   type BehaviorResult,
   type ConversationContext,
   type EmotionalContext,
-} from '../persona-service/persona-behavior-manager.js';
+} from '../persona-behavior-manager.js';
 
 // Emotion detection
-import { EmotionDetectionService as _EmotionDetectionService } from '../emotion-analysis/emotion-detection.js';
+import { EmotionDetectionService as _EmotionDetectionService } from '../emotion-detection.js';
 
 export {
   analyzeConversationEmotion,
@@ -46,7 +46,7 @@ export {
   type EmotionCategory,
   type EmotionResult,
   type EnergyLevel,
-} from '../emotion-analysis/emotion-detection.js';
+} from '../emotion-detection.js';
 
 // Story tracking
 import { StoryTrackingService as _StoryTrackingService } from '../story-tracking.js';
@@ -69,7 +69,7 @@ export {
 } from '../story-tracking.js';
 
 // Spontaneous sharing
-import { SpontaneousSharingService as _SpontaneousSharingService } from '../social/spontaneous-sharing.js';
+import { SpontaneousSharingService as _SpontaneousSharingService } from '../spontaneous-sharing.js';
 
 export {
   clearSharedContent,
@@ -83,7 +83,7 @@ export {
   trySpontaneousShare,
   type ShareResult,
   type SharingContext,
-} from '../social/spontaneous-sharing.js';
+} from '../spontaneous-sharing.js';
 
 // Persona modes
 import { PersonaModesService as _PersonaModesService } from '../persona-modes.js';
@@ -135,7 +135,7 @@ export {
 } from '../milestone-detection.js';
 
 // Topic tracking
-import { TopicTrackingService as _TopicTrackingService } from '../conversation-thread/topic-tracking.js';
+import { TopicTrackingService as _TopicTrackingService } from '../topic-tracking.js';
 
 export {
   findTopicsByKeyword,
@@ -148,7 +148,7 @@ export {
   TopicTrackingService,
   trackTopic,
   type TrackedTopic,
-} from '../conversation-thread/topic-tracking.js';
+} from '../topic-tracking.js';
 
 // Voice adaptation
 import { VoiceAdaptationService as _VoiceAdaptationService } from '../voice/voice-adaptation.js';
@@ -171,7 +171,7 @@ export {
 } from '../voice/voice-adaptation.js';
 
 // Cultural awareness
-import { CulturalAwarenessService as _CulturalAwarenessService } from '../context-awareness/cultural-awareness.js';
+import { CulturalAwarenessService as _CulturalAwarenessService } from '../cultural-awareness.js';
 
 export {
   CulturalAwarenessService,
@@ -184,7 +184,7 @@ export {
   type CulturalContext,
   type Holiday,
   type Season,
-} from '../context-awareness/cultural-awareness.js';
+} from '../cultural-awareness.js';
 
 // 🌉 Humanization Signal Emitter - Bridges backend to frontend EQ
 import { humanizationSignalEmitter as _humanizationSignalEmitter } from './humanization-signal-emitter.js';

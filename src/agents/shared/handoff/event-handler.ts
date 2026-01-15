@@ -17,7 +17,7 @@ import type { UserData } from '../types.js';
 // Unified handoff module (Phase 3 migration)
 import { handoffEvents } from '../../../handoff/index.js';
 import { getLogger } from '../../../utils/safe-logger.js';
-import { diag } from '../../../services/observability/diagnostic-logger.js';
+import { diag } from '../../../services/diagnostic-logger.js';
 
 // Coordinator adapter
 import {
@@ -99,8 +99,7 @@ export function createEventHandler(config: EventHandlerConfig): EventHandlerResu
   } = config;
   // Use passed sessionId if available, then services.sessionId, then room name
   // CRITICAL: This MUST match the sessionId used in initializeSpeechCoordination()
-  const sessionId =
-    configSessionId || services.sessionId || ctx.room?.name || `event-handler-${Date.now()}`;
+  const sessionId = configSessionId || services.sessionId || ctx.room?.name || `event-handler-${Date.now()}`;
 
   log.info({ sessionId, initialAgent }, '📡 Creating voiceSwitch event handler');
 

@@ -66,7 +66,6 @@ interface MockSession {
   say: Mock;
   on: Mock;
   off: Mock;
-  interrupt: Mock;
 }
 
 function createMockSession(options?: {
@@ -95,7 +94,6 @@ function createMockSession(options?: {
     say: vi.fn(),
     on: vi.fn(),
     off: vi.fn(),
-    interrupt: vi.fn(),
   };
 }
 
@@ -148,25 +146,6 @@ describe('Generate Reply Gateway', () => {
       expect(result.success).toBe(true);
       expect(result.usedFallback).toBe(false);
       expect(result.error).toBeUndefined();
-    });
-
-    it('should interrupt low-priority response before normal call', async () => {
-      markSessionReady(testSessionId);
-
-      await generateReply(mockSession as any, testSessionId, {
-        instructions: 'Backchannel',
-        context: 'backchannel',
-        priority: 'low',
-        waitForPlayout: false,
-      });
-
-      await generateReply(mockSession as any, testSessionId, {
-        instructions: 'User response',
-        context: 'user-message',
-        priority: 'high',
-      });
-
-      expect(mockSession.interrupt).toHaveBeenCalled();
     });
   });
 

@@ -22,7 +22,7 @@ import {
   getAnticipationPipeline,
   resetAnticipationPipeline,
 } from '../../speech/anticipation/index.js';
-import type { EmotionResult } from '../../intelligence/detectors/emotion.js';
+import type { EmotionResult } from '../../intelligence/emotion-detector.js';
 
 const log = createLogger({ module: 'SpeechOrchestratorIntegration' });
 

@@ -137,7 +137,9 @@ export class ActionRetryService {
 
     // Check if error is retryable
     const errorLower = error.toLowerCase();
-    const isRetryable = policy.retryableErrors.some((e) => errorLower.includes(e.toLowerCase()));
+    const isRetryable = policy.retryableErrors.some((e) =>
+      errorLower.includes(e.toLowerCase())
+    );
 
     if (!isRetryable) {
       log.debug({ actionId: action.id, error }, 'Error is not retryable');
@@ -161,7 +163,7 @@ export class ActionRetryService {
 
     // Calculate delay with exponential backoff and jitter
     const baseDelay = policy.baseDelayMs * Math.pow(policy.backoffMultiplier, attemptCount - 1);
-    const jitterMs = ((baseDelay * policy.jitterPercent) / 100) * (Math.random() * 2 - 1);
+    const jitterMs = (baseDelay * policy.jitterPercent / 100) * (Math.random() * 2 - 1);
     const delayMs = Math.min(baseDelay + jitterMs, policy.maxDelayMs);
 
     const nextAttemptAt = new Date(Date.now() + delayMs);
@@ -171,7 +173,10 @@ export class ActionRetryService {
       attemptCount,
       lastAttemptAt: new Date(),
       nextAttemptAt,
-      errors: [...(existingState?.errors || []), { timestamp: new Date(), error }],
+      errors: [
+        ...(existingState?.errors || []),
+        { timestamp: new Date(), error },
+      ],
       status: attemptCount >= policy.maxAttempts ? 'exhausted' : 'pending',
     };
 
@@ -235,7 +240,7 @@ export class ActionRetryService {
    */
   recordFailure(actionType: ActionType): void {
     let state = this.circuitBreakers.get(actionType);
-
+    
     if (!state) {
       state = {
         actionType,
@@ -256,8 +261,11 @@ export class ActionRetryService {
       state.isOpen = true;
       state.openedAt = new Date();
       state.halfOpenAt = new Date(Date.now() + CIRCUIT_BREAKER_RESET_MS);
-
-      log.warn({ actionType, failures: state.failures }, 'Circuit breaker opened');
+      
+      log.warn(
+        { actionType, failures: state.failures },
+        'Circuit breaker opened'
+      );
     }
   }
 
@@ -313,7 +321,9 @@ export class ActionRetryService {
 
     this.processingInterval = setInterval(async () => {
       const now = Date.now();
-      const dueItems = this.retryQueue.filter((r) => r.scheduledFor.getTime() <= now);
+      const dueItems = this.retryQueue.filter(
+        (r) => r.scheduledFor.getTime() <= now
+      );
 
       for (const item of dueItems) {
         // Remove from queue
@@ -322,11 +332,14 @@ export class ActionRetryService {
         const state = this.retryStates.get(item.actionId);
         if (state && state.status === 'pending') {
           state.status = 'retrying';
-
+          
           try {
             await processor(item.actionId);
           } catch (error) {
-            log.error({ error: String(error), actionId: item.actionId }, 'Retry processor error');
+            log.error(
+              { error: String(error), actionId: item.actionId },
+              'Retry processor error'
+            );
           }
         }
       }
@@ -399,7 +412,9 @@ export class ActionRetryService {
       }
     }
 
-    const openCircuits = Array.from(this.circuitBreakers.values()).filter((cb) => cb.isOpen).length;
+    const openCircuits = Array.from(this.circuitBreakers.values()).filter(
+      (cb) => cb.isOpen
+    ).length;
 
     return {
       pendingRetries,
