@@ -12,6 +12,8 @@
 // const log = createLogger('EmptyStateUI');
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { t } from '../i18n/index.js';
+import { relationshipStageService } from '../services/relationship-stage.service.js';
+import { getTeaserPreviewUI, type TeaserType } from './teaser-preview.ui.js';
 
 // ============================================================================
 // TYPES
@@ -435,6 +437,126 @@ export class EmptyStateUI {
       message: t('emptyStates.searchEmpty.messageWithQuery', { query }),
       onAction: onAskFerni,
     });
+  }
+
+  // ==========================================================================
+  // TEASER PREVIEW INTEGRATION
+  // ==========================================================================
+
+  /**
+   * Show a teaser preview instead of a generic empty state.
+   * Teasers show realistic dummy data to demonstrate what the feature will look like.
+   * 
+   * @param type - The type of teaser preview to show
+   * @param container - The container element to render into
+   * @param options - Optional configuration
+   * @returns The teaser element
+   */
+  showWithTeaser(
+    type: TeaserType,
+    container: HTMLElement,
+    options?: {
+      customMessage?: string;
+      daysUntilData?: number;
+    }
+  ): HTMLElement | null {
+    // Clear container
+    container.innerHTML = '';
+    
+    // Get the teaser preview UI
+    const teaserUI = getTeaserPreviewUI();
+    
+    // Map teaser types to preview methods
+    const teaserMethods: Record<TeaserType, () => HTMLElement | null> = {
+      wellbeing: () => teaserUI.wellbeing(),
+      patterns: () => teaserUI.patterns(),
+      trust_insights: () => teaserUI.trustInsights(),
+      life_context: () => teaserUI.lifeContext(),
+      predictions: () => teaserUI.predictions(),
+      team_insights: () => teaserUI.teamInsights(),
+      memories: () => teaserUI.memories(),
+      your_people: () => teaserUI.yourPeople(),
+      growth_analytics: () => teaserUI.growthAnalytics(),
+      habits: () => teaserUI.habits(),
+    };
+    
+    const createTeaser = teaserMethods[type];
+    if (!createTeaser) {
+      // Fallback to generic empty state
+      return this.showIn(container, { type: 'coming_soon' });
+    }
+    
+    const teaserElement = createTeaser();
+    if (teaserElement) {
+      container.appendChild(teaserElement);
+    }
+    
+    return teaserElement;
+  }
+
+  /**
+   * Check if a teaser should be shown based on relationship stage
+   * Early stages see more teasers, established users see data
+   */
+  shouldShowTeaser(type: TeaserType): boolean {
+    const stage = relationshipStageService.getStage();
+    const metrics = relationshipStageService.getMetrics();
+    
+    // Early stages always show teasers for complex features
+    if (stage === 'first-meeting' || stage === 'getting-started') {
+      return true;
+    }
+    
+    // Minimum data requirements for each teaser type
+    const MIN_DATA_FOR_REAL: Record<TeaserType, number> = {
+      wellbeing: 7,      // Need ~7 conversations for meaningful wellbeing data
+      patterns: 10,      // Need ~10 for pattern detection
+      trust_insights: 5, // Trust builds quickly
+      life_context: 14,  // Need ~2 weeks for life context
+      predictions: 10,   // Need enough history for predictions
+      team_insights: 3,  // Team insights after 3 handoffs
+      memories: 3,       // Memories after 3 conversations
+      your_people: 5,    // People mentioned in ~5 conversations
+      growth_analytics: 14, // Growth needs 2 weeks
+      habits: 7,         // Habits need about a week
+    };
+    
+    const minConversations = MIN_DATA_FOR_REAL[type] || 5;
+    return metrics.totalConversations < minConversations;
+  }
+
+  /**
+   * Smart empty state - shows teaser if appropriate, otherwise generic empty state
+   */
+  showSmart(
+    container: HTMLElement,
+    options: {
+      teaserType?: TeaserType;
+      emptyType?: EmptyStateType;
+      customTitle?: string;
+      customMessage?: string;
+      onAction?: () => void;
+    }
+  ): HTMLElement | null {
+    const { teaserType, emptyType, customTitle, customMessage, onAction } = options;
+    
+    // If teaser type provided and should show teaser
+    if (teaserType && this.shouldShowTeaser(teaserType)) {
+      return this.showWithTeaser(teaserType, container, { customMessage });
+    }
+    
+    // Fallback to empty state
+    if (emptyType) {
+      return this.showIn(container, {
+        type: emptyType,
+        title: customTitle,
+        message: customMessage,
+        onAction,
+      });
+    }
+    
+    // Default to coming soon
+    return this.showIn(container, { type: 'coming_soon' });
   }
 }
 

@@ -9,7 +9,7 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
-import { loadPersonaBehaviors } from './persona-behavior-manager.js';
+import { loadPersonaBehaviors } from '../persona-service/persona-behavior-manager.js';
 import type { PersonaRelationshipStage } from '../../types/user-profile.js';
 import { createPersistenceStore, type PersistenceStore } from '../persistence/index.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';

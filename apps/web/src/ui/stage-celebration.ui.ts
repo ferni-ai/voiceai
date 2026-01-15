@@ -310,6 +310,238 @@ function injectStyles(): void {
     }
     
     /* ========================================================================
+       FULLSCREEN CELEBRATION (Enhanced Stage Transitions)
+       ======================================================================== */
+    .celebration-fullscreen {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+    
+    .celebration-particles {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+    
+    .celebration-particle {
+      position: absolute;
+      width: 8px;
+      height: 8px;
+      background: var(--persona-primary, #4a6741);
+      border-radius: 50%;
+      opacity: 0;
+      left: var(--x, 50%);
+      top: var(--y, 50%);
+    }
+    
+    @keyframes celebrationParticle {
+      0% {
+        transform: scale(0) translateY(0);
+        opacity: 0.8;
+      }
+      50% {
+        opacity: 1;
+      }
+      100% {
+        transform: scale(1.5) translateY(-100px);
+        opacity: 0;
+      }
+    }
+    
+    .celebration-content {
+      position: relative;
+      background: var(--color-bg-elevated, #FFFDFB);
+      border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+      border-radius: var(--radius-xl, 20px);
+      padding: var(--space-8, 32px);
+      text-align: center;
+      max-width: clamp(340px, 90vw, 500px);
+      width: calc(100% - var(--space-8, 32px));
+      box-shadow: 0 16px 64px rgba(0, 0, 0, 0.2), 0 4px 16px rgba(0, 0, 0, 0.1);
+      transform: scale(0.9) translateY(20px);
+      opacity: 0;
+      transition: transform ${DURATION.DELIBERATE}ms ${EASING.SPRING},
+                  opacity ${DURATION.MODERATE}ms ${EASING.STANDARD};
+    }
+    
+    .relationship-celebration.visible .celebration-content {
+      transform: scale(1) translateY(0);
+      opacity: 1;
+    }
+    
+    /* Mini journey visualization at top */
+    .celebration-journey-mini {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-2, 8px);
+      margin-bottom: var(--space-6, 24px);
+    }
+    
+    .journey-mini-step {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: var(--space-1, 4px);
+    }
+    
+    .journey-mini-dot {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--color-background-subtle, #f5f1e8);
+      border: 2px solid var(--color-border, rgba(0, 0, 0, 0.1));
+      transition: all ${DURATION.NORMAL}ms ${EASING.STANDARD};
+    }
+    
+    .journey-mini-dot svg {
+      width: 14px;
+      height: 14px;
+    }
+    
+    .journey-mini-step--complete .journey-mini-dot {
+      background: var(--persona-tint, rgba(74, 103, 65, 0.2));
+      border-color: var(--persona-primary, #4a6741);
+      color: var(--persona-primary, #4a6741);
+    }
+    
+    .journey-mini-step--new .journey-mini-dot {
+      background: var(--persona-primary, #4a6741);
+      border-color: var(--persona-primary, #4a6741);
+      color: white;
+      animation: newStageGlow 1.5s ease-in-out infinite;
+    }
+    
+    @keyframes newStageGlow {
+      0%, 100% { box-shadow: 0 0 0 4px var(--persona-tint, rgba(74, 103, 65, 0.2)); }
+      50% { box-shadow: 0 0 0 8px var(--persona-tint, rgba(74, 103, 65, 0.1)); }
+    }
+    
+    .journey-mini-step span:last-child {
+      font-size: var(--text-xs, 11px);
+      color: var(--color-text-muted, #70605a);
+    }
+    
+    .journey-mini-step--new span:last-child {
+      color: var(--persona-primary, #4a6741);
+      font-weight: 600;
+    }
+    
+    .journey-mini-connector {
+      width: 40px;
+      height: 2px;
+      background: linear-gradient(90deg, 
+        var(--persona-primary, #4a6741) 0%, 
+        var(--persona-tint, rgba(74, 103, 65, 0.3)) 100%
+      );
+      margin-bottom: var(--space-4, 16px);
+    }
+    
+    /* Main celebration area */
+    .celebration-main {
+      margin-bottom: var(--space-6, 24px);
+    }
+    
+    .celebration-icon-ring {
+      position: relative;
+      width: 80px;
+      height: 80px;
+      margin: 0 auto var(--space-5, 20px);
+    }
+    
+    .celebration-icon-ring .celebration-icon {
+      width: 80px;
+      height: 80px;
+      margin: 0;
+    }
+    
+    .celebration-icon-glow {
+      position: absolute;
+      inset: -8px;
+      border-radius: 50%;
+      background: radial-gradient(circle, var(--persona-tint, rgba(74, 103, 65, 0.3)) 0%, transparent 70%);
+      animation: iconGlow 2s ease-in-out infinite;
+    }
+    
+    @keyframes iconGlow {
+      0%, 100% { transform: scale(1); opacity: 0.6; }
+      50% { transform: scale(1.1); opacity: 1; }
+    }
+    
+    /* Unlocks section */
+    .celebration-unlocks {
+      background: var(--color-background-subtle, #f5f1e8);
+      border-radius: var(--radius-lg, 12px);
+      padding: var(--space-4, 16px);
+      margin-bottom: var(--space-6, 24px);
+    }
+    
+    .celebration-unlocks.hidden {
+      display: none;
+    }
+    
+    .celebration-unlocks-label {
+      font-size: var(--text-xs, 11px);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--color-text-muted, #70605a);
+      margin: 0 0 var(--space-3, 12px);
+    }
+    
+    .celebration-unlocks-list {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-2, 8px);
+    }
+    
+    .celebration-unlock-item {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2, 8px);
+      font-size: var(--text-sm, 14px);
+      color: var(--color-text-primary, #2c2520);
+    }
+    
+    .celebration-unlock-icon {
+      color: var(--persona-primary, #4a6741);
+    }
+    
+    .celebration-unlock-icon svg {
+      width: 14px;
+      height: 14px;
+    }
+    
+    /* Enhanced dismiss button */
+    .celebration-dismiss-text {
+      transition: transform ${DURATION.FAST}ms ${EASING.STANDARD};
+    }
+    
+    .celebration-dismiss-icon {
+      opacity: 0;
+      transform: translateX(-8px);
+      transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
+    }
+    
+    .celebration-dismiss-icon svg {
+      width: 16px;
+      height: 16px;
+    }
+    
+    .celebration-dismiss:hover .celebration-dismiss-icon {
+      opacity: 1;
+      transform: translateX(0);
+    }
+    
+    /* ========================================================================
        JOURNEY PANEL
        Centered floating modal (per FERNI-SCREEN-GUIDELINES.md)
        ======================================================================== */
@@ -964,17 +1196,52 @@ function createCelebrationOverlay(): void {
   
   celebrationOverlay.innerHTML = `
     <div class="celebration-backdrop"></div>
-    <div class="celebration-card">
-      <div class="celebration-icon">${ICONS.sparkles}</div>
-      <p class="celebration-eyebrow">Milestone reached</p>
-      <h2 class="celebration-title" id="celebration-title"></h2>
-      <p class="celebration-message"></p>
-      <div class="celebration-stage-badge">
-        <span class="stage-from"></span>
-        <span class="stage-arrow">${ICONS.chevronRight}</span>
-        <span class="stage-to"></span>
+    <div class="celebration-fullscreen">
+      <!-- Particle effects layer -->
+      <div class="celebration-particles" aria-hidden="true">
+        ${Array.from({ length: 20 }, (_, i) => 
+          `<div class="celebration-particle" style="--delay: ${i * 0.1}s; --x: ${Math.random() * 100}%; --y: ${Math.random() * 100}%"></div>`
+        ).join('')}
       </div>
-      <button aria-label="${t('accessibility.continueOurJourney')}" class="celebration-dismiss">Continue our journey</button>
+      
+      <div class="celebration-content">
+        <!-- Stage progression visual -->
+        <div class="celebration-journey-mini">
+          <div class="journey-mini-step journey-mini-step--complete">
+            <span class="journey-mini-dot"></span>
+            <span class="stage-from"></span>
+          </div>
+          <div class="journey-mini-connector"></div>
+          <div class="journey-mini-step journey-mini-step--new">
+            <span class="journey-mini-dot">${ICONS.sparkles}</span>
+            <span class="stage-to"></span>
+          </div>
+        </div>
+        
+        <!-- Main celebration message -->
+        <div class="celebration-main">
+          <div class="celebration-icon-ring">
+            <div class="celebration-icon">${ICONS.sparkles}</div>
+            <div class="celebration-icon-glow"></div>
+          </div>
+          <p class="celebration-eyebrow">A new chapter begins</p>
+          <h2 class="celebration-title" id="celebration-title"></h2>
+          <p class="celebration-message"></p>
+        </div>
+        
+        <!-- What's unlocked at this stage -->
+        <div class="celebration-unlocks">
+          <p class="celebration-unlocks-label">What's new at this stage:</p>
+          <div class="celebration-unlocks-list">
+            <!-- Populated dynamically based on stage -->
+          </div>
+        </div>
+        
+        <button aria-label="${t('accessibility.continueOurJourney')}" class="celebration-dismiss">
+          <span class="celebration-dismiss-text">Continue our journey</span>
+          <span class="celebration-dismiss-icon">${ICONS.chevronRight}</span>
+        </button>
+      </div>
     </div>
   `;
   
@@ -983,6 +1250,35 @@ function createCelebrationOverlay(): void {
   // Close handlers
   celebrationOverlay.querySelector('.celebration-backdrop')?.addEventListener('click', hideCelebration);
   celebrationOverlay.querySelector('.celebration-dismiss')?.addEventListener('click', hideCelebration);
+}
+
+/**
+ * Get features unlocked at a specific stage
+ */
+function getUnlocksForStage(stage: string): string[] {
+  const STAGE_UNLOCKS: Record<string, string[]> = {
+    'getting-started': [
+      'Custom rituals',
+      'Progress tracking',
+      'Basic analytics',
+    ],
+    'building-trust': [
+      'Team huddles',
+      'Memory browser',
+      'Wellbeing insights',
+    ],
+    'established': [
+      'Deep insights',
+      'Conversation history',
+      'Advanced predictions',
+    ],
+    'deep-partnership': [
+      'Full team access',
+      'Life narrative',
+      'Partner-level support',
+    ],
+  };
+  return STAGE_UNLOCKS[stage] || [];
 }
 
 function handleStageChange(event: StageChangeEvent): void {
@@ -998,16 +1294,41 @@ export function showCelebration(event: StageChangeEvent): void {
   // Update content
   const title = celebrationOverlay.querySelector('.celebration-title');
   const message = celebrationOverlay.querySelector('.celebration-message');
-  const stageFrom = celebrationOverlay.querySelector('.stage-from');
-  const stageTo = celebrationOverlay.querySelector('.stage-to');
+  const stageFromEls = celebrationOverlay.querySelectorAll('.stage-from');
+  const stageToEls = celebrationOverlay.querySelectorAll('.stage-to');
+  const unlocksList = celebrationOverlay.querySelector('.celebration-unlocks-list');
   
   if (title) title.textContent = stageUpMsg.title;
   if (message) message.textContent = stageUpMsg.message;
-  if (stageFrom) stageFrom.textContent = getTranslatedStageName(event.previousStage);
-  if (stageTo) stageTo.textContent = getTranslatedStageName(event.newStage);
+  stageFromEls.forEach(el => { el.textContent = getTranslatedStageName(event.previousStage); });
+  stageToEls.forEach(el => { el.textContent = getTranslatedStageName(event.newStage); });
+  
+  // Populate unlocks
+  const unlocks = getUnlocksForStage(event.newStage);
+  if (unlocksList) {
+    if (unlocks.length > 0) {
+      unlocksList.innerHTML = unlocks.map(unlock => `
+        <div class="celebration-unlock-item">
+          <span class="celebration-unlock-icon">${ICONS.sparkles}</span>
+          <span class="celebration-unlock-text">${unlock}</span>
+        </div>
+      `).join('');
+      celebrationOverlay.querySelector('.celebration-unlocks')?.classList.remove('hidden');
+    } else {
+      celebrationOverlay.querySelector('.celebration-unlocks')?.classList.add('hidden');
+    }
+  }
   
   // Show with animation
   celebrationOverlay.classList.add('visible');
+  
+  // Trigger particle animation
+  celebrationOverlay.querySelectorAll('.celebration-particle').forEach((particle, i) => {
+    const el = particle as HTMLElement;
+    el.style.animation = 'none';
+    void el.offsetHeight; // Force reflow
+    el.style.animation = `celebrationParticle 2s ease-out ${i * 0.05}s forwards`;
+  });
   
   // Sound effect (non-blocking, may fail due to autoplay restrictions)
   try {

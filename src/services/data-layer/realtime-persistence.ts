@@ -182,7 +182,7 @@ export async function persistSocialGraph(userId: string): Promise<void> {
   }
 
   const result = await withRetry(async () => {
-    const { getUserGraph, persistGraphToFirestore } = await import('./social-graph/index.js');
+    const { getUserGraph, persistGraphToFirestore } = await import('../social-graph/index.js');
     const graph = getUserGraph(userId);
     if (!graph || graph.people.size === 0) {
       return { skipped: true };

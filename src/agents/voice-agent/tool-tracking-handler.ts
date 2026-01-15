@@ -244,6 +244,8 @@ export function setupToolTrackingHandler(ctx: ToolTrackingContext): ToolTracking
           // 📰 FIX: Speak news/weather results directly for native function calling
           // When using native function calling, the SDK JSON.stringify()s the result
           // which double-escapes SSML, confusing the LLM. We speak the result directly.
+          // 
+          // HUMANIZATION: Use persona-specific reactions and follow-ups
           // ================================================================
           if (isNewsOrWeather && !hasError && toolResult) {
             const resultToSpeak =
@@ -265,9 +267,38 @@ export function setupToolTrackingHandler(ctx: ToolTrackingContext): ToolTracking
                 try {
                   const { safeGenerateReply, formatToolResult } =
                     await import('../shared/safe-generate-reply.js');
+                  const {
+                    getPersonaReactionPrefix,
+                    getPersonaFollowUpHook,
+                  } = await import('../../tools/execution/persona-tool-voice.js');
+
+                  // Get persona-specific reaction prefix (e.g., "Okay so...")
+                  const personaId = services.personaId || 'ferni';
+                  const reaction = getPersonaReactionPrefix(personaId);
+                  
+                  // Determine tool category for follow-up
+                  const category = toolName.toLowerCase().includes('news')
+                    ? 'news'
+                    : toolName.toLowerCase().includes('weather')
+                      ? 'weather'
+                      : 'default';
+                  
+                  // Get persona-specific follow-up (e.g., "Want me to dig into any of those?")
+                  const followUp = getPersonaFollowUpHook(personaId, category);
+
+                  // Build humanized result with reaction and follow-up
+                  let humanizedResult = resultToSpeak;
+                  if (reaction) {
+                    // Add reaction prefix with a pause
+                    humanizedResult = `${reaction} <break time="200ms"/> ${humanizedResult}`;
+                  }
+                  if (followUp) {
+                    // Add follow-up hook at the end
+                    humanizedResult = `${humanizedResult} <break time="300ms"/> ${followUp}`;
+                  }
 
                   // Format the tool result with behavioral instructions
-                  const instructions = formatToolResult(toolName, resultToSpeak);
+                  const instructions = formatToolResult(toolName, humanizedResult);
 
                   await safeGenerateReply(session, {
                     instructions,
@@ -280,8 +311,8 @@ export function setupToolTrackingHandler(ctx: ToolTrackingContext): ToolTracking
                   });
 
                   logger.info(
-                    { toolName, sessionId },
-                    '📰 News/weather result spoken successfully'
+                    { toolName, sessionId, hasReaction: !!reaction, hasFollowUp: !!followUp },
+                    '📰 News/weather result spoken successfully with persona voice'
                   );
                 } catch (speakErr) {
                   logger.warn(

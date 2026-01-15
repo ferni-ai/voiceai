@@ -15,7 +15,7 @@
 import { WebSocketServer, WebSocket } from 'ws';
 import type { Server } from 'node:http';
 import { createLogger } from '../../utils/safe-logger.js';
-import { registerUserEventBroadcast } from './user-events/index.js';
+import { registerUserEventBroadcast } from '../user-events/index.js';
 
 const log = createLogger({ module: 'UserEventsWebSocket' });
 

@@ -250,6 +250,57 @@ export function getAllWarmthConfigs(): Record<RelationshipStage, WarmthConfig> {
   return { ...WARMTH_BY_STAGE };
 }
 
+/**
+ * Get adjusted animation duration based on relationship stage
+ * Deeper relationships = longer, more confident animations
+ * 
+ * @param baseDuration - Base duration in ms
+ * @returns Adjusted duration considering relationship depth
+ * 
+ * @example
+ * // Use in animations:
+ * element.animate(keyframes, { duration: getAdjustedDuration(300) });
+ */
+export function getAdjustedDuration(baseDuration: number): number {
+  const config = getCurrentWarmthConfig();
+  if (!config) return baseDuration;
+  
+  // Lower multiplier = longer duration (more confident/unhurried)
+  // e.g., 0.85 multiplier → 1/0.85 = 1.18x duration
+  return Math.round(baseDuration / config.animationMultiplier);
+}
+
+/**
+ * Get adjusted animation configuration based on relationship stage
+ * Convenience function that returns both duration and easing
+ * 
+ * @param baseDuration - Base duration in ms
+ * @returns Animation config { duration, easing }
+ */
+export function getAdjustedAnimationConfig(baseDuration: number): { 
+  duration: number; 
+  easing: string;
+} {
+  const config = getCurrentWarmthConfig();
+  if (!config) {
+    return { duration: baseDuration, easing: EASING.STANDARD };
+  }
+  
+  // Choose easing based on relationship depth
+  // Deeper relationships get gentler, more organic easing
+  let easing = EASING.STANDARD;
+  if (config.animationMultiplier <= 0.9) {
+    easing = EASING.GENTLE;
+  } else if (config.animationMultiplier <= 0.95) {
+    easing = EASING.SPRING_GENTLE;
+  }
+  
+  return {
+    duration: getAdjustedDuration(baseDuration),
+    easing,
+  };
+}
+
 // ============================================================================
 // CSS INJECTION
 // ============================================================================
@@ -364,6 +415,9 @@ export const warmthManager = {
   getAllConfigs: getAllWarmthConfigs,
   injectStyles: injectWarmthStyles,
   applyTheme: applyWarmthTheme,
+  // Animation helpers
+  getAdjustedDuration,
+  getAdjustedAnimationConfig,
 };
 
 export default warmthManager;

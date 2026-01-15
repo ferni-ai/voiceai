@@ -272,4 +272,74 @@ describe('Direct Tool Router Patterns', () => {
       expect(match?.action).toBe('stop');
     });
   });
+
+  describe('Contact Patterns', () => {
+    const contactExamples = [
+      'call mom',
+      'text John',
+      'message Sarah',
+      'can you call my doctor',
+      'reach out to Mike',
+      'phone Dad',
+    ];
+
+    it.each(contactExamples)('should match contact request: "%s"', (text) => {
+      const matches = CONTACT_PATTERNS.some((p) => p.test(text));
+      expect(matches).toBe(true);
+    });
+  });
+
+  describe('Note Patterns', () => {
+    const noteExamples = [
+      'take a note: meeting at 3pm',
+      'remember I parked in B4',
+      'note: call insurance',
+      'quick note buy milk',
+      'jot down eggs and bread',
+      'save this thought for later',
+    ];
+
+    it.each(noteExamples)('should match note request: "%s"', (text) => {
+      const matches = NOTE_PATTERNS.some((p) => p.test(text));
+      expect(matches).toBe(true);
+    });
+  });
+
+  describe('Smart Home Patterns', () => {
+    const lightsExamples = [
+      { text: 'turn off the lights', device: 'lights' },
+      { text: 'lights on', device: 'lights' },
+      { text: 'turn the lights off', device: 'lights' },
+    ];
+    
+    const thermostatExamples = [
+      { text: 'set thermostat to 72', device: 'thermostat' },
+      { text: '68 degrees', device: 'thermostat' },
+    ];
+
+    it.each(lightsExamples)('should match lights: "$text"', ({ text, device }) => {
+      const match = SMART_HOME_PATTERNS.find((p) => p.pattern.test(text));
+      expect(match?.device).toBe(device);
+    });
+
+    it.each(thermostatExamples)('should match thermostat: "$text"', ({ text, device }) => {
+      const match = SMART_HOME_PATTERNS.find((p) => p.pattern.test(text));
+      expect(match?.device).toBe(device);
+    });
+  });
+
+  describe('News Topic Patterns', () => {
+    const topicExamples = [
+      { text: 'sports news', topic: 'sports' },
+      { text: 'tech headlines', topic: 'technology' },
+      { text: 'business news', topic: 'business' },
+      { text: 'entertainment headlines', topic: 'entertainment' },
+      { text: 'political news', topic: 'politics' },
+    ];
+
+    it.each(topicExamples)('should match topic: "$text"', ({ text, topic }) => {
+      const match = NEWS_TOPIC_PATTERNS.find((p) => p.pattern.test(text));
+      expect(match?.topic).toBe(topic);
+    });
+  });
 });

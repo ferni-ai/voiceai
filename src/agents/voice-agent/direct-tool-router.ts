@@ -1237,12 +1237,59 @@ export async function routeDirectly(
       toolId = toolIdMap[intent.type] || 'unknown';
     }
 
+    // ================================================================
+    // 🎙️ HUMANIZATION: Add persona-specific reaction prefix
+    // Makes tool results sound natural ("Okay so..." before results)
+    // ================================================================
+    let humanizedResponse = result.response;
+    if (result.response) {
+      try {
+        const { getPersonaReactionPrefix, getPersonaFollowUpHook } =
+          await import('../../tools/execution/persona-tool-voice.js');
+        
+        // Get persona-specific reaction (e.g., "Okay so...", "Hmm...")
+        const reaction = getPersonaReactionPrefix(context.personaId);
+        
+        // Get category for follow-up hook
+        const categoryMap: Record<string, 'news' | 'weather' | 'search' | 'default'> = {
+          news: 'news',
+          weather: 'weather',
+          search: 'search',
+        };
+        const category = categoryMap[intent.type] || 'default';
+        
+        // Get follow-up hook (e.g., "Want me to dig into any of those?")
+        const followUp = getPersonaFollowUpHook(context.personaId, category);
+        
+        // Build humanized response
+        const parts: string[] = [];
+        if (reaction) {
+          parts.push(reaction);
+          parts.push('<break time="200ms"/>');
+        }
+        parts.push(result.response);
+        if (followUp) {
+          parts.push('<break time="300ms"/>');
+          parts.push(followUp);
+        }
+        
+        humanizedResponse = parts.join(' ');
+        
+        log.debug(
+          { hasReaction: !!reaction, hasFollowUp: !!followUp, personaId: context.personaId },
+          '🎙️ Added persona voice to tool response'
+        );
+      } catch {
+        // Non-critical - fall back to original response
+      }
+    }
+
     return {
       handled: true,
       toolId,
       confidence: intent.confidence,
       intent: intent.type,
-      speechResponse: result.response,
+      speechResponse: humanizedResponse,
     };
   }
 

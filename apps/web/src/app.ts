@@ -31,6 +31,8 @@ import {
 import { circadianManager } from './services/circadian-manager.js';
 // Warmth Manager - Relationship-based visual evolution
 import { warmthManager } from './services/warmth-manager.js';
+// Persona Aura - Ambient persona-based background glow
+import { personaAura } from './services/persona-aura.js';
 
 // Services
 import { delightService } from './services/delight.service.js';
@@ -1036,6 +1038,10 @@ class VoiceAIApp {
     // Initialize warmth manager (relationship-based visual evolution)
     warmthManager.injectStyles();
     warmthManager.init();
+
+    // Initialize persona aura (ambient persona-based background glow)
+    personaAura.injectStyles();
+    personaAura.init();
 
     // Start ambient warmth cycle (WALL-E style time-aware lighting)
     startAmbientCycle();
@@ -3557,6 +3563,7 @@ class VoiceAIApp {
     ferniExpressions.dispose();
     circadianManager.dispose();
     warmthManager.dispose();
+    personaAura.dispose();
 
     // FIX: Clean up all tracked event listeners to prevent memory leaks
     for (const { target, event, handler } of this.trackedListeners) {
