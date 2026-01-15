@@ -436,7 +436,216 @@ export class EmptyStateUI {
       onAction: onAskFerni,
     });
   }
+  
+  // ==========================================================================
+  // TEASER PREVIEW INTEGRATION
+  // ==========================================================================
+  
+  /**
+   * Minimum conversation counts before showing real data instead of teasers
+   */
+  private readonly TEASER_THRESHOLDS: Record<EmptyStateType, number> = {
+    no_conversations: 0,
+    no_history: 3,
+    no_goals: 5,
+    no_team: 2,
+    loading: 0,
+    search_empty: 0,
+    offline: 0,
+    error: 0,
+    permission_needed: 0,
+    coming_soon: 0,
+  };
+  
+  /**
+   * Check if we should show a teaser preview instead of empty state
+   * Teasers show realistic dummy data to new users to demonstrate value
+   */
+  shouldShowTeaser(type: EmptyStateType, conversationCount: number = 0): boolean {
+    const threshold = this.TEASER_THRESHOLDS[type];
+    if (threshold === 0) return false;
+    
+    // Show teaser if user hasn't reached the threshold
+    return conversationCount < threshold;
+  }
+  
+  /**
+   * Create a teaser preview for a specific empty state type
+   * Teasers show realistic example data with a "preview mode" indicator
+   */
+  createTeaser(type: EmptyStateType, onExplore?: () => void): HTMLElement {
+    const teaserData = TEASER_DATA[type];
+    if (!teaserData) {
+      return this.create({ type });
+    }
+    
+    const element = document.createElement('div');
+    element.className = 'ferni-teaser-preview';
+    
+    Object.assign(element.style, {
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      padding: 'var(--space-6, 24px)',
+      background: 'var(--color-background-secondary, #f5f1e8)',
+      borderRadius: 'var(--radius-xl, 20px)',
+      position: 'relative',
+      opacity: '0',
+      transform: 'translateY(10px)',
+    });
+    
+    // Preview badge
+    const badge = document.createElement('div');
+    badge.className = 'teaser-preview-badge';
+    badge.innerHTML = `
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>
+      </svg>
+      <span>Preview</span>
+    `;
+    Object.assign(badge.style, {
+      position: 'absolute',
+      top: 'var(--space-3, 12px)',
+      right: 'var(--space-3, 12px)',
+      display: 'flex',
+      alignItems: 'center',
+      gap: 'var(--space-1, 4px)',
+      padding: 'var(--space-1, 4px) var(--space-2, 8px)',
+      background: 'var(--persona-tint, rgba(74, 103, 65, 0.1))',
+      borderRadius: 'var(--radius-full, 9999px)',
+      fontSize: '11px',
+      fontWeight: '600',
+      color: 'var(--persona-primary, #4a6741)',
+    });
+    element.appendChild(badge);
+    
+    // Teaser content based on type
+    const content = document.createElement('div');
+    content.className = 'teaser-content';
+    content.innerHTML = teaserData.content;
+    Object.assign(content.style, {
+      width: '100%',
+      maxWidth: '320px',
+      marginBottom: 'var(--space-4, 16px)',
+    });
+    element.appendChild(content);
+    
+    // Teaser message
+    const message = document.createElement('p');
+    message.className = 'teaser-message';
+    message.textContent = teaserData.message;
+    Object.assign(message.style, {
+      fontFamily: 'var(--font-body)',
+      fontSize: '14px',
+      color: 'var(--color-text-secondary, #70605a)',
+      textAlign: 'center',
+      margin: '0 0 var(--space-4, 16px)',
+      fontStyle: 'italic',
+    });
+    element.appendChild(message);
+    
+    // CTA button
+    if (teaserData.actionLabel) {
+      const button = this.createButton(teaserData.actionLabel, 'primary', onExplore);
+      element.appendChild(button);
+    }
+    
+    // Animate in
+    requestAnimationFrame(() => {
+      element.style.transition = `opacity ${DURATION.SLOW}ms ${EASING.STANDARD}, transform ${DURATION.SLOW}ms ${EASING.STANDARD}`;
+      element.style.opacity = '1';
+      element.style.transform = 'translateY(0)';
+    });
+    
+    return element;
+  }
+  
+  /**
+   * Smart show: decides between teaser and empty state based on user progress
+   */
+  showSmart(container: HTMLElement, config: EmptyStateConfig & { conversationCount?: number }): HTMLElement {
+    const { conversationCount = 0, ...restConfig } = config;
+    
+    // Clear container
+    container.innerHTML = '';
+    
+    // Check if teaser should show
+    if (this.shouldShowTeaser(config.type, conversationCount)) {
+      const teaser = this.createTeaser(config.type, restConfig.onAction);
+      container.appendChild(teaser);
+      return teaser;
+    }
+    
+    // Otherwise show regular empty state
+    const emptyState = this.create(restConfig);
+    container.appendChild(emptyState);
+    return emptyState;
+  }
 }
+
+// ============================================================================
+// TEASER PREVIEW DATA
+// Realistic dummy data that demonstrates value to new users
+// ============================================================================
+
+interface TeaserPreviewData {
+  content: string;
+  message: string;
+  actionLabel?: string;
+}
+
+const TEASER_DATA: Partial<Record<EmptyStateType, TeaserPreviewData>> = {
+  no_history: {
+    content: `
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+        <div style="display: flex; align-items: center; gap: 12px; padding: 12px; background: white; border-radius: 12px; opacity: 0.7;">
+          <div style="width: 8px; height: 8px; border-radius: 50%; background: var(--persona-primary, #4a6741);"></div>
+          <div style="flex: 1;">
+            <div style="font-size: 13px; font-weight: 500; color: var(--color-text-primary);">Talked about morning routine</div>
+            <div style="font-size: 11px; color: var(--color-text-muted);">Yesterday</div>
+          </div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 12px; padding: 12px; background: white; border-radius: 12px; opacity: 0.5;">
+          <div style="width: 8px; height: 8px; border-radius: 50%; background: var(--color-text-muted);"></div>
+          <div style="flex: 1;">
+            <div style="font-size: 13px; font-weight: 500; color: var(--color-text-secondary);">Shared a personal challenge</div>
+            <div style="font-size: 11px; color: var(--color-text-muted);">2 days ago</div>
+          </div>
+        </div>
+      </div>
+    `,
+    message: 'Your conversation history will appear here',
+    actionLabel: 'Start a conversation',
+  },
+  no_goals: {
+    content: `
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <div style="display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: white; border-radius: 10px; opacity: 0.7;">
+          <div style="width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--persona-primary, #4a6741);"></div>
+          <span style="font-size: 13px; color: var(--color-text-primary);">Wake up by 7am daily</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: white; border-radius: 10px; opacity: 0.5;">
+          <div style="width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--color-text-muted);"></div>
+          <span style="font-size: 13px; color: var(--color-text-secondary);">Read for 20 minutes</span>
+        </div>
+      </div>
+    `,
+    message: 'Track goals together after a few conversations',
+    actionLabel: 'Let\'s talk about goals',
+  },
+  no_team: {
+    content: `
+      <div style="display: flex; justify-content: center; gap: 8px;">
+        <div style="width: 44px; height: 44px; border-radius: 50%; background: linear-gradient(135deg, #4a6741, #3d5a35); opacity: 1;"></div>
+        <div style="width: 44px; height: 44px; border-radius: 50%; background: var(--color-text-muted); opacity: 0.4;"></div>
+        <div style="width: 44px; height: 44px; border-radius: 50%; background: var(--color-text-muted); opacity: 0.3;"></div>
+        <div style="width: 44px; height: 44px; border-radius: 50%; background: var(--color-text-muted); opacity: 0.2;"></div>
+      </div>
+    `,
+    message: 'Unlock more team members by building your relationship with Ferni',
+    actionLabel: 'Talk to Ferni',
+  },
+};
 
 // ============================================================================
 // SINGLETON EXPORT

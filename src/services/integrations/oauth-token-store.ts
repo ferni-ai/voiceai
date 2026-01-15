@@ -16,7 +16,7 @@ import {
   recordDegradation,
 } from '../../utils/firestore-utils.js';
 import { createCipheriv, createDecipheriv, randomBytes, scryptSync } from 'crypto';
-import type { OAuthTokens, ConnectionStatus } from '../types.js';
+import type { OAuthTokens, ConnectionStatus } from './types.js';
 
 const log = createLogger({ module: 'oauth-token-store' });
 

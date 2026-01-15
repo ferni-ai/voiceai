@@ -65,6 +65,7 @@ export interface SettingsMenuUICallbacks {
   onOnboardingClick?: () => void;
   onThemeToggle?: () => void;
   onNotificationSettingsClick?: () => void;
+  onSleepSettingsClick?: () => void;
   onSpotifyClick?: () => void;
   onVibeControllerClick?: () => void;
   onSmartHomeClick?: () => void;
@@ -211,6 +212,8 @@ const ICONS = {
   palette:
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="13.5" cy="6.5" r="1.5" fill="currentColor"/><circle cx="17.5" cy="10.5" r="1.5" fill="currentColor"/><circle cx="8.5" cy="7.5" r="1.5" fill="currentColor"/><circle cx="6.5" cy="12.5" r="1.5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.555C21.965 6.012 17.461 2 12 2z"/></svg>',
   bell: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>',
+  sleep:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>',
   globe:
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>',
 
@@ -856,6 +859,7 @@ class SettingsMenuUI {
             ${this.renderMenuItem('personal-settings', ICONS.palette, t('menu.items.personalize'))}
             ${this.renderMenuItem('accent-settings', ICONS.globe, t('menu.items.voiceAccent'))}
             ${this.renderMenuItem('theme', ICONS.theme, t('menu.items.themeLanguage'))}
+            ${this.renderMenuItem('sleep-settings', ICONS.sleep, t('menu.items.sleepSchedule') || 'Sleep Schedule')}
             ${this.renderToggleItem('toggle-transcription', ICONS.transcript, t('menu.items.showTranscript') || 'Show Transcript', transcriptUI.isEnabled())}
             ${this.renderToggleItem('toggle-sounds', ICONS.speaker, t('menu.items.soundEffects') || 'Sound Effects', !soundUI.getMuted())}
             ${this.renderMenuItem('voice-id-settings', ICONS.fingerprint, t('menu.items.voiceId'))}
@@ -1279,6 +1283,9 @@ class SettingsMenuUI {
         break;
       case 'notifications':
         this.callbacks.onNotificationSettingsClick?.();
+        break;
+      case 'sleep-settings':
+        this.callbacks.onSleepSettingsClick?.();
         break;
       case 'spotify':
         this.callbacks.onSpotifyClick?.();

@@ -72,6 +72,10 @@ import {
 // Winter Solstice - cinematic holiday experience
 import { winterSolsticeMoment } from './winter-solstice.ui.js';
 
+// Ambient experience managers (circadian, warmth, persona aura)
+import { circadianManager, type CircadianPeriod } from '../services/circadian-manager.js';
+import { warmthManager, type RelationshipStage } from '../services/warmth-manager.js';
+
 // Ferni Moments - Character expressions
 import { ferniMoments, type MomentType } from './ferni-moments.ui.js';
 // Avatar Sidekicks - Expressive side icons (like "hands" holding props)
@@ -2133,6 +2137,64 @@ function createPanel(): HTMLElement {
             </button>
           </div>
         </div>
+        
+        <!-- Circadian & Warmth Testing -->
+        <div class="dev-subsection">
+          <span class="dev-label">${ICONS.moon} Circadian Period (${circadianManager.getCurrentPeriod() || 'auto'})</span>
+          <div class="dev-expression-buttons" role="button" tabindex="0">
+            <button class="dev-expression-btn dev-expression-btn--circadian ${circadianManager.getCurrentPeriod() === 'earlyMorning' ? 'active' : ''}" data-circadian="earlyMorning" title="Dawn">
+              🌅 Dawn
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--circadian ${circadianManager.getCurrentPeriod() === 'morning' ? 'active' : ''}" data-circadian="morning" title="Morning">
+              ☀️ Morning
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--circadian ${circadianManager.getCurrentPeriod() === 'midday' ? 'active' : ''}" data-circadian="midday" title="Midday">
+              🌞 Midday
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--circadian ${circadianManager.getCurrentPeriod() === 'afternoon' ? 'active' : ''}" data-circadian="afternoon" title="Afternoon">
+              🌤️ Afternoon
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--circadian ${circadianManager.getCurrentPeriod() === 'evening' ? 'active' : ''}" data-circadian="evening" title="Evening">
+              🌇 Evening
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--circadian ${circadianManager.getCurrentPeriod() === 'night' ? 'active' : ''}" data-circadian="night" title="Night">
+              🌙 Night
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--circadian ${circadianManager.getCurrentPeriod() === 'lateNight' ? 'active' : ''}" data-circadian="lateNight" title="Late Night">
+              🌃 Late Night
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--circadian ${circadianManager.getCurrentPeriod() === 'deepNight' ? 'active' : ''}" data-circadian="deepNight" title="Deep Night">
+              ✨ Deep Night
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--circadian" data-circadian="auto" title="Reset to Auto">
+              🔄 Auto
+            </button>
+          </div>
+        </div>
+        
+        <div class="dev-subsection">
+          <span class="dev-label">${ICONS.heart} Relationship Warmth</span>
+          <div class="dev-expression-buttons" role="button" tabindex="0">
+            <button class="dev-expression-btn dev-expression-btn--warmth" data-warmth="first-meeting" title="First Meeting">
+              1️⃣ First Meeting
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--warmth" data-warmth="getting-started" title="Getting Started">
+              2️⃣ Getting Started
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--warmth" data-warmth="building-trust" title="Building Trust">
+              3️⃣ Building Trust
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--warmth" data-warmth="established" title="Established">
+              4️⃣ Established
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--warmth" data-warmth="deep-partnership" title="Deep Partnership">
+              5️⃣ Deep Partnership
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--warmth dev-expression-btn--primary" data-warmth="celebrate" title="Trigger Warmth Celebration">
+              ${ICONS.sparkles} Celebration
+            </button>
+          </div>
+        </div>
       </section>
       
       <!-- ${ICONS.upload} Proactive Outreach Testing -->
@@ -3147,6 +3209,49 @@ function createPanel(): HTMLElement {
           b.classList.toggle('active', w === getCurrentWeather());
         }
       });
+    });
+  });
+
+  // Circadian period buttons
+  container.querySelectorAll('[data-circadian]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const period = (btn as HTMLElement).dataset.circadian;
+      if (period === 'auto') {
+        circadianManager.clearOverride();
+      } else if (period) {
+        circadianManager.setOverride(period as CircadianPeriod);
+      }
+      // Update active states
+      container.querySelectorAll('[data-circadian]').forEach((b) => {
+        const p = (b as HTMLElement).dataset.circadian;
+        if (p === 'auto') {
+          b.classList.toggle('active', !circadianManager.hasOverride());
+        } else {
+          b.classList.toggle('active', p === circadianManager.getCurrentPeriod());
+        }
+      });
+      log.info({ period }, 'Circadian period changed via dev panel');
+    });
+  });
+
+  // Warmth/relationship stage buttons
+  container.querySelectorAll('[data-warmth]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const stage = (btn as HTMLElement).dataset.warmth;
+      if (stage === 'celebrate') {
+        warmthManager.triggerWarmthCelebration();
+        log.info('Warmth celebration triggered via dev panel');
+      } else if (stage) {
+        warmthManager.applyTheme(stage as RelationshipStage);
+        // Update active states
+        container.querySelectorAll('[data-warmth]').forEach((b) => {
+          const s = (b as HTMLElement).dataset.warmth;
+          if (s !== 'celebrate') {
+            b.classList.toggle('active', s === stage);
+          }
+        });
+        log.info({ stage }, 'Warmth stage changed via dev panel');
+      }
     });
   });
 

@@ -216,6 +216,74 @@ export {
 } from './meta-moments.js';
 
 // ===========================================================================
+// BRAND EVOLUTION FEATURES (January 2026)
+// "Better than Human" signature moments
+// ===========================================================================
+
+// Brand Secrets - Easter eggs, milestones, achievements
+export {
+  checkBrandSecrets,
+  checkAchievements,
+  formatSecretForPrompt,
+  formatAchievementForPrompt,
+  resetSessionSecrets,
+  resetUserSecretState,
+  getUserAchievements,
+  getDiscoveredSecretsCount,
+  ACHIEVEMENTS,
+  type SecretContext,
+  type SecretResult,
+  type BrandSecret,
+  type Achievement,
+} from './brand-secrets.js';
+
+// Late Night Warmth - 2am mode
+export {
+  getLateNightContext,
+  getLateNightGreeting,
+  getLateNightBehaviors,
+  formatLateNightContextForPrompt,
+  getLateNightCSSVariables,
+  shouldAnnounceLateNightMode,
+  markLateNightModeAnnounced,
+  resetLateNightState,
+  getGroundingExercise,
+  type LateNightContext,
+  type LateNightGreeting,
+  type LateNightBehaviorAdjustment,
+} from './late-night-warmth.js';
+
+// Memory Callbacks - The signature moment
+export {
+  generateMemoryCallback,
+  formatMemoryCallbackForPrompt,
+  storeQuote as storeMemoryQuote,
+  storePattern as storeMemoryPattern,
+  storeMilestone as storeMemoryMilestone,
+  storeRelationship as storeMemoryRelationship,
+  storeDream as storeMemoryDream,
+  getMemoryCallbackStats,
+  type MemoryCallback,
+  type MemoryCallbackType,
+  type UserMemoryBank,
+} from './memory-callbacks.js';
+
+// Brand Evolution Integration - Unified interface
+export {
+  initializeBrandEvolutionSession,
+  resetBrandEvolutionSession,
+  processBrandEvolution,
+  formatBrandEvolutionForPrompt,
+  captureMemorableQuote,
+  capturePattern,
+  captureMilestone,
+  captureRelationship,
+  captureDream,
+  type BrandEvolutionContext,
+  type BrandEvolutionResult,
+} from './brand-evolution-integration.js';
+
+// ===========================================================================
 // CONSOLIDATED SESSION CLEANUP (Memory Leak Prevention)
 // ===========================================================================
 
@@ -234,6 +302,7 @@ import { clearReflectionStates } from './empathetic-reflections.js';
 import { clearSharedLanguage } from './shared-language.js';
 import { clearRitualStates } from './conversational-rituals.js';
 import { clearMetaMomentStates } from './meta-moments.js';
+import { resetBrandEvolutionSession } from './brand-evolution-integration.js';
 
 /**
  * Clear all superhuman engine state for a specific user session.
@@ -277,4 +346,7 @@ export function clearAllSuperhumanSessionState(): void {
   clearSharedLanguage();
   clearRitualStates();
   clearMetaMomentStates();
+  
+  // Clear brand evolution state
+  resetBrandEvolutionSession();
 }

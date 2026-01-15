@@ -10,7 +10,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { randomBytes } from 'crypto';
-import type { OAuthConfig, OAuthTokens, OAuthState } from '../types.js';
+import type { OAuthConfig, OAuthTokens, OAuthState } from './types.js';
 import {
   saveOAuthTokens,
   getOAuthTokens,

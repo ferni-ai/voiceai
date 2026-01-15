@@ -96,3 +96,22 @@ export {
   type LiveBackchannelState,
   type LiveBackchannelIntegration,
 } from './live-backchanneling-integration.js';
+
+// Voice-Memory Integration (Phase 11: Better Than Human)
+export {
+  recordVoiceContext,
+  getVoiceContext,
+  clearVoiceContext,
+  calculateEmotionalWeight,
+  calculateRetrievalBoost,
+  applyRetrievalBoost,
+  adaptMemoryDelivery,
+  cleanupVoiceMemorySession,
+  getVoiceMemoryStats,
+  setVoiceMemoryConfig,
+  getVoiceMemoryConfig,
+  type VoiceContext,
+  type EmotionalMemoryWeight,
+  type VoiceRetrievalBoost,
+  type VoiceMemoryConfig,
+} from './voice-memory-integration.js';

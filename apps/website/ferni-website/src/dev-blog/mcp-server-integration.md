@@ -3,7 +3,7 @@ title: "Building Your First MCP Integration"
 excerpt: "A step-by-step guide to registering external MCP servers and making their tools available to voice agents."
 author: "Ferni Dev Team"
 authorInitials: "FD"
-authorColor: "#38bdf8"
+authorColor: "#4a6741"
 date: 2026-01-11
 category: "Tutorial"
 image: "mcp-integration.png"

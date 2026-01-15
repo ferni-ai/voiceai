@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Simplified Ferni logo without ring -->
+<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="orbGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4a6741"/>
+      <stop offset="100%" stop-color="#3a5731"/>
+    </linearGradient>
+    <linearGradient id="eyeFill" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#f0f0f0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Circular background (no ring) -->
+  <circle cx="50" cy="50" r="45" fill="url(#orbGradient)"/>
+
+  <!-- Left eye -->
+  <ellipse cx="36" cy="47" rx="9" ry="11" fill="url(#eyeFill)"/>
+  <circle cx="34" cy="42" r="2.2" fill="white"/>
+  <circle cx="36" cy="44" r="0.9" fill="white" opacity="0.7"/>
+
+  <!-- Right eye -->
+  <ellipse cx="64" cy="47" rx="9" ry="11" fill="url(#eyeFill)"/>
+  <circle cx="62" cy="42" r="2.2" fill="white"/>
+  <circle cx="64" cy="44" r="0.9" fill="white" opacity="0.7"/>
+</svg>

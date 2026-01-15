@@ -505,11 +505,10 @@ export async function handleObservabilityRoutes(
     // GET /api/observability/dynamic-memory - Dynamic memory system metrics
     if (pathname === '/api/observability/dynamic-memory' && req.method === 'GET') {
       try {
-        const { getDynamicMemoryMetrics, getSTMStats } = await import(
-          '../memory/dynamic/index.js'
-        );
+        const { getDynamicMemoryMetrics, getSTMStats } = await import('../memory/dynamic/index.js');
         const { getSyncStats } = await import('../memory/dynamic/firestore-spanner-sync.js');
-        const { getDeepExtractionWorker } = await import('../memory/dynamic/deep-extraction-worker.js');
+        const { getDeepExtractionWorker } =
+          await import('../memory/dynamic/deep-extraction-worker.js');
 
         const dynamicMetrics = getDynamicMemoryMetrics();
         const stmStats = getSTMStats();

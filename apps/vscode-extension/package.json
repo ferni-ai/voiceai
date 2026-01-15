@@ -1,0 +1,151 @@
+{
+  "name": "ferni-design-system",
+  "displayName": "Ferni Design System",
+  "description": "Design token autocomplete, color preview, and brand validation for Ferni",
+  "version": "0.1.0",
+  "publisher": "ferni",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ferni/design-system"
+  },
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other",
+    "Linters",
+    "Snippets"
+  ],
+  "keywords": [
+    "ferni",
+    "design system",
+    "tokens",
+    "css variables",
+    "color preview"
+  ],
+  "activationEvents": [
+    "onLanguage:css",
+    "onLanguage:scss",
+    "onLanguage:less",
+    "onLanguage:typescript",
+    "onLanguage:javascript",
+    "onLanguage:typescriptreact",
+    "onLanguage:javascriptreact",
+    "onLanguage:vue",
+    "onLanguage:svelte",
+    "onLanguage:html"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "ferni.showTokens",
+        "title": "Ferni: Show All Tokens"
+      },
+      {
+        "command": "ferni.validateFile",
+        "title": "Ferni: Validate File"
+      },
+      {
+        "command": "ferni.validateWorkspace",
+        "title": "Ferni: Validate Workspace"
+      },
+      {
+        "command": "ferni.syncTokens",
+        "title": "Ferni: Sync Tokens"
+      },
+      {
+        "command": "ferni.openDesignSystem",
+        "title": "Ferni: Open Design System"
+      }
+    ],
+    "configuration": {
+      "title": "Ferni Design System",
+      "properties": {
+        "ferniDesignSystem.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable Ferni Design System extension"
+        },
+        "ferniDesignSystem.tokenSource": {
+          "type": "string",
+          "enum": ["local", "remote"],
+          "default": "local",
+          "description": "Token source (local file or remote URL)"
+        },
+        "ferniDesignSystem.tokenPath": {
+          "type": "string",
+          "default": "./design-system/tokens",
+          "description": "Path to local token files"
+        },
+        "ferniDesignSystem.remoteTokenUrl": {
+          "type": "string",
+          "default": "https://raw.githubusercontent.com/ferni/design-system/main/tokens",
+          "description": "Remote URL for token files"
+        },
+        "ferniDesignSystem.validation.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable brand validation"
+        },
+        "ferniDesignSystem.validation.severity": {
+          "type": "string",
+          "enum": ["warning", "error"],
+          "default": "warning",
+          "description": "Severity level for validation issues"
+        },
+        "ferniDesignSystem.colorPreview.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show inline color previews"
+        },
+        "ferniDesignSystem.autocomplete.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable token autocomplete"
+        }
+      }
+    },
+    "views": {
+      "explorer": [
+        {
+          "id": "ferniTokens",
+          "name": "Ferni Tokens",
+          "when": "ferniDesignSystem.enabled"
+        }
+      ]
+    },
+    "menus": {
+      "editor/context": [
+        {
+          "command": "ferni.validateFile",
+          "group": "ferni",
+          "when": "editorLangId =~ /css|scss|less|typescript|javascript/"
+        }
+      ]
+    },
+    "keybindings": [
+      {
+        "command": "ferni.showTokens",
+        "key": "ctrl+shift+f",
+        "mac": "cmd+shift+f",
+        "when": "editorTextFocus"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run build",
+    "build": "esbuild src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node",
+    "watch": "npm run build -- --watch",
+    "lint": "eslint src --ext .ts",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.85.0",
+    "esbuild": "^0.19.0",
+    "eslint": "^8.0.0",
+    "typescript": "^5.3.0",
+    "@vscode/vsce": "^2.22.0"
+  }
+}

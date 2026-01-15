@@ -27,6 +27,26 @@ export type { DialogOptions } from './Dialog.js';
 export { CelebrationManager, celebration } from './Celebration.js';
 export type { CelebrationOptions, CelebrationType } from './Celebration.js';
 
+// Input - Text input with validation
+export { Input, createInput } from './Input.js';
+export type { InputOptions, InputType, InputSize, InputState } from './Input.js';
+
+// Card - Content container
+export { Card, createCard } from './Card.js';
+export type { CardOptions, CardVariant, CardSize } from './Card.js';
+
+// Spinner - Loading indicator
+export { Spinner, createSpinner, showLoadingOverlay } from './Spinner.js';
+export type { SpinnerOptions, SpinnerSize, SpinnerVariant } from './Spinner.js';
+
+// Badge - Status indicator
+export { Badge, createBadge } from './Badge.js';
+export type { BadgeOptions, BadgeVariant, BadgeSize } from './Badge.js';
+
+// Tooltip - Hover hint
+export { Tooltip, attachTooltip, showTooltipAt } from './Tooltip.js';
+export type { TooltipOptions, TooltipPosition } from './Tooltip.js';
+
 // ============================================================================
 // Re-exports from utilities
 // ============================================================================

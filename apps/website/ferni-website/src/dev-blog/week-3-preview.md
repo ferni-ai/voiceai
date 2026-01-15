@@ -3,7 +3,7 @@ title: "Week 3: Testing, Deployment, and Going to Production"
 excerpt: "Next week we cover everything you need to ship your voice AI to real users - testing strategies, deployment patterns, and production monitoring."
 author: "Ferni Dev Team"
 authorInitials: "FD"
-authorColor: "#38bdf8"
+authorColor: "#4a6741"
 date: 2026-01-18
 category: "Roadmap"
 image: "week-3-preview.png"

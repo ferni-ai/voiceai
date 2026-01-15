@@ -128,3 +128,15 @@ export {
   type NativeLibraryInfo,
   type UnifiedAudioAnalyzer,
 } from './native-analyzer.js';
+
+// ============================================================================
+// MEMORY PROSODY (Phase 11: Better Than Human)
+// ============================================================================
+
+export {
+  analyzeMemoryProsody,
+  adaptSSMLForMemoryRecall,
+  analyzeEmotionalTrajectory,
+  type MemoryProsodyResult,
+  type MemoryProsodyInput,
+} from './memory-prosody.js';

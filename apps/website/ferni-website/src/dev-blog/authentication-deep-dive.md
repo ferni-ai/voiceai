@@ -3,7 +3,7 @@ title: "Authentication Deep Dive: OAuth, API Keys, and JWTs"
 excerpt: "A comprehensive guide to securing your Ferni integration - from simple API keys to enterprise SSO."
 author: "Ferni Dev Team"
 authorInitials: "FD"
-authorColor: "#38bdf8"
+authorColor: "#4a6741"
 date: 2026-01-13
 category: "Deep Dives"
 image: "auth-deep-dive.png"

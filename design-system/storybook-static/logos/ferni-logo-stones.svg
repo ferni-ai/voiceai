@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Logo with three supportive orbs representing the team -->
+<svg viewBox="0 0 200 100" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="orbGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4a6741"/>
+      <stop offset="100%" stop-color="#3a5731"/>
+    </linearGradient>
+    <linearGradient id="eyeFill" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#f0f0f0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Supporting orbs (team representation) -->
+  <circle cx="30" cy="65" r="18" fill="#3a6b73" opacity="0.6"/>
+  <circle cx="170" cy="65" r="18" fill="#a67a6a" opacity="0.6"/>
+  <circle cx="100" cy="80" r="14" fill="#c4856a" opacity="0.5"/>
+
+  <!-- Main Ferni orb - outer ring -->
+  <circle cx="100" cy="45" r="40" fill="none" stroke="#4a6741" stroke-width="1.5" opacity="0.35"/>
+
+  <!-- Main Ferni circular background -->
+  <circle cx="100" cy="45" r="35" fill="url(#orbGradient)"/>
+
+  <!-- Left eye -->
+  <ellipse cx="88" cy="42" rx="7" ry="9" fill="url(#eyeFill)"/>
+  <circle cx="86" cy="39" r="1.8" fill="white"/>
+
+  <!-- Right eye -->
+  <ellipse cx="112" cy="42" rx="7" ry="9" fill="url(#eyeFill)"/>
+  <circle cx="110" cy="39" r="1.8" fill="white"/>
+</svg>

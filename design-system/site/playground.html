@@ -1,0 +1,1015 @@
+<!doctype html>
+<html lang="en" data-theme="zen">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Playground - Ferni Design System</title>
+    <meta
+      name="description"
+      content="Interactive playground for the Ferni Design System - try components live"
+    />
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Design Tokens -->
+    <link rel="stylesheet" href="/dist/tokens.css" />
+
+    <style>
+      :root {
+        --site-max-width: 1400px;
+        --site-padding: 24px;
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        background: var(--color-background-primary, #faf8f5);
+        color: var(--color-text-primary, #2c2520);
+        line-height: 1.6;
+        -webkit-font-smoothing: antialiased;
+        min-height: 100vh;
+      }
+
+      /* Header */
+      .header {
+        position: sticky;
+        top: 0;
+        background: rgba(250, 248, 245, 0.9);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border-bottom: 1px solid rgba(44, 37, 32, 0.08);
+        z-index: 100;
+      }
+
+      .header-inner {
+        max-width: var(--site-max-width);
+        margin: 0 auto;
+        padding: 16px var(--site-padding);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .header-title {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .header-title a {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        text-decoration: none;
+        color: inherit;
+      }
+
+      .header-logo {
+        width: 36px;
+        height: 36px;
+        background: var(--persona-primary, #4a6741);
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: 700;
+        font-size: 14px;
+      }
+
+      .header-text {
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        font-weight: 600;
+        font-size: 18px;
+      }
+
+      .header-badge {
+        background: var(--color-background-subtle);
+        padding: 4px 10px;
+        border-radius: 9999px;
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--color-text-muted);
+      }
+
+      /* Main Layout */
+      .playground-container {
+        max-width: var(--site-max-width);
+        margin: 0 auto;
+        padding: var(--site-padding);
+        display: grid;
+        grid-template-columns: 300px 1fr;
+        gap: 24px;
+        min-height: calc(100vh - 70px);
+      }
+
+      /* Sidebar */
+      .sidebar {
+        position: sticky;
+        top: 94px;
+        height: fit-content;
+        max-height: calc(100vh - 120px);
+        overflow-y: auto;
+      }
+
+      .sidebar-section {
+        margin-bottom: 24px;
+      }
+
+      .sidebar-title {
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--color-text-muted);
+        margin-bottom: 12px;
+      }
+
+      .component-list {
+        list-style: none;
+      }
+
+      .component-item {
+        margin-bottom: 4px;
+      }
+
+      .component-btn {
+        width: 100%;
+        padding: 10px 14px;
+        text-align: left;
+        background: transparent;
+        border: none;
+        border-radius: 8px;
+        font-family: inherit;
+        font-size: 14px;
+        color: var(--color-text-secondary);
+        cursor: pointer;
+        transition: background 0.15s ease, color 0.15s ease;
+      }
+
+      .component-btn:hover {
+        background: var(--color-background-subtle);
+        color: var(--color-text-primary);
+      }
+
+      .component-btn.active {
+        background: var(--persona-primary);
+        color: white;
+      }
+
+      /* Main Content */
+      .main {
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+      }
+
+      /* Preview Panel */
+      .preview-panel {
+        background: white;
+        border: 1px solid rgba(44, 37, 32, 0.08);
+        border-radius: 16px;
+        overflow: hidden;
+      }
+
+      .preview-header {
+        padding: 16px 20px;
+        border-bottom: 1px solid rgba(44, 37, 32, 0.08);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .preview-title {
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        font-weight: 600;
+        font-size: 16px;
+      }
+
+      .preview-controls {
+        display: flex;
+        gap: 8px;
+      }
+
+      .control-btn {
+        padding: 6px 12px;
+        background: var(--color-background-subtle);
+        border: none;
+        border-radius: 6px;
+        font-family: inherit;
+        font-size: 13px;
+        color: var(--color-text-secondary);
+        cursor: pointer;
+        transition: background 0.15s ease;
+      }
+
+      .control-btn:hover {
+        background: var(--color-background-elevated);
+      }
+
+      .control-btn.active {
+        background: var(--persona-primary);
+        color: white;
+      }
+
+      .preview-content {
+        padding: 40px;
+        min-height: 300px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #fafafa;
+        background-image: radial-gradient(circle, #e0e0e0 1px, transparent 1px);
+        background-size: 20px 20px;
+      }
+
+      /* Code Editor */
+      .editor-panel {
+        background: #1e1e2e;
+        border-radius: 16px;
+        overflow: hidden;
+      }
+
+      .editor-header {
+        padding: 12px 16px;
+        background: rgba(0, 0, 0, 0.3);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .editor-tabs {
+        display: flex;
+        gap: 4px;
+      }
+
+      .editor-tab {
+        padding: 6px 12px;
+        background: transparent;
+        border: none;
+        border-radius: 6px;
+        font-family: inherit;
+        font-size: 13px;
+        color: rgba(255, 255, 255, 0.6);
+        cursor: pointer;
+        transition: background 0.15s ease, color 0.15s ease;
+      }
+
+      .editor-tab:hover {
+        color: rgba(255, 255, 255, 0.8);
+      }
+
+      .editor-tab.active {
+        background: rgba(255, 255, 255, 0.1);
+        color: white;
+      }
+
+      .editor-actions {
+        display: flex;
+        gap: 8px;
+      }
+
+      .editor-btn {
+        padding: 6px 12px;
+        background: var(--persona-primary);
+        border: none;
+        border-radius: 6px;
+        font-family: inherit;
+        font-size: 13px;
+        font-weight: 500;
+        color: white;
+        cursor: pointer;
+        transition: opacity 0.15s ease;
+      }
+
+      .editor-btn:hover {
+        opacity: 0.9;
+      }
+
+      .editor-content {
+        position: relative;
+      }
+
+      .code-editor {
+        width: 100%;
+        min-height: 200px;
+        padding: 16px;
+        background: transparent;
+        border: none;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 14px;
+        line-height: 1.6;
+        color: #cdd6f4;
+        resize: vertical;
+        outline: none;
+        tab-size: 2;
+      }
+
+      .code-editor::selection {
+        background: rgba(137, 180, 250, 0.3);
+      }
+
+      /* Props Panel */
+      .props-panel {
+        background: white;
+        border: 1px solid rgba(44, 37, 32, 0.08);
+        border-radius: 16px;
+        padding: 20px;
+      }
+
+      .props-title {
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        font-weight: 600;
+        font-size: 14px;
+        margin-bottom: 16px;
+      }
+
+      .prop-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 0;
+        border-bottom: 1px solid rgba(44, 37, 32, 0.05);
+      }
+
+      .prop-row:last-child {
+        border-bottom: none;
+      }
+
+      .prop-label {
+        flex: 0 0 120px;
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--color-text-secondary);
+      }
+
+      .prop-input {
+        flex: 1;
+        padding: 8px 12px;
+        background: var(--color-background-subtle);
+        border: 1px solid transparent;
+        border-radius: 6px;
+        font-family: inherit;
+        font-size: 14px;
+        color: var(--color-text-primary);
+        transition: border-color 0.15s ease;
+      }
+
+      .prop-input:focus {
+        outline: none;
+        border-color: var(--persona-primary);
+      }
+
+      .prop-select {
+        flex: 1;
+        padding: 8px 12px;
+        background: var(--color-background-subtle);
+        border: 1px solid transparent;
+        border-radius: 6px;
+        font-family: inherit;
+        font-size: 14px;
+        color: var(--color-text-primary);
+        cursor: pointer;
+      }
+
+      .prop-toggle {
+        width: 44px;
+        height: 24px;
+        background: var(--color-background-subtle);
+        border: none;
+        border-radius: 12px;
+        cursor: pointer;
+        position: relative;
+        transition: background 0.2s ease;
+      }
+
+      .prop-toggle::after {
+        content: '';
+        position: absolute;
+        top: 2px;
+        left: 2px;
+        width: 20px;
+        height: 20px;
+        background: white;
+        border-radius: 50%;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+        transition: transform 0.2s ease;
+      }
+
+      .prop-toggle.active {
+        background: var(--persona-primary);
+      }
+
+      .prop-toggle.active::after {
+        transform: translateX(20px);
+      }
+
+      /* Footer */
+      .playground-footer {
+        text-align: center;
+        padding: 24px;
+        color: var(--color-text-muted);
+        font-size: 13px;
+      }
+
+      .playground-footer a {
+        color: var(--persona-primary);
+        text-decoration: none;
+      }
+
+      @media (max-width: 900px) {
+        .playground-container {
+          grid-template-columns: 1fr;
+        }
+
+        .sidebar {
+          position: static;
+          display: flex;
+          gap: 16px;
+          overflow-x: auto;
+          padding-bottom: 16px;
+        }
+
+        .sidebar-section {
+          margin-bottom: 0;
+        }
+
+        .component-list {
+          display: flex;
+          gap: 8px;
+        }
+
+        .component-btn {
+          white-space: nowrap;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="header">
+      <div class="header-inner">
+        <div class="header-title">
+          <a href="/site/">
+            <div class="header-logo">F</div>
+            <span class="header-text">Design System</span>
+          </a>
+          <span class="header-badge">Playground</span>
+        </div>
+        <div>
+          <a href="/site/" style="color: var(--persona-primary); text-decoration: none; font-weight: 500; font-size: 14px;">
+            ← Back to Docs
+          </a>
+        </div>
+      </div>
+    </header>
+
+    <div class="playground-container">
+      <aside class="sidebar">
+        <div class="sidebar-section">
+          <h3 class="sidebar-title">Components</h3>
+          <ul class="component-list">
+            <li class="component-item">
+              <button class="component-btn active" data-component="avatar">Avatar</button>
+            </li>
+            <li class="component-item">
+              <button class="component-btn" data-component="button">Button</button>
+            </li>
+            <li class="component-item">
+              <button class="component-btn" data-component="input">Input</button>
+            </li>
+            <li class="component-item">
+              <button class="component-btn" data-component="card">Card</button>
+            </li>
+            <li class="component-item">
+              <button class="component-btn" data-component="badge">Badge</button>
+            </li>
+            <li class="component-item">
+              <button class="component-btn" data-component="toast">Toast</button>
+            </li>
+            <li class="component-item">
+              <button class="component-btn" data-component="spinner">Spinner</button>
+            </li>
+          </ul>
+        </div>
+      </aside>
+
+      <main class="main">
+        <div class="preview-panel">
+          <div class="preview-header">
+            <h2 class="preview-title">Preview</h2>
+            <div class="preview-controls">
+              <button class="control-btn active" data-bg="light">Light</button>
+              <button class="control-btn" data-bg="dark">Dark</button>
+            </div>
+          </div>
+          <div class="preview-content" id="preview">
+            <!-- Component preview renders here -->
+          </div>
+        </div>
+
+        <div class="editor-panel">
+          <div class="editor-header">
+            <div class="editor-tabs">
+              <button class="editor-tab active">JSX</button>
+              <button class="editor-tab">HTML</button>
+            </div>
+            <div class="editor-actions">
+              <button class="editor-btn" id="copy-code">Copy</button>
+              <button class="editor-btn" id="run-code">Run</button>
+            </div>
+          </div>
+          <div class="editor-content">
+            <textarea class="code-editor" id="code-editor" spellcheck="false"></textarea>
+          </div>
+        </div>
+
+        <div class="props-panel" id="props-panel">
+          <h3 class="props-title">Props</h3>
+          <div id="props-content">
+            <!-- Dynamic props controls -->
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <footer class="playground-footer">
+      <p>Ferni Design System &middot; <a href="https://storybook.ferni.ai" target="_blank">Storybook</a> &middot; <a href="https://github.com/ferni-ai/design-system" target="_blank">GitHub</a></p>
+    </footer>
+
+    <script type="module">
+      // Component templates
+      const components = {
+        avatar: {
+          name: 'Avatar',
+          code: `<Avatar
+  persona="ferni"
+  size="lg"
+  state="idle"
+/>`,
+          props: [
+            { name: 'persona', type: 'select', options: ['ferni', 'peter', 'alex', 'maya', 'jordan', 'nayan'], default: 'ferni' },
+            { name: 'size', type: 'select', options: ['sm', 'md', 'lg', 'xl'], default: 'lg' },
+            { name: 'state', type: 'select', options: ['idle', 'listening', 'speaking', 'thinking', 'celebrating'], default: 'idle' },
+          ],
+          render: (props) => {
+            const colors = {
+              ferni: '#4a6741',
+              peter: '#3a6b73',
+              alex: '#5a6b8a',
+              maya: '#a67a6a',
+              jordan: '#c4856a',
+              nayan: '#b8956a',
+            };
+            const sizes = { sm: 48, md: 64, lg: 96, xl: 128 };
+            const size = sizes[props.size] || 96;
+            const color = colors[props.persona] || colors.ferni;
+            
+            return `
+              <div style="
+                width: ${size}px;
+                height: ${size}px;
+                border-radius: 50%;
+                background: linear-gradient(135deg, ${color}, ${color}cc);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                box-shadow: 0 0 ${props.state === 'speaking' ? '30' : '0'}px ${color}40;
+                animation: ${props.state === 'thinking' ? 'pulse 1.5s ease-in-out infinite' : 'none'};
+                transition: box-shadow 0.3s ease;
+              ">
+                <div style="
+                  width: ${size * 0.4}px;
+                  height: ${size * 0.4}px;
+                  background: white;
+                  border-radius: 50%;
+                "></div>
+              </div>
+              <style>
+                @keyframes pulse {
+                  0%, 100% { transform: scale(1); }
+                  50% { transform: scale(1.05); }
+                }
+              </style>
+            `;
+          }
+        },
+        button: {
+          name: 'Button',
+          code: `<Button
+  variant="primary"
+  size="md"
+>
+  Click me
+</Button>`,
+          props: [
+            { name: 'variant', type: 'select', options: ['primary', 'secondary', 'ghost', 'destructive'], default: 'primary' },
+            { name: 'size', type: 'select', options: ['sm', 'md', 'lg'], default: 'md' },
+            { name: 'label', type: 'text', default: 'Click me' },
+            { name: 'disabled', type: 'boolean', default: false },
+          ],
+          render: (props) => {
+            const variants = {
+              primary: { bg: '#4a6741', color: 'white' },
+              secondary: { bg: '#F5F1E8', color: '#2C2520' },
+              ghost: { bg: 'transparent', color: '#4a6741' },
+              destructive: { bg: '#a05454', color: 'white' },
+            };
+            const sizes = { sm: '8px 16px', md: '12px 24px', lg: '14px 32px' };
+            const v = variants[props.variant] || variants.primary;
+            
+            return `
+              <button style="
+                padding: ${sizes[props.size]};
+                background: ${v.bg};
+                color: ${v.color};
+                border: ${props.variant === 'ghost' ? '1px solid #4a6741' : 'none'};
+                border-radius: 8px;
+                font-family: 'Plus Jakarta Sans', sans-serif;
+                font-weight: 600;
+                font-size: ${props.size === 'lg' ? '16px' : props.size === 'sm' ? '13px' : '14px'};
+                cursor: ${props.disabled ? 'not-allowed' : 'pointer'};
+                opacity: ${props.disabled ? '0.6' : '1'};
+                transition: transform 0.15s ease;
+              ">${props.label}</button>
+            `;
+          }
+        },
+        input: {
+          name: 'Input',
+          code: `<Input
+  label="Email"
+  placeholder="Enter your email"
+  size="md"
+/>`,
+          props: [
+            { name: 'label', type: 'text', default: 'Email' },
+            { name: 'placeholder', type: 'text', default: 'Enter your email' },
+            { name: 'size', type: 'select', options: ['sm', 'md', 'lg'], default: 'md' },
+            { name: 'error', type: 'text', default: '' },
+            { name: 'disabled', type: 'boolean', default: false },
+          ],
+          render: (props) => {
+            const sizes = {
+              sm: { padding: '8px 12px', fontSize: '14px' },
+              md: { padding: '10px 14px', fontSize: '15px' },
+              lg: { padding: '12px 16px', fontSize: '16px' },
+            };
+            const s = sizes[props.size] || sizes.md;
+            
+            return `
+              <div style="width: 280px;">
+                <label style="
+                  display: block;
+                  margin-bottom: 6px;
+                  font-size: 14px;
+                  font-weight: 500;
+                  color: #2C2520;
+                ">${props.label}</label>
+                <input 
+                  type="text" 
+                  placeholder="${props.placeholder}"
+                  ${props.disabled ? 'disabled' : ''}
+                  style="
+                    width: 100%;
+                    padding: ${s.padding};
+                    font-size: ${s.fontSize};
+                    color: #2C2520;
+                    background: white;
+                    border: 1px solid ${props.error ? '#a05454' : 'rgba(44, 37, 32, 0.15)'};
+                    border-radius: 8px;
+                    outline: none;
+                    opacity: ${props.disabled ? '0.6' : '1'};
+                  "
+                />
+                ${props.error ? `<span style="
+                  display: block;
+                  margin-top: 6px;
+                  font-size: 13px;
+                  color: #a05454;
+                ">${props.error}</span>` : ''}
+              </div>
+            `;
+          }
+        },
+        card: {
+          name: 'Card',
+          code: `<Card variant="elevated">
+  <CardHeader>Card Title</CardHeader>
+  <CardBody>Card content goes here</CardBody>
+</Card>`,
+          props: [
+            { name: 'variant', type: 'select', options: ['elevated', 'outlined', 'filled'], default: 'elevated' },
+            { name: 'header', type: 'text', default: 'Card Title' },
+            { name: 'body', type: 'text', default: 'Card content goes here' },
+            { name: 'clickable', type: 'boolean', default: false },
+          ],
+          render: (props) => {
+            const variants = {
+              elevated: { bg: 'white', border: 'none', shadow: '0 4px 6px rgba(44, 37, 32, 0.07)' },
+              outlined: { bg: 'white', border: '1px solid rgba(44, 37, 32, 0.1)', shadow: 'none' },
+              filled: { bg: '#F5F1E8', border: 'none', shadow: 'none' },
+            };
+            const v = variants[props.variant] || variants.elevated;
+            
+            return `
+              <div style="
+                width: 320px;
+                background: ${v.bg};
+                border: ${v.border};
+                box-shadow: ${v.shadow};
+                border-radius: 12px;
+                overflow: hidden;
+                cursor: ${props.clickable ? 'pointer' : 'default'};
+              ">
+                <div style="
+                  padding: 16px;
+                  border-bottom: 1px solid rgba(44, 37, 32, 0.08);
+                  font-family: 'Plus Jakarta Sans', sans-serif;
+                  font-weight: 600;
+                ">${props.header}</div>
+                <div style="
+                  padding: 16px;
+                  color: #5C544A;
+                  line-height: 1.6;
+                ">${props.body}</div>
+              </div>
+            `;
+          }
+        },
+        badge: {
+          name: 'Badge',
+          code: `<Badge variant="success" dot>
+  Active
+</Badge>`,
+          props: [
+            { name: 'text', type: 'text', default: 'Active' },
+            { name: 'variant', type: 'select', options: ['default', 'success', 'warning', 'error', 'info'], default: 'success' },
+            { name: 'size', type: 'select', options: ['sm', 'md', 'lg'], default: 'md' },
+            { name: 'dot', type: 'boolean', default: true },
+          ],
+          render: (props) => {
+            const variants = {
+              default: { bg: '#F5F1E8', color: '#5C544A', dot: '#8A847A' },
+              success: { bg: 'rgba(74, 103, 65, 0.1)', color: '#4a6741', dot: '#4a6741' },
+              warning: { bg: 'rgba(160, 128, 84, 0.1)', color: '#a08054', dot: '#a08054' },
+              error: { bg: 'rgba(160, 84, 84, 0.1)', color: '#a05454', dot: '#a05454' },
+              info: { bg: 'rgba(84, 96, 128, 0.1)', color: '#546080', dot: '#546080' },
+            };
+            const sizes = {
+              sm: { padding: '2px 8px', fontSize: '11px', dotSize: '6px' },
+              md: { padding: '4px 10px', fontSize: '12px', dotSize: '8px' },
+              lg: { padding: '6px 12px', fontSize: '13px', dotSize: '10px' },
+            };
+            const v = variants[props.variant] || variants.default;
+            const s = sizes[props.size] || sizes.md;
+            
+            return `
+              <span style="
+                display: inline-flex;
+                align-items: center;
+                gap: 6px;
+                padding: ${s.padding};
+                background: ${v.bg};
+                color: ${v.color};
+                border-radius: 9999px;
+                font-weight: 500;
+                font-size: ${s.fontSize};
+              ">
+                ${props.dot ? `<span style="
+                  width: ${s.dotSize};
+                  height: ${s.dotSize};
+                  border-radius: 50%;
+                  background: ${v.dot};
+                "></span>` : ''}
+                ${props.text}
+              </span>
+            `;
+          }
+        },
+        toast: {
+          name: 'Toast',
+          code: `toast.success('Saved!')`,
+          props: [
+            { name: 'message', type: 'text', default: 'Saved!' },
+            { name: 'type', type: 'select', options: ['success', 'info', 'warning', 'error'], default: 'success' },
+          ],
+          render: (props) => {
+            const colors = {
+              success: '#4a6741',
+              info: '#546080',
+              warning: '#a08054',
+              error: '#a05454',
+            };
+            const color = colors[props.type] || colors.success;
+            
+            return `
+              <div style="
+                padding: 12px 24px;
+                background: ${color};
+                color: white;
+                border-radius: 9999px;
+                font-weight: 500;
+                font-size: 14px;
+                box-shadow: 0 4px 12px ${color}40;
+              ">${props.message}</div>
+            `;
+          }
+        },
+        spinner: {
+          name: 'Spinner',
+          code: `<Spinner
+  size="md"
+  persona="ferni"
+/>`,
+          props: [
+            { name: 'size', type: 'select', options: ['xs', 'sm', 'md', 'lg', 'xl'], default: 'md' },
+            { name: 'persona', type: 'select', options: ['ferni', 'peter', 'alex', 'maya', 'jordan', 'nayan'], default: 'ferni' },
+            { name: 'label', type: 'text', default: '' },
+          ],
+          render: (props) => {
+            const colors = {
+              ferni: '#4a6741',
+              peter: '#3a6b73',
+              alex: '#5a6b8a',
+              maya: '#a67a6a',
+              jordan: '#c4856a',
+              nayan: '#b8956a',
+            };
+            const sizes = { xs: 16, sm: 24, md: 32, lg: 48, xl: 64 };
+            const size = sizes[props.size] || 32;
+            const color = colors[props.persona] || colors.ferni;
+            
+            return `
+              <div style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
+                <svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" style="animation: spin 1s linear infinite;">
+                  <circle
+                    cx="${size/2}" cy="${size/2}" r="${(size-4)/2}"
+                    fill="none" stroke="${color}" stroke-width="3"
+                    stroke-linecap="round"
+                    stroke-dasharray="${(size-4) * Math.PI}"
+                    stroke-dashoffset="${(size-4) * Math.PI * 0.75}"
+                  />
+                </svg>
+                ${props.label ? `<span style="font-size: 14px; color: #5C544A;">${props.label}</span>` : ''}
+              </div>
+              <style>
+                @keyframes spin {
+                  from { transform: rotate(0deg); }
+                  to { transform: rotate(360deg); }
+                }
+              </style>
+            `;
+          }
+        }
+      };
+
+      // State
+      let currentComponent = 'avatar';
+      let currentProps = {};
+
+      // DOM elements
+      const preview = document.getElementById('preview');
+      const codeEditor = document.getElementById('code-editor');
+      const propsContent = document.getElementById('props-content');
+
+      // Initialize props for component
+      function initProps(component) {
+        const config = components[component];
+        currentProps = {};
+        config.props.forEach(prop => {
+          currentProps[prop.name] = prop.default;
+        });
+        renderPropsPanel(config);
+        updatePreview();
+        updateCode();
+      }
+
+      // Render props panel
+      function renderPropsPanel(config) {
+        propsContent.innerHTML = config.props.map(prop => {
+          if (prop.type === 'select') {
+            return `
+              <div class="prop-row">
+                <label class="prop-label">${prop.name}</label>
+                <select class="prop-select" data-prop="${prop.name}">
+                  ${prop.options.map(opt => `
+                    <option value="${opt}" ${currentProps[prop.name] === opt ? 'selected' : ''}>${opt}</option>
+                  `).join('')}
+                </select>
+              </div>
+            `;
+          } else if (prop.type === 'boolean') {
+            return `
+              <div class="prop-row">
+                <label class="prop-label">${prop.name}</label>
+                <button class="prop-toggle ${currentProps[prop.name] ? 'active' : ''}" data-prop="${prop.name}"></button>
+              </div>
+            `;
+          } else {
+            return `
+              <div class="prop-row">
+                <label class="prop-label">${prop.name}</label>
+                <input class="prop-input" type="text" value="${currentProps[prop.name]}" data-prop="${prop.name}" />
+              </div>
+            `;
+          }
+        }).join('');
+
+        // Add event listeners
+        propsContent.querySelectorAll('.prop-select').forEach(select => {
+          select.addEventListener('change', (e) => {
+            currentProps[e.target.dataset.prop] = e.target.value;
+            updatePreview();
+            updateCode();
+          });
+        });
+
+        propsContent.querySelectorAll('.prop-input').forEach(input => {
+          input.addEventListener('input', (e) => {
+            currentProps[e.target.dataset.prop] = e.target.value;
+            updatePreview();
+            updateCode();
+          });
+        });
+
+        propsContent.querySelectorAll('.prop-toggle').forEach(toggle => {
+          toggle.addEventListener('click', (e) => {
+            const prop = e.target.dataset.prop;
+            currentProps[prop] = !currentProps[prop];
+            e.target.classList.toggle('active');
+            updatePreview();
+            updateCode();
+          });
+        });
+      }
+
+      // Update preview
+      function updatePreview() {
+        const config = components[currentComponent];
+        preview.innerHTML = config.render(currentProps);
+      }
+
+      // Update code
+      function updateCode() {
+        const config = components[currentComponent];
+        let code = config.code;
+        
+        // Update props in code
+        config.props.forEach(prop => {
+          const value = currentProps[prop.name];
+          if (prop.type === 'boolean') {
+            if (value && !code.includes(prop.name)) {
+              // Add boolean prop
+            }
+          } else {
+            const regex = new RegExp(`${prop.name}="[^"]*"`, 'g');
+            code = code.replace(regex, `${prop.name}="${value}"`);
+          }
+        });
+        
+        codeEditor.value = code;
+      }
+
+      // Component selection
+      document.querySelectorAll('.component-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.component-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          currentComponent = btn.dataset.component;
+          initProps(currentComponent);
+        });
+      });
+
+      // Background toggle
+      document.querySelectorAll('.control-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.control-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          preview.style.background = btn.dataset.bg === 'dark' ? '#1e1e2e' : '#fafafa';
+        });
+      });
+
+      // Copy code
+      document.getElementById('copy-code').addEventListener('click', () => {
+        navigator.clipboard.writeText(codeEditor.value);
+        const btn = document.getElementById('copy-code');
+        btn.textContent = 'Copied!';
+        setTimeout(() => btn.textContent = 'Copy', 1500);
+      });
+
+      // Initialize
+      initProps('avatar');
+    </script>
+  </body>
+</html>

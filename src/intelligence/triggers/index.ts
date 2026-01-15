@@ -356,3 +356,53 @@ export {
   type TriggerTemplate,
   type SynthesisAnalytics,
 } from './synthesis-trigger-generator.js';
+
+// ============================================================================
+// PHASE 10: Superhuman Recall Triggers
+// "Better Than Human" memory surfacing detection
+// ============================================================================
+
+// Recall Trigger Engine (main orchestrator)
+export {
+  detectRecallTriggers,
+  recordTriggerSurfaced,
+  clearTriggerCooldowns,
+  formatTriggerForPrompt,
+  selectBestTrigger,
+  cleanupRecallTriggerEngine,
+  getRecallTriggerStats,
+  setRecallTriggerConfig,
+  getRecallTriggerConfig,
+  type RecallTrigger,
+  type RecallTriggerType,
+  type RecallTriggerInput,
+  type RecallTriggerResult,
+  type RecallTriggerConfig,
+} from './recall-trigger-engine.js';
+
+// Anniversary Detector
+export {
+  detectAnniversaries,
+  type AnniversaryTrigger,
+  type AnniversaryType,
+  type AnniversaryDetectionInput,
+} from './anniversary-detector.js';
+
+// Pattern Callback Detector
+export {
+  detectPatternCallbacks,
+  type PatternCallbackTrigger,
+  type PatternType,
+  type PatternDetectionInput,
+} from './pattern-callback.js';
+
+// Commitment Reminder
+export {
+  detectCommitmentReminders,
+  detectCommitmentInTranscript,
+  COMMITMENT_PATTERNS,
+  type CommitmentReminderTrigger,
+  type CommitmentType,
+  type CommitmentStatus,
+  type CommitmentDetectionInput,
+} from './commitment-reminder.js';

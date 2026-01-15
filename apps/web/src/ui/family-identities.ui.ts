@@ -50,6 +50,31 @@ export interface FamilyIdentitiesCallbacks {
   onIdentityRemoved?: (identityId: string) => void;
 }
 
+/**
+ * Pending approval from family self-registration via phone call.
+ * These are created when an unknown caller mentions a sponsor's name.
+ */
+export interface PendingFamilyApproval {
+  id: string;
+  identityId: string;
+  callerName: string;
+  callerPhone: string;
+  relationship?: string;
+  notes?: string;
+  callTimestamp: string;
+  status: 'pending';
+}
+
+/**
+ * Unified pending item that can come from either source.
+ * source: 'sponsored_identity' = sponsor created but pending activation
+ * source: 'family_approval' = caller self-registered, waiting approval
+ */
+export interface UnifiedPendingItem extends SponsoredIdentity {
+  source: 'sponsored_identity' | 'family_approval';
+  approvalId?: string; // Only for family_approval source
+}
+
 // ============================================================================
 // CONSTANTS
 // ============================================================================
@@ -99,7 +124,7 @@ const ICONS = {
 
 let modal: HTMLElement | null = null;
 let identities: SponsoredIdentity[] = [];
-let pendingIdentities: SponsoredIdentity[] = [];
+let pendingIdentities: UnifiedPendingItem[] = [];
 let callbacks: FamilyIdentitiesCallbacks = {};
 let isLoading = false;
 let currentView: 'main' | 'add' | 'edit' | 'pending' = 'main';
@@ -340,6 +365,16 @@ const styles = `
     border-radius: var(--radius-full, 9999px);
   }
   
+  /* Family referral (called you) - more prominent styling */
+  .family-item--referral {
+    border-left-color: var(--color-accent-primary, #4a6741);
+    background: var(--color-accent-tint, rgba(74, 103, 65, 0.04));
+  }
+  
+  .family-pending-badge--referral {
+    background: var(--color-accent-primary, #4a6741);
+  }
+  
   /* Form */
   .family-form {
     display: flex;
@@ -567,10 +602,49 @@ async function loadIdentities(): Promise<void> {
 
 async function loadPendingIdentities(): Promise<void> {
   try {
-    const response = await apiGet<{ pending: SponsoredIdentity[] }>(
-      '/api/sponsored-identities/pending'
+    // Load from both sources in parallel
+    const [sponsoredResponse, familyResponse] = await Promise.all([
+      apiGet<{ pending: SponsoredIdentity[] }>('/api/sponsored-identities/pending'),
+      apiGet<{ pending: PendingFamilyApproval[] }>('/api/family/pending'),
+    ]);
+
+    // Convert sponsored identities to unified format
+    const sponsoredPending: UnifiedPendingItem[] = (sponsoredResponse.data?.pending || []).map(
+      (si) => ({
+        ...si,
+        source: 'sponsored_identity' as const,
+      })
     );
-    pendingIdentities = response.data?.pending || [];
+
+    // Convert family approvals to unified format
+    const familyPending: UnifiedPendingItem[] = (familyResponse.data?.pending || []).map((fa) => ({
+      id: fa.identityId, // Use identityId as the main id for consistency
+      approvalId: fa.id, // Keep original approval id for API calls
+      displayName: fa.callerName,
+      phoneNumber: fa.callerPhone,
+      relationship: fa.relationship || 'referred',
+      status: 'pending' as const,
+      notes: fa.notes,
+      voiceEnrolled: false,
+      accessLevel: 'full' as const,
+      allowedPersonas: [],
+      createdAt: fa.callTimestamp,
+      updatedAt: fa.callTimestamp,
+      totalCalls: 0,
+      totalMinutes: 0,
+      source: 'family_approval' as const,
+    }));
+
+    // Combine and sort by creation date (newest first)
+    pendingIdentities = [...sponsoredPending, ...familyPending].sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+
+    log.debug('Loaded pending identities', {
+      sponsored: sponsoredPending.length,
+      family: familyPending.length,
+      total: pendingIdentities.length,
+    });
   } catch (error) {
     log.error('Failed to load pending identities', { error });
     pendingIdentities = [];
@@ -637,6 +711,34 @@ async function approveIdentity(id: string): Promise<SponsoredIdentity | null> {
     log.error('Failed to approve identity', { error });
     toast.error("Couldn't approve");
     return null;
+  }
+}
+
+/**
+ * Approve a family self-registration approval.
+ */
+async function approveFamilyApproval(approvalId: string): Promise<boolean> {
+  try {
+    const response = await apiPost<{ success: boolean }>('/api/family/approve', { approvalId });
+    return response.data?.success ?? false;
+  } catch (error) {
+    log.error('Failed to approve family approval', { error });
+    toast.error("Couldn't approve");
+    return false;
+  }
+}
+
+/**
+ * Reject a family self-registration approval.
+ */
+async function rejectFamilyApproval(approvalId: string): Promise<boolean> {
+  try {
+    const response = await apiPost<{ success: boolean }>('/api/family/reject', { approvalId });
+    return response.data?.success ?? false;
+  } catch (error) {
+    log.error('Failed to reject family approval', { error });
+    toast.error("Couldn't decline");
+    return false;
   }
 }
 
@@ -767,25 +869,31 @@ function renderPendingList(): string {
   `;
 }
 
-function renderPendingItem(identity: SponsoredIdentity): string {
+function renderPendingItem(identity: UnifiedPendingItem): string {
+  const isFamilyApproval = identity.source === 'family_approval';
+  const badgeText = isFamilyApproval ? 'Called you' : 'Pending';
+  const relationship = identity.relationship
+    ? RELATIONSHIP_OPTIONS.find((r) => r.value === identity.relationship)?.label || identity.relationship
+    : '';
+
   return `
-    <div class="family-item family-item--pending" data-pending-id="${identity.id}">
+    <div class="family-item family-item--pending${isFamilyApproval ? ' family-item--referral' : ''}" data-pending-id="${identity.id}">
       <div class="family-item__header">
         <div class="family-item__avatar">${getInitials(identity.displayName)}</div>
         <div class="family-item__info">
           <div class="family-item__name">${identity.displayName}</div>
           <div class="family-item__relationship">
-            ${formatPhone(identity.phoneNumber)}
+            ${relationship ? `${relationship} · ` : ''}${formatPhone(identity.phoneNumber)}
           </div>
         </div>
-        <span class="family-pending-badge">Pending</span>
+        <span class="family-pending-badge${isFamilyApproval ? ' family-pending-badge--referral' : ''}">${badgeText}</span>
       </div>
       ${
         identity.notes
           ? `
         <div class="family-item__stats">
           <span class="family-item__stat" style="flex: 1;">
-            ${identity.notes}
+            "${identity.notes}"
           </span>
         </div>
       `
@@ -798,7 +906,7 @@ function renderPendingItem(identity: SponsoredIdentity): string {
         </button>
         <button class="family-btn family-btn--primary family-btn--small" data-action="approve" data-id="${identity.id}">
           ${ICONS.check}
-          Approve
+          ${isFamilyApproval ? 'Add to Family' : 'Approve'}
         </button>
       </div>
     </div>
@@ -1050,15 +1158,35 @@ async function handleAction(action: string, target: HTMLElement): Promise<void> 
       const id = target.closest('[data-id]')?.getAttribute('data-id');
       if (!id) return;
 
+      const pendingItem = pendingIdentities.find((i) => i.id === id);
+      if (!pendingItem) return;
+
       isLoading = true;
       refresh();
 
-      const approved = await approveIdentity(id);
-      if (approved) {
+      let success = false;
+      let approvedIdentity: SponsoredIdentity | null = null;
+
+      // Route to correct API based on source
+      if (pendingItem.source === 'family_approval' && pendingItem.approvalId) {
+        success = await approveFamilyApproval(pendingItem.approvalId);
+        if (success) {
+          // Create a basic identity object for the callback
+          approvedIdentity = {
+            ...pendingItem,
+            status: 'active',
+          } as SponsoredIdentity;
+        }
+      } else {
+        approvedIdentity = await approveIdentity(id);
+        success = !!approvedIdentity;
+      }
+
+      if (success && approvedIdentity) {
         pendingIdentities = pendingIdentities.filter((i) => i.id !== id);
-        identities.push(approved);
-        callbacks.onIdentityAdded?.(approved);
-        toast.success(`${approved.displayName} added!`);
+        identities.push(approvedIdentity);
+        callbacks.onIdentityAdded?.(approvedIdentity);
+        toast.success(`${approvedIdentity.displayName} added!`);
 
         if (pendingIdentities.length === 0) {
           currentView = 'main';
@@ -1074,12 +1202,22 @@ async function handleAction(action: string, target: HTMLElement): Promise<void> 
       const id = target.closest('[data-id]')?.getAttribute('data-id');
       if (!id) return;
 
-      const identity = pendingIdentities.find((i) => i.id === id);
-      if (confirm(`Decline ${identity?.displayName || 'this request'}?`)) {
+      const pendingItem = pendingIdentities.find((i) => i.id === id);
+      if (!pendingItem) return;
+
+      if (confirm(`Decline ${pendingItem.displayName || 'this request'}?`)) {
         isLoading = true;
         refresh();
 
-        const success = await deleteIdentity(id);
+        let success = false;
+
+        // Route to correct API based on source
+        if (pendingItem.source === 'family_approval' && pendingItem.approvalId) {
+          success = await rejectFamilyApproval(pendingItem.approvalId);
+        } else {
+          success = await deleteIdentity(id);
+        }
+
         if (success) {
           pendingIdentities = pendingIdentities.filter((i) => i.id !== id);
           toast.info('Declined');

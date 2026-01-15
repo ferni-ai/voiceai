@@ -870,12 +870,10 @@ async function handleDailyAdminReport(res: ServerResponse): Promise<void> {
     log.info('Running daily admin report job (Cloud Scheduler)');
 
     const { generateDailyReport } = await import('../services/admin/daily-report.js');
-    const { generateDailyReportHTML, generateDailyReportPlainText } = await import(
-      '../services/admin/daily-report-template.js'
-    );
-    const { sendEmail, isEmailDeliveryAvailable, initializeEmailDelivery } = await import(
-      '../services/outreach/delivery/email-delivery.js'
-    );
+    const { generateDailyReportHTML, generateDailyReportPlainText } =
+      await import('../services/admin/daily-report-template.js');
+    const { sendEmail, isEmailDeliveryAvailable, initializeEmailDelivery } =
+      await import('../services/outreach/delivery/email-delivery.js');
 
     // Initialize email if not already done
     if (!isEmailDeliveryAvailable()) {

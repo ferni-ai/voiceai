@@ -250,7 +250,8 @@
       "conversationInsights": "How We Connect",
       "growthJournal": "Growth Journal",
       "knowledgeQuiz": "How Well Do You Know Me?",
-      "soundEffects": "Sound Effects"
+      "soundEffects": "Sound Effects",
+      "sleepSchedule": "Sleep Schedule"
     },
     "quickAdd": {
       "person": "Someone new",
@@ -590,6 +591,49 @@
     "reconnected": "Reconnected!",
     "microphoneBlocked": "Microphone access required",
     "sessionTimeout": "Session timed out"
+  },
+  "sleepSettings": {
+    "title": "Sleep Schedule",
+    "eyebrow": "Ambient Experience",
+    "description": "Help me adjust to your natural rhythm",
+    "wakeTime": "Wake Time",
+    "sleepTime": "Sleep Time",
+    "nightOwl": {
+      "title": "Night Owl",
+      "description": "I'm more active late at night"
+    },
+    "earlyBird": {
+      "title": "Early Bird",
+      "description": "I'm most productive in early morning"
+    },
+    "autoDetect": "Auto-detect",
+    "detecting": "Detecting...",
+    "patternDetected": "Pattern detected!",
+    "notEnoughData": "Not enough data yet",
+    "save": "Save",
+    "saved": "Saved!",
+    "saveError": "Couldn't save. Try again?",
+    "currentPeriod": "Currently: {period}",
+    "periods": {
+      "earlyMorning": "Dawn",
+      "morning": "Morning",
+      "midday": "Midday",
+      "afternoon": "Afternoon",
+      "evening": "Evening",
+      "night": "Night",
+      "lateNight": "Late Night",
+      "deepNight": "Deep Night"
+    },
+    "periodDescriptions": {
+      "earlyMorning": "Gentle awakening",
+      "morning": "Fresh and energetic",
+      "midday": "Clear and focused",
+      "afternoon": "Productive calm",
+      "evening": "Winding down",
+      "night": "Intimate and calm",
+      "lateNight": "Fully present at 2am",
+      "deepNight": "Quiet companion"
+    }
   },
   "errors": {
     "connectionFailed": "Failed to connect. Please try again.",

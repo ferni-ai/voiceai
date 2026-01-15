@@ -227,7 +227,7 @@ export async function identifyByPhone(phoneNumber: string): Promise<Identificati
     }
   }
 
-  // Search for existing profile with this phone number (O(n) fallback)
+  // Search for existing profile with this phone number as primary ID (O(n) fallback)
   const existingProfile = await findProfileByPhone(normalized);
 
   if (existingProfile) {
@@ -241,6 +241,29 @@ export async function identifyByPhone(phoneNumber: string): Promise<Identificati
       profile: existingProfile,
       source: { type: 'phone', identifier: normalized },
       linkedIdentifiers: getLinkedIdentifiers(existingProfile),
+    };
+  }
+
+  // Priority 2.5: Check linkedIdentifiers for multi-phone users
+  // This catches users who have added additional phones to their profile
+  const linkedProfile = await findProfileByLinkedPhone(normalized);
+
+  if (linkedProfile) {
+    // Persist the mapping for fast future lookups
+    await savePhoneMapping(normalized, linkedProfile.id);
+
+    getLogger().info(
+      { userId: linkedProfile.id, phone: normalized },
+      '📱 Found user via linked phone number (multi-phone support)'
+    );
+
+    return {
+      userId: createUserId(linkedProfile.id),
+      isNew: false,
+      isReturning: linkedProfile.totalConversations > 0,
+      profile: linkedProfile,
+      source: { type: 'phone', identifier: normalized },
+      linkedIdentifiers: getLinkedIdentifiers(linkedProfile),
     };
   }
 
@@ -518,6 +541,208 @@ export async function linkWebAuthToPhone(
 }
 
 // ============================================================================
+// ACCOUNT LINKING - Find potential linked accounts
+// ============================================================================
+
+export interface PotentialLinkResult {
+  profile: UserProfile;
+  matchType: 'email' | 'name' | 'phone';
+  confidence: number;
+  identityId: string;
+}
+
+/**
+ * Find potential linked accounts for a phone caller.
+ * Used when account linking signals are detected (email mention, app mention).
+ *
+ * @param phoneUserId - Current phone user ID
+ * @param hints - Hints extracted from conversation (email, name)
+ * @returns Array of potential matches, sorted by confidence
+ */
+export async function findPotentialLinkedAccounts(
+  phoneUserId: string,
+  hints: { email?: string; name?: string }
+): Promise<PotentialLinkResult[]> {
+  const store = getStore();
+  const results: PotentialLinkResult[] = [];
+
+  // Search by email (high confidence)
+  if (hints.email) {
+    const emailLower = hints.email.toLowerCase();
+    try {
+      const profiles = await store.listProfiles({ limit: 500 });
+
+      for (const profile of profiles) {
+        // Skip if same user
+        if (profile.id === phoneUserId) continue;
+
+        // Check email in profile
+        const profileEmail = profile.contactInfo?.email?.toLowerCase();
+        if (profileEmail && profileEmail === emailLower) {
+          results.push({
+            profile,
+            matchType: 'email',
+            confidence: 0.95,
+            identityId: profile.id,
+          });
+          getLogger().info(
+            { phoneUserId, matchedUserId: profile.id, email: hints.email },
+            '🔗 Found email match for account linking'
+          );
+        }
+      }
+    } catch (error) {
+      getLogger().warn(
+        { error: String(error), email: hints.email },
+        'Error searching profiles by email'
+      );
+    }
+  }
+
+  // Search by exact name match (moderate confidence)
+  if (hints.name && hints.name.length > 2) {
+    const nameLower = hints.name.toLowerCase();
+    try {
+      const profiles = await store.listProfiles({ limit: 500 });
+
+      for (const profile of profiles) {
+        // Skip if same user or already matched
+        if (profile.id === phoneUserId) continue;
+        if (results.some((r) => r.identityId === profile.id)) continue;
+
+        // Check name match
+        const profileName = (profile.name || profile.preferredName || '').toLowerCase();
+        if (profileName && profileName === nameLower) {
+          results.push({
+            profile,
+            matchType: 'name',
+            confidence: 0.6,
+            identityId: profile.id,
+          });
+          getLogger().info(
+            { phoneUserId, matchedUserId: profile.id, name: hints.name },
+            '🔗 Found name match for account linking'
+          );
+        }
+      }
+    } catch (error) {
+      getLogger().warn({ error: String(error), name: hints.name }, 'Error searching profiles by name');
+    }
+  }
+
+  // Sort by confidence (highest first)
+  results.sort((a, b) => b.confidence - a.confidence);
+
+  return results;
+}
+
+/**
+ * Find a profile by phone number in linkedIdentifiers array.
+ * Used for multi-phone support.
+ */
+export async function findProfileByLinkedPhone(normalizedPhone: string): Promise<UserProfile | null> {
+  const store = getStore();
+
+  try {
+    const profiles = await store.listProfiles({ limit: 1000 });
+
+    for (const profile of profiles) {
+      const linked = (profile as UserProfileWithLinks).linkedIdentifiers || [];
+
+      // Check all phone formats
+      const phoneVariants = [
+        `phone:${normalizedPhone}`,
+        normalizedPhone,
+        // Also check without country code for US numbers
+        normalizedPhone.startsWith('+1') ? normalizedPhone.slice(2) : null,
+      ].filter(Boolean);
+
+      for (const variant of phoneVariants) {
+        if (linked.includes(variant!)) {
+          getLogger().debug(
+            { userId: profile.id, phone: normalizedPhone },
+            'Found profile via linkedIdentifiers phone'
+          );
+          return profile;
+        }
+      }
+    }
+  } catch (error) {
+    getLogger().warn(
+      { error: String(error), phone: normalizedPhone },
+      'Error searching profiles by linked phone'
+    );
+  }
+
+  return null;
+}
+
+/**
+ * Merge a phone user into an existing web account.
+ * Transfers conversation history and memories.
+ */
+export async function mergePhoneToWebAccount(
+  phoneUserId: string,
+  webAccountId: string
+): Promise<{ success: boolean; error?: string; merged?: boolean }> {
+  const store = getStore();
+
+  // Validate both profiles exist
+  const phoneProfile = await store.getProfile(phoneUserId);
+  const webProfile = await store.getProfile(webAccountId);
+
+  if (!phoneProfile) {
+    return { success: false, error: 'Phone profile not found' };
+  }
+  if (!webProfile) {
+    return { success: false, error: 'Web account not found' };
+  }
+
+  getLogger().info(
+    {
+      phoneUserId,
+      webAccountId,
+      phoneConversations: phoneProfile.totalConversations,
+      webConversations: webProfile.totalConversations,
+    },
+    '🔗 Merging phone user into web account'
+  );
+
+  try {
+    const { migrateUserData } = await import('../user-migration.js');
+    const result = await migrateUserData({
+      deviceId: phoneUserId,
+      firebaseUid: webAccountId,
+      displayName: phoneProfile.name,
+      email: phoneProfile.contactInfo?.email,
+    });
+
+    if (result.success) {
+      // Also add any phone numbers to the web profile's linked identifiers
+      if (phoneProfile.contactInfo?.phone) {
+        await linkPhoneToProfile(webAccountId, phoneProfile.contactInfo.phone);
+      }
+
+      getLogger().info(
+        {
+          webAccountId,
+          conversationsMigrated: result.conversationsMigrated,
+          memoriesMigrated: result.memoriesMigrated,
+        },
+        '✅ Account merge complete'
+      );
+
+      return { success: true, merged: true };
+    }
+
+    return { success: false, error: result.error || 'Migration failed' };
+  } catch (error) {
+    getLogger().error({ error: String(error) }, 'Account merge failed');
+    return { success: false, error: String(error) };
+  }
+}
+
+// ============================================================================
 // HELPER FUNCTIONS
 // ============================================================================
 
@@ -680,4 +905,7 @@ export default {
   areUsersSame,
   getGreeting,
   getLLMAuthContext,
+  findPotentialLinkedAccounts,
+  findProfileByLinkedPhone,
+  mergePhoneToWebAccount,
 };

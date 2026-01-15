@@ -77,6 +77,22 @@ export interface VoiceSearchResult {
 }
 
 // ============================================================================
+// THRESHOLDS FOR VOICE MATCHING
+// ============================================================================
+
+/** Below this similarity, we're confident it's a different person */
+export const VOICE_MISMATCH_THRESHOLD = 0.4;
+
+/** Above this similarity, we're confident it's the same person */
+export const VOICE_MATCH_THRESHOLD = 0.75;
+
+/** Between mismatch and match, we're uncertain - don't challenge */
+export const VOICE_UNCERTAIN_THRESHOLD = 0.55;
+
+/** Minimum threshold for "your voice sounds familiar" suggestions */
+export const VOICE_SUGGEST_THRESHOLD = 0.6;
+
+// ============================================================================
 // AUDIO FEATURE EXTRACTION
 // ============================================================================
 

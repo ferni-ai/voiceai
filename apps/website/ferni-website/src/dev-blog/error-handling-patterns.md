@@ -3,7 +3,7 @@ title: "Error Handling Patterns for Voice AI"
 excerpt: "Beyond try/catch - building resilient voice applications that recover gracefully and keep users informed."
 author: "Ferni Dev Team"
 authorInitials: "FD"
-authorColor: "#38bdf8"
+authorColor: "#4a6741"
 date: 2026-01-16
 category: "Quick Tips"
 image: "error-handling.png"

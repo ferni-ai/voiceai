@@ -3,7 +3,7 @@ title: "Webhook Security Best Practices"
 excerpt: "How to verify webhook signatures, handle retries, and build robust event handlers for the Ferni Developer Platform."
 author: "Ferni Dev Team"
 authorInitials: "FD"
-authorColor: "#38bdf8"
+authorColor: "#4a6741"
 date: 2026-01-10
 category: "Security"
 image: "webhook-security.png"

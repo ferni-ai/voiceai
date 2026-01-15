@@ -18,13 +18,13 @@ function extractUserIdFromRequest(req: IncomingMessage, parsedUrl?: URL): string
   // Check header first
   const headerUserId = req.headers['x-user-id'] as string | undefined;
   if (headerUserId) return headerUserId;
-  
+
   // Check query params
   if (parsedUrl) {
     const urlUserId = parsedUrl.searchParams.get('userId');
     if (urlUserId) return urlUserId;
   }
-  
+
   return undefined;
 }
 
@@ -76,16 +76,20 @@ async function getCommitmentsForUser(userId: string): Promise<SuperhumanMetrics[
     }
     const commitmentsRef = db.collection('users').doc(userId).collection('commitments');
     const snapshot = await commitmentsRef.orderBy('createdAt', 'desc').limit(20).get();
-    
-    const commitments = snapshot.docs.map((doc: FirebaseFirestore.QueryDocumentSnapshot) => doc.data());
+
+    const commitments = snapshot.docs.map((doc: FirebaseFirestore.QueryDocumentSnapshot) =>
+      doc.data()
+    );
     const completed = commitments.filter((c: any) => c.status === 'completed').length;
     const pending = commitments.filter((c: any) => c.status === 'pending');
-    
+
     return {
       total: commitments.length,
       completed,
       pending: pending.length,
-      upcoming: pending.slice(0, 3).map((c: any) => c.description || c.text || 'Unnamed commitment'),
+      upcoming: pending
+        .slice(0, 3)
+        .map((c: any) => c.description || c.text || 'Unnamed commitment'),
     };
   } catch (error) {
     log.warn({ error, userId }, 'Failed to fetch commitments');
@@ -106,7 +110,7 @@ async function getCapacityForUser(userId: string): Promise<SuperhumanMetrics['ca
     }
     const wellbeingRef = db.collection('users').doc(userId).collection('wellbeing');
     const snapshot = await wellbeingRef.orderBy('timestamp', 'desc').limit(7).get();
-    
+
     if (snapshot.empty) {
       return {
         score: 70,
@@ -114,19 +118,19 @@ async function getCapacityForUser(userId: string): Promise<SuperhumanMetrics['ca
         riskFactors: [],
       };
     }
-    
+
     const records = snapshot.docs.map((doc: FirebaseFirestore.QueryDocumentSnapshot) => doc.data());
     const latestScore = records[0]?.energyLevel || 70;
     const earlierScore = records[records.length - 1]?.energyLevel || latestScore;
-    
+
     let trend: 'improving' | 'stable' | 'declining' = 'stable';
     if (latestScore - earlierScore > 10) trend = 'improving';
     else if (earlierScore - latestScore > 10) trend = 'declining';
-    
+
     const riskFactors: string[] = [];
     if (latestScore < 50) riskFactors.push('Energy levels are low');
     if (trend === 'declining') riskFactors.push('Declining trend this week');
-    
+
     return {
       score: Math.round(latestScore),
       trend,
@@ -146,11 +150,15 @@ async function getValuesForUser(userId: string): Promise<SuperhumanMetrics['valu
   try {
     const db = getFirestoreDb();
     if (!db) {
-      return { alignmentScore: 80, alignedAreas: ['Family time', 'Health habits'], misalignedAreas: [] };
+      return {
+        alignmentScore: 80,
+        alignedAreas: ['Family time', 'Health habits'],
+        misalignedAreas: [],
+      };
     }
     const valuesRef = db.collection('users').doc(userId).collection('values');
     const snapshot = await valuesRef.limit(1).get();
-    
+
     if (snapshot.empty) {
       return {
         alignmentScore: 80,
@@ -158,7 +166,7 @@ async function getValuesForUser(userId: string): Promise<SuperhumanMetrics['valu
         misalignedAreas: [],
       };
     }
-    
+
     const data = snapshot.docs[0].data();
     return {
       alignmentScore: data.alignmentScore || 80,
@@ -183,7 +191,7 @@ async function getNarrativeForUser(userId: string): Promise<SuperhumanMetrics['n
     }
     const narrativeRef = db.collection('users').doc(userId).collection('narrative');
     const snapshot = await narrativeRef.orderBy('createdAt', 'desc').limit(1).get();
-    
+
     if (snapshot.empty) {
       return {
         currentChapter: 'Your story is being written',
@@ -191,7 +199,7 @@ async function getNarrativeForUser(userId: string): Promise<SuperhumanMetrics['n
         growthAreas: [],
       };
     }
-    
+
     const data = snapshot.docs[0].data();
     return {
       currentChapter: data.currentChapter || 'Your story is being written',
@@ -216,13 +224,14 @@ async function getDreamsForUser(userId: string): Promise<SuperhumanMetrics['drea
     }
     const dreamsRef = db.collection('users').doc(userId).collection('dreams');
     const snapshot = await dreamsRef.where('status', '==', 'active').limit(10).get();
-    
+
     const dreams = snapshot.docs.map((doc: FirebaseFirestore.QueryDocumentSnapshot) => doc.data());
     const completedCount = dreams.filter((d: any) => d.progress === 100).length;
-    const avgProgress = dreams.length > 0 
-      ? dreams.reduce((sum: number, d: any) => sum + (d.progress || 0), 0) / dreams.length
-      : 0;
-    
+    const avgProgress =
+      dreams.length > 0
+        ? dreams.reduce((sum: number, d: any) => sum + (d.progress || 0), 0) / dreams.length
+        : 0;
+
     return {
       active: dreams.slice(0, 5).map((d: any) => d.description || d.title || 'Unnamed dream'),
       progress: Math.round(avgProgress),
@@ -250,13 +259,13 @@ export async function handleSuperhumanMetricsRoutes(
   if (pathname === '/api/superhuman/metrics' && req.method === 'GET') {
     try {
       const userId = extractUserIdFromRequest(req, parsedUrl);
-      
+
       if (!userId) {
         res.writeHead(401, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: 'Unauthorized' }));
         return true;
       }
-      
+
       // Fetch all metrics in parallel
       const [commitments, capacity, values, narrative, dreams] = await Promise.all([
         getCommitmentsForUser(userId),
@@ -265,13 +274,13 @@ export async function handleSuperhumanMetricsRoutes(
         getNarrativeForUser(userId),
         getDreamsForUser(userId),
       ]);
-      
+
       // Generate predictions based on available data
       const predictions: SuperhumanMetrics['predictions'] = {
         upcomingChallenges: [],
         opportunities: [],
       };
-      
+
       if (capacity.score < 60) {
         predictions.upcomingChallenges.push('Your energy is low - consider resting');
       }
@@ -281,7 +290,7 @@ export async function handleSuperhumanMetricsRoutes(
       if (capacity.trend === 'improving') {
         predictions.opportunities.push('Your energy is trending up - great time for big tasks');
       }
-      
+
       const metrics: SuperhumanMetrics = {
         commitments,
         capacity,
@@ -290,7 +299,7 @@ export async function handleSuperhumanMetricsRoutes(
         predictions,
         dreams,
       };
-      
+
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify(metrics));
       return true;
@@ -301,6 +310,6 @@ export async function handleSuperhumanMetricsRoutes(
       return true;
     }
   }
-  
+
   return false;
 }

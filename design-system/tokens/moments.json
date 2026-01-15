@@ -1,0 +1,468 @@
+{
+  "$schema": "https://ferni.ai/schemas/design-tokens.json",
+  "name": "Ferni Moments System",
+  "description": "Design tokens for the unified feedback/notification system. Avatar-centric, emotionally escalating moments.",
+  "version": "1.0.0",
+
+  "moments": {
+    "$description": "Four-level emotional hierarchy for user feedback",
+
+    "whisper": {
+      "$description": "Level 1: Transient, subtle feedback. Status confirmations.",
+      "duration": {
+        "default": 2500,
+        "short": 2000,
+        "error": 4000
+      },
+      "position": {
+        "anchor": "avatar",
+        "offset": "below",
+        "distance": "var(--space-4)"
+      },
+      "animation": {
+        "enter": {
+          "duration": "var(--duration-slow)",
+          "easing": "var(--ease-spring)",
+          "translate": { "from": "8px", "to": "0" },
+          "scale": { "from": 0.95, "to": 1 }
+        },
+        "exit": {
+          "duration": "var(--duration-normal)",
+          "easing": "var(--ease-standard)",
+          "translate": { "from": "0", "to": "-4px" },
+          "scale": { "from": 1, "to": 0.98 }
+        }
+      },
+      "style": {
+        "borderRadius": "var(--radius-full)",
+        "padding": "var(--space-2) var(--space-4)",
+        "fontSize": "var(--text-sm)",
+        "fontWeight": 500,
+        "maxWidth": "calc(100vw - 48px)",
+        "boxShadow": "var(--shadow-md)"
+      },
+      "haptic": "softTap",
+      "zIndex": "var(--z-notification)"
+    },
+
+    "notice": {
+      "$description": "Level 2: Event notifications with optional actions.",
+      "duration": {
+        "default": 4000,
+        "withAction": 8000
+      },
+      "position": {
+        "anchor": "avatar",
+        "offset": "below",
+        "distance": "var(--space-6)"
+      },
+      "animation": {
+        "avatarAnticipation": {
+          "duration": "var(--duration-fast)",
+          "easing": "var(--ease-anticipate)",
+          "scale": 0.98
+        },
+        "avatarPulse": {
+          "duration": "var(--duration-celebration)",
+          "easing": "var(--ease-spring)",
+          "glow": {
+            "from": "0 0 0 0 var(--persona-glow)",
+            "peak": "0 0 30px 8px var(--persona-glow)",
+            "to": "0 0 15px 4px var(--persona-glow)"
+          }
+        },
+        "enter": {
+          "duration": "var(--duration-slow)",
+          "easing": "var(--ease-spring)",
+          "delay": "var(--duration-fast)",
+          "translate": { "from": "12px", "to": "0" },
+          "scale": { "from": 0.9, "peak": 1.02, "to": 1 }
+        },
+        "exit": {
+          "duration": "var(--duration-normal)",
+          "easing": "var(--ease-expo-out)",
+          "translate": { "from": "0", "to": "-8px" },
+          "scale": { "from": 1, "to": 0.95 }
+        }
+      },
+      "style": {
+        "borderRadius": "var(--radius-xl)",
+        "padding": "var(--space-3) var(--space-4)",
+        "fontSize": "var(--text-base)",
+        "fontWeight": 500,
+        "maxWidth": "320px",
+        "boxShadow": "var(--shadow-lg)"
+      },
+      "haptic": "notification",
+      "zIndex": "var(--z-notification)"
+    },
+
+    "celebration": {
+      "$description": "Level 3: Milestone moments with visual flourish.",
+      "duration": {
+        "sequence": 1600,
+        "messageDisplay": 5000
+      },
+      "position": {
+        "anchor": "avatar",
+        "offset": "overlay"
+      },
+      "sequence": {
+        "$description": "Pixar-style emotional beats",
+        "beats": [
+          {
+            "name": "anticipation",
+            "duration": "var(--duration-fast)",
+            "avatar": { "scale": 0.95, "expression": "notice" },
+            "haptic": "softTap"
+          },
+          {
+            "name": "windUp",
+            "duration": "var(--duration-normal)",
+            "avatar": { "scale": 0.9, "expression": "delight-prep" }
+          },
+          {
+            "name": "burst",
+            "duration": "var(--duration-slow)",
+            "easing": "var(--ease-spring)",
+            "avatar": { "scale": 1.08, "expression": "delight", "glow": "full" },
+            "sparkles": { "count": 12, "spread": "radial" },
+            "message": true,
+            "haptic": "success"
+          },
+          {
+            "name": "settle",
+            "duration": "var(--duration-normal)",
+            "easing": "var(--ease-expo-out)",
+            "avatar": { "scale": 1, "expression": "happy" },
+            "sparkles": { "fade": true }
+          },
+          {
+            "name": "neutral",
+            "duration": "var(--duration-slow)",
+            "avatar": { "expression": "neutral" },
+            "message": { "persist": true }
+          }
+        ]
+      },
+      "sparkles": {
+        "count": { "min": 6, "max": 12 },
+        "size": { "min": 4, "max": 8 },
+        "spread": { "min": 30, "max": 60 },
+        "duration": "var(--duration-celebration)",
+        "colors": ["rgba(255,255,255,0.9)", "var(--persona-glow)"]
+      },
+      "style": {
+        "borderRadius": "var(--radius-2xl)",
+        "padding": "var(--space-4) var(--space-6)",
+        "fontSize": "var(--text-lg)",
+        "fontWeight": 600,
+        "boxShadow": "var(--shadow-xl), 0 0 40px var(--persona-glow)"
+      },
+      "haptic": "success",
+      "zIndex": "var(--z-celebration)"
+    },
+
+    "milestone": {
+      "$description": "Level 4: Full modal experience for major life moments.",
+      "duration": {
+        "entrance": 800,
+        "contentStagger": 80,
+        "ambientLoop": 2000
+      },
+      "position": {
+        "anchor": "center",
+        "type": "modal"
+      },
+      "phases": {
+        "backdrop": {
+          "duration": "var(--duration-slow)",
+          "easing": "var(--ease-standard)",
+          "blur": { "from": "0px", "to": "20px" },
+          "opacity": { "from": 0, "to": 1 }
+        },
+        "card": {
+          "duration": "var(--duration-dramatic)",
+          "easing": "var(--ease-spring)",
+          "delay": "var(--duration-normal)",
+          "translate": { "from": "40px", "to": "0" },
+          "scale": { "from": 0.8, "to": 1 }
+        },
+        "content": {
+          "stagger": 80,
+          "elements": ["icon", "eyebrow", "title", "message", "stats", "action"],
+          "duration": "var(--duration-deliberate)",
+          "easing": "var(--ease-expo-out)",
+          "translate": { "from": "16px", "to": "0" }
+        },
+        "ambient": {
+          "sparkles": { "count": 6, "loop": true },
+          "glow": { "pulse": true, "frequency": 2000 }
+        }
+      },
+      "style": {
+        "borderRadius": "var(--radius-2xl)",
+        "padding": "var(--space-8)",
+        "maxWidth": "420px",
+        "boxShadow": "0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.1)"
+      },
+      "backdrop": {
+        "background": "rgba(44, 37, 32, 0.75)",
+        "blur": "20px"
+      },
+      "hapticSequence": ["softTap", "warmWelcome", "success"],
+      "zIndex": "var(--z-modal)"
+    }
+  },
+
+  "badges": {
+    "$description": "Persistent indicators near the avatar",
+
+    "position": {
+      "container": "absolute",
+      "layout": "flex",
+      "gap": "var(--space-2)",
+      "offset": {
+        "streak": "bottom-left",
+        "seeds": "bottom-center",
+        "achievements": "bottom-right",
+        "checkin": "top-right"
+      }
+    },
+
+    "streak": {
+      "icon": "flame",
+      "color": "var(--color-semantic-warning)",
+      "animation": {
+        "idle": {
+          "name": "flame-flicker",
+          "duration": 2000,
+          "easing": "ease-in-out"
+        },
+        "milestone": {
+          "name": "milestone-pulse",
+          "duration": 900,
+          "easing": "var(--ease-spring)"
+        }
+      },
+      "style": {
+        "background": "var(--glass-background)",
+        "borderRadius": "var(--radius-full)",
+        "padding": "var(--space-1) var(--space-2)",
+        "fontSize": "var(--text-xs)",
+        "fontWeight": 600
+      }
+    },
+
+    "seeds": {
+      "icon": "seed",
+      "color": "var(--persona-primary)",
+      "animation": {
+        "earn": {
+          "name": "seed-grow",
+          "duration": 600,
+          "easing": "var(--ease-spring)"
+        }
+      },
+      "style": {
+        "background": "var(--glass-background)",
+        "borderRadius": "var(--radius-full)",
+        "padding": "var(--space-1) var(--space-2)",
+        "fontSize": "var(--text-xs)",
+        "fontWeight": 600
+      }
+    },
+
+    "achievements": {
+      "icon": "trophy",
+      "color": "var(--color-semantic-success)",
+      "animation": {
+        "unlock": {
+          "name": "badge-unlock",
+          "duration": 800,
+          "easing": "var(--ease-spring)"
+        }
+      },
+      "style": {
+        "background": "var(--glass-background)",
+        "borderRadius": "var(--radius-full)",
+        "padding": "var(--space-1) var(--space-2)",
+        "fontSize": "var(--text-xs)",
+        "fontWeight": 600
+      },
+      "indicator": {
+        "show": "when-new",
+        "style": {
+          "width": "8px",
+          "height": "8px",
+          "background": "var(--color-semantic-error)",
+          "borderRadius": "var(--radius-full)"
+        }
+      }
+    },
+
+    "checkin": {
+      "icon": "heart",
+      "color": "var(--persona-primary)",
+      "animation": {
+        "pulse": {
+          "name": "checkin-pulse",
+          "duration": 3000,
+          "easing": "ease-in-out",
+          "iterations": "infinite"
+        }
+      },
+      "style": {
+        "width": "28px",
+        "height": "28px",
+        "background": "linear-gradient(135deg, var(--persona-primary), var(--persona-secondary))",
+        "borderRadius": "var(--radius-full)",
+        "border": "2px solid var(--color-background-primary)"
+      }
+    }
+  },
+
+  "trophyRoom": {
+    "$description": "Full-screen achievement collection modal",
+
+    "layout": {
+      "type": "modal",
+      "maxWidth": "600px",
+      "padding": "var(--space-6)"
+    },
+
+    "grid": {
+      "columns": 6,
+      "gap": "var(--space-4)",
+      "itemSize": "64px"
+    },
+
+    "badge": {
+      "earned": {
+        "background": "var(--color-background-elevated)",
+        "border": "1px solid var(--glass-border)",
+        "boxShadow": "var(--shadow-sm)",
+        "iconSize": "32px"
+      },
+      "locked": {
+        "background": "var(--color-background-secondary)",
+        "border": "1px solid var(--color-border-subtle)",
+        "opacity": 0.5,
+        "icon": "lock"
+      },
+      "hover": {
+        "scale": 1.05,
+        "boxShadow": "var(--shadow-md)"
+      }
+    },
+
+    "sections": {
+      "earned": {
+        "title": "Earned",
+        "sort": "date-desc"
+      },
+      "locked": {
+        "title": "Locked",
+        "hint": "+ {count} more to discover..."
+      }
+    },
+
+    "shareCard": {
+      "width": 1200,
+      "height": 630,
+      "background": "linear-gradient(135deg, var(--persona-primary), var(--persona-secondary))"
+    }
+  },
+
+  "haptics": {
+    "$description": "Haptic patterns synchronized with visual moments",
+
+    "patterns": {
+      "softTap": {
+        "type": "selection",
+        "intensity": "light",
+        "duration": 10
+      },
+      "notification": {
+        "type": "notification",
+        "intensity": "medium",
+        "duration": 20
+      },
+      "success": {
+        "type": "impact",
+        "intensity": "heavy",
+        "duration": 30,
+        "follow": {
+          "delay": 50,
+          "type": "impact",
+          "intensity": "light",
+          "duration": 15
+        }
+      },
+      "warmWelcome": {
+        "type": "impact",
+        "intensity": "medium",
+        "style": "soft",
+        "duration": 50
+      },
+      "sparkle": {
+        "type": "impact",
+        "intensity": "light",
+        "pattern": [10, 20, 10, 20, 10]
+      },
+      "impact": {
+        "type": "impact",
+        "intensity": "heavy",
+        "duration": 30
+      },
+      "error": {
+        "type": "notification",
+        "intensity": "error",
+        "pattern": [20, 100, 20]
+      }
+    },
+
+    "sync": {
+      "$description": "Haptic fires at 75% of animation duration (visual peak)",
+      "peakOffset": 0.75
+    }
+  },
+
+  "accessibility": {
+    "reducedMotion": {
+      "whisper": {
+        "animation": "fade-only",
+        "duration": "var(--duration-fast)"
+      },
+      "notice": {
+        "animation": "fade-only",
+        "avatarPulse": "none"
+      },
+      "celebration": {
+        "sequence": "simplified",
+        "sparkles": "none"
+      },
+      "milestone": {
+        "contentStagger": 0,
+        "ambient": "none"
+      }
+    },
+
+    "screenReader": {
+      "whisper": { "role": "status", "ariaLive": "polite" },
+      "notice": { "role": "alert", "ariaLive": "polite" },
+      "celebration": { "role": "alert", "ariaLive": "assertive" },
+      "milestone": { "role": "dialog", "ariaModal": true }
+    }
+  },
+
+  "zIndex": {
+    "$description": "Layering system for moments",
+    "whisper": 1000,
+    "notice": 1100,
+    "celebration": 1200,
+    "badge": 1300,
+    "milestone": 2000,
+    "trophyRoom": 2100
+  }
+}

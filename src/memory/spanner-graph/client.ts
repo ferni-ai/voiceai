@@ -199,8 +199,7 @@ export async function insertFact(fact: Omit<GraphFact, 'createdAt'>): Promise<vo
           { domain, factType: fact.factType, confidence: fact.confidence }
         );
       },
-      'index-fact-for-semantic-search',
-      { factId: fact.factId }
+      `index-fact-for-semantic-search:${fact.factId}`
     );
   } catch (error) {
     log.warn({ error: String(error), factId: fact.factId }, 'Failed to insert fact');

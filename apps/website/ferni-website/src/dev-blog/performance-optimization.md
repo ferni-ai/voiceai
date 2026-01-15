@@ -3,7 +3,7 @@ title: "Performance Optimization: Achieving Sub-200ms Response Times"
 excerpt: "How Ferni delivers real-time voice AI - and how you can optimize your integration for the best user experience."
 author: "Ferni Dev Team"
 authorInitials: "FD"
-authorColor: "#38bdf8"
+authorColor: "#4a6741"
 date: 2026-01-14
 category: "Deep Dives"
 image: "performance-optimization.png"

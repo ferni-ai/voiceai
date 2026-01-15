@@ -1140,6 +1140,53 @@ Reference past context when relevant, but don't force it. Let the conversation f
     }
 
     // =========================================================================
+    // VOICE VERIFICATION FOR INBOUND CALLS (Borrowed Phone Detection)
+    // When someone calls from a known phone but sounds different, gracefully verify.
+    // This enables "Hey, I was expecting John - is this someone else?"
+    // =========================================================================
+    if (
+      callType === 'inbound_call' &&
+      metadata.isKnownCaller &&
+      services.userProfile?.voiceSketch
+    ) {
+      try {
+        const { registerForVoiceVerification, shouldSetupVoiceVerification } =
+          await import('../services/voice/inbound-voice-verification.js');
+
+        const verificationCheck = shouldSetupVoiceVerification(
+          services.userProfile,
+          true, // isInboundCall
+          metadata.isKnownCaller as boolean
+        );
+
+        if (verificationCheck.shouldSetup && verificationCheck.voiceSketch) {
+          registerForVoiceVerification(
+            sessionId,
+            userId || '',
+            verificationCheck.userName || (metadata.callerName as string) || 'the caller',
+            verificationCheck.voiceSketch
+          );
+
+          // Add cleanup handler
+          const { cleanupVoiceVerification } =
+            await import('../services/voice/inbound-voice-verification.js');
+          cleanupHandlers.push(() => cleanupVoiceVerification(sessionId));
+
+          process.stderr.write(
+            `[voice-agent-entry] 🎤 Voice verification registered for inbound call ` +
+              `(expected: ${verificationCheck.userName || 'known caller'}, ` +
+              `sketch confidence: ${verificationCheck.voiceSketch.confidence.toFixed(2)})\n`
+          );
+        }
+      } catch (voiceVerifyErr) {
+        // Non-fatal - just skip voice verification
+        process.stderr.write(
+          `[voice-agent-entry] ⚠️ Voice verification setup failed (non-fatal): ${String(voiceVerifyErr)}\n`
+        );
+      }
+    }
+
+    // =========================================================================
     // BETTER THAN HUMAN #6: Cross-Channel Thread Continuity
     // When user responds to our outreach (SMS, push, email) via voice call,
     // we pick up exactly where we left off - across channels.
@@ -2195,7 +2242,9 @@ Reference past context when relevant, but don't force it. Let the conversation f
     // they'll be queued/skipped until prewarm completes.
     // =========================================================================
     if (modelProvider.needsPrewarm()) {
-      process.stderr.write(`[voice-agent-entry] 🔥 Starting prewarm via gateway (${modelProvider.id})...\n`);
+      process.stderr.write(
+        `[voice-agent-entry] 🔥 Starting prewarm via gateway (${modelProvider.id})...\n`
+      );
       prewarmSessionAsync(session, sessionId);
     }
 
@@ -2351,12 +2400,16 @@ Reference past context when relevant, but don't force it. Let the conversation f
             domains: essentialDomains,
           });
           if (updated) {
-            process.stderr.write(`\n🔧 Essential tools registered with agent (${Object.keys(essentialTools).length} tools)\n`);
+            process.stderr.write(
+              `\n🔧 Essential tools registered with agent (${Object.keys(essentialTools).length} tools)\n`
+            );
           }
         }
       }
     } catch (toolUpdateError) {
-      process.stderr.write(`\n⚠️ Failed to update agent with essential tools: ${toolUpdateError}\n`);
+      process.stderr.write(
+        `\n⚠️ Failed to update agent with essential tools: ${toolUpdateError}\n`
+      );
     }
 
     const transcriptHandler = createTranscriptHandler({

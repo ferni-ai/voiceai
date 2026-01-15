@@ -546,3 +546,123 @@ export {
   calculateSignificanceDecay,
   adjustScoreForUsage,
 } from './memory-feedback.js';
+
+// ============================================================================
+// HYBRID SEARCH (BM25 + Vector + RRF)
+// ============================================================================
+
+// BM25 keyword search
+export {
+  BM25Index,
+  searchEntitiesBM25,
+  getMemoryBM25Index,
+  clearMemoryBM25Index,
+  type BM25SearchOptions,
+  type BM25Document,
+  type BM25SearchResult,
+  type BM25IndexStats,
+} from './bm25-search.js';
+
+// Tokenization
+export {
+  tokenize,
+  tokenizeForIndex,
+  tokenizeForQuery,
+  tokenizeName,
+  calculateTermFrequency,
+  stem,
+  STOP_WORDS,
+  type TokenizeOptions,
+} from './tokenizer.js';
+
+// Rank fusion
+export {
+  reciprocalRankFusion,
+  fuseSearchResults,
+  weightedScoreFusion,
+  teamDraftInterleave,
+  type RankedItem,
+  type FusedResult,
+  type RankFusionOptions,
+} from './rank-fusion.js';
+
+// Hybrid search orchestration
+export {
+  hybridSearch,
+  findEntityHybrid,
+  bm25OnlySearch,
+  vectorOnlySearch,
+  type HybridSearchOptions,
+  type HybridSearchResult,
+  type HybridSearchMetrics,
+} from './hybrid-search.js';
+
+// Cross-encoder neural reranking
+export {
+  Reranker,
+  getReranker,
+  rerankDocuments,
+  rerankHybridResults,
+  // Providers
+  GeminiCrossEncoder,
+  LocalCrossEncoder,
+  HeuristicCrossEncoder,
+  // Types
+  type CrossEncoderProvider,
+  type RerankDocument,
+  type RerankResult,
+  type CrossEncoderOptions,
+  type RerankOptions,
+  type CrossEncoderMetrics,
+} from './cross-encoder.js';
+
+// ============================================================================
+// TURN MEMORY RETRIEVAL (Phase 9 - Real-Time Memory Integration)
+// ============================================================================
+
+export {
+  retrieveForTurn,
+  formatMemoryContextForPrompt,
+  formatProactiveMemory,
+  cleanupTurnRetrieval,
+  clearSessionSurfacingHistory,
+  getTurnRetrievalStats,
+  setTurnRetrievalConfig,
+  getTurnRetrievalConfig,
+  type TurnRetrievalInput,
+  type RetrievedMemoryForTurn,
+  type MemoryContext,
+  type TurnRetrievalMetrics,
+  type TurnRetrievalConfig,
+} from './turn-memory-retrieval.js';
+
+// ============================================================================
+// CONFIDENCE SCORING (Phase 16 - Memory Confidence & Attribution)
+// ============================================================================
+
+export {
+  calculateConfidence,
+  calculateBatchConfidence,
+  filterByConfidence,
+  levelToMinScore,
+  setConfidenceConfig,
+  getConfidenceConfig,
+  type MemoryConfidence,
+  type ConfidenceLevel,
+  type ConfidenceInput,
+  type ConfidenceBreakdown,
+  type ConfidenceFactor,
+  type ConfidenceConfig,
+} from './confidence-scoring.js';
+
+// Attribution Builder
+export {
+  buildAttribution,
+  buildBatchAttributions,
+  quickAttribution,
+  getTimePhraseForDate,
+  buildCorrectionAcknowledgment,
+  buildDisputeResponse,
+  type MemoryAttribution,
+  type AttributionInput,
+} from './attribution-builder.js';

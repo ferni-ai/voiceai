@@ -1,0 +1,61 @@
+{
+  "name": "Ferni Design System",
+  "id": "ferni-design-system",
+  "api": "1.0.0",
+  "main": "dist/code.js",
+  "ui": "dist/ui.html",
+  "capabilities": [],
+  "enableProposedApi": false,
+  "editorType": ["figma"],
+  "documentAccess": "dynamic-page",
+  "networkAccess": {
+    "allowedDomains": [
+      "raw.githubusercontent.com",
+      "design.ferni.ai"
+    ]
+  },
+  "menu": [
+    {
+      "name": "Open Plugin",
+      "command": "open"
+    },
+    {
+      "separator": true
+    },
+    {
+      "name": "Apply Ferni Theme",
+      "command": "applyFerniTheme"
+    },
+    {
+      "name": "Apply Peter Theme",
+      "command": "applyPeterTheme"
+    },
+    {
+      "name": "Apply Alex Theme",
+      "command": "applyAlexTheme"
+    },
+    {
+      "name": "Apply Maya Theme",
+      "command": "applyMayaTheme"
+    },
+    {
+      "name": "Apply Jordan Theme",
+      "command": "applyJordanTheme"
+    },
+    {
+      "name": "Apply Nayan Theme",
+      "command": "applyNayanTheme"
+    },
+    {
+      "separator": true
+    },
+    {
+      "name": "Run Lint",
+      "command": "lint"
+    },
+    {
+      "name": "Sync Tokens",
+      "command": "syncTokens"
+    }
+  ]
+}

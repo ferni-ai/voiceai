@@ -54,7 +54,7 @@ export async function recordAgentTurn(
         anchor: injectedMemories.filter((m) => m.type === 'anchor').length,
         semantic: injectedMemories.filter((m) => m.type === 'semantic').length,
       };
-      recordMemoriesInjected(byType);
+      recordMemoriesInjected(injectedMemories.length);
 
       // Parse response for attributions
       const attribution = parseAttributions(text, injectedMemories);
@@ -68,8 +68,11 @@ export async function recordAgentTurn(
       recordMemoryAttribution(
         injectedMemories.length,
         attribution.explicitlyReferenced + attribution.implicitlyReferenced,
-        attribution.explicitlyReferenced,
-        attributedByType
+        {
+          explicit: attribution.explicitlyReferenced,
+          implicit: attribution.implicitlyReferenced,
+          semantic: attributedByType.semantic,
+        }
       );
 
       log.debug(

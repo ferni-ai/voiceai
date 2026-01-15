@@ -104,13 +104,67 @@ export {
 export {
   migrateUser,
   migrateAllUsers,
+  rollbackMigration,
+  validateMigration,
+  getMigrationHealth,
+  getMigrationState,
+  getUserMigrationStates,
   // Individual readers (for debugging)
   readUserContacts,
   readContactRelationships,
   readRelationshipNetwork,
   readRelationshipNodes,
   readGuestProfiles,
+  // Types
+  type ExtendedMigrationResult,
+  type MigrationOptions,
+  type BatchMigrationOptions,
+  type BatchMigrationResult,
+  type ConflictStrategy,
 } from './migration.js';
+
+// ============================================================================
+// DUAL-WRITE EXPORTS
+// ============================================================================
+
+export {
+  configureDualWrite,
+  isDualWriteEnabled,
+  setDualWriteEnabled,
+  interceptContactWrite,
+  interceptRelationshipNetworkWrite,
+  interceptCommitmentWrite,
+  interceptDreamWrite,
+  interceptValueWrite,
+  batchInterceptContacts,
+  getMigrationStatus,
+  getAllMigrationStatus,
+  updateMigrationStatus,
+  type DualWriteConfig,
+  type CollectionMigrationStatus,
+  type DualWriteResult,
+} from './dual-write.js';
+
+// ============================================================================
+// LEGACY ADAPTER EXPORTS
+// ============================================================================
+
+export {
+  configureLegacyAdapter,
+  isUsingEntityStore,
+  // Contact API compatibility
+  getContacts,
+  getContact,
+  searchContacts,
+  findContactByPhone,
+  findContactByRelationship,
+  // Relationship network API compatibility
+  getRelationshipNetwork,
+  getRelationshipConnections,
+  type LegacyContactFormat,
+  type LegacyRelationshipPerson as LegacyRelationshipPersonAdapter,
+  type LegacyAdapterConfig,
+} from './legacy-adapter.js';
 
 // ============================================================================
 // CACHE EXPORTS

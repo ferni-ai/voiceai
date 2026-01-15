@@ -27,6 +27,15 @@ import {
   setWrappingUp,
 } from './state/app.state.js';
 
+// ============================================================================
+// AMBIENT EXPERIENCE MANAGERS
+// Better than Apple: Time-aware, relationship-aware, persona-aware theming
+// ============================================================================
+import { circadianManager } from './services/circadian-manager.js';
+import { warmthManager } from './services/warmth-manager.js';
+import { personaAura } from './services/persona-aura.js';
+import { visualStorytellingService } from './services/visual-storytelling.service.js';
+
 // Services
 import { delightService } from './services/delight.service.js';
 import { checkAndClaimDemoSession, hasPendingClaim } from './services/demo-claim.service.js';
@@ -535,6 +544,14 @@ class VoiceAIApp {
         log.info('User already authenticated', { uid: authState.uid?.slice(0, 8) });
       }
 
+      // Initialize visual storytelling service (fetches user's ambient preferences)
+      // This integrates sleep patterns, relationship metrics, and milestones
+      if (authState.uid) {
+        visualStorytellingService.init(authState.uid).catch(err => {
+          log.warn({ error: err }, 'Failed to initialize visual storytelling service');
+        });
+      }
+
       // Initialize services (non-blocking)
       this.initializeServices();
 
@@ -1023,6 +1040,23 @@ class VoiceAIApp {
   private initializeTheme(): void {
     // Initialize theme from stored preference or system
     initTheme();
+
+    // ========================================================================
+    // AMBIENT EXPERIENCE SYSTEM (Better than Apple/Google)
+    // Layered theming: Circadian (time) + Warmth (relationship) + Persona
+    // ========================================================================
+    
+    // 1. Circadian: Time-aware theming (dawn warmth, midday clarity, night intimacy)
+    circadianManager.injectStyles();
+    circadianManager.init();
+
+    // 2. Warmth: Relationship-based visual evolution (deepens as bond grows)
+    warmthManager.injectStyles();
+    warmthManager.init();
+
+    // 3. Persona Aura: Ambient glow reflecting the active team member
+    personaAura.injectStyles();
+    personaAura.init();
 
     // Start ambient warmth cycle (WALL-E style time-aware lighting)
     startAmbientCycle();
@@ -1943,6 +1977,7 @@ class VoiceAIApp {
         onOnboardingClick: () => getOnboardingUI().start(),
         onThemeToggle: () => showThemeLanguageSettings(),
         onNotificationSettingsClick: () => showNotificationSettings(),
+        onSleepSettingsClick: () => void import('./ui/sleep-settings.ui.js').then(m => m.show()),
         onSpotifyClick: () => void triggerSpotifyLinkToggle(),
         onTeamHuddleClick: () => showTeamHuddle(),
         onTeamObservationsClick: () => void import('./ui/team-observations-panel.ui.js').then(m => m.show()),
@@ -3507,6 +3542,12 @@ class VoiceAIApp {
     disposeMoodContext();
     disposeWeatherEffects();
     ferniExpressions.dispose();
+    
+    // Dispose ambient experience managers
+    circadianManager.dispose();
+    warmthManager.dispose();
+    personaAura.dispose();
+    visualStorytellingService.dispose();
 
     // FIX: Clean up all tracked event listeners to prevent memory leaks
     for (const { target, event, handler } of this.trackedListeners) {

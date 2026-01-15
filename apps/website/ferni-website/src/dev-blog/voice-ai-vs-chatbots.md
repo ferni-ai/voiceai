@@ -3,7 +3,7 @@ title: "Voice AI vs Chatbots: A Developer's Perspective"
 excerpt: "When to use voice, when to use text, and why the future isn't either/or - it's knowing when each shines."
 author: "Ferni Dev Team"
 authorInitials: "FD"
-authorColor: "#38bdf8"
+authorColor: "#4a6741"
 date: 2026-01-17
 category: "Industry Insights"
 image: "voice-vs-chatbots.png"

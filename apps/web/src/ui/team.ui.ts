@@ -1101,7 +1101,8 @@ function createTeamMemberElement(agent: ApiAgent): HTMLElement {
   const classes = ['team-member'];
   if (agent.isCoordinator) classes.push('team-member--coach');
   if (isLocked) classes.push('team-member--locked');
-  if (memberStatus.progress > 0.5 && isLocked) classes.push('team-member--almost-unlocked');
+  // "Almost unlocked" at 80%+ - creates anticipation and excitement
+  if (memberStatus.progress >= 0.8 && isLocked) classes.push('team-member--almost-unlocked');
 
   element.className = classes.join(' ');
   element.setAttribute('data-persona-id', agent.id);
@@ -1135,16 +1136,17 @@ function createTeamMemberElement(agent: ApiAgent): HTMLElement {
   // Display first name only in roster for cleaner UI
   const displayName = getFirstName(agent.name);
 
-  // Lock icon SVG (Lucide icon style - 2px stroke, rounded)
-  const lockIcon = isLocked
-    ? `
-    <div class="team-lock-indicator" aria-hidden="true">
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-      </svg>
-    </div>
-  `
+  // Mystery indicator - intriguing "?" that invites discovery (Better than a lock)
+  const mysteryIndicator = isLocked
+    ? `<div class="team-mystery-indicator" aria-hidden="true">?</div>`
+    : '';
+  
+  // Progress hint - shows conversations remaining on hover
+  const progressPercent = Math.round(memberStatus.progress * 100);
+  const progressHint = isLocked && memberStatus.progress > 0
+    ? `<div class="team-progress-hint">${progressPercent}% discovered</div>`
+    : isLocked
+    ? `<div class="team-progress-hint">Keep chatting to meet ${displayName}</div>`
     : '';
 
   // Progress ring for locked members (shows progress toward unlock)
@@ -1188,12 +1190,20 @@ function createTeamMemberElement(agent: ApiAgent): HTMLElement {
 
   avatarContainer.appendChild(avatar);
 
-  // Add lock icon if locked
-  if (lockIcon) {
+  // Add mystery indicator if locked (replaces lock icon for better UX)
+  if (mysteryIndicator) {
     const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = lockIcon;
-    const lockEl = tempDiv.firstElementChild;
-    if (lockEl) avatarContainer.appendChild(lockEl);
+    tempDiv.innerHTML = mysteryIndicator;
+    const mysteryEl = tempDiv.firstElementChild;
+    if (mysteryEl) avatarContainer.appendChild(mysteryEl);
+  }
+  
+  // Add progress hint (shown on hover)
+  if (progressHint) {
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = progressHint;
+    const hintEl = tempDiv.firstElementChild;
+    if (hintEl) avatarContainer.appendChild(hintEl);
   }
 
   element.appendChild(avatarContainer);
@@ -1586,8 +1596,11 @@ function updateTeamMemberLockStates(state: ReturnType<typeof teamUnlockService.g
     // Update classes
     if (isLocked) {
       addClass(element, 'team-member--locked');
-      if (status && status.progress > 0.5) {
+      // "Almost unlocked" at 80%+ - creates anticipation
+      if (status && status.progress >= 0.8) {
         addClass(element, 'team-member--almost-unlocked');
+      } else {
+        removeClass(element, 'team-member--almost-unlocked');
       }
     } else {
       removeClass(element, 'team-member--locked');
@@ -1613,10 +1626,19 @@ function updateTeamMemberLockStates(state: ReturnType<typeof teamUnlockService.g
       progressRing.setAttribute('stroke-dasharray', `${status.progress * 100}, 100`);
     }
 
-    // Update lock icon visibility
-    const lockIndicator = element.querySelector('.team-lock-indicator') as HTMLElement;
-    if (lockIndicator) {
-      lockIndicator.style.display = isLocked ? '' : 'none';
+    // Update mystery indicator visibility
+    const mysteryIndicator = element.querySelector('.team-mystery-indicator') as HTMLElement;
+    if (mysteryIndicator) {
+      mysteryIndicator.style.display = isLocked ? '' : 'none';
+    }
+    
+    // Update progress hint
+    const progressHint = element.querySelector('.team-progress-hint') as HTMLElement;
+    if (progressHint) {
+      progressHint.style.display = isLocked ? '' : 'none';
+      if (isLocked && status && status.progress > 0) {
+        progressHint.textContent = `${Math.round(status.progress * 100)}% discovered`;
+      }
     }
   }
 

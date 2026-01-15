@@ -55,6 +55,7 @@ export type NotificationType =
   | 'engagement'
   | 'calendar_reminder'
   | 'calendar_digest'
+  | 'family_approval_request'
   | 'general';
 
 export interface PushSubscription {
@@ -101,6 +102,7 @@ const NOTIFICATION_TEMPLATES: Record<NotificationType, { icon: string }> = {
   engagement: { icon: '/icons/engagement-192.png' },
   calendar_reminder: { icon: '/icons/calendar-192.png' },
   calendar_digest: { icon: '/icons/calendar-192.png' },
+  family_approval_request: { icon: '/icons/family-192.png' },
   general: { icon: '/icons/icon-192.png' },
 };
 

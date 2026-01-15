@@ -3,7 +3,7 @@ title: "Introducing the Ferni Developer Platform"
 excerpt: "Build voice-first AI experiences with MCP servers, custom tools, webhooks, and workflows. The complete developer toolkit for extending voice agents."
 author: "Ferni Dev Team"
 authorInitials: "FD"
-authorColor: "#38bdf8"
+authorColor: "#4a6741"
 date: 2026-01-11
 category: "Announcements"
 image: "developer-platform-launch.png"
@@ -267,4 +267,4 @@ We're just getting started. Coming soon:
 
 We can't wait to see what you build. If you have questions or feedback, reach out on [Discord](https://discord.gg/ferni) or [Twitter](https://twitter.com/ferni_ai).
 
-Happy building! 🚀
+Happy building!

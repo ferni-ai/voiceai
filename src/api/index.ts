@@ -58,6 +58,7 @@ export {
 export { handleVoicePresenceRoutes } from './voice-presence-routes.js';
 export { handleWellbeingRoutes } from './wellbeing.routes.js';
 export { handleWorkerRoutes } from './worker-routes.js';
+export { handleVisualStorytellingRoutes } from './visual-storytelling-routes.js';
 
 // Modular route handlers
 export { handleVoiceAuthRoutes } from './voice-auth.routes.js';

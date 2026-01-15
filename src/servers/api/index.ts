@@ -180,6 +180,7 @@ import { handleBatchOperationsRoutes } from '../../api/batch-operations-routes.j
 import { handleWebhookManagementRoutes } from '../../api/webhook-management-routes.js';
 import { handleDesignTokensRoutes } from '../../api/design-tokens-routes.js';
 import { handleInsightsRoutes } from '../../api/insights-routes.js';
+import { handleVisualStorytellingRoutes } from '../../api/visual-storytelling-routes.js';
 import { handleMemoryRoutes } from '../../api/memory-routes.js';
 import { handleActionRoutes } from '../../api/action-routes.js';
 import { handleWorkerRoutes } from '../../api/worker-routes.js';
@@ -454,6 +455,21 @@ const server = http.createServer(async (req, res) => {
     }
   } catch (err) {
     log.error({ error: String(err) }, 'Insights route error');
+    if (!res.writableEnded) {
+      res.writeHead(500);
+      res.end('Internal Server Error');
+    }
+    return;
+  }
+
+  try {
+    // Visual Storytelling routes - circadian sync, relationship warmth, milestones
+    if (pathname.startsWith('/api/visual-storytelling/')) {
+      const handled = await handleVisualStorytellingRoutes(req, res, pathname);
+      if (handled) return;
+    }
+  } catch (err) {
+    log.error({ error: String(err) }, 'Visual storytelling route error');
     if (!res.writableEnded) {
       res.writeHead(500, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: 'Internal server error' }));

@@ -14,14 +14,15 @@ interface AvatarProps {
   status?: 'online' | 'speaking' | 'listening' | 'offline';
 }
 
+// Persona colors - sourced from design-system/tokens/personas.json
+// Note: 'jack' is a LEGACY brand accent color, NOT an active persona
 const PERSONA_COLORS: Record<string, { primary: string; secondary: string }> = {
   ferni: { primary: '#4a6741', secondary: '#3d5a35' },
-  jack: { primary: '#9a7b5a', secondary: '#7d6348' },
   peter: { primary: '#3a6b73', secondary: '#2d5359' },
   alex: { primary: '#5a6b8a', secondary: '#4a5a73' },
   maya: { primary: '#a67a6a', secondary: '#8a635a' },
   jordan: { primary: '#c4856a', secondary: '#a86d55' },
-  nayan: { primary: '#8a7a6a', secondary: '#6a5a4a' },
+  nayan: { primary: '#b8956a', secondary: '#9a7a52' }, // Golden - wisdom guide
 };
 
 const SIZES = {
@@ -117,7 +118,7 @@ const meta: Meta<AvatarProps> = {
     name: { control: 'text' },
     personaId: {
       control: { type: 'select' },
-      options: ['ferni', 'jack', 'peter', 'alex', 'maya', 'jordan', 'nayan'],
+      options: ['ferni', 'peter', 'alex', 'maya', 'jordan', 'nayan'],
     },
     size: {
       control: { type: 'select' },
@@ -167,14 +168,14 @@ export const TeamMembers: Story = {
     const container = document.createElement('div');
     container.style.cssText = 'display: flex; gap: 16px; flex-wrap: wrap; align-items: center;';
     
+    // The 6 active Ferni personas (jack is legacy, not an active persona)
     const personas = [
       { name: 'Ferni', personaId: 'ferni' },
-      { name: 'Jack Bogle', personaId: 'jack' },
-      { name: 'Peter Lynch', personaId: 'peter' },
-      { name: 'Alex Chen', personaId: 'alex' },
-      { name: 'Maya Santos', personaId: 'maya' },
-      { name: 'Jordan Taylor', personaId: 'jordan' },
-      { name: 'Nayan Patel', personaId: 'nayan' },
+      { name: 'Peter', personaId: 'peter' },
+      { name: 'Alex', personaId: 'alex' },
+      { name: 'Maya', personaId: 'maya' },
+      { name: 'Jordan', personaId: 'jordan' },
+      { name: 'Nayan', personaId: 'nayan' },
     ];
     
     personas.forEach(p => {

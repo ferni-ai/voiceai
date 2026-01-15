@@ -309,6 +309,166 @@ function injectStyles(): void {
       transform: scale(0.98);
     }
     
+    .celebration-dismiss-icon {
+      opacity: 0;
+      transform: translateX(-4px);
+      transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
+    }
+    
+    .celebration-dismiss:hover .celebration-dismiss-icon {
+      opacity: 1;
+      transform: translateX(0);
+    }
+    
+    /* Mini Journey Map in Celebration */
+    .celebration-journey-mini {
+      margin-bottom: var(--space-4, 16px);
+      padding: var(--space-2, 8px) 0;
+    }
+    
+    .celebration-journey-path {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0;
+    }
+    
+    .celebration-journey-node {
+      position: relative;
+    }
+    
+    .celebration-journey-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--color-border-subtle, rgba(0, 0, 0, 0.1));
+      border: 2px solid var(--color-border, rgba(0, 0, 0, 0.2));
+      transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
+    }
+    
+    .celebration-journey-node--past .celebration-journey-dot {
+      background: var(--persona-primary, #4a6741);
+      border-color: var(--persona-primary, #4a6741);
+    }
+    
+    .celebration-journey-node--current .celebration-journey-dot {
+      width: 16px;
+      height: 16px;
+      background: var(--persona-primary, #4a6741);
+      border-color: var(--persona-primary, #4a6741);
+      box-shadow: 0 0 0 4px var(--persona-tint, rgba(74, 103, 65, 0.2));
+      animation: celebrationPulse 1.5s ease-in-out infinite;
+    }
+    
+    @keyframes celebrationPulse {
+      0%, 100% { box-shadow: 0 0 0 4px var(--persona-tint, rgba(74, 103, 65, 0.2)); }
+      50% { box-shadow: 0 0 0 8px var(--persona-tint, rgba(74, 103, 65, 0.1)); }
+    }
+    
+    .celebration-journey-node--future .celebration-journey-dot {
+      opacity: 0.4;
+    }
+    
+    .celebration-journey-connector {
+      width: 24px;
+      height: 2px;
+      background: var(--color-border-subtle, rgba(0, 0, 0, 0.1));
+    }
+    
+    .celebration-journey-connector--filled {
+      background: var(--persona-primary, #4a6741);
+    }
+    
+    /* Unlocks Section */
+    .celebration-unlocks {
+      background: var(--color-background-secondary, #F5F1E8);
+      border-radius: var(--radius-lg, 12px);
+      padding: var(--space-3, 12px) var(--space-4, 16px);
+      margin-bottom: var(--space-5, 20px);
+      text-align: left;
+    }
+    
+    .celebration-unlocks-label {
+      font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
+      font-size: var(--text-xs, 12px);
+      font-weight: var(--font-weight-semibold, 600);
+      color: var(--color-text-muted, #756A5E);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin: 0 0 var(--space-2, 8px);
+    }
+    
+    .celebration-unlocks-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-2, 8px);
+    }
+    
+    .celebration-unlock-item {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-1, 4px);
+      font-size: var(--text-sm, 14px);
+      color: var(--color-text-primary, #2C2520);
+      background: var(--color-background-elevated, #FFFDFB);
+      padding: var(--space-1, 4px) var(--space-2, 8px);
+      border-radius: var(--radius-full, 9999px);
+      animation: unlockFadeIn ${DURATION.NORMAL}ms ${EASING.SPRING} backwards;
+    }
+    
+    .celebration-unlock-item:nth-child(1) { animation-delay: 100ms; }
+    .celebration-unlock-item:nth-child(2) { animation-delay: 200ms; }
+    .celebration-unlock-item:nth-child(3) { animation-delay: 300ms; }
+    
+    @keyframes unlockFadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(8px) scale(0.9);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+    
+    .celebration-unlock-item svg {
+      width: 12px;
+      height: 12px;
+      color: var(--color-accent-text);
+    }
+    
+    /* Dark theme - Celebration Enhancements */
+    [data-theme="midnight"] .celebration-journey-dot {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+    
+    [data-theme="midnight"] .celebration-journey-node--past .celebration-journey-dot,
+    [data-theme="midnight"] .celebration-journey-node--current .celebration-journey-dot {
+      background: var(--persona-primary, #6b8f5e);
+      border-color: var(--persona-primary, #6b8f5e);
+    }
+    
+    [data-theme="midnight"] .celebration-journey-connector {
+      background: rgba(255, 255, 255, 0.1);
+    }
+    
+    [data-theme="midnight"] .celebration-journey-connector--filled {
+      background: var(--persona-primary, #6b8f5e);
+    }
+    
+    [data-theme="midnight"] .celebration-unlocks {
+      background: var(--color-background-secondary, #60504a);
+    }
+    
+    [data-theme="midnight"] .celebration-unlock-item {
+      background: var(--color-background-elevated, #70605a);
+      color: var(--color-text-primary, #faf6f0);
+    }
+    
     /* ========================================================================
        JOURNEY PANEL
        Centered floating modal (per FERNI-SCREEN-GUIDELINES.md)
@@ -955,6 +1115,15 @@ function injectStyles(): void {
 // CELEBRATION OVERLAY
 // ============================================================================
 
+// Stage unlock messages - what becomes available at each stage
+const STAGE_UNLOCKS: Record<string, string[]> = {
+  'first-meeting': ['Voice conversations', 'Basic coaching'],
+  'getting-started': ['Mood tracking', 'Daily check-ins', 'Maya (Habits Coach)'],
+  'building-trust': ['Deep insights', 'Goal tracking', 'Alex (Communications)'],
+  'established': ['Life patterns analysis', 'Peter (Research)', 'Jordan (Events)'],
+  'deep-partnership': ['Full team access', 'Nayan (Wisdom)', 'Priority support'],
+};
+
 function createCelebrationOverlay(): void {
   celebrationOverlay = document.createElement('div');
   celebrationOverlay.className = 'relationship-celebration';
@@ -965,16 +1134,34 @@ function createCelebrationOverlay(): void {
   celebrationOverlay.innerHTML = `
     <div class="celebration-backdrop"></div>
     <div class="celebration-card">
+      <!-- Celebration Header -->
       <div class="celebration-icon">${ICONS.sparkles}</div>
       <p class="celebration-eyebrow">Milestone reached</p>
       <h2 class="celebration-title" id="celebration-title"></h2>
       <p class="celebration-message"></p>
+      
+      <!-- Mini Journey Map -->
+      <div class="celebration-journey-mini">
+        <div class="celebration-journey-path"></div>
+      </div>
+      
+      <!-- Stage Badge -->
       <div class="celebration-stage-badge">
         <span class="stage-from"></span>
         <span class="stage-arrow">${ICONS.chevronRight}</span>
         <span class="stage-to"></span>
       </div>
-      <button aria-label="${t('accessibility.continueOurJourney')}" class="celebration-dismiss">Continue our journey</button>
+      
+      <!-- What's Unlocked -->
+      <div class="celebration-unlocks">
+        <p class="celebration-unlocks-label">Now available:</p>
+        <ul class="celebration-unlocks-list"></ul>
+      </div>
+      
+      <button aria-label="${t('accessibility.continueOurJourney')}" class="celebration-dismiss">
+        <span>Continue our journey</span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="celebration-dismiss-icon"><path d="m9 18 6-6-6-6"/></svg>
+      </button>
     </div>
   `;
   
@@ -990,10 +1177,20 @@ function handleStageChange(event: StageChangeEvent): void {
   showCelebration(event);
 }
 
+// Stage order for mini journey map
+const CELEBRATION_STAGES = [
+  'first-meeting',
+  'getting-started', 
+  'building-trust',
+  'established',
+  'deep-partnership',
+] as const;
+
 export function showCelebration(event: StageChangeEvent): void {
   if (!celebrationOverlay) return;
   
   const stageUpMsg = relationshipStageService.getStageUpMessage(event.newStage);
+  const newStageIndex = CELEBRATION_STAGES.indexOf(event.newStage as typeof CELEBRATION_STAGES[number]);
   
   // Update content
   const title = celebrationOverlay.querySelector('.celebration-title');
@@ -1005,6 +1202,37 @@ export function showCelebration(event: StageChangeEvent): void {
   if (message) message.textContent = stageUpMsg.message;
   if (stageFrom) stageFrom.textContent = getTranslatedStageName(event.previousStage);
   if (stageTo) stageTo.textContent = getTranslatedStageName(event.newStage);
+  
+  // Update mini journey map
+  const journeyPath = celebrationOverlay.querySelector('.celebration-journey-path');
+  if (journeyPath) {
+    journeyPath.innerHTML = CELEBRATION_STAGES.map((stage, i) => {
+      const isPast = i < newStageIndex;
+      const isCurrent = i === newStageIndex;
+      const stateClass = isPast ? 'past' : isCurrent ? 'current' : 'future';
+      return `
+        <div class="celebration-journey-node celebration-journey-node--${stateClass}">
+          <div class="celebration-journey-dot"></div>
+        </div>
+        ${i < CELEBRATION_STAGES.length - 1 ? `<div class="celebration-journey-connector celebration-journey-connector--${isPast || isCurrent ? 'filled' : 'empty'}"></div>` : ''}
+      `;
+    }).join('');
+  }
+  
+  // Update unlocks list
+  const unlocksList = celebrationOverlay.querySelector('.celebration-unlocks-list');
+  const unlocks = STAGE_UNLOCKS[event.newStage] || [];
+  if (unlocksList) {
+    unlocksList.innerHTML = unlocks.map(unlock => 
+      `<li class="celebration-unlock-item">${ICONS.sparkles}<span>${unlock}</span></li>`
+    ).join('');
+  }
+  
+  // Show/hide unlocks section based on whether there are unlocks
+  const unlocksSection = celebrationOverlay.querySelector('.celebration-unlocks') as HTMLElement;
+  if (unlocksSection) {
+    unlocksSection.style.display = unlocks.length > 0 ? '' : 'none';
+  }
   
   // Show with animation
   celebrationOverlay.classList.add('visible');

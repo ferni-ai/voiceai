@@ -1,0 +1,70 @@
+# Chromatic Visual Regression Testing
+# Captures screenshots of all Storybook stories and flags visual changes
+
+name: Chromatic
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'design-system/**'
+      - 'packages/ferni-react/**'
+  pull_request:
+    paths:
+      - 'design-system/**'
+      - 'packages/ferni-react/**'
+
+jobs:
+  chromatic:
+    name: Visual Regression Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Required for Chromatic to detect changes
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Build React package first (needed for React stories)
+      - name: Build React package
+        run: pnpm build
+        working-directory: packages/ferni-react
+
+      # Run Chromatic
+      - name: Run Chromatic
+        uses: chromaui/action@latest
+        with:
+          projectToken: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
+          workingDir: design-system
+          buildScriptName: build-storybook
+          # Auto-accept changes on main branch
+          autoAcceptChanges: ${{ github.ref == 'refs/heads/main' }}
+          # Don't fail on visual changes (just flag them)
+          exitZeroOnChanges: true
+          # Skip builds if no stories changed
+          onlyChanged: true
+
+      - name: Comment on PR with Chromatic link
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '🎨 **Visual Regression Test Complete**\n\nChromatic has analyzed your UI changes. View the build at: https://www.chromatic.com/builds?appId=${{ secrets.CHROMATIC_APP_ID }}'
+            })
+        continue-on-error: true

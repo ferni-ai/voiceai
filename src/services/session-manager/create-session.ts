@@ -70,7 +70,7 @@ import {
   setCurrentSessionMomentsGetter,
   summarizeConversation,
   type ConversationTurn,
-} from '../memory/index.js';
+} from '../../memory/index.js';
 
 // Intelligence imports
 import {
@@ -1646,7 +1646,7 @@ export async function createSessionServices(
             // Try LLM summarization first for richer understanding, fall back to extraction
             try {
               const { createSummarizationLLMCaller } = await import('../llm/llm-utils.js');
-              const { summarizeWithLLM } = await import('../memory/index.js');
+              const { summarizeWithLLM } = await import('../../memory/index.js');
               const llmCaller = createSummarizationLLMCaller();
 
               summary = await withTimeout(

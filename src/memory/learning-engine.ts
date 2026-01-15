@@ -774,7 +774,7 @@ export class LearningEngine {
     memoryTopics: string[];
   } | null {
     let mostRecent: SurfacingEvent | null = null;
-    
+
     for (const event of this.pendingEvents.values()) {
       if (event.userId === userId) {
         if (!mostRecent || event.surfacedAt > mostRecent.surfacedAt) {
@@ -782,9 +782,9 @@ export class LearningEngine {
         }
       }
     }
-    
+
     if (!mostRecent) return null;
-    
+
     return {
       id: mostRecent.id,
       memoryTopics: mostRecent.memoryTopics,

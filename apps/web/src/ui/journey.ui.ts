@@ -328,26 +328,14 @@ function createModal(): void {
       </header>
 
       <div class="journey-body">
+        <!-- Journey Map - Visual Path (Better than Apple Progress) -->
+        ${renderJourneyMap(stage, progressPercent)}
+        
         <!-- Progress Overview Section -->
         <section class="journey-progress-overview">
-          <div class="journey-progress-ring-container">
-            <svg class="journey-progress-ring" viewBox="0 0 100 100">
-              <circle class="journey-progress-ring__bg" cx="50" cy="50" r="43" />
-              <circle 
-                class="journey-progress-ring__fill" 
-                cx="50" cy="50" r="43"
-                stroke-dasharray="${2 * Math.PI * 43}"
-                stroke-dashoffset="${2 * Math.PI * 43 * (1 - progressPercent / 100)}"
-              />
-            </svg>
-            <div class="journey-progress-ring__text">
-              <span class="journey-progress-ring__percent">${progressPercent}%</span>
-              <span class="journey-progress-ring__label">progress</span>
-            </div>
-          </div>
-          
           <h2 class="journey-stage-name">${stageName}</h2>
           <p class="journey-stage-tagline">${stageInfo?.tagline ?? 'Just getting started'}</p>
+          <p class="journey-stage-description">${stageInfo?.description ?? ''}</p>
           
           <div class="journey-stats-row">
             <div class="journey-stat">
@@ -876,6 +864,70 @@ function escapeHtml(text: string): string {
   return div.innerHTML;
 }
 
+// ============================================================================
+// JOURNEY MAP - Visual Path (Better than Apple's Linear Progress)
+// Shows all relationship stages as a horizontal path with "you are here"
+// ============================================================================
+
+const STAGE_ORDER = [
+  'first-meeting',
+  'getting-started', 
+  'building-trust',
+  'established',
+  'deep-partnership',
+] as const;
+
+const STAGE_LABELS: Record<string, string> = {
+  'first-meeting': 'First Meeting',
+  'getting-started': 'Getting Started',
+  'building-trust': 'Building Trust',
+  'established': 'Established',
+  'deep-partnership': 'Deep Partnership',
+};
+
+/**
+ * Render horizontal journey map showing all stages
+ * Current stage has "you are here" indicator with breathing animation
+ */
+function renderJourneyMap(currentStage: string, progressPercent: number): string {
+  const currentIndex = STAGE_ORDER.indexOf(currentStage as typeof STAGE_ORDER[number]);
+  
+  return `
+    <section class="journey-map-section">
+      <div class="journey-map" role="navigation" aria-label="Your relationship journey">
+        <div class="journey-map__path">
+          ${STAGE_ORDER.map((stage, index) => {
+            const isPast = index < currentIndex;
+            const isCurrent = index === currentIndex;
+            const isFuture = index > currentIndex;
+            const stateClass = isPast ? 'journey-map__stage--past' : isCurrent ? 'journey-map__stage--current' : 'journey-map__stage--future';
+            
+            // Calculate connector fill
+            const connectorFill = isPast ? 100 : isCurrent ? progressPercent : 0;
+            
+            return `
+              ${index > 0 ? `
+                <div class="journey-map__connector ${isPast ? 'journey-map__connector--filled' : ''}">
+                  <div class="journey-map__connector-fill" style="--fill-progress: ${connectorFill}%"></div>
+                </div>
+              ` : ''}
+              <div class="journey-map__stage ${stateClass}" role="listitem" tabindex="0" aria-label="${STAGE_LABELS[stage]}${isCurrent ? ' - current stage' : ''}">
+                <div class="journey-map__node">
+                  ${isCurrent ? '<div class="journey-map__pulse"></div>' : ''}
+                  <div class="journey-map__node-inner"></div>
+                </div>
+                <span class="journey-map__label">${STAGE_LABELS[stage]}</span>
+                ${isCurrent ? '<span class="journey-map__here">You are here</span>' : ''}
+              </div>
+            `;
+          }).join('')}
+        </div>
+        <p class="journey-map__hint">Every conversation brings us closer</p>
+      </div>
+    </section>
+  `;
+}
+
 function renderCategory(category: string, items: ReturnType<typeof getMilestones>): string {
   const meta = CATEGORY_META[category] ?? CATEGORY_META.relationship;
   if (!meta) return '';
@@ -883,7 +935,7 @@ function renderCategory(category: string, items: ReturnType<typeof getMilestones
   const celebratedInCategory = items.filter((m) => m.celebrated).length;
 
   return `
-    <section class="journey-category">
+    <section class="journey-category" data-category="${category}">
       <header class="journey-category__header">
         <span class="journey-category__icon" style="color: ${meta.color}">
           ${meta.icon}
@@ -891,19 +943,27 @@ function renderCategory(category: string, items: ReturnType<typeof getMilestones
         <h3 class="journey-category__title">${meta.title}</h3>
         <span class="journey-category__count">${celebratedInCategory}/${items.length}</span>
       </header>
-      <div class="journey-category__items">
-        ${items.map((m) => renderMilestone(m, meta.color)).join('')}
+      <div class="journey-scrapbook">
+        ${items.map((m) => renderMilestoneCard(m, meta.color)).join('')}
       </div>
     </section>
   `;
 }
 
-function renderMilestone(milestone: ReturnType<typeof getMilestones>[0], color: string): string {
+/**
+ * Render milestone as a polaroid-style scrapbook card
+ * Celebrated milestones show full details with warm glow
+ * Locked milestones are mysterious silhouettes inviting discovery
+ */
+function renderMilestoneCard(milestone: ReturnType<typeof getMilestones>[0], color: string): string {
   const isCelebrated = milestone.celebrated;
   const hasProgress = milestone.target && milestone.progress !== undefined;
   const progressPercent = hasProgress
     ? Math.min(100, Math.round(((milestone.progress ?? 0) / (milestone.target ?? 1)) * 100))
     : 0;
+
+  // Random slight rotation for organic scrapbook feel
+  const rotation = (Math.random() * 4 - 2).toFixed(2);
 
   // Format celebration date
   let dateStr = '';
@@ -912,33 +972,56 @@ function renderMilestone(milestone: ReturnType<typeof getMilestones>[0], color: 
     dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   }
 
-  return `
-    <div class="journey-milestone ${isCelebrated ? 'journey-milestone--celebrated' : 'journey-milestone--locked'}" 
-         style="--milestone-color: ${color}">
-      <div class="journey-milestone__status">
-        ${isCelebrated ? ICONS.check : ICONS.lock}
-      </div>
-      <div class="journey-milestone__content">
-        <h4 class="journey-milestone__name">
-          ${isCelebrated ? milestone.name : '???'}
-        </h4>
-        <p class="journey-milestone__message">
-          ${isCelebrated ? milestone.message : milestone.subtitle || 'Keep exploring...'}
-        </p>
-        ${
-          hasProgress && !isCelebrated
-            ? `
-          <div class="journey-milestone__progress">
-            <div class="journey-milestone__progress-bar" style="width: ${progressPercent}%"></div>
-            <span class="journey-milestone__progress-text">${milestone.progress}/${milestone.target}</span>
+  // Emoji/icon for the milestone type (or mystery for locked)
+  const milestoneEmoji = isCelebrated && milestone.emoji ? milestone.emoji : '✨';
+
+  if (isCelebrated) {
+    // Celebrated - full polaroid with details
+    return `
+      <div class="journey-polaroid journey-polaroid--celebrated" 
+           style="--milestone-color: ${color}; --rotate: ${rotation}deg"
+           tabindex="0"
+           role="button"
+           aria-label="${milestone.name}">
+        <div class="journey-polaroid__image">
+          <div class="journey-polaroid__glow"></div>
+          <span class="journey-polaroid__emoji">${milestoneEmoji}</span>
+        </div>
+        <div class="journey-polaroid__caption">
+          <span class="journey-polaroid__title">${escapeHtml(milestone.name)}</span>
+          <p class="journey-polaroid__message">${escapeHtml(milestone.message)}</p>
+          <div class="journey-polaroid__footer">
+            ${dateStr ? `<span class="journey-polaroid__date">${dateStr}</span>` : ''}
+            ${milestone.personaId ? `<span class="journey-polaroid__persona">with ${milestone.personaId}</span>` : ''}
           </div>
-        `
-            : ''
-        }
-        ${dateStr ? `<span class="journey-milestone__date">${dateStr}</span>` : ''}
+        </div>
       </div>
-    </div>
-  `;
+    `;
+  } else {
+    // Locked - mysterious silhouette card
+    return `
+      <div class="journey-polaroid journey-polaroid--locked" 
+           style="--milestone-color: ${color}; --rotate: ${rotation}deg"
+           tabindex="0"
+           role="button"
+           aria-label="Mystery milestone - keep exploring to discover">
+        <div class="journey-polaroid__image journey-polaroid__image--mystery">
+          <span class="journey-polaroid__mystery-icon">?</span>
+        </div>
+        <div class="journey-polaroid__caption">
+          <span class="journey-polaroid__title">${milestone.subtitle || 'Keep exploring...'}</span>
+          ${hasProgress ? `
+            <div class="journey-polaroid__progress">
+              <div class="journey-polaroid__progress-fill" style="width: ${progressPercent}%"></div>
+            </div>
+            <span class="journey-polaroid__hint">${progressPercent}% discovered</span>
+          ` : `
+            <span class="journey-polaroid__hint">A mystery awaits</span>
+          `}
+        </div>
+      </div>
+    `;
+  }
 }
 
 // ============================================================================

@@ -3,7 +3,7 @@ title: "Building Multi-Step Workflows"
 excerpt: "Create sophisticated automations with the Ferni Workflow Engine. Supports branching, parallel execution, and voice-triggered workflows."
 author: "Ferni Dev Team"
 authorInitials: "FD"
-authorColor: "#38bdf8"
+authorColor: "#4a6741"
 date: 2026-01-09
 category: "Tutorial"
 image: "workflow-engine.png"

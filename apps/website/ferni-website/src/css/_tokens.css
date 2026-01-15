@@ -4,7 +4,7 @@
  *
  * 🎨 AUTO-GENERATED FROM design-system/tokens/
  * Do not edit directly - run: pnpm tokens:sync
- * Generated: 2026-01-12T19:50:54.942Z
+ * Generated: 2026-01-15T13:06:37.136Z
  */
 
 :root {
@@ -541,7 +541,7 @@
     --color-text-primary: #faf6f0;
     --color-text-secondary: #f0ebe4;
     --color-text-muted: #e8e2da;
-    --color-text-dimmed: #ddd6cc;
+    --color-text-dimmed: #e0d8ce;
     --color-text-inverse: #2a2420;
 
     /* Accent */
@@ -594,7 +594,7 @@
   --color-text-primary: #faf6f0;
   --color-text-secondary: #f0ebe4;
   --color-text-muted: #e8e2da;
-  --color-text-dimmed: #ddd6cc;
+  --color-text-dimmed: #e0d8ce;
   --color-text-inverse: #2a2420;
 
   /* Accent */

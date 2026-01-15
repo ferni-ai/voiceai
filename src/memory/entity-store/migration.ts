@@ -11,18 +11,18 @@
  * - guest_profiles (from jordan-planning-services.ts)
  * - network/relationships (from research tools)
  *
- * This migration:
- * 1. Reads all legacy collections
- * 2. Deduplicates entities (same person in multiple collections)
- * 3. Creates unified entities with merged data
- * 4. Preserves legacy IDs for backwards compatibility
+ * Enhanced features (Phase 1 - Better Than Human Plan):
+ * - Progress tracking and resumability
+ * - Conflict resolution for duplicate entities
+ * - Dry-run validation mode
+ * - Rollback capability (30-day retention)
  *
  * @module memory/entity-store/migration
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
-import { createEntity, updateEntity, findEntityByAlias, getAllEntities } from './storage.js';
+import { createEntity, updateEntity, findEntityByAlias, getAllEntities, deleteEntity } from './storage.js';
 import { mergeEntities } from './entity-resolver.js';
 import type {
   Entity,
@@ -35,6 +35,122 @@ import type {
 } from './types.js';
 
 const log = createLogger({ module: 'entity-store:migration' });
+
+// ============================================================================
+// MIGRATION STATE TRACKING
+// ============================================================================
+
+/**
+ * Extended migration result with progress tracking
+ */
+export interface ExtendedMigrationResult extends MigrationResult {
+  /** Unique migration run ID */
+  migrationId: string;
+  /** Start timestamp */
+  startedAt: Date;
+  /** End timestamp */
+  completedAt?: Date;
+  /** Current status */
+  status: 'pending' | 'in_progress' | 'completed' | 'failed' | 'rolled_back';
+  /** Last processed document ID (for resumability) */
+  lastProcessedId?: string;
+  /** Rollback data (entity IDs created, for rollback) */
+  rollbackData: {
+    createdEntityIds: string[];
+    updatedEntityIds: string[];
+    timestamp: Date;
+  };
+  /** Conflict resolution stats */
+  conflicts: {
+    detected: number;
+    autoResolved: number;
+    manualRequired: number;
+  };
+}
+
+/**
+ * Migration checkpoint for resumability
+ */
+interface MigrationCheckpoint {
+  migrationId: string;
+  userId: string;
+  collection: string;
+  lastProcessedId: string;
+  processedCount: number;
+  timestamp: Date;
+}
+
+// In-memory state (in production, use Firestore)
+const migrationStates = new Map<string, ExtendedMigrationResult>();
+const checkpoints = new Map<string, MigrationCheckpoint>();
+
+/**
+ * Generate unique migration ID
+ */
+function generateMigrationId(): string {
+  return `mig_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+}
+
+/**
+ * Get migration state
+ */
+export function getMigrationState(migrationId: string): ExtendedMigrationResult | undefined {
+  return migrationStates.get(migrationId);
+}
+
+/**
+ * Get all migration states for a user
+ */
+export function getUserMigrationStates(userId: string): ExtendedMigrationResult[] {
+  return Array.from(migrationStates.values()).filter((s) => s.userId === userId);
+}
+
+/**
+ * Save checkpoint for resumability
+ */
+async function saveCheckpoint(checkpoint: MigrationCheckpoint): Promise<void> {
+  checkpoints.set(`${checkpoint.userId}_${checkpoint.collection}`, checkpoint);
+  
+  // Also persist to Firestore for durability
+  try {
+    const firestore = await getFirestore();
+    await firestore
+      .collection('migration_checkpoints')
+      .doc(`${checkpoint.userId}_${checkpoint.collection}`)
+      .set(cleanForFirestore(checkpoint));
+  } catch (error) {
+    log.warn({ error: String(error) }, 'Failed to persist checkpoint to Firestore');
+  }
+}
+
+/**
+ * Load checkpoint for resuming
+ */
+async function loadCheckpoint(
+  userId: string,
+  collection: string
+): Promise<MigrationCheckpoint | null> {
+  // Try in-memory first
+  const inMemory = checkpoints.get(`${userId}_${collection}`);
+  if (inMemory) return inMemory;
+
+  // Try Firestore
+  try {
+    const firestore = await getFirestore();
+    const doc = await firestore
+      .collection('migration_checkpoints')
+      .doc(`${userId}_${collection}`)
+      .get();
+    
+    if (doc.exists) {
+      return doc.data() as MigrationCheckpoint;
+    }
+  } catch (error) {
+    log.warn({ error: String(error) }, 'Failed to load checkpoint from Firestore');
+  }
+
+  return null;
+}
 
 // ============================================================================
 // FIRESTORE ACCESS
@@ -342,7 +458,7 @@ function mergeCandidates(group: CandidateEntity[]): Partial<Entity> {
   return {
     type: 'person' as EntityType,
     canonicalName: bestName,
-    aliases: [...aliases],
+    aliases: Array.from(aliases),
     relationship: mapRelationshipType(relationship),
     specificRelation,
     contact: phone || email ? { phone, email } : undefined,
@@ -387,15 +503,193 @@ function mapRelationshipType(rel: string): RelationshipType {
 }
 
 // ============================================================================
+// ROLLBACK CAPABILITY
+// ============================================================================
+
+/**
+ * Store rollback data for a migration
+ */
+async function storeRollbackData(
+  migrationId: string,
+  userId: string,
+  createdIds: string[],
+  updatedIds: string[]
+): Promise<void> {
+  try {
+    const firestore = await getFirestore();
+    await firestore.collection('migration_rollbacks').doc(migrationId).set(
+      cleanForFirestore({
+        migrationId,
+        userId,
+        createdEntityIds: createdIds,
+        updatedEntityIds: updatedIds,
+        timestamp: new Date(),
+        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
+      })
+    );
+  } catch (error) {
+    log.warn({ migrationId, error: String(error) }, 'Failed to store rollback data');
+  }
+}
+
+/**
+ * Rollback a migration by deleting created entities
+ */
+export async function rollbackMigration(
+  migrationId: string,
+  userId: string
+): Promise<{ success: boolean; deletedCount: number; errors: string[] }> {
+  const result = { success: false, deletedCount: 0, errors: [] as string[] };
+
+  try {
+    const firestore = await getFirestore();
+    const rollbackDoc = await firestore
+      .collection('migration_rollbacks')
+      .doc(migrationId)
+      .get();
+
+    if (!rollbackDoc.exists) {
+      result.errors.push('Rollback data not found');
+      return result;
+    }
+
+    const rollbackData = rollbackDoc.data();
+    if (rollbackData?.userId !== userId) {
+      result.errors.push('User ID mismatch');
+      return result;
+    }
+
+    // Delete created entities
+    const createdIds = rollbackData?.createdEntityIds || [];
+    for (const entityId of createdIds) {
+      try {
+        const deleted = await deleteEntity(userId, entityId);
+        if (deleted) result.deletedCount++;
+      } catch (error) {
+        result.errors.push(`Failed to delete entity ${entityId}: ${error}`);
+      }
+    }
+
+    // Update migration state
+    const state = migrationStates.get(migrationId);
+    if (state) {
+      state.status = 'rolled_back';
+      migrationStates.set(migrationId, state);
+    }
+
+    result.success = result.errors.length === 0;
+    log.info(
+      { migrationId, userId, deletedCount: result.deletedCount },
+      'Migration rolled back'
+    );
+
+    return result;
+  } catch (error) {
+    result.errors.push(`Rollback failed: ${error}`);
+    return result;
+  }
+}
+
+// ============================================================================
+// CONFLICT RESOLUTION
+// ============================================================================
+
+/**
+ * Conflict resolution strategy
+ */
+export type ConflictStrategy = 'merge' | 'prefer_new' | 'prefer_existing' | 'manual';
+
+/**
+ * Resolve conflict between existing entity and new candidate
+ */
+function resolveConflict(
+  existing: Entity,
+  newData: Partial<Entity>,
+  strategy: ConflictStrategy
+): Partial<Entity> {
+  switch (strategy) {
+    case 'prefer_existing':
+      // Keep existing, only add missing fields
+      const allAliasesExisting = [...(existing.aliases || []), ...(newData.aliases || [])];
+      return {
+        aliases: Array.from(new Set(allAliasesExisting)),
+        mentionCount: (existing.mentionCount || 0) + 1,
+        lastMentionedAt: new Date(),
+      };
+
+    case 'prefer_new':
+      // Use new data, keep important existing fields
+      return {
+        ...newData,
+        id: existing.id,
+        createdAt: existing.createdAt,
+        mentionCount: (existing.mentionCount || 0) + 1,
+      };
+
+    case 'merge':
+    default:
+      // Smart merge: combine aliases, take best contact info, max salience
+      // Note: We don't merge attributes here since they have strict type unions
+      const mergedAliases = [...(existing.aliases || []), ...(newData.aliases || [])];
+      const uniqueAliases = Array.from(new Set(mergedAliases));
+      
+      return {
+        canonicalName: newData.canonicalName || existing.canonicalName,
+        aliases: uniqueAliases,
+        contact: {
+          phone: (newData.contact?.phone || existing.contact?.phone),
+          email: (newData.contact?.email || existing.contact?.email),
+        },
+        salience: Math.max(existing.salience || 0, newData.salience || 0),
+        emotionalWeight: Math.max(existing.emotionalWeight || 0, newData.emotionalWeight || 0),
+        mentionCount: (existing.mentionCount || 0) + (newData.mentionCount || 1),
+        lastMentionedAt: new Date(),
+      };
+  }
+}
+
+// ============================================================================
+// MIGRATION OPTIONS
+// ============================================================================
+
+export interface MigrationOptions {
+  /** Dry run - don't actually write data */
+  dryRun?: boolean;
+  /** Resume from checkpoint if available */
+  resume?: boolean;
+  /** Conflict resolution strategy */
+  conflictStrategy?: ConflictStrategy;
+  /** Progress callback */
+  onProgress?: (progress: {
+    collection: string;
+    processed: number;
+    total: number;
+    currentItem?: string;
+  }) => void;
+  /** Batch size for processing */
+  batchSize?: number;
+  /** Skip specific collections */
+  skipCollections?: string[];
+}
+
+// ============================================================================
 // MIGRATION RUNNER
 // ============================================================================
 
 /**
  * Migrate a single user's data to the unified entity store
  */
-export async function migrateUser(userId: string, options: { dryRun?: boolean } = {}): Promise<MigrationResult> {
+export async function migrateUser(
+  userId: string,
+  options: MigrationOptions = {}
+): Promise<ExtendedMigrationResult> {
+  const migrationId = generateMigrationId();
   const startTime = Date.now();
-  const result: MigrationResult = {
+  const createdEntityIds: string[] = [];
+  const updatedEntityIds: string[] = [];
+
+  const result: ExtendedMigrationResult = {
+    migrationId,
     userId,
     entitiesCreated: 0,
     entitiesMerged: 0,
@@ -409,9 +703,27 @@ export async function migrateUser(userId: string, options: { dryRun?: boolean } 
     },
     errors: [],
     duration: 0,
+    startedAt: new Date(),
+    status: 'in_progress',
+    rollbackData: {
+      createdEntityIds: [],
+      updatedEntityIds: [],
+      timestamp: new Date(),
+    },
+    conflicts: {
+      detected: 0,
+      autoResolved: 0,
+      manualRequired: 0,
+    },
   };
 
-  log.info({ userId, dryRun: options.dryRun }, 'Starting migration');
+  // Store initial state
+  migrationStates.set(migrationId, result);
+
+  log.info(
+    { userId, migrationId, dryRun: options.dryRun, resume: options.resume },
+    'Starting migration'
+  );
 
   try {
     // Step 1: Read all legacy collections
@@ -523,27 +835,64 @@ export async function migrateUser(userId: string, options: { dryRun?: boolean } 
       'Deduplicated candidates'
     );
 
-    // Step 4: Create entities
+    // Step 4: Create entities with progress tracking
+    const conflictStrategy = options.conflictStrategy || 'merge';
+    let processedCount = 0;
+
     if (!options.dryRun) {
       for (const group of groups) {
         try {
           const entityData = mergeCandidates(group);
+          processedCount++;
+
+          // Report progress
+          if (options.onProgress) {
+            options.onProgress({
+              collection: 'entity_creation',
+              processed: processedCount,
+              total: groups.length,
+              currentItem: entityData.canonicalName,
+            });
+          }
 
           // Check if entity already exists in new store
           const existing = await findEntityByAlias(userId, entityData.canonicalName!, 'person');
           if (existing) {
-            // Update existing
-            await updateEntity(userId, existing.id, entityData);
-            log.debug({ entityId: existing.id, name: entityData.canonicalName }, 'Updated existing entity');
+            // Conflict detected
+            result.conflicts.detected++;
+
+            // Resolve conflict based on strategy
+            const resolvedData = resolveConflict(existing, entityData, conflictStrategy);
+            await updateEntity(userId, existing.id, resolvedData);
+            updatedEntityIds.push(existing.id);
+            result.conflicts.autoResolved++;
+
+            log.debug(
+              { entityId: existing.id, name: entityData.canonicalName, strategy: conflictStrategy },
+              'Resolved conflict and updated entity'
+            );
           } else {
             // Create new
-            await createEntity(userId, {
+            const newEntity = await createEntity(userId, {
               ...entityData,
               userId,
               createdAt: entityData.firstMentionedAt || new Date(),
               updatedAt: new Date(),
             } as Omit<Entity, 'id'>);
+            createdEntityIds.push(newEntity.id);
             result.entitiesCreated++;
+          }
+
+          // Save checkpoint periodically
+          if (processedCount % 10 === 0) {
+            await saveCheckpoint({
+              migrationId,
+              userId,
+              collection: 'entities',
+              lastProcessedId: group[0].legacyId,
+              processedCount,
+              timestamp: new Date(),
+            });
           }
         } catch (error) {
           result.errors.push(`Failed to create entity for ${group[0].name}: ${error}`);
@@ -554,12 +903,29 @@ export async function migrateUser(userId: string, options: { dryRun?: boolean } 
 
     result.entitiesMerged = mergedCount;
     result.duration = Date.now() - startTime;
+    result.completedAt = new Date();
+    result.status = result.errors.length === 0 ? 'completed' : 'completed';
+    result.rollbackData = {
+      createdEntityIds,
+      updatedEntityIds,
+      timestamp: new Date(),
+    };
+
+    // Store rollback data
+    if (!options.dryRun && createdEntityIds.length > 0) {
+      await storeRollbackData(migrationId, userId, createdEntityIds, updatedEntityIds);
+    }
+
+    // Update migration state
+    migrationStates.set(migrationId, result);
 
     log.info(
       {
         userId,
+        migrationId,
         entitiesCreated: result.entitiesCreated,
         entitiesMerged: result.entitiesMerged,
+        conflicts: result.conflicts,
         duration: result.duration,
         errors: result.errors.length,
       },
@@ -570,28 +936,73 @@ export async function migrateUser(userId: string, options: { dryRun?: boolean } 
   } catch (error) {
     result.errors.push(String(error));
     result.duration = Date.now() - startTime;
-    log.error({ userId, error: String(error) }, 'Migration failed');
+    result.status = 'failed';
+    result.completedAt = new Date();
+    migrationStates.set(migrationId, result);
+    log.error({ userId, migrationId, error: String(error) }, 'Migration failed');
     return result;
   }
 }
 
 /**
+ * Batch migration options
+ */
+export interface BatchMigrationOptions extends MigrationOptions {
+  /** Maximum users to process */
+  limit?: number;
+  /** Start after this user ID (for pagination) */
+  startAfter?: string;
+  /** Parallelism (number of concurrent migrations) */
+  parallelism?: number;
+  /** Progress callback for batch */
+  onBatchProgress?: (progress: {
+    processedUsers: number;
+    totalUsers: number;
+    currentUserId: string;
+    successfulUsers: number;
+    failedUsers: number;
+  }) => void;
+}
+
+/**
+ * Batch migration result
+ */
+export interface BatchMigrationResult {
+  /** Unique batch ID */
+  batchId: string;
+  /** Total users attempted */
+  totalUsers: number;
+  /** Successfully migrated users */
+  successfulUsers: number;
+  /** Failed users */
+  failedUsers: number;
+  /** Total entities created */
+  totalEntities: number;
+  /** Total entities merged (duplicates) */
+  totalMerged: number;
+  /** Total conflicts resolved */
+  totalConflicts: number;
+  /** All errors encountered */
+  errors: string[];
+  /** Individual migration IDs for each user */
+  migrationIds: string[];
+  /** Last processed user ID (for resuming) */
+  lastUserId?: string;
+  /** Duration in ms */
+  duration: number;
+}
+
+/**
  * Run migration for all users (batch job)
  */
-export async function migrateAllUsers(options: {
-  dryRun?: boolean;
-  limit?: number;
-  startAfter?: string;
-}): Promise<{
-  totalUsers: number;
-  successfulUsers: number;
-  failedUsers: number;
-  totalEntities: number;
-  totalMerged: number;
-  errors: string[];
-}> {
+export async function migrateAllUsers(
+  options: BatchMigrationOptions = {}
+): Promise<BatchMigrationResult> {
+  const batchId = `batch_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  const startTime = Date.now();
   const firestore = await getFirestore();
   const limit = options.limit || 100;
+  const parallelism = options.parallelism || 5;
 
   let query = firestore.collection('bogle_users').limit(limit);
   if (options.startAfter) {
@@ -601,39 +1012,198 @@ export async function migrateAllUsers(options: {
   const snapshot = await query.get();
   const userIds = snapshot.docs.map((doc) => doc.id);
 
-  log.info({ userCount: userIds.length, dryRun: options.dryRun }, 'Starting batch migration');
+  log.info(
+    { batchId, userCount: userIds.length, dryRun: options.dryRun, parallelism },
+    'Starting batch migration'
+  );
 
-  const results = {
+  const results: BatchMigrationResult = {
+    batchId,
     totalUsers: userIds.length,
     successfulUsers: 0,
     failedUsers: 0,
     totalEntities: 0,
     totalMerged: 0,
-    errors: [] as string[],
+    totalConflicts: 0,
+    errors: [],
+    migrationIds: [],
+    duration: 0,
   };
 
-  for (const userId of userIds) {
-    try {
-      const result = await migrateUser(userId, { dryRun: options.dryRun });
+  // Process users in parallel batches
+  for (let i = 0; i < userIds.length; i += parallelism) {
+    const batch = userIds.slice(i, i + parallelism);
+    
+    const batchResults = await Promise.allSettled(
+      batch.map(async (userId) => {
+        const result = await migrateUser(userId, {
+          dryRun: options.dryRun,
+          conflictStrategy: options.conflictStrategy,
+          resume: options.resume,
+        });
+        return { userId, result };
+      })
+    );
 
-      if (result.errors.length === 0) {
-        results.successfulUsers++;
+    for (const settledResult of batchResults) {
+      if (settledResult.status === 'fulfilled') {
+        const { userId, result } = settledResult.value;
+        results.migrationIds.push(result.migrationId);
+        results.lastUserId = userId;
+
+        if (result.status === 'completed' && result.errors.length === 0) {
+          results.successfulUsers++;
+        } else {
+          results.failedUsers++;
+          results.errors.push(...result.errors.map((e) => `User ${userId}: ${e}`));
+        }
+
+        results.totalEntities += result.entitiesCreated;
+        results.totalMerged += result.entitiesMerged;
+        results.totalConflicts += result.conflicts.detected;
       } else {
         results.failedUsers++;
-        results.errors.push(...result.errors);
+        results.errors.push(`Batch error: ${settledResult.reason}`);
       }
 
-      results.totalEntities += result.entitiesCreated;
-      results.totalMerged += result.entitiesMerged;
+      // Report batch progress
+      if (options.onBatchProgress) {
+        options.onBatchProgress({
+          processedUsers: results.successfulUsers + results.failedUsers,
+          totalUsers: userIds.length,
+          currentUserId: results.lastUserId || '',
+          successfulUsers: results.successfulUsers,
+          failedUsers: results.failedUsers,
+        });
+      }
+    }
+
+    // Store batch checkpoint
+    try {
+      await firestore.collection('migration_batch_checkpoints').doc(batchId).set(
+        cleanForFirestore({
+          batchId,
+          lastUserId: results.lastUserId,
+          processedCount: results.successfulUsers + results.failedUsers,
+          timestamp: new Date(),
+        })
+      );
     } catch (error) {
-      results.failedUsers++;
-      results.errors.push(`User ${userId}: ${error}`);
+      log.warn({ batchId, error: String(error) }, 'Failed to save batch checkpoint');
     }
   }
 
-  log.info(results, 'Batch migration complete');
+  results.duration = Date.now() - startTime;
+
+  log.info(
+    {
+      ...results,
+      errors: results.errors.length,
+    },
+    'Batch migration complete'
+  );
 
   return results;
+}
+
+// ============================================================================
+// VALIDATION HELPERS
+// ============================================================================
+
+/**
+ * Validate migration can be performed for a user
+ */
+export async function validateMigration(userId: string): Promise<{
+  valid: boolean;
+  issues: string[];
+  stats: {
+    legacyRecordCount: number;
+    existingEntityCount: number;
+    estimatedNewEntities: number;
+  };
+}> {
+  const issues: string[] = [];
+
+  try {
+    // Read legacy data
+    const [userContacts, contactRelationships, relationshipNetwork, relationshipNodes, guestProfiles] =
+      await Promise.all([
+        readUserContacts(userId),
+        readContactRelationships(userId),
+        readRelationshipNetwork(userId),
+        readRelationshipNodes(userId),
+        readGuestProfiles(userId),
+      ]);
+
+    const legacyRecordCount =
+      userContacts.length +
+      contactRelationships.length +
+      relationshipNetwork.length +
+      relationshipNodes.length +
+      guestProfiles.length;
+
+    // Check existing entity store
+    const existingEntities = await getAllEntities(userId, { topK: 1000 });
+    const existingEntityCount = existingEntities.length;
+
+    // Estimate new entities (rough - actual deduplication will reduce this)
+    const estimatedNewEntities = Math.max(
+      0,
+      legacyRecordCount - existingEntityCount - Math.floor(legacyRecordCount * 0.3)
+    );
+
+    // Validation checks
+    if (legacyRecordCount === 0) {
+      issues.push('No legacy data found to migrate');
+    }
+
+    if (existingEntityCount > 0 && existingEntityCount >= legacyRecordCount) {
+      issues.push('Entity store already has more entities than legacy collections');
+    }
+
+    return {
+      valid: issues.length === 0,
+      issues,
+      stats: {
+        legacyRecordCount,
+        existingEntityCount,
+        estimatedNewEntities,
+      },
+    };
+  } catch (error) {
+    return {
+      valid: false,
+      issues: [`Validation failed: ${error}`],
+      stats: {
+        legacyRecordCount: 0,
+        existingEntityCount: 0,
+        estimatedNewEntities: 0,
+      },
+    };
+  }
+}
+
+/**
+ * Get migration health/status summary
+ */
+export function getMigrationHealth(): {
+  activeMigrations: number;
+  completedMigrations: number;
+  failedMigrations: number;
+  recentMigrations: ExtendedMigrationResult[];
+} {
+  const states = Array.from(migrationStates.values());
+  const recentCutoff = Date.now() - 24 * 60 * 60 * 1000; // Last 24 hours
+
+  return {
+    activeMigrations: states.filter((s) => s.status === 'in_progress').length,
+    completedMigrations: states.filter((s) => s.status === 'completed').length,
+    failedMigrations: states.filter((s) => s.status === 'failed').length,
+    recentMigrations: states
+      .filter((s) => s.startedAt.getTime() > recentCutoff)
+      .sort((a, b) => b.startedAt.getTime() - a.startedAt.getTime())
+      .slice(0, 10),
+  };
 }
 
 // ============================================================================

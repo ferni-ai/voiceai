@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Stacked logo with wordmark below -->
+<svg viewBox="0 0 120 140" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="orbGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4a6741"/>
+      <stop offset="100%" stop-color="#3a5731"/>
+    </linearGradient>
+    <linearGradient id="eyeFill" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#f0f0f0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Icon -->
+  <g transform="translate(20, 8)">
+    <!-- Outer ring -->
+    <circle cx="40" cy="40" r="38" fill="none" stroke="#4a6741" stroke-width="1.5" opacity="0.35"/>
+
+    <!-- Circular background -->
+    <circle cx="40" cy="40" r="33" fill="url(#orbGradient)"/>
+
+    <!-- Left eye -->
+    <ellipse cx="29" cy="38" rx="6.5" ry="8" fill="url(#eyeFill)"/>
+    <circle cx="27" cy="35" r="1.6" fill="white"/>
+
+    <!-- Right eye -->
+    <ellipse cx="51" cy="38" rx="6.5" ry="8" fill="url(#eyeFill)"/>
+    <circle cx="49" cy="35" r="1.6" fill="white"/>
+  </g>
+
+  <!-- Wordmark -->
+  <text x="60" y="120" text-anchor="middle"
+    font-family="'Plus Jakarta Sans', system-ui, sans-serif"
+    font-size="28" font-weight="700" fill="#2c2520" letter-spacing="-0.5">Ferni</text>
+</svg>

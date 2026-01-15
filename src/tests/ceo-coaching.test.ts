@@ -257,15 +257,11 @@ describe('CEO Coaching Types', () => {
   describe('CEOCoachingState', () => {
     it('should aggregate all coaching data', () => {
       const state: CEOCoachingState = {
-        recentWins: [
-          { id: 'w1', text: 'Closed deal', date: '2026-01-12' },
-        ],
+        recentWins: [{ id: 'w1', text: 'Closed deal', date: '2026-01-12' }],
         currentPriorities: [
           { id: 'p1', text: 'Launch campaign', order: 1, status: 'active', createdAt: '' },
         ],
-        activeBlockers: [
-          { id: 'b1', text: 'Legal review', status: 'active', createdAt: '' },
-        ],
+        activeBlockers: [{ id: 'b1', text: 'Legal review', status: 'active', createdAt: '' }],
         pendingDecisions: [
           { id: 'd1', description: 'Hire decision', status: 'pending', createdAt: '' },
         ],
@@ -274,9 +270,7 @@ describe('CEO Coaching Types', () => {
           weekAverage: 6.5,
           trend: 'up',
         },
-        recentGratitude: [
-          { id: 'g1', text: 'Great team', date: '2026-01-12' },
-        ],
+        recentGratitude: [{ id: 'g1', text: 'Great team', date: '2026-01-12' }],
       };
 
       expect(state.recentWins.length).toBe(1);
@@ -402,7 +396,7 @@ describe('Proactive Coaching Patterns', () => {
         { id: '3', level: 3, timestamp: '2026-01-10T09:00:00Z' },
       ];
 
-      const consecutiveLowDays = energyLogs.filter(e => e.level <= 4).length;
+      const consecutiveLowDays = energyLogs.filter((e) => e.level <= 4).length;
       expect(consecutiveLowDays).toBe(3);
     });
 
@@ -535,10 +529,16 @@ describe('Cross-Persona Integration', () => {
     it('should identify wins worthy of milestone celebration', () => {
       const isSignificantWin = (text: string): boolean => {
         const significantPatterns = [
-          /ship/i, /launch/i, /closed/i, /promoted/i,
-          /hired/i, /raised/i, /acquired/i, /partnership/i,
+          /ship/i,
+          /launch/i,
+          /closed/i,
+          /promoted/i,
+          /hired/i,
+          /raised/i,
+          /acquired/i,
+          /partnership/i,
         ];
-        return significantPatterns.some(p => p.test(text));
+        return significantPatterns.some((p) => p.test(text));
       };
 
       expect(isSignificantWin('Shipped v2')).toBe(true);

@@ -16,7 +16,7 @@ import type {
   ConnectionStatus,
   ApiRequestConfig,
   ApiResponse,
-} from '../types.js';
+} from './types.js';
 import { OAuthManager, getOAuthManager } from './oauth-manager.js';
 import { RateLimiter } from './rate-limiter.js';
 import { getConnectionStatus } from './oauth-token-store.js';

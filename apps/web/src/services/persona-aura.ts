@@ -296,12 +296,29 @@ export function initPersonaAura(): void {
   // Apply default persona
   applyPersonaAura('ferni');
   
-  // Listen for persona changes from the connection service
-  document.addEventListener('ferni:persona-change', ((e: CustomEvent) => {
-    const newPersona = e.detail?.persona as PersonaId;
-    if (newPersona && PERSONA_AURAS[newPersona]) {
-      applyPersonaAura(newPersona);
+  // Listen for persona changes from multiple event sources
+  // Different parts of the app use different event names - we listen to all
+  const handlePersonaChange = (personaId: PersonaId | string) => {
+    // Normalize persona ID (some events use 'alex-chen', we want 'alex')
+    const normalized = (personaId?.toString() || 'ferni').split('-')[0] as PersonaId;
+    if (PERSONA_AURAS[normalized]) {
+      applyPersonaAura(normalized);
     }
+  };
+  
+  // Event 1: ferni:switch-persona (from team roster, command palette, keyboard shortcuts)
+  document.addEventListener('ferni:switch-persona', ((e: CustomEvent) => {
+    handlePersonaChange(e.detail?.personaId || e.detail?.persona);
+  }) as EventListener);
+  
+  // Event 2: personachange (from theme system)
+  window.addEventListener('personachange', ((e: CustomEvent) => {
+    handlePersonaChange(e.detail?.persona);
+  }) as EventListener);
+  
+  // Event 3: ferni:persona-change (legacy support)
+  document.addEventListener('ferni:persona-change', ((e: CustomEvent) => {
+    handlePersonaChange(e.detail?.persona || e.detail?.personaId);
   }) as EventListener);
   
   isInitialized = true;

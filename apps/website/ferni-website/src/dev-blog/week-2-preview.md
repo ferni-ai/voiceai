@@ -3,7 +3,7 @@ title: "Week 2: Authentication, Performance, and Your First Case Study"
 excerpt: "Preview of what's coming next week - deep dives into auth patterns, performance optimization, and our first community spotlight."
 author: "Ferni Dev Team"
 authorInitials: "FD"
-authorColor: "#38bdf8"
+authorColor: "#4a6741"
 date: 2026-01-12
 category: "Roadmap"
 image: "week-2-preview.png"

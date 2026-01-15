@@ -45,6 +45,7 @@ describe('STM Buffer', () => {
       topicHints: topics,
       dateSignals: [],
       relationshipSignals: [],
+      linkingSignals: [],
       asyncJobId: null,
       captureTimeMs: 20,
     };

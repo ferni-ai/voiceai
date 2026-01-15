@@ -70,6 +70,12 @@ export interface InboundCallContext {
 
   /** Allowed personas for this caller */
   allowedPersonas?: string[];
+
+  /** Whether this is a new phone for a known user (multi-phone) */
+  isNewPhone?: boolean;
+
+  /** The user's primary registered phone (if calling from new phone) */
+  primaryPhone?: string;
 }
 
 // In-memory store for inbound call contexts
@@ -188,7 +194,20 @@ export const inboundCallContextBuilder: ContextBuilder = {
     }
 
     // ---------------------------------------------------------
-    // 4. UNKNOWN CALLER GUIDANCE
+    // 4. NEW PHONE DETECTION (Multi-Phone Support)
+    // ---------------------------------------------------------
+    if (callContext.isKnownCaller && callContext.isNewPhone) {
+      const newPhoneContent = buildNewPhoneGuidance(callContext);
+      injections.push(
+        createStandardInjection('inbound_call_new_phone', newPhoneContent, {
+          category: 'inbound-call',
+          confidence: 0.9,
+        })
+      );
+    }
+
+    // ---------------------------------------------------------
+    // 5. UNKNOWN CALLER GUIDANCE
     // ---------------------------------------------------------
     if (!callContext.isKnownCaller) {
       const unknownContent = buildUnknownCallerGuidance();
@@ -201,7 +220,7 @@ export const inboundCallContextBuilder: ContextBuilder = {
     }
 
     // ---------------------------------------------------------
-    // 5. ACCESS RESTRICTIONS (if limited)
+    // 6. ACCESS RESTRICTIONS (if limited)
     // ---------------------------------------------------------
     if (callContext.accessLevel && callContext.accessLevel !== 'full') {
       const restrictionContent = buildAccessRestrictions(callContext);
@@ -301,12 +320,25 @@ Each person's conversations are private.
 
 function buildUnknownCallerGuidance(): string {
   return `
-UNKNOWN CALLER - SELF-REGISTRATION OPTION
+UNKNOWN CALLER - POTENTIAL FAMILY MEMBER
 
 If this caller seems like someone who would benefit from Ferni:
 1. Get to know them first - who are they? What brings them to call?
-2. If they seem interested, offer to remember them: "Would you like me to remember you for next time?"
-3. If they mention knowing an existing user: "I can let them know you called and ask if they'd like to add you to my contacts."
+2. If they mention knowing an existing user: Ask who referred them
+
+FAMILY REFERRAL FLOW:
+If they mention knowing someone who uses Ferni (e.g., "Seth told me to call"):
+1. Get the sponsor's name: "Who told you about Ferni?"
+2. Ask their name and relationship: "What's your name? And how do you know [Sponsor]?"
+3. Offer to connect them: "I can let [Sponsor] know you called and ask if they'd like to add you."
+4. Use the register_family_caller tool to create a pending identity
+
+EXAMPLE DIALOGUE:
+Caller: "My daughter Sarah told me about you."
+You: "How lovely! Sarah is wonderful. What's your name?"
+Caller: "I'm Linda, her mom."
+You: "Nice to meet you, Linda! Would you like me to let Sarah know you called? If she adds you, I'll remember you every time you call."
+If yes: Use register_family_caller with callerName="Linda", sponsorName="Sarah", relationship="mom"
 
 DO NOT:
 - Pressure them to sign up
@@ -314,6 +346,29 @@ DO NOT:
 - Assume they're spam - give them the benefit of the doubt
 
 Many first-time callers are referrals from family members who love Ferni!
+`.trim();
+}
+
+function buildNewPhoneGuidance(context: InboundCallContext): string {
+  return `
+NEW PHONE DETECTED
+
+${context.callerName} is calling from a NEW phone number that I don't have on file yet.
+- Current call from: ${maskPhone(context.callerPhone)}
+${context.primaryPhone ? `- Their registered number: ${maskPhone(context.primaryPhone)}` : ''}
+
+This is a KNOWN user calling from a DIFFERENT phone. Consider mentioning:
+- "Hey ${context.callerName}! Calling from a different number today?"
+- "I see you're on a new number - want me to remember this one too?"
+
+If they want to add this number:
+- Use the add_phone_number tool with the current number
+- This lets them call from either phone in the future
+
+DON'T:
+- Be suspicious or question why they have a different phone
+- Make it awkward - it's totally normal to call from different phones
+- Forget it's still them - greet warmly as usual!
 `.trim();
 }
 

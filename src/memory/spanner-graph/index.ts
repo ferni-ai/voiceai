@@ -80,3 +80,37 @@ export {
   // Domain classification
   classifyFactDomain,
 } from './queries.js';
+
+// Graph expansion (Standard Edition compatible)
+export {
+  // Factory and convenience functions
+  getGraphExpander,
+  expandGraph,
+  getDirectConnections,
+  getExtendedNetwork as getExtendedNetworkExpanded,
+  // Classes
+  RelationalGraphExpander,
+  GQLGraphExpander,
+  // Types
+  type GraphExpander,
+  type ExpandedEntity,
+  type GraphExpansionOptions,
+  type GraphExpansionResult,
+} from './graph-expansion.js';
+
+// Path finding
+export {
+  // Factory and convenience functions
+  getPathFinder,
+  findPaths,
+  findShortestPath,
+  areConnected,
+  getConnectingEntities,
+  // Class
+  PathFinder,
+  // Types
+  type PathStep,
+  type EntityPath,
+  type PathFindOptions,
+  type PathFindResult,
+} from './path-finder.js';

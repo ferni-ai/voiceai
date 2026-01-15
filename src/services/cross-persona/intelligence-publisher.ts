@@ -125,7 +125,7 @@ async function getPubSubTopic(): Promise<unknown> {
 // ============================================================================
 
 async function queueToFirestore(event: IntelligenceEvent): Promise<void> {
-  const { getDefaultStore } = await import('../memory/index.js');
+  const { getDefaultStore } = await import('../../memory/index.js');
   const store = getDefaultStore();
 
   if (!store) {

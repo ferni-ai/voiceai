@@ -3,7 +3,7 @@ title: "Community Spotlight: Building Voice AI for Mental Health Support"
 excerpt: "How Sarah Chen built a voice-first therapy companion that's helping thousands of users practice mindfulness."
 author: "Ferni Dev Team"
 authorInitials: "FD"
-authorColor: "#38bdf8"
+authorColor: "#4a6741"
 date: 2026-01-15
 category: "Community"
 image: "community-healthtech.png"

@@ -3,7 +3,7 @@ title: "5 Code Snippets Every Ferni Developer Needs"
 excerpt: "Essential patterns for voice AI development - from session handling to graceful error recovery."
 author: "Ferni Dev Team"
 authorInitials: "FD"
-authorColor: "#38bdf8"
+authorColor: "#4a6741"
 date: 2026-01-10
 category: "Quick Tips"
 image: "quick-tips-essentials.png"

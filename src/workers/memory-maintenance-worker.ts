@@ -103,7 +103,7 @@ export async function runMemoryMaintenanceWorker(): Promise<WorkerResult> {
       const batch = users.slice(i, i + batchSize);
 
       const batchResults = await Promise.allSettled(
-        batch.map((userId) => runMemoryMaintenance(userId))
+        batch.map(async (userId) => runMemoryMaintenance(userId))
       );
 
       for (const batchResult of batchResults) {

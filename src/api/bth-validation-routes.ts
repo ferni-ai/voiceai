@@ -282,7 +282,8 @@ async function checkEmotionalIntelligenceHealth(): Promise<ServiceHealth> {
 async function checkCrossPersonaHealth(): Promise<ServiceHealth> {
   const startTime = Date.now();
   try {
-    const { addCrossPersonaInsight } = await import('../services/cross-persona/cross-persona-insights.js');
+    const { addCrossPersonaInsight } =
+      await import('../services/cross-persona/cross-persona-insights.js');
     return {
       id: 'cross-persona',
       name: 'Cross-Persona Intelligence',
@@ -336,7 +337,9 @@ async function checkPredictiveCoachingHealth(): Promise<ServiceHealth> {
  */
 router.get('/health', async (_req: Request, res: Response) => {
   try {
-    const healthChecks = await Promise.allSettled(SUPERHUMAN_SERVICES.map((s) => s.healthCheck()));
+    const healthChecks = await Promise.allSettled(
+      SUPERHUMAN_SERVICES.map(async (s) => s.healthCheck())
+    );
 
     const services: ServiceHealth[] = healthChecks.map((result, index) => {
       if (result.status === 'fulfilled') {
@@ -651,7 +654,9 @@ router.post('/admin/bth/test/:serviceId', async (req: Request, res: Response): P
  */
 router.get('/admin/bth/health', async (_req: Request, res: Response) => {
   try {
-    const healthChecks = await Promise.allSettled(SUPERHUMAN_SERVICES.map((s) => s.healthCheck()));
+    const healthChecks = await Promise.allSettled(
+      SUPERHUMAN_SERVICES.map(async (s) => s.healthCheck())
+    );
 
     const services: ServiceHealth[] = healthChecks.map((result, index) => {
       if (result.status === 'fulfilled') {

@@ -1963,6 +1963,52 @@ function injectSoulStyles(): void {
       );
     }
     
+    /* ========================================================================
+       CIRCADIAN AWARENESS - Time-of-day adjustments
+       Uses CSS variables from circadian-manager.ts
+       ======================================================================== */
+    
+    /* Late night: warmer, calmer glow */
+    [data-circadian="lateNight"] .avatar-container,
+    [data-circadian="deepNight"] .avatar-container {
+      --breath-duration: calc(var(--breath-duration, 5000ms) * 1.3);
+      filter: sepia(0.05);
+    }
+    
+    [data-circadian="lateNight"] .soul-glow-bleed,
+    [data-circadian="deepNight"] .soul-glow-bleed {
+      opacity: calc(var(--glow-intensity, 0.3) * 0.8);
+    }
+    
+    /* Morning: fresher, more energetic */
+    [data-circadian="morning"] .avatar-container {
+      --breath-duration: calc(var(--breath-duration, 5000ms) * 0.9);
+    }
+    
+    [data-circadian="morning"] .soul-glow-bleed {
+      opacity: calc(var(--glow-intensity, 0.3) * 1.1);
+    }
+    
+    /* Evening: transitional warmth */
+    [data-circadian="evening"] .avatar-container,
+    [data-circadian="night"] .avatar-container {
+      filter: sepia(0.02);
+    }
+    
+    /* ========================================================================
+       RELATIONSHIP DEPTH - Deeper relationships = more confident animations
+       Uses CSS variables from warmth-manager.ts
+       ======================================================================== */
+    
+    [data-relationship-stage="established"] .avatar-container,
+    [data-relationship-stage="deep-partnership"] .avatar-container {
+      --breath-duration: calc(var(--breath-duration, 5000ms) * 1.15);
+    }
+    
+    [data-relationship-stage="deep-partnership"] .soul-glow-bleed {
+      opacity: calc(var(--glow-intensity, 0.3) * 1.2);
+    }
+    
     /* Reduced motion */
     @media (prefers-reduced-motion: reduce) {
       .soul-iris-shimmer,

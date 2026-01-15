@@ -7,19 +7,21 @@ permalink: /developers/blog/
 
 <style>
   :root {
-    --dev-bg: #0f172a;
-    --dev-surface: #1e293b;
-    --dev-border: #334155;
-    --dev-accent: #38bdf8;
-    --dev-accent-hover: #0ea5e9;
-    --dev-text: #e2e8f0;
-    --dev-text-muted: #94a3b8;
-    --dev-code-bg: #1e1e2e;
+    --dev-bg: #1a1f16;
+    --dev-surface: #252b1f;
+    --dev-border: #3d4535;
+    --dev-accent: #4a6741;
+    --dev-accent-hover: #5a7a4f;
+    --dev-accent-light: rgba(74, 103, 65, 0.15);
+    --dev-text: #f0ebe4;
+    --dev-text-muted: #a8a193;
+    --dev-code-bg: #1e2318;
   }
 
   body {
     background: var(--dev-bg);
     color: var(--dev-text);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   }
 
   .dev-blog-header {
@@ -33,10 +35,8 @@ permalink: /developers/blog/
     font-size: 3rem;
     font-weight: 700;
     margin: 0 0 1rem;
-    background: linear-gradient(135deg, #fff 0%, var(--dev-accent) 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    color: var(--dev-text);
   }
 
   .dev-blog-header p {
@@ -135,7 +135,7 @@ permalink: /developers/blog/
   }
 
   .post-card-category {
-    background: rgba(56, 189, 248, 0.1);
+    background: var(--dev-accent-light);
     color: var(--dev-accent);
     padding: 0.25rem 0.75rem;
     border-radius: 9999px;
@@ -151,6 +151,7 @@ permalink: /developers/blog/
     margin: 0 0 0.75rem;
     color: var(--dev-text);
     line-height: 1.3;
+    font-family: 'Plus Jakarta Sans', sans-serif;
   }
 
   .post-card p {
@@ -184,7 +185,7 @@ permalink: /developers/blog/
     justify-content: center;
     font-size: 0.75rem;
     font-weight: 600;
-    color: var(--dev-bg);
+    color: #fff;
   }
 
   .post-card-author-name {
@@ -207,6 +208,7 @@ permalink: /developers/blog/
   .empty-state h2 {
     color: var(--dev-text);
     margin-bottom: 1rem;
+    font-family: 'Plus Jakarta Sans', sans-serif;
   }
 
   .dev-footer {
@@ -253,11 +255,12 @@ permalink: /developers/blog/
 
 <nav class="dev-nav">
   <a href="/developers/" class="dev-nav-brand">
+    {# Ferni Avatar: LUXO-style opaque white eyes, NO pupils #}
     <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
       <circle cx="50" cy="50" r="45" fill="#4a6741"/>
-      <ellipse cx="36" cy="48" rx="7" ry="9" fill="white"/>
-      <ellipse cx="64" cy="48" rx="7" ry="9" fill="white"/>
-      <path d="M30 70 Q50 82 70 70" stroke="white" stroke-width="4" stroke-linecap="round" fill="none"/>
+      {# Opaque white eyes - NO pupils per brand guidelines #}
+      <ellipse cx="35" cy="45" rx="8" ry="10" fill="#FFFDFB"/>
+      <ellipse cx="65" cy="45" rx="8" ry="10" fill="#FFFDFB"/>
     </svg>
     <span>Ferni Developers</span>
   </a>
@@ -294,7 +297,7 @@ permalink: /developers/blog/
             {% endif %}
             <div class="post-card-footer">
               <div class="post-card-author">
-                <span class="post-card-author-avatar" style="background: {{ post.data.authorColor or '#38bdf8' }}">
+                <span class="post-card-author-avatar" style="background: {{ post.data.authorColor or '#4a6741' }}">
                   {{ post.data.authorInitials or 'FD' }}
                 </span>
                 <span class="post-card-author-name">{{ post.data.author or 'Ferni Dev Team' }}</span>
@@ -316,5 +319,5 @@ permalink: /developers/blog/
 </main>
 
 <footer class="dev-footer">
-  <p>&copy; {{ 'now' | date('yyyy') }} Ferni AI. <a href="/developers/">Developer Docs</a> &middot; <a href="/developers/api/">API Reference</a> &middot; <a href="https://ferni.ai">ferni.ai</a></p>
+  <p>&copy; {{ 'now' | date('yyyy') }} Ferni AI. <a href="/developers/">Developer Docs</a> · <a href="/developers/api/">API Reference</a> · <a href="https://ferni.ai">ferni.ai</a></p>
 </footer>

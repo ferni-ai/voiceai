@@ -3,7 +3,7 @@ title: "The Future of Voice AI Interfaces"
 excerpt: "Why voice-first is the next mobile-first, and what it means for developers building the next generation of applications."
 author: "Ferni Dev Team"
 authorInitials: "FD"
-authorColor: "#38bdf8"
+authorColor: "#4a6741"
 date: 2026-01-11
 category: "Industry Insights"
 image: "voice-ai-future.png"

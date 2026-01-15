@@ -784,6 +784,34 @@ function injectStyles(): void {
       box-shadow: 0 2px 6px rgba(245, 158, 11, 0.3);
     }
     
+    /* ===== CIRCADIAN AWARENESS ===== */
+    /* Late night: warmer, softer glow for intimate presence */
+    [data-circadian="lateNight"] .connection-heart--connected,
+    [data-circadian="deepNight"] .connection-heart--connected {
+      box-shadow: 0 2px 12px var(--persona-glow, rgba(74, 103, 65, 0.25));
+    }
+    
+    [data-circadian="lateNight"] .connection-heart__glow,
+    [data-circadian="deepNight"] .connection-heart__glow {
+      opacity: 0.15;
+    }
+    
+    /* Morning: fresher, crisper appearance */
+    [data-circadian="morning"] .connection-heart--connected {
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12);
+    }
+    
+    /* ===== RELATIONSHIP WARMTH ===== */
+    /* Deeper relationships get warmer, more prominent heart glow */
+    [data-relationship-stage="established"] .connection-heart--connected,
+    [data-relationship-stage="deep-partnership"] .connection-heart--connected {
+      box-shadow: 0 3px 14px var(--persona-glow, rgba(74, 103, 65, 0.3));
+    }
+    
+    [data-relationship-stage="deep-partnership"] .connection-heart__glow {
+      opacity: 0.2;
+    }
+    
     /* ===== REDUCED MOTION ===== */
     @media (prefers-reduced-motion: reduce) {
       .connection-heart,

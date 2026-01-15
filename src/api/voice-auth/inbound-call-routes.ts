@@ -271,13 +271,14 @@ async function identifyInboundCaller(phoneNumber: string): Promise<CallerIdentif
     log.debug({ error: String(error), phone: phoneNumber }, 'Error checking phone mappings');
   }
 
-  // Unknown caller
-  log.info({ phone: phoneNumber }, '❓ Unknown caller');
+  // Unknown caller - use warm first-call greeting
+  log.info({ phone: phoneNumber }, '❓ Unknown caller - first-time phone user');
 
   return {
     isKnown: false,
     voiceEnrolled: false,
-    greeting: "Hi! Welcome to Ferni. I don't recognize this number yet. What's your name?",
+    // Warm welcome - don't ask name immediately (that comes naturally in conversation)
+    greeting: "Hi there! Welcome to Ferni. I'm looking forward to getting to know you.",
   };
 }
 

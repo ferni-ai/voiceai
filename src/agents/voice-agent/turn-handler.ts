@@ -95,6 +95,13 @@ import {
 // "Better Than Human" dynamic memory capture - LLM-powered extraction
 import { fastCapture } from '../../memory/dynamic/index.js';
 
+// "Better Than Human" memory retrieval - Phase 9 real-time integration
+import {
+  buildMemoryRetrievalContext,
+  getSurfacedMemoryIds,
+  type MemoryRetrievalBuilderInput,
+} from '../../intelligence/context-builders/memory-retrieval-builder.js';
+
 // Redis cache for real-time state (emotional state, voice biomarkers)
 import { getRedisCache } from '../../memory/redis-cache.js';
 
@@ -551,6 +558,34 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
         })
       : Promise.resolve(null);
 
+    // ================================================================
+    // 🧠 BETTER THAN HUMAN: Memory Retrieval (Phase 9)
+    // Retrieve relevant memories to inject into the conversation
+    // This runs in parallel with turn processing for minimal latency (<100ms target)
+    // ================================================================
+    const memoryRetrievalPromise = services.userId
+      ? buildMemoryRetrievalContext({
+          userText,
+          analysis: {
+            emotion: { primary: 'neutral', intensity: 0.5 }, // Will be updated after analysis
+            intent: { primary: 'unknown' },
+            topics: { detected: [] },
+            state: {},
+          },
+          userData: { turnCount: turnNumber },
+          services: {
+            userId: services.userId,
+            sessionId: services.sessionId,
+          },
+          persona: { identity: { id: persona.id } },
+          userProfile: services.userProfile || undefined,
+          surfacedMemoryIds: getSurfacedMemoryIds(services.sessionId),
+        } as unknown as MemoryRetrievalBuilderInput).catch((err) => {
+          diag.debug('Memory retrieval failed (non-fatal)', { error: String(err) });
+          return null;
+        })
+      : Promise.resolve(null);
+
     // Process the turn with adaptive hard timeout
     const result = await Promise.race([
       processTurn(turnContext),
@@ -570,6 +605,29 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
 
     // Get unified intelligence result (should be ready by now)
     const intelligence = await intelligencePromise;
+
+    // Get memory retrieval result (should be ready by now)
+    const memoryRetrievalResult = await memoryRetrievalPromise;
+
+    // ================================================================
+    // 🧠 BETTER THAN HUMAN: Inject retrieved memories into context
+    // Memory injections are added with high priority so LLM can use them
+    // ================================================================
+    if (memoryRetrievalResult && memoryRetrievalResult.injections.length > 0) {
+      for (const memoryInjection of memoryRetrievalResult.injections) {
+        result.context.injections.push({
+          category: memoryInjection.category || 'memory',
+          content: memoryInjection.content,
+          priority: 80, // High priority - memory is important context
+        });
+      }
+
+      diag.state('🧠 Memory retrieval injected', {
+        memoriesRetrieved: memoryRetrievalResult.memoryContext?.memories.length || 0,
+        hasProactive: memoryRetrievalResult.memoryContext?.hasProactiveSuggestion || false,
+        totalMs: memoryRetrievalResult.memoryContext?.metrics.totalTimeMs || 0,
+      });
+    }
 
     // ================================================================
     // PERFORMANCE: Mark analysis complete, trigger speculative TTS

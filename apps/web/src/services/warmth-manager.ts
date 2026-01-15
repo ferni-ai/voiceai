@@ -30,7 +30,7 @@ const log = createLogger('WarmthManager');
 // TYPES
 // ============================================================================
 
-interface WarmthConfig {
+export interface WarmthConfig {
   /** Color temperature shift (-1 = cool, 0 = neutral, 1 = very warm) */
   colorTemperature: number;
   /** Animation speed multiplier (lower = more unhurried, confident) */
@@ -163,19 +163,124 @@ function handleStageChange(event: { newStage: RelationshipStage; previousStage: 
   const { newStage, previousStage } = event;
 
   if (newStage !== currentStage) {
+    const oldIndex = getStageIndex(previousStage);
+    const newIndex = getStageIndex(newStage);
+    
     currentStage = newStage;
     applyWarmthTheme(newStage);
-
-    const newIndex = getStageIndex(newStage);
-    const oldIndex = getStageIndex(previousStage);
 
     if (newIndex > oldIndex) {
       log.info(
         { from: previousStage, to: newStage },
         'Relationship deepened - increasing warmth'
       );
+      
+      // Play warmth increase celebration
+      playWarmthTransition(previousStage, newStage);
     }
+    
+    // Dispatch event for any listening components
+    dispatchWarmthChangeEvent(previousStage, newStage, newIndex > oldIndex);
   }
+}
+
+/**
+ * Dispatch a custom event when warmth changes
+ * Components can listen to this for real-time updates
+ */
+function dispatchWarmthChangeEvent(
+  previousStage: RelationshipStage, 
+  newStage: RelationshipStage,
+  isDeepening: boolean
+): void {
+  const config = WARMTH_BY_STAGE[newStage];
+  
+  const event = new CustomEvent('ferni:warmth-change', {
+    detail: {
+      previousStage,
+      newStage,
+      isDeepening,
+      warmthConfig: config,
+      stageIndex: getStageIndex(newStage),
+    },
+  });
+  
+  window.dispatchEvent(event);
+  document.dispatchEvent(event);
+}
+
+/**
+ * Play a subtle visual celebration when warmth increases
+ * Shows a gentle warm pulse from the center of the screen
+ */
+function playWarmthTransition(previousStage: RelationshipStage, newStage: RelationshipStage): void {
+  // Don't play if reduced motion is preferred
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    return;
+  }
+  
+  const newConfig = WARMTH_BY_STAGE[newStage];
+  
+  // Create celebration overlay
+  const overlay = document.createElement('div');
+  overlay.className = 'warmth-transition-celebration';
+  overlay.setAttribute('data-new-stage', newStage);
+  overlay.style.cssText = `
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0;
+  `;
+  
+  // Inner glow pulse
+  const glow = document.createElement('div');
+  glow.style.cssText = `
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 200vmax;
+    height: 200vmax;
+    transform: translate(-50%, -50%) scale(0);
+    border-radius: 50%;
+    background: radial-gradient(
+      circle,
+      rgba(255, 215, 100, ${0.1 + newConfig.colorTemperature * 0.1}) 0%,
+      rgba(74, 103, 65, ${0.05 + newConfig.glowIntensity * 0.05}) 50%,
+      transparent 70%
+    );
+  `;
+  
+  overlay.appendChild(glow);
+  document.body.appendChild(overlay);
+  
+  // Animate
+  const overlayAnimation = overlay.animate(
+    [
+      { opacity: 0 },
+      { opacity: 1, offset: 0.2 },
+      { opacity: 1, offset: 0.8 },
+      { opacity: 0 },
+    ],
+    { duration: DURATION.CELEBRATION, easing: EASING.GENTLE }
+  );
+  
+  glow.animate(
+    [
+      { transform: 'translate(-50%, -50%) scale(0)' },
+      { transform: 'translate(-50%, -50%) scale(1)' },
+    ],
+    { duration: DURATION.CELEBRATION, easing: EASING.EXPO_OUT }
+  );
+  
+  overlayAnimation.onfinish = () => {
+    overlay.remove();
+  };
+  
+  log.debug(
+    { from: previousStage, to: newStage }, 
+    'Warmth transition celebration played'
+  );
 }
 
 // ============================================================================
@@ -406,6 +511,45 @@ export function injectWarmthStyles(): void {
 // EXPORTS
 // ============================================================================
 
+/**
+ * Subscribe to warmth change events
+ * 
+ * @example
+ * const unsubscribe = onWarmthChange(({ newStage, isDeepening }) => {
+ *   if (isDeepening) showCelebration();
+ * });
+ */
+export function onWarmthChange(
+  callback: (event: {
+    previousStage: RelationshipStage;
+    newStage: RelationshipStage;
+    isDeepening: boolean;
+    warmthConfig: WarmthConfig;
+    stageIndex: number;
+  }) => void
+): () => void {
+  const handler = (e: Event) => {
+    const customEvent = e as CustomEvent;
+    callback(customEvent.detail);
+  };
+  
+  window.addEventListener('ferni:warmth-change', handler);
+  
+  return () => {
+    window.removeEventListener('ferni:warmth-change', handler);
+  };
+}
+
+/**
+ * Manually trigger a warmth transition animation
+ * Useful for testing or celebrations
+ */
+export function triggerWarmthCelebration(stage?: RelationshipStage): void {
+  const targetStage = stage || currentStage || 'building-trust';
+  const prevStage = 'first-meeting' as RelationshipStage;
+  playWarmthTransition(prevStage, targetStage);
+}
+
 export const warmthManager = {
   init: initWarmthManager,
   dispose: disposeWarmthManager,
@@ -418,6 +562,10 @@ export const warmthManager = {
   // Animation helpers
   getAdjustedDuration,
   getAdjustedAnimationConfig,
+  // Event subscription
+  onWarmthChange,
+  // Manual triggers
+  triggerWarmthCelebration,
 };
 
 export default warmthManager;

@@ -123,7 +123,7 @@ async function generateSpeechGoogle(text: string, config: TTSConfig): Promise<Bu
   };
   try {
     const tts = await import('@google-cloud/text-to-speech');
-    TextToSpeechClient = tts.TextToSpeechClient as typeof TextToSpeechClient;
+    TextToSpeechClient = tts.TextToSpeechClient as unknown as typeof TextToSpeechClient;
   } catch {
     throw new Error(
       '@google-cloud/text-to-speech not installed. Run: npm install @google-cloud/text-to-speech'
