@@ -98,6 +98,10 @@ const CONFIG = {
     // Other external deps
     'dotenv',
     'dotenv/config',
+    // Native modules (can't be bundled)
+    'onnxruntime-node',
+    '@xenova/transformers',
+    'sharp',
   ],
 };
 
