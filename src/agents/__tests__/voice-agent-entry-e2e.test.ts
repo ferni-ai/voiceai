@@ -188,7 +188,7 @@ describe('Voice Agent Entry E2E - Extensibility', () => {
 
 describe('Voice Agent Entry E2E - Conversation Manager', () => {
   it('should set insight callback', async () => {
-    const { getConversationManager } = await import('../../services/conversation-manager.js');
+    const { getConversationManager } = await import('../../services/conversation-thread/conversation-manager.js');
 
     const manager = getConversationManager();
     expect(manager.setInsightCallback).toBeDefined();
@@ -313,13 +313,13 @@ describe('Voice Agent Entry E2E - Async Events', () => {
 
 describe('Voice Agent Entry E2E - Session Services', () => {
   it('should have cognitive session hooks', async () => {
-    const { onCognitiveSessionStart } = await import('../../services/cognitive-session-hooks.js');
+    const { onCognitiveSessionStart } = await import('../../services/cognitive-intelligence/cognitive-session-hooks.js');
     expect(onCognitiveSessionStart).toBeDefined();
     expect(typeof onCognitiveSessionStart).toBe('function');
   });
 
   it('should have engagement data sender', async () => {
-    const { getEngagementDataSender } = await import('../../services/engagement-data-sender.js');
+    const { getEngagementDataSender } = await import('../../services/engagement/engagement-data-sender.js');
     expect(getEngagementDataSender).toBeDefined();
 
     const sender = getEngagementDataSender();

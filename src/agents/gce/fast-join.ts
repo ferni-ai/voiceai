@@ -253,7 +253,7 @@ async function createWarmSession(): Promise<WarmSession | null> {
 
     // Create a minimal LLM model (will inject persona instructions on acquisition)
     // Using basic instructions that work for any persona
-    const { modelConfig } = await import('../../services/model-config.js');
+    const { modelConfig } = await import('../../services/llm/model-config.js');
     const geminiConfig = modelConfig.getDefault();
     const { Modality } = await import('@google/genai');
 

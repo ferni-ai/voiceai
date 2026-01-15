@@ -15,7 +15,7 @@
 import type { Room } from '@livekit/rtc-node';
 import { createLogger } from '../../utils/safe-logger.js';
 import type { PersonaConfig } from '../../personas/types.js';
-import type { ConversationManager } from '../../services/conversation-manager.js';
+import type { ConversationManager } from '../../services/conversation-thread/conversation-manager.js';
 import type { SessionServices } from '../../services/index.js';
 import { coordinatedSay } from '../../speech/coordination/index.js';
 import { isMusicEnabled } from '../../config/environment.js';

@@ -19,7 +19,7 @@
 import type { SessionServices } from '../../services/index.js';
 import type { VoiceEmotionResult } from '../../speech/audio-prosody.js';
 import type { VoiceEmotionModulation } from '../../speech/emotion-matching.js';
-import type { ConversationStateManager } from '../../services/conversation-state.js';
+import type { ConversationStateManager } from '../../services/conversation-thread/conversation-state.js';
 import type { MoodState } from '../../intelligence/context-builders/personas/persona-mood.js';
 
 // ============================================================================

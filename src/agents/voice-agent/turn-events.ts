@@ -22,7 +22,7 @@ import {
   dispatchBehaviorEvents,
   type BehaviorDetectionContext,
 } from '../realtime/behavior-event-dispatcher.js';
-import { diag } from '../../services/diagnostic-logger.js';
+import { diag } from '../../services/observability/diagnostic-logger.js';
 import type { SessionStateManager } from '../session/session-state.js';
 
 // ============================================================================

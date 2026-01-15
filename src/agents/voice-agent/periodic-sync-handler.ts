@@ -10,7 +10,7 @@
  * @module agents/voice-agent/periodic-sync-handler
  */
 
-import { diag } from '../../services/diagnostic-logger.js';
+import { diag } from '../../services/observability/diagnostic-logger.js';
 import { deepUnderstandingPeriodicSync } from '../../intelligence/index.js';
 import { createLogger } from '../../utils/safe-logger.js';
 

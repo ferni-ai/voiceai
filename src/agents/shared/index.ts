@@ -37,7 +37,7 @@ export {
   getStockFallback,
   getMarketFallback,
   getWeatherFallback,
-} from '../../services/external-apis.js';
+} from '../../services/integrations/external-apis.js';
 
 // Session Setup Helpers
 export {
@@ -105,7 +105,7 @@ export {
   isMusicEnabledCached,
   preloadCommonModules,
   resetCachedModules,
-} from '../../services/cached-imports.js';
+} from '../../services/stores/cached-imports.js';
 
 // Early Logger (for pre-LiveKit initialization)
 export { earlyLog, DEBUG_STARTUP } from './early-logger.js';

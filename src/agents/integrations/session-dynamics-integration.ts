@@ -14,7 +14,7 @@ import {
   type PhaseBehavior,
   type SessionDynamicsState,
 } from '../../conversation/humanization/session-dynamics.js';
-import { diag } from '../../services/diagnostic-logger.js';
+import { diag } from '../../services/observability/diagnostic-logger.js';
 import type { ContextInjection } from '../processors/types.js';
 
 // Re-export types for convenience

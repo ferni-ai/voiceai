@@ -216,7 +216,7 @@ export async function warmupResources(log: LogFn): Promise<WarmupResult> {
       (async () => {
         try {
           const convStart = Date.now();
-          await import('../../services/conversation-manager.js');
+          await import('../../services/conversation-thread/conversation-manager.js');
           log('✅ Conversation manager loaded', { durationMs: Date.now() - convStart });
         } catch (e) {
           log('⚠️ Conversation manager load failed (non-fatal)', { error: String(e) });
@@ -377,7 +377,7 @@ export async function warmupResources(log: LogFn): Promise<WarmupResult> {
         try {
           const dayAwarenessStart = Date.now();
           const { initDayAwarenessCache, getDayAwareness } =
-            await import('../../services/day-awareness-cache.js');
+            await import('../../services/context-awareness/day-awareness-cache.js');
           initDayAwarenessCache();
           // Force initial cache population
           const context = getDayAwareness();

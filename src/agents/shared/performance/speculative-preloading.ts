@@ -16,7 +16,7 @@ import {
   type PersonaInsights,
 } from '../../../intelligence/context-builders/persona-insights-cache.js';
 import { preloadAllBundles } from '../../../personas/bundles/preloader.js';
-import { warmHandoffCaches } from '../../../services/session-warmup.js';
+import { warmHandoffCaches } from '../../../services/session-manager/session-warmup.js';
 
 const log = getLogger();
 

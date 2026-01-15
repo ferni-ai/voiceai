@@ -221,7 +221,7 @@ export interface OrchestratorConfig {
 }
 
 // Import admin config to read all tool settings from model-config.json
-import { modelConfig } from '../../services/model-config.js';
+import { modelConfig } from '../../services/llm/model-config.js';
 
 // Base always-available domains (before filtering by enabledDomains)
 // These domains are ALWAYS sent to the LLM - they don't rely on semantic matching

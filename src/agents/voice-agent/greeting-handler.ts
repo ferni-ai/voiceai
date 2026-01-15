@@ -24,8 +24,8 @@ import type { BundleRuntimeEngine } from '../../personas/bundles/index.js';
 import { generateGreeting, type PersonaMemoryForGreeting } from '../../personas/greetings.js';
 import { convertFromUserProfileEvents } from '../../personas/shared/life-events.js';
 import type { PersonaConfig } from '../../personas/types.js';
-import { diag } from '../../services/diagnostic-logger.js';
-import { getTrialWelcomePrompt } from '../../services/first-taste-trial.js';
+import { diag } from '../../services/observability/diagnostic-logger.js';
+import { getTrialWelcomePrompt } from '../../services/monetization/first-taste-trial.js';
 import {
   applyHumanizingStateToProfile,
   getHumanizingState,

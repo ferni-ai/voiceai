@@ -8,7 +8,7 @@
  * @module agents/shared/room-event-handlers
  */
 
-import { diag } from '../../services/diagnostic-logger.js';
+import { diag } from '../../services/observability/diagnostic-logger.js';
 
 // ============================================================================
 // TYPES

@@ -12,8 +12,8 @@
 import { EventEmitter } from 'events';
 import type { Room, RemoteParticipant } from '@livekit/rtc-node';
 import { getLogger } from '../../utils/safe-logger.js';
-import { diag } from '../../services/diagnostic-logger.js';
-import { callLLM } from '../../services/llm-utils.js';
+import { diag } from '../../services/observability/diagnostic-logger.js';
+import { callLLM } from '../../services/llm/llm-utils.js';
 import {
   createParticipantRegistry,
   createUserParticipant,

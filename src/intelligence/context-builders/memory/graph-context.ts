@@ -25,6 +25,10 @@ import {
   type FactDomain,
 } from '../../../memory/spanner-graph/index.js';
 import { detectEntities, extractEntityNames, type DetectedEntity } from '../../entity-detector.js';
+import {
+  getSessionPronounContext,
+  updateSessionPronounContext,
+} from '../../pronoun-context-store.js';
 
 const log = createLogger({ module: 'context:graph' });
 
@@ -175,6 +179,7 @@ async function buildGraphContext(input: ContextBuilderInput): Promise<ContextInj
   const injections: ContextInjection[] = [];
 
   const userId = services?.userId;
+  const sessionId = services?.sessionId;
   if (!userId || !userText) {
     return [];
   }
@@ -184,6 +189,9 @@ async function buildGraphContext(input: ContextBuilderInput): Promise<ContextInj
     log.debug('Spanner not ready, skipping graph context');
     return [];
   }
+
+  // Get pronoun context from previous turns
+  const pronounContext = sessionId ? getSessionPronounContext(sessionId) : undefined;
 
   try {
     // 1. Check for relationship queries first
@@ -204,8 +212,16 @@ async function buildGraphContext(input: ContextBuilderInput): Promise<ContextInj
       }
     }
 
-    // 2. Check for entity mentions
-    const entityMentions = detectEntityMentions(userText);
+    // 2. Detect entities (with pronoun resolution from previous turns)
+    const detectedEntities = detectEntities(userText, { pronounContext });
+
+    // 3. Update pronoun context for future turns
+    if (sessionId && detectedEntities.length > 0) {
+      updateSessionPronounContext(sessionId, detectedEntities);
+    }
+
+    // 4. Check for entity mentions
+    const entityMentions = detectEntityMentions(userText, undefined);
     for (const mention of entityMentions.slice(0, 2)) {
       // Domain-specific query
       if (mention.domain) {

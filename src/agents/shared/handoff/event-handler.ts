@@ -17,7 +17,7 @@ import type { UserData } from '../types.js';
 // Unified handoff module (Phase 3 migration)
 import { handoffEvents } from '../../../handoff/index.js';
 import { getLogger } from '../../../utils/safe-logger.js';
-import { diag } from '../../../services/diagnostic-logger.js';
+import { diag } from '../../../services/observability/diagnostic-logger.js';
 
 // Coordinator adapter
 import {

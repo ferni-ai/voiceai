@@ -38,8 +38,8 @@ import {
   type LLMSilenceInstructions,
 } from '../../personas/meaningful-silence.js';
 import type { PersonaConfig } from '../../personas/types.js';
-import type { ConversationManager } from '../../services/conversation-manager.js';
-import { diag } from '../../services/diagnostic-logger.js';
+import type { ConversationManager } from '../../services/conversation-thread/conversation-manager.js';
+import { diag } from '../../services/observability/diagnostic-logger.js';
 import { wrapSpeechWithInterruptAwareness } from '../../speech/graceful-interrupt/speech-wrapper.js';
 import { getLiveBackchannelingService } from '../../speech/live-backchanneling/index.js';
 import {

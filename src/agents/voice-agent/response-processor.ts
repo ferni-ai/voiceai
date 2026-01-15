@@ -42,7 +42,7 @@
 
 import { getResponseDynamicsEngine } from '../../conversation/index.js';
 import type { PersonaConfig } from '../../personas/types.js';
-import { diag } from '../../services/diagnostic-logger.js';
+import { diag } from '../../services/observability/diagnostic-logger.js';
 import type { SessionServices } from '../../services/index.js';
 import type { CartesiaEmotion } from '../../speech/cartesia-expressiveness.js';
 import {

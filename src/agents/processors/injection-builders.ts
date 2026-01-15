@@ -17,7 +17,7 @@
  */
 
 import type { PersonaConfig } from '../../personas/types.js';
-import { diag } from '../../services/diagnostic-logger.js';
+import { diag } from '../../services/observability/diagnostic-logger.js';
 import type { ConversationAnalysis } from '../../services/index.js';
 import type { SessionServices } from '../../services/types.js';
 import type { UserData } from '../shared/types.js';
@@ -54,7 +54,7 @@ import {
   buildInsightContext,
   getInsightsToSurface,
   acknowledgeInsight,
-} from '../../services/cross-persona-insights.js';
+} from '../../services/cross-persona/cross-persona-insights.js';
 
 // Advanced humanization (TIER 2 - runs every turn)
 import {
@@ -63,7 +63,7 @@ import {
 } from '../../conversation/advanced-humanization-integration.js';
 
 // Performance metrics (timing)
-import { recordTrustSystemTiming } from '../../services/performance-metrics.js';
+import { recordTrustSystemTiming } from '../../services/performance/performance-metrics.js';
 
 // ============================================================================
 // NON-VOLATILE INJECTION CACHE
@@ -533,7 +533,7 @@ A human friend might not notice these subtle shifts. You did. Share it with care
       // Try to load persona-specific trust phrases
       let trustPhrases: Record<string, string[]> | null = null;
       try {
-        const { loadPersonaContent } = await import('../../services/persona-content-loader.js');
+        const { loadPersonaContent } = await import('../../services/persona-service/persona-content-loader.js');
         const content = await loadPersonaContent<{
           reading_between_lines?: Record<string, string[]>;
         }>(persona.id, 'trust-phrases');

@@ -12,7 +12,7 @@
  * - Exponential backoff detection for crash loops
  */
 
-import { diag } from '../../services/diagnostic-logger.js';
+import { diag } from '../../services/observability/diagnostic-logger.js';
 import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
 import { registerInterval } from '../../utils/interval-manager.js';
 
@@ -161,7 +161,7 @@ function isInCrashLoop(): boolean {
  */
 async function notifyCrashToSlack(event: CrashEvent): Promise<void> {
   try {
-    const { getSlackNotifications } = await import('../../services/slack-notifications.js');
+    const { getSlackNotifications } = await import('../../services/integrations/slack-notifications.js');
     const slack = getSlackNotifications();
 
     const severityMap: Record<CrashEvent['type'], 'warning' | 'error'> = {
@@ -324,7 +324,7 @@ export async function gracefulShutdown(signal: string): Promise<void> {
 
     // 3. Shutdown session data manager
     try {
-      const { shutdownSessionDataManager } = await import('../../services/session-data-manager.js');
+      const { shutdownSessionDataManager } = await import('../../services/session-manager/session-data-manager.js');
       await shutdownSessionDataManager();
       diag.info('Session data manager shutdown complete');
     } catch {

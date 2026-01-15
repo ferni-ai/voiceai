@@ -61,46 +61,179 @@ export async function handleBTHIntelligenceRoutes(
   // BTH VALIDATION ROUTES (no userId required)
   // These routes are for service health monitoring and capability validation
   // ===========================================================================
-  const validationRoutes = ['/api/bth/health', '/api/bth/capabilities', '/api/bth/validation'];
-  const adminRoutes = ['/api/admin/bth/health', '/api/admin/bth/test'];
-  if (
-    validationRoutes.some((r) => pathname?.startsWith(r)) ||
-    adminRoutes.some((r) => pathname?.startsWith(r))
-  ) {
+
+  // GET /api/bth/health - Overall BTH health check
+  if (pathname === '/api/bth/health' && req.method === 'GET') {
     try {
-      const bthValidationRouter = (await import('../../../api/bth-validation-routes.js')).default;
-      const express = await import('express');
-      // Use Express router to handle the request
-      const mockApp = express.default();
-      mockApp.use('/api', bthValidationRouter);
-      // Create a promise-based handler
-      return new Promise<boolean>((resolve) => {
-        // Store original end function
-        const originalEnd = res.end.bind(res);
-        let handled = false;
-        // Intercept res.end to know when response is sent
-        (res as unknown as { end: (cb?: () => void) => void }).end = (chunk?: unknown) => {
-          handled = true;
-          originalEnd(chunk);
-          resolve(true);
-        };
-        // Try to handle with Express router
-        mockApp(
-          req as unknown as import('express').Request,
-          res as unknown as import('express').Response,
-          () => {
-            // Next was called - route wasn't handled
-            if (!handled) {
-              resolve(false);
-            }
-          }
-        );
+      const { checkSuperhumanServicesHealth } = await import(
+        '../../../services/superhuman/health-check.js'
+      );
+      const healthResult = await checkSuperhumanServicesHealth();
+      sendJson(res, healthResult.overall === 'healthy' ? 200 : 503, healthResult);
+    } catch (error) {
+      log.error({ error: String(error) }, 'BTH health check failed');
+      sendJson(res, 503, {
+        overall: 'unhealthy',
+        message: String(error),
+        services: [],
       });
-    } catch (routerError) {
-      log.error({ error: String(routerError) }, 'BTH validation router failed');
-      sendError(res, 500, 'BTH validation service unavailable');
+    }
+    return true;
+  }
+
+  // GET /api/bth/capabilities - List all BTH capabilities
+  if (pathname === '/api/bth/capabilities' && req.method === 'GET') {
+    try {
+      const capabilities = [
+        {
+          id: 'perfect-memory',
+          name: 'Perfect Memory',
+          description: 'Never forgets anything you share',
+          isActive: true,
+        },
+        {
+          id: 'proactive-outreach',
+          name: 'Proactive Outreach',
+          description: 'Reaches out when you might need support',
+          isActive: true,
+        },
+        {
+          id: 'learning-engine',
+          name: 'Learning Engine',
+          description: 'Learns from your reactions to improve',
+          isActive: true,
+        },
+        {
+          id: 'commitment-keeper',
+          name: 'Commitment Keeper',
+          description: 'Never forgets what you said you would do',
+          isActive: true,
+        },
+        {
+          id: 'our-songs',
+          name: 'Musical Memory',
+          description: 'Remembers songs from meaningful moments',
+          isActive: true,
+        },
+        {
+          id: 'emotional-intelligence',
+          name: 'Emotional Intelligence',
+          description: 'Detects and responds to emotional signals',
+          isActive: true,
+        },
+      ];
+      sendJson(res, 200, { capabilities, timestamp: new Date().toISOString() });
+    } catch (error) {
+      log.error({ error: String(error) }, 'BTH capabilities fetch failed');
+      sendError(res, 500, 'Failed to fetch capabilities');
+    }
+    return true;
+  }
+
+  // GET /api/bth/validation/:userId - Validate BTH for a user
+  if (pathname?.startsWith('/api/bth/validation/') && req.method === 'GET') {
+    const validationUserId = pathname.split('/')[4];
+    if (!validationUserId) {
+      sendError(res, 400, 'userId is required');
       return true;
     }
+    try {
+      const { getFirestoreDb } = await import('../../../utils/firestore-utils.js');
+      const db = getFirestoreDb();
+      if (!db) {
+        sendError(res, 503, 'Database not available');
+        return true;
+      }
+
+      const result = {
+        userId: validationUserId,
+        timestamp: new Date().toISOString(),
+        overall: 'pass' as 'pass' | 'fail',
+        capabilities: [] as Array<{ id: string; name: string; status: string; message: string }>,
+        recommendations: [] as string[],
+      };
+
+      // Check memories
+      const memoriesSnap = await db
+        .collection('bogle_users')
+        .doc(validationUserId)
+        .collection('memories')
+        .limit(1)
+        .get();
+      result.capabilities.push({
+        id: 'perfect-memory',
+        name: 'Perfect Memory',
+        status: memoriesSnap.empty ? 'skip' : 'pass',
+        message: memoriesSnap.empty
+          ? 'No memories stored yet'
+          : 'Memories are being stored correctly',
+      });
+
+      // Check commitments
+      const commitmentsSnap = await db
+        .collection('bogle_users')
+        .doc(validationUserId)
+        .collection('commitments')
+        .limit(1)
+        .get();
+      result.capabilities.push({
+        id: 'commitment-keeper',
+        name: 'Commitment Keeper',
+        status: commitmentsSnap.empty ? 'skip' : 'pass',
+        message: commitmentsSnap.empty
+          ? 'No commitments tracked yet'
+          : 'Commitments are being tracked',
+      });
+
+      sendJson(res, 200, result);
+    } catch (error) {
+      log.error({ error: String(error), userId: validationUserId }, 'BTH validation failed');
+      sendError(res, 500, 'Validation failed');
+    }
+    return true;
+  }
+
+  // GET /api/admin/bth/health - Admin health dashboard
+  if (pathname === '/api/admin/bth/health' && req.method === 'GET') {
+    try {
+      const { checkSuperhumanServicesHealth } = await import(
+        '../../../services/superhuman/health-check.js'
+      );
+      const healthResult = await checkSuperhumanServicesHealth();
+      sendJson(res, 200, healthResult);
+    } catch (error) {
+      log.error({ error: String(error) }, 'Admin BTH health check failed');
+      sendError(res, 500, 'Health check failed');
+    }
+    return true;
+  }
+
+  // POST /api/admin/bth/test/:serviceId - Test a specific service
+  if (pathname?.startsWith('/api/admin/bth/test/') && req.method === 'POST') {
+    const serviceId = pathname.split('/')[5];
+    if (!serviceId) {
+      sendError(res, 400, 'serviceId is required');
+      return true;
+    }
+    try {
+      const { checkService } = await import('../../../services/superhuman/health-check.js');
+      const result = await checkService(serviceId);
+      sendJson(res, result.status === 'healthy' ? 200 : 503, {
+        success: result.status === 'healthy',
+        message:
+          result.status === 'healthy'
+            ? `${serviceId} is working correctly`
+            : `${serviceId} has issues`,
+        details: result,
+      });
+    } catch (error) {
+      log.error({ error: String(error), serviceId }, 'BTH service test failed');
+      sendJson(res, 500, {
+        success: false,
+        message: `Test failed: ${error}`,
+      });
+    }
+    return true;
   }
 
   await loadUserKnowledge();

@@ -20,7 +20,7 @@ import type { Room } from '@livekit/rtc-node';
 import type { SessionServices } from '../../../services/types.js';
 import type { UserData } from '../types.js';
 import { getLogger } from '../../../utils/safe-logger.js';
-import { diag } from '../../../services/diagnostic-logger.js';
+import { diag } from '../../../services/observability/diagnostic-logger.js';
 
 // New coordinator system
 import {

@@ -16,9 +16,9 @@ import {
 import type { PersonaConfig } from '../../personas/types.js';
 import { recordSessionEnd as recordUserSessionEnd } from '../../services/analytics/user-analytics.js';
 import { emitConversationEnd } from '../../services/async-events/index.js';
-import { onCognitiveSessionEnd } from '../../services/cognitive-session-hooks.js';
-import { endConversation as endConversationState } from '../../services/conversation-state.js';
-import { diag } from '../../services/diagnostic-logger.js';
+import { onCognitiveSessionEnd } from '../../services/cognitive-intelligence/cognitive-session-hooks.js';
+import { endConversation as endConversationState } from '../../services/conversation-thread/conversation-state.js';
+import { diag } from '../../services/observability/diagnostic-logger.js';
 import type { SessionServices } from '../../services/index.js';
 import { onSessionEnd as saveTrustProfiles } from '../../services/trust-systems/index.js';
 import { recordSessionEnd } from '../../services/voice/voice-humanization-metrics.js';
@@ -54,11 +54,11 @@ import { logGcPressureSummary } from '../../utils/performance-metrics.js';
 import { clearEmotionalArc } from '../../intelligence/context-builders/emotional/advanced-voice-emotion.js';
 // Session analytics collection - emotional arc, commitments, insights
 import { getEmotionalArcTracker } from '../../conversation/emotional-arc.js';
-import { getInsightsForPersona } from '../../services/cross-persona-insights.js';
+import { getInsightsForPersona } from '../../services/cross-persona/cross-persona-insights.js';
 import type {
   EmotionalMoment,
   SessionInsight,
-} from '../../services/session-context/session-summary.js';
+} from '../../services/session-manager/session-summary.js';
 import { commitmentKeeper } from '../../services/superhuman/commitment-keeper.js';
 
 // NEW: Unified Intelligence System (Levels 2-5) cleanup
@@ -69,7 +69,7 @@ import { finalizeSessionLearning } from '../../intelligence/tracking/capabilitie
 import { clearSession as clearHumeSession } from '../../services/emotion-analysis/hume.js';
 
 // FIX AUDIT: Import seed economy from service layer (clean architecture)
-import { awardSeedsForConversation } from '../../services/seed-economy.js';
+import { awardSeedsForConversation } from '../../services/engagement/seed-economy.js';
 
 // Session closing tracker - prevents operations during shutdown
 import { clearSessionClosing, markSessionClosing } from '../shared/session-closing-tracker.js';
@@ -84,7 +84,7 @@ import { clearSessionContinuity } from '../../memory/dynamic/session-continuity-
 import { runSessionCleanup as runRegistryCleanup } from '../session/event-cleanup-registry.js';
 
 // P0 INTEGRATION: Context Carrier & Memory Session Cleanup
-import { resetProactiveSession } from '../../services/proactive-memory-surfacing.js';
+import { resetProactiveSession } from '../../services/memory/proactive-memory-surfacing.js';
 import { getUnifiedMemoryService } from '../../services/unified-memory-service.js';
 import { getContextCarrier } from '../../tools/context-carrier.js';
 
@@ -103,7 +103,7 @@ import { incrementSessionStats } from '../../intelligence/context-builders/relat
 import { resilienceMetrics } from '../../services/observability/resilience-metrics.js';
 
 // Session Lifecycle Hooks - presence clearing, affinity updates, outreach suppression
-import { sessionLifecycle } from '../../services/session/session-lifecycle-hooks.js';
+import { sessionLifecycle } from '../../services/session-manager/session-lifecycle-hooks.js';
 
 // Interval Manager - for session heartbeat cleanup
 import { clearNamedInterval } from '../../utils/interval-manager.js';
@@ -113,7 +113,7 @@ import type { HandoffEventPayload } from '../shared/handoff/types.js';
 
 // 🧠 DEEP SIGNAL EXTRACTION: LLM-powered extraction at session end
 import { LLMSignalExtractor } from '../../memory/llm-signal-extractor.js';
-import { callLLM } from '../../services/llm-utils.js';
+import { callLLM } from '../../services/llm/llm-utils.js';
 
 // ============================================================================
 // CLEANUP TIMEOUT PROTECTION
@@ -412,7 +412,7 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
     // Trial time recording
     userData?.isTrialUser && userId
       ? (async () => {
-          const { recordTrialTime } = await import('../../services/first-taste-trial.js');
+          const { recordTrialTime } = await import('../../services/monetization/first-taste-trial.js');
           await recordTrialTime(userId, sessionDurationMs);
           diag.session('Trial time recorded', { userId, sessionDurationMs });
         })()
@@ -667,7 +667,7 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
       ? (async () => {
           try {
             const { storeSessionSummary } =
-              await import('../../services/session-context/session-summary.js');
+              await import('../../services/session-manager/session-summary.js');
             const turnCount = finalConvState?.flow.turnCount || userData?.turnCount || 0;
             const startTime = services?.sessionStartTime
               ? new Date(services.sessionStartTime)

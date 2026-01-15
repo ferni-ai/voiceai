@@ -11,7 +11,7 @@ import type {
 } from '../../intelligence/context-builders/personas/persona-mood.js';
 import type { SilenceAnalysis } from '../../intelligence/deep-understanding/silence.js';
 import type { BundleRuntimeState, UserBundleState } from '../../personas/bundles/index.js';
-import type { ConversationStateManager } from '../../services/conversation-state.js';
+import type { ConversationStateManager } from '../../services/conversation-thread/conversation-state.js';
 import type { SessionServices } from '../../services/index.js';
 import type { VoiceEmotionResult } from '../../speech/audio-prosody.js';
 import type { VoiceEmotionModulation } from '../../speech/emotion-matching.js';

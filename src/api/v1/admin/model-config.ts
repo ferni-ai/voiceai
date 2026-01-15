@@ -34,7 +34,7 @@ import {
   type GeminiModelConfig,
   type PersonaModelConfig,
   type ToolConfig,
-} from '../../../services/model-config.js';
+} from '../../../services/llm/model-config.js';
 
 const log = createLogger({ module: 'AdminModelConfigAPI' });
 

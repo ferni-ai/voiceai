@@ -38,7 +38,7 @@ import {
   type SharedPersonalityTurnResult,
 } from '../../personas/shared/shared-personality-integration.js';
 import { hasPersonaBuildingBlocks } from '../../personas/shared/persona-building-blocks.js';
-import { diag } from '../../services/diagnostic-logger.js';
+import { diag } from '../../services/observability/diagnostic-logger.js';
 import type { ThemeCategory } from '../../services/session-variety-tracker.js';
 
 // ============================================================================

@@ -21,7 +21,7 @@ import type { PersonaConfig } from '../../personas/types.js';
 import { getPersonaDisplayName, getVoiceId } from '../../personas/voice-registry.js';
 import { CAMEO_TIMING } from '../../services/cameo/cameo-timing.js';
 import type { CameoDataMessage, CameoEvent } from '../../services/cameo/types.js';
-import { diag } from '../../services/diagnostic-logger.js';
+import { diag } from '../../services/observability/diagnostic-logger.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import type { UserData } from './types.js';
 // Speech coordination for centralized speech management

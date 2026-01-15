@@ -17,7 +17,7 @@
  */
 
 import { callLLM } from './llm-utils.js';
-import { getLogger } from '../utils/safe-logger.js';
+import { getLogger } from '../../utils/safe-logger.js';
 
 const log = getLogger();
 

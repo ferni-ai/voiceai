@@ -751,8 +751,10 @@ const DOMAIN_KEYWORDS: Record<FactDomain, string[]> = {
 
 /**
  * Classify a fact into a domain based on its key and value
+ *
+ * Exported for use by client.ts when inserting facts.
  */
-function classifyFactDomain(key: string, value: string): FactDomain {
+export function classifyFactDomain(key: string, value: string): FactDomain {
   const text = `${key} ${value}`.toLowerCase();
 
   for (const [domain, keywords] of Object.entries(DOMAIN_KEYWORDS)) {

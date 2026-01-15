@@ -19,7 +19,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { getDefaultModel } from '../../services/model-config.js';
+import { getDefaultModel } from '../../services/llm/model-config.js';
 
 const log = createLogger({ module: 'BatchedLLMAnalysis' });
 

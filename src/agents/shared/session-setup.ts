@@ -6,7 +6,7 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
-import { diag } from '../../services/diagnostic-logger.js';
+import { diag } from '../../services/observability/diagnostic-logger.js';
 import { createSessionServices, type SessionServices } from '../../services/index.js';
 import type { PersonaConfig } from '../../personas/index.js';
 import type { UserData } from './types.js';

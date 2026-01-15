@@ -15,9 +15,9 @@
  * @module services/llm-utils
  */
 
-import { getDefaultModel, getGeminiClient } from '../config/gemini-config.js';
-import { CircuitOpenError, getCircuitBreaker } from '../utils/circuit-breaker.js';
-import { getLogger } from '../utils/safe-logger.js';
+import { getDefaultModel, getGeminiClient } from '../../config/gemini-config.js';
+import { CircuitOpenError, getCircuitBreaker } from '../../utils/circuit-breaker.js';
+import { getLogger } from '../../utils/safe-logger.js';
 
 // Check if Vertex AI is explicitly enabled
 const USE_VERTEX_AI = process.env.USE_VERTEX_AI !== 'false';

@@ -1360,6 +1360,34 @@
       }
     },
 
+    "_comment_timer_tools": "=== TIMER AND REMINDER TOOLS ===",
+
+    "setTimer": {
+      "description": "Set a countdown timer. Use when user says 'set a timer for 5 minutes', 'timer for 30 seconds', '10 minute timer'. Timers up to 1 hour. For longer durations, suggest setReminder instead.",
+      "parameters": {
+        "minutes": "Number of minutes. Examples: 5, 10, 15, 30",
+        "seconds": "Number of seconds (optional). Examples: 30, 45",
+        "label": "What the timer is for (optional). Examples: 'pasta', 'break', 'meditation'"
+      }
+    },
+    "setReminder": {
+      "description": "Set a reminder for later. Use when user says 'remind me to...', 'set a reminder to...', 'don't let me forget to...'. Supports natural language times.",
+      "parameters": {
+        "message": "What to remind about. Examples: 'call mom', 'take medication', 'check the oven', 'pick up groceries'",
+        "when": "When to remind in natural language. Examples: 'in 30 minutes', 'tomorrow at 2pm', 'tonight at 8', 'next Monday morning'"
+      }
+    },
+    "getReminders": {
+      "description": "Get pending reminders for the user. Use when user asks 'what reminders do I have?', 'show my reminders', 'any upcoming reminders?'",
+      "parameters": {}
+    },
+    "cancelReminder": {
+      "description": "Cancel a pending reminder. Use when user says 'cancel my reminder', 'delete that reminder', 'never mind about the reminder'.",
+      "parameters": {
+        "reminderId": "ID of the reminder to cancel (if known), or 'latest' to cancel most recent"
+      }
+    },
+
     "_comment_time_tools": "=== TIME AND TIMEZONE TOOLS ===",
 
     "timeInCity": {

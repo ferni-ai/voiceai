@@ -11,7 +11,7 @@
  */
 
 import { getLogger } from '../utils/safe-logger.js';
-import { getDefaultModel } from '../services/model-config.js';
+import { getDefaultModel } from '../services/llm/model-config.js';
 
 import { getDayContext } from './behaviors.js';
 import type { GreetingStyle, PersonaConfig } from './types.js';

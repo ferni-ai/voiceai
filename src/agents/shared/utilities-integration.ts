@@ -22,7 +22,7 @@ import { getLogger } from '../../utils/safe-logger.js';
 import type { voice } from '@livekit/agents';
 
 // Feature flags for controlled rollout
-import { getSimpleUtilitiesConfig } from '../../services/feature-flags.js';
+import { getSimpleUtilitiesConfig } from '../../services/deployment/feature-flags.js';
 // Speech coordination for centralized speech management
 import { coordinatedSay } from '../../speech/coordination/index.js';
 

@@ -24,6 +24,8 @@ import {
   type MemoryAnchor,
   type MemoryAnchorType,
 } from './schema.js';
+import { classifyFactDomain } from './queries.js';
+import { fireAndForget } from '../../utils/safe-fire-and-forget.js';
 
 const log = createLogger({ module: 'SpannerGraphClient' });
 
@@ -145,6 +147,9 @@ export async function upsertEntity(
 
 /**
  * Insert a fact
+ *
+ * Automatically classifies the domain based on key/value if not provided.
+ * Also indexes the fact for semantic search.
  */
 export async function insertFact(fact: Omit<GraphFact, 'createdAt'>): Promise<void> {
   if (!isSpannerReady()) return;
@@ -152,14 +157,17 @@ export async function insertFact(fact: Omit<GraphFact, 'createdAt'>): Promise<vo
   const db = getDatabase();
   const now = new Date().toISOString();
 
+  // Auto-classify domain if not provided
+  const domain = fact.domain || classifyFactDomain(fact.key, fact.value);
+
   try {
     await db.runTransactionAsync(async (transaction) => {
       await transaction.runUpdate({
         sql: `
           INSERT INTO facts 
-          (fact_id, user_id, fact_type, key, value, confidence, source_session, extracted_at, created_at)
+          (fact_id, user_id, fact_type, key, value, domain, confidence, source_session, extracted_at, created_at)
           VALUES 
-          (@factId, @userId, @factType, @key, @value, @confidence, @sourceSession, @extractedAt, @createdAt)
+          (@factId, @userId, @factType, @key, @value, @domain, @confidence, @sourceSession, @extractedAt, @createdAt)
         `,
         params: {
           factId: fact.factId,
@@ -167,6 +175,7 @@ export async function insertFact(fact: Omit<GraphFact, 'createdAt'>): Promise<vo
           factType: fact.factType,
           key: fact.key,
           value: fact.value,
+          domain,
           confidence: fact.confidence,
           sourceSession: fact.sourceSession || null,
           extractedAt: fact.extractedAt.toISOString(),
@@ -175,6 +184,24 @@ export async function insertFact(fact: Omit<GraphFact, 'createdAt'>): Promise<vo
       });
       await transaction.commit();
     });
+
+    log.debug({ factId: fact.factId, domain }, 'Fact inserted with domain');
+
+    // Index for semantic search (non-blocking)
+    fireAndForget(
+      async () => {
+        const { indexMemory } = await import('../retrieval/semantic-memory-search.js');
+        await indexMemory(
+          fact.userId,
+          `${fact.key}: ${fact.value}`,
+          'fact',
+          fact.factId,
+          { domain, factType: fact.factType, confidence: fact.confidence }
+        );
+      },
+      'index-fact-for-semantic-search',
+      { factId: fact.factId }
+    );
   } catch (error) {
     log.warn({ error: String(error), factId: fact.factId }, 'Failed to insert fact');
   }

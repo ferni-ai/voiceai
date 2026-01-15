@@ -77,4 +77,6 @@ export {
   getRelationshipContext,
   searchFactsAboutEntity,
   type EntityContext,
+  // Domain classification
+  classifyFactDomain,
 } from './queries.js';

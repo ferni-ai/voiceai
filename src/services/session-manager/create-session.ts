@@ -244,7 +244,7 @@ export async function createSessionServices(
     // ⚡ PERFORMANCE: Use Redis-backed profile cache for faster session start
     // Cache hit: ~5-20ms vs Firestore: ~100-500ms
     const { getProfileWithCache, cacheProfile, invalidateProfile } =
-      await import('./data-layer/profile-cache.js');
+      await import('../data-layer/profile-cache.js');
 
     // BLOCKING: Load profile with cache-through pattern (Redis → Firestore)
     userProfile = await getProfileWithCache(validatedUserId, async (uid) => {
@@ -252,7 +252,7 @@ export async function createSessionServices(
     });
 
     if (!userProfile) {
-      const { createUserProfile } = await import('../types/user-profile.js');
+      const { createUserProfile } = await import('../../types/user-profile.js');
       // CRITICAL: Pass userName from onboarding so Ferni remembers their name!
       userProfile = createUserProfile(validatedUserId, userName);
       await global.store.saveProfile(userProfile);
@@ -276,7 +276,7 @@ export async function createSessionServices(
     isReturningUser = userProfile.totalConversations > 0;
 
     // NON-BLOCKING: Start intelligent loader for on-demand domain loading
-    import('./data-layer/intelligent-loader.js')
+    import('../data-layer/intelligent-loader.js')
       .then(({ getIntelligentLoader }) => {
         const loader = getIntelligentLoader(validatedUserId, sessionId);
         loader.initializeSession().catch(() => {
@@ -323,7 +323,7 @@ export async function createSessionServices(
       });
 
       // Load social graph (background)
-      import('./social-graph/index.js')
+      import('../social-graph/index.js')
         .then(async ({ loadGraphFromFirestore }) => loadGraphFromFirestore(validatedUserId))
         .catch(() => {
           /* Non-critical */
@@ -335,7 +335,7 @@ export async function createSessionServices(
       });
 
       // Pre-warm embeddings (background)
-      import('../agents/shared/performance/session-optimizations.js')
+      import('../../agents/shared/performance/session-optimizations.js')
         .then(async ({ optimizeSessionStart }) => optimizeSessionStart(sessionId, validatedUserId))
         .catch(() => {
           /* Non-critical */
@@ -361,7 +361,7 @@ export async function createSessionServices(
   const learningEngine = getLearningEngine();
 
   // Reset task manager
-  const { resetTaskManager, getTaskManager } = await import('../tasks/task-manager.js');
+  const { resetTaskManager, getTaskManager } = await import('../../tasks/task-manager.js');
   resetTaskManager();
   const taskManager = getTaskManager();
 
@@ -379,7 +379,7 @@ export async function createSessionServices(
   // ============================================================================
 
   // Determine initial agent - use personaId if provided, otherwise default to 'ferni'
-  const initialAgent = (personaId || 'ferni') as import('../services/agent-bus.js').AgentId;
+  const initialAgent = (personaId || 'ferni') as import('../agent-bus.js').AgentId;
   const handoffState = createHandoffState(initialAgent);
 
   // Initialize from user profile if available (for returning users)
@@ -809,7 +809,7 @@ export async function createSessionServices(
         // Fire-and-forget LLM enhancement
         void (async () => {
           try {
-            const { createEmotionLLMCaller } = await import('./llm-utils.js');
+            const { createEmotionLLMCaller } = await import('../llm/llm-utils.js');
             const emotionDetector = getEmotionDetector();
             const llmCaller = createEmotionLLMCaller();
             const enhancedEmotion = await emotionDetector.detectWithLLM(message, llmCaller);
@@ -1196,7 +1196,7 @@ export async function createSessionServices(
         if (storyId && personaId) {
           try {
             const { getCommunityInsights } =
-              await import('../intelligence/collective/community-insights.js');
+              await import('../../intelligence/collective/community-insights.js');
             const communityInsights = getCommunityInsights();
             if (communityInsights) {
               communityInsights.recordStoryUsage(
@@ -1231,7 +1231,7 @@ export async function createSessionServices(
         if (questionAsked && personaId) {
           try {
             const { getCommunityInsights } =
-              await import('../intelligence/collective/community-insights.js');
+              await import('../../intelligence/collective/community-insights.js');
             const communityInsights = getCommunityInsights();
             if (communityInsights) {
               communityInsights.recordBreakthroughQuestion(
@@ -1279,7 +1279,7 @@ export async function createSessionServices(
         if (storyId && personaId) {
           try {
             const { getCommunityInsights } =
-              await import('../intelligence/collective/community-insights.js');
+              await import('../../intelligence/collective/community-insights.js');
             const communityInsights = getCommunityInsights();
             if (communityInsights) {
               communityInsights.recordStoryUsage(
@@ -1314,7 +1314,7 @@ export async function createSessionServices(
       // Feed into community insights if available
       try {
         const { getCommunityInsights } =
-          await import('../intelligence/collective/community-insights.js');
+          await import('../../intelligence/collective/community-insights.js');
         const communityInsights = getCommunityInsights();
         if (communityInsights && personaId) {
           communityInsights.recordEngagementSignal({
@@ -1372,7 +1372,7 @@ export async function createSessionServices(
       if (userId) {
         try {
           const { getInsightsToSurface, markInsightSurfaced } =
-            await import('./superhuman/semantic-intelligence/insight-broker.js');
+            await import('../superhuman/semantic-intelligence/insight-broker.js');
 
           const semanticInsights = await getInsightsToSurface(userId, {
             isSessionStart: true,
@@ -1532,7 +1532,7 @@ export async function createSessionServices(
           const history = historyTracker.getSessionHistory();
           const state = stateMachine.getState();
 
-          const { updateProfileFromSession } = await import('../types/user-profile.js');
+          const { updateProfileFromSession } = await import('../../types/user-profile.js');
           const updated = updateProfileFromSession(profileToSave, {
             name: profileToSave.name,
             mood: state.currentMood,
@@ -1645,8 +1645,8 @@ export async function createSessionServices(
             // FIX BUG #session-6: Generate conversation summary with timeout
             // Try LLM summarization first for richer understanding, fall back to extraction
             try {
-              const { createSummarizationLLMCaller } = await import('./llm-utils.js');
-              const { summarizeWithLLM } = await import('../memory/index.js');
+              const { createSummarizationLLMCaller } = await import('../llm/llm-utils.js');
+              const { summarizeWithLLM } = await import('../../memory/index.js');
               const llmCaller = createSummarizationLLMCaller();
 
               summary = await withTimeout(
@@ -1792,7 +1792,7 @@ export async function createSessionServices(
           // Persist handoff state to profile for cross-session continuity
           try {
             const { getMeetingCounts, getLastTopicsPerPersona } =
-              await import('../tools/handoff-state.js');
+              await import('../../tools/handoff-state.js');
             const meetingCounts = getMeetingCounts(handoffState);
             const lastTopicsPerPersona = getLastTopicsPerPersona(handoffState);
 
@@ -1883,7 +1883,7 @@ export async function createSessionServices(
           // ================================================================
           try {
             const { getPersonalJourneyForPersistence, updateJourneyFromConversation } =
-              await import('./personal-journey/session-integration.js');
+              await import('../personal-journey/session-integration.js');
 
             // Update chapter detection and seasonal memory from conversation
             if (summary) {
@@ -1921,7 +1921,7 @@ export async function createSessionServices(
 
             // Capture seasonal snapshot if needed (end of season)
             const { captureSeasonalSnapshotIfNeeded } =
-              await import('./personal-journey/session-integration.js');
+              await import('../personal-journey/session-integration.js');
             if (summary) {
               const captured = await captureSeasonalSnapshotIfNeeded(validatedUserId, {
                 emotionalState: summary.emotionalArc || 'neutral',
@@ -1945,7 +1945,7 @@ export async function createSessionServices(
           // ================================================================
           try {
             const { extractHumanSignals, mergeSignalsIntoMemory } =
-              await import('../memory/human-signal-extractor.js');
+              await import('../../memory/human-signal-extractor.js');
 
             if (turns.length > 0) {
               const signals = extractHumanSignals(turns, {
@@ -2009,7 +2009,7 @@ export async function createSessionServices(
           // This enables "remember when..." queries across all user data
           // Including human-centric memory: dates, values, dreams, growth, etc.
           try {
-            const { indexUserMemories } = await import('../memory/user-memory-indexer.js');
+            const { indexUserMemories } = await import('../../memory/user-memory-indexer.js');
             void indexUserMemories(validatedUserId, updatedProfile, {
               // Index both profile data AND human-centric memory
               categories: [
@@ -2056,7 +2056,7 @@ export async function createSessionServices(
           // 📤 Analyze session for proactive outreach opportunities
           // This extracts commitments, detects emotional state, and creates outreach triggers
           try {
-            const { analyzeSessionForOutreach } = await import('./outreach/session-integration.js');
+            const { analyzeSessionForOutreach } = await import('../outreach/session-integration.js');
             const outreachResult = await analyzeSessionForOutreach({
               userId: validatedUserId,
               sessionId,
@@ -2139,7 +2139,7 @@ export async function createSessionServices(
 
       // FIX BUG #session-12: Clean up task manager callback
       try {
-        const { resetTaskManager } = await import('../tasks/task-manager.js');
+        const { resetTaskManager } = await import('../../tasks/task-manager.js');
         resetTaskManager();
       } catch {
         // Task manager may not be loaded
@@ -2150,7 +2150,7 @@ export async function createSessionServices(
       // 🌱 BETTER-THAN-HUMAN: Capture growth snapshot at session end
       if (validatedUserId) {
         try {
-          const { getGrowthVisibilityEngine } = await import('./growth-visibility-engine.js');
+          const { getGrowthVisibilityEngine } = await import('../engagement/growth-visibility-engine.js');
           const growthEngine = getGrowthVisibilityEngine(validatedUserId);
           growthEngine.captureSnapshot();
 
@@ -2174,7 +2174,7 @@ export async function createSessionServices(
       // Clear life data cache
       if (userId) {
         try {
-          const { getLifeDataStore } = await import('./stores/life-data-store.js');
+          const { getLifeDataStore } = await import('../stores/life-data-store.js');
           getLifeDataStore().clearUserCache(userId);
         } catch (error) {
           getLogger().debug({ error }, 'Failed to clear life data cache (non-blocking)');

@@ -844,6 +844,44 @@
         "defineTerm",
         "define term"
       ]
+    },
+
+    "timers": {
+      "description": "Timer and countdown tools",
+      "patterns": [
+        "setTimer",
+        "set timer",
+        "Set timer",
+        "set a timer",
+        "Set a timer",
+        "start a timer",
+        "Start a timer",
+        "timer for",
+        "Timer for",
+        "minute timer",
+        "Minute timer",
+        "countdown",
+        "Countdown"
+      ]
+    },
+
+    "reminders": {
+      "description": "Reminder and notification tools",
+      "patterns": [
+        "setReminder",
+        "set reminder",
+        "Set reminder",
+        "remind me",
+        "Remind me",
+        "reminder to",
+        "Reminder to",
+        "don't let me forget",
+        "Don't let me forget",
+        "getReminders",
+        "get reminders",
+        "cancelReminder",
+        "cancel reminder"
+      ]
     }
   },
 

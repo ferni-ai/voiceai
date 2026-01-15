@@ -1997,7 +1997,7 @@ async function routeToTool(
       }
 
       // Use the sendEmail service
-      const { sendEmail } = await import('../../services/communication-service.js');
+      const { sendEmail } = await import('../../services/communication/communication-service.js');
 
       const result = await sendEmail(
         contact.email,

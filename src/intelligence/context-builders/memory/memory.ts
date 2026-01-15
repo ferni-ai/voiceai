@@ -29,7 +29,7 @@
  */
 import type { EmotionResult } from '../../detectors/emotion.js';
 import { getKeyMomentRetrieval } from '../../../memory/key-moment-retrieval.js';
-import { getSessionConversationManager } from '../../../services/conversation-manager.js';
+import { getSessionConversationManager } from '../../../services/conversation-thread/conversation-manager.js';
 import type { UserProfile } from '../../../types/user-profile.js';
 import { getLogger } from '../../../utils/safe-logger.js';
 import {

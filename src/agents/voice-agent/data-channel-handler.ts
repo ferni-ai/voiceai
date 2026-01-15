@@ -17,7 +17,7 @@ import { log as livekitLog, type JobContext, type voice } from '@livekit/agents'
 import type { Room } from '@livekit/rtc-node';
 import type { MacOSContextPayload } from '../../intelligence/context-builders/external/macos-context.js';
 import type { PersonaConfig } from '../../personas/types.js';
-import { diag } from '../../services/diagnostic-logger.js';
+import { diag } from '../../services/observability/diagnostic-logger.js';
 import type { SessionServices } from '../../services/index.js';
 // Unified handoff module (Phase 3 migration)
 import {

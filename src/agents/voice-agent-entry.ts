@@ -51,7 +51,7 @@ import type { VoiceAgentRef } from './shared/handoff/types.js';
 import type { BundleRuntimeEngine } from '../personas/bundles/runtime.js';
 
 // Centralized model configuration (toggle models via admin UI or model-config.json)
-import { modelConfig } from '../services/model-config.js';
+import { modelConfig } from '../services/llm/model-config.js';
 
 // FinOps cost tracking for session economics
 import { finops } from '../services/observability/finops.js';
@@ -808,7 +808,7 @@ If someone asks what day it is, what time it is, or what the date is, you know t
       import('./voice-agent/user-identification-handler.js'),
       import('./voice-agent/session-init-handler.js'),
       import('../tools/handoff/index.js'),
-      import('../services/conversation-manager.js'),
+      import('../services/conversation-thread/conversation-manager.js'),
     ]);
 
     // Identify user from metadata
@@ -1272,7 +1272,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
     // all user data caches will be automatically cleared
     if (userId) {
       try {
-        const { getSessionDataManager } = await import('../services/session-data-manager.js');
+        const { getSessionDataManager } = await import('../services/session-manager/session-data-manager.js');
         getSessionDataManager().sessionStarted(userId);
       } catch {
         // SessionDataManager may not be initialized - non-fatal
@@ -1724,7 +1724,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
     // ⚡ INSTANT: Uses pre-warmed day awareness cache (date, holidays, season, headlines)
     // Plus user-specific: timezone, city weather, name, last conversation
     // =========================================================================
-    const { getFullDayBriefing } = await import('../services/day-awareness-cache.js');
+    const { getFullDayBriefing } = await import('../services/context-awareness/day-awareness-cache.js');
 
     // Compute "last talked" text
     let lastConversationWhen: string | undefined;
@@ -2110,7 +2110,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
         // The auto-save was continuing to run every 30 seconds after session end
         if (userId) {
           try {
-            const { stopAutoSave } = await import('../services/intelligence-persistence.js');
+            const { stopAutoSave } = await import('../services/cross-persona/intelligence-persistence.js');
             stopAutoSave(userId);
             process.stderr.write(`[voice-agent-entry] 🛑 Stopped auto-save for user ${userId}\n`);
           } catch (autoSaveErr) {
@@ -2321,7 +2321,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
           );
           try {
             // Signal frontend that we're disconnecting due to idle
-            const { sendFrontendSignal } = await import('../services/frontend-signal.js');
+            const { sendFrontendSignal } = await import('../services/pubsub/frontend-signal.js');
             await sendFrontendSignal('conversation_end', {
               reason: 'idle_timeout',
               disconnectDelay: 0, // Disconnect immediately after TTS finishes
@@ -2498,7 +2498,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
         await import('./realtime/index.js');
       initializeFrontendPublisher(ctx.room);
 
-      const { initFrontendSignal } = await import('../services/frontend-signal.js');
+      const { initFrontendSignal } = await import('../services/pubsub/frontend-signal.js');
       initFrontendSignal(async (type, data) => {
         const publisher = getFrontendPublisher();
         if (publisher.isConnected()) {
@@ -2670,7 +2670,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
       // Engagement data sender
       (async () => {
         try {
-          const mod = await import('../services/engagement-data-sender.js');
+          const mod = await import('../services/engagement/engagement-data-sender.js');
           const engagementDataSender = mod.getEngagementDataSender();
           // FIX AUDIT ISSUE: Use structural typing - ctx.room has localParticipant with publishData
           // which matches LiveKitRoomLike interface. Cast to that interface type.
@@ -2688,7 +2688,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
       (async () => {
         try {
           const { onCognitiveSessionStart } =
-            await import('../services/cognitive-session-hooks.js');
+            await import('../services/cognitive-intelligence/cognitive-session-hooks.js');
           await onCognitiveSessionStart({
             userId: userId || 'anonymous',
             personaId: sessionPersona.id,

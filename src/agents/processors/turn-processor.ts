@@ -28,7 +28,7 @@
 
 import type { llm } from '@livekit/agents';
 import type { ContextUserData } from '../../intelligence/context-builders/index.js';
-import { diag } from '../../services/diagnostic-logger.js';
+import { diag } from '../../services/observability/diagnostic-logger.js';
 import { updateUserContextForHandoff } from '../../tools/handoff/index.js';
 import { safeFireAndForget } from '../../utils/safe-fire-and-forget.js';
 import {
@@ -36,7 +36,7 @@ import {
   publishPredictiveIntelligence,
   publishKeyMoment,
   publishOutreachExtraction,
-} from '../../services/intelligence-publisher.js';
+} from '../../services/cross-persona/intelligence-publisher.js';
 
 // 🧠 TRUE PREDICTIVE INTELLIGENCE: Feed data into ML models + Get predictions for context
 import {
@@ -71,7 +71,7 @@ import {
 import { shouldUseIntelligentRouting } from '../../tools/semantic-router/advanced/intelligent/index.js';
 
 // Context inspection for debugging
-import { recordContextBuild, createInspectionData } from '../../services/context-inspection.js';
+import { recordContextBuild, createInspectionData } from '../../services/context-awareness/context-inspection.js';
 
 // Injection builders (cleaner separation of concerns)
 import {
@@ -173,7 +173,7 @@ import {
   recordPhaseTiming,
   recordContextInjectionTiming,
   createTimer,
-} from '../../services/performance-metrics.js';
+} from '../../services/performance/performance-metrics.js';
 
 // Development telemetry for E2E observability
 import { createTurnTrace, type Trace } from '../shared/dev-telemetry.js';
@@ -251,7 +251,7 @@ import { detectCrisis, guardPreResponse } from '../safety/crisis-guard.js';
 // "Better than Human" - We learn and remember as the conversation unfolds
 import { recordMention, extractNames } from '../../services/superhuman/relationship-network.js';
 import { fastCapture } from '../../memory/dynamic/index.js';
-import { triggerAutoSave } from '../../services/realtime-persistence.js';
+import { triggerAutoSave } from '../../services/data-layer/realtime-persistence.js';
 
 // NOTE: Cached module getters moved to cached-modules.ts
 // NOTE: analyzeMessage and updateConversationState are imported from message-analyzer.ts
@@ -462,7 +462,7 @@ async function buildContextInjections(
   if (services.userId && (userData.turnCount || 0) === 0) {
     try {
       const { getActiveUserContext, formatContextForVoiceCall } =
-        await import('../../services/session-context/session-summary.js');
+        await import('../../services/session-manager/session-summary.js');
       const activeContext = await getActiveUserContext(services.userId);
       if (activeContext) {
         const crossChannelContext = formatContextForVoiceCall(activeContext);

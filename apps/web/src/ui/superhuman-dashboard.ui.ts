@@ -40,6 +40,7 @@ const ICONS = {
   'trending-up': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>',
   'trending-down': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><polyline points="22 17 13.5 8.5 8.5 13.5 2 7"/><polyline points="16 17 22 17 22 11"/></svg>',
   minus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/></svg>',
+  mic: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>',
 };
 
 // ============================================================================
@@ -411,6 +412,138 @@ const styles = `
     to { transform: rotate(360deg); }
   }
   
+  /* Welcome State (New Users) */
+  .superhuman-dashboard__welcome {
+    text-align: center;
+    padding: var(--space-6, 24px);
+  }
+  
+  .superhuman-dashboard__welcome-icon {
+    width: 64px;
+    height: 64px;
+    margin: 0 auto var(--space-4, 16px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, var(--color-ferni-tint, rgba(74, 103, 65, 0.15)), var(--color-ferni-tint, rgba(74, 103, 65, 0.05)));
+    border-radius: var(--radius-full, 9999px);
+  }
+  
+  .superhuman-dashboard__welcome-icon svg {
+    width: 32px;
+    height: 32px;
+    color: var(--color-ferni, #4a6741);
+  }
+  
+  .superhuman-dashboard__welcome-title {
+    font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--color-text-primary, #2C2520);
+    margin: 0 0 var(--space-2, 8px) 0;
+  }
+  
+  .superhuman-dashboard__welcome-text {
+    font-size: 15px;
+    color: var(--color-text-secondary, #70605a);
+    margin: 0 auto var(--space-6, 24px);
+    max-width: 400px;
+    line-height: 1.5;
+  }
+  
+  .superhuman-dashboard__unlock-preview {
+    background: var(--color-bg-subtle, #f8f6f4);
+    border-radius: var(--radius-lg, 16px);
+    padding: var(--space-5, 20px);
+    margin-bottom: var(--space-6, 24px);
+    text-align: left;
+  }
+  
+  .superhuman-dashboard__unlock-title {
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-text-muted, #a09080);
+    margin: 0 0 var(--space-4, 16px) 0;
+  }
+  
+  .superhuman-dashboard__unlock-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-4, 16px);
+  }
+  
+  @media (max-width: 600px) {
+    .superhuman-dashboard__unlock-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+  
+  .superhuman-dashboard__unlock-item {
+    display: flex;
+    gap: var(--space-3, 12px);
+    align-items: flex-start;
+  }
+  
+  .superhuman-dashboard__unlock-icon {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--color-bg-elevated, #FFFDFB);
+    border-radius: var(--radius-md, 12px);
+    flex-shrink: 0;
+  }
+  
+  .superhuman-dashboard__unlock-icon svg {
+    width: 16px;
+    height: 16px;
+    color: var(--color-ferni, #4a6741);
+  }
+  
+  .superhuman-dashboard__unlock-item strong {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--color-text-primary, #2C2520);
+    display: block;
+    margin-bottom: 2px;
+  }
+  
+  .superhuman-dashboard__unlock-item p {
+    font-size: 12px;
+    color: var(--color-text-secondary, #70605a);
+    margin: 0;
+    line-height: 1.4;
+  }
+  
+  .superhuman-dashboard__start-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2, 8px);
+    background: linear-gradient(135deg, var(--color-ferni, #4a6741), var(--color-ferni-secondary, #3d5a35));
+    color: white;
+    border: none;
+    border-radius: var(--radius-full, 9999px);
+    padding: var(--space-3, 12px) var(--space-6, 24px);
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform var(--duration-fast, 100ms), box-shadow var(--duration-fast, 100ms);
+    margin-bottom: var(--space-6, 24px);
+  }
+  
+  .superhuman-dashboard__start-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg, 0 10px 15px -3px rgba(0, 0, 0, 0.1));
+  }
+  
+  .superhuman-dashboard__start-btn svg {
+    width: 18px;
+    height: 18px;
+  }
+  
   /* Dark mode */
   @media (prefers-color-scheme: dark) {
     .superhuman-dashboard {
@@ -449,9 +582,14 @@ function injectStyles(): void {
 // STATE
 // ============================================================================
 
+interface MetricsWithMeta extends SuperhumanMetrics {
+  isNewUser: boolean;
+  conversationCount: number;
+}
+
 interface DashboardState {
   overlay: HTMLElement | null;
-  metrics: SuperhumanMetrics | null;
+  metrics: MetricsWithMeta | null;
   loading: boolean;
 }
 
@@ -465,7 +603,7 @@ const state: DashboardState = {
 // DATA FETCHING
 // ============================================================================
 
-async function fetchMetrics(): Promise<SuperhumanMetrics> {
+async function fetchMetrics(): Promise<MetricsWithMeta> {
   try {
     const headers = await getApiHeadersAsync();
     const response = await fetch('/api/superhuman/metrics', { headers });
@@ -474,55 +612,50 @@ async function fetchMetrics(): Promise<SuperhumanMetrics> {
       throw new Error(`HTTP ${response.status}`);
     }
     
-    return await response.json();
-  } catch (error) {
-    log.warn('Failed to fetch superhuman metrics, using mock data', { error });
+    const data = await response.json() as SuperhumanMetrics & { conversationCount?: number };
+    const conversationCount = data.conversationCount ?? 0;
     
-    // Return mock data for demo
+    return {
+      ...data,
+      isNewUser: conversationCount < 3,
+      conversationCount,
+    };
+  } catch (error) {
+    log.warn('Failed to fetch superhuman metrics, showing new user state', { error });
+    
+    // Return empty state for new users - shows what they'll unlock
     return {
       commitments: {
-        total: 12,
-        completed: 8,
-        pending: 4,
-        upcoming: [
-          'Call Mom this weekend',
-          'Finish project proposal by Friday',
-          'Exercise 3x this week',
-        ],
+        total: 0,
+        completed: 0,
+        pending: 0,
+        upcoming: [],
       },
       capacity: {
-        score: 68,
+        score: 0,
         trend: 'stable',
-        riskFactors: ['Heavy meeting week ahead', 'Sleep quality declining'],
+        riskFactors: [],
       },
       values: {
-        alignmentScore: 82,
-        alignedAreas: ['Family time', 'Creative work', 'Health habits'],
-        misalignedAreas: ['Work-life balance'],
+        alignmentScore: 0,
+        alignedAreas: [],
+        misalignedAreas: [],
       },
       narrative: {
-        currentChapter: 'Building towards a career transition',
-        recentThemes: ['Growth mindset', 'Letting go of perfectionism', 'Prioritizing relationships'],
-        growthAreas: ['Boundaries at work', 'Self-compassion'],
+        currentChapter: '',
+        recentThemes: [],
+        growthAreas: [],
       },
       predictions: {
-        upcomingChallenges: [
-          'End-of-quarter stress coming up',
-          'Holiday family dynamics',
-        ],
-        opportunities: [
-          'Your energy peaks mid-morning - great for creative work',
-          'Weekend looks open for that hobby you mentioned',
-        ],
+        upcomingChallenges: [],
+        opportunities: [],
       },
       dreams: {
-        active: [
-          'Write a book',
-          'Learn to play guitar',
-          'Travel to Japan',
-        ],
-        progress: 35,
+        active: [],
+        progress: 0,
       },
+      isNewUser: true,
+      conversationCount: 0,
     };
   }
 }
@@ -545,6 +678,87 @@ function getTrendClass(trend: 'improving' | 'stable' | 'declining'): string {
     case 'declining': return 'superhuman-dashboard__metric-trend--down';
     default: return 'superhuman-dashboard__metric-trend--stable';
   }
+}
+
+function renderNewUserState(): string {
+  return `
+    <div class="superhuman-dashboard__welcome">
+      <div class="superhuman-dashboard__welcome-icon">${ICONS.sparkles}</div>
+      <h3 class="superhuman-dashboard__welcome-title">I'm getting to know you</h3>
+      <p class="superhuman-dashboard__welcome-text">
+        The more we talk, the more I learn about what matters to you.
+        These superhuman insights will grow as our relationship deepens.
+      </p>
+      
+      <div class="superhuman-dashboard__unlock-preview">
+        <h4 class="superhuman-dashboard__unlock-title">What I'll track for you:</h4>
+        
+        <div class="superhuman-dashboard__unlock-grid">
+          <div class="superhuman-dashboard__unlock-item">
+            <span class="superhuman-dashboard__unlock-icon">${ICONS['check-square']}</span>
+            <div>
+              <strong>Commitments</strong>
+              <p>Every promise you make - I'll remember and help you keep them</p>
+            </div>
+          </div>
+          
+          <div class="superhuman-dashboard__unlock-item">
+            <span class="superhuman-dashboard__unlock-icon">${ICONS['battery-charging']}</span>
+            <div>
+              <strong>Capacity</strong>
+              <p>I'll learn your patterns and catch burnout before it happens</p>
+            </div>
+          </div>
+          
+          <div class="superhuman-dashboard__unlock-item">
+            <span class="superhuman-dashboard__unlock-icon">${ICONS.compass}</span>
+            <div>
+              <strong>Values</strong>
+              <p>I'll notice when you drift from what matters most to you</p>
+            </div>
+          </div>
+          
+          <div class="superhuman-dashboard__unlock-item">
+            <span class="superhuman-dashboard__unlock-icon">${ICONS.eye}</span>
+            <div>
+              <strong>Predictions</strong>
+              <p>I'll anticipate challenges and opportunities before they arrive</p>
+            </div>
+          </div>
+          
+          <div class="superhuman-dashboard__unlock-item">
+            <span class="superhuman-dashboard__unlock-icon">${ICONS.star}</span>
+            <div>
+              <strong>Dreams</strong>
+              <p>Your aspirations are safe with me - I'll never let them fade</p>
+            </div>
+          </div>
+          
+          <div class="superhuman-dashboard__unlock-item">
+            <span class="superhuman-dashboard__unlock-icon">${ICONS['book-open']}</span>
+            <div>
+              <strong>Your Story</strong>
+              <p>I'll hold your whole narrative and reflect your growth back to you</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <button class="superhuman-dashboard__start-btn" onclick="window.dispatchEvent(new CustomEvent('ferni:speak-trigger', { detail: { trigger: 'Tell me about yourself' }})); document.querySelector('.superhuman-dashboard-overlay')?.classList.remove('visible');">
+        ${ICONS.mic}
+        <span>Start a conversation</span>
+      </button>
+    </div>
+    
+    <!-- Better Than Human Capabilities -->
+    <div class="superhuman-dashboard__section">
+      <div class="superhuman-dashboard__section-header">
+        ${ICONS.sparkles}
+        <h3 class="superhuman-dashboard__section-title">How I'm Better Than Human</h3>
+      </div>
+      <div class="superhuman-dashboard__capabilities-grid" id="bth-capabilities"></div>
+    </div>
+  `;
 }
 
 function renderContent(): void {
@@ -574,6 +788,37 @@ function renderContent(): void {
   
   const m = state.metrics;
   
+  // Show welcome state for new users
+  if (m.isNewUser) {
+    content.innerHTML = renderNewUserState();
+    
+    // Add capability cards
+    const capabilitiesGrid = content.querySelector('#bth-capabilities');
+    if (capabilitiesGrid) {
+      const bthCapabilities = getBetterThanHumanCapabilities().slice(0, 6);
+      bthCapabilities.forEach(cap => {
+        const card = createCapabilityCard(cap, {
+          compact: true,
+          showBthBadge: false,
+          onClick: (c) => {
+            log.info('Capability clicked from dashboard', { id: c.id });
+            window.dispatchEvent(new CustomEvent('ferni:speak-trigger', {
+              detail: { trigger: c.voiceTriggers[0], capabilityId: c.id }
+            }));
+            hide();
+          },
+        });
+        capabilitiesGrid.appendChild(card);
+      });
+    }
+    return;
+  }
+  
+  // Calculate completion rate
+  const completionRate = m.commitments.total > 0 
+    ? Math.round((m.commitments.completed / m.commitments.total) * 100) 
+    : 0;
+  
   content.innerHTML = `
     <!-- Metrics Grid -->
     <div class="superhuman-dashboard__metrics-grid">
@@ -583,7 +828,7 @@ function renderContent(): void {
         <div class="superhuman-dashboard__metric-value">${m.commitments.completed}/${m.commitments.total}</div>
         <div class="superhuman-dashboard__metric-trend superhuman-dashboard__metric-trend--up">
           ${ICONS['trending-up']}
-          <span>67% completion rate</span>
+          <span>${completionRate}% completion rate</span>
         </div>
       </div>
       

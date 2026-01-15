@@ -14,7 +14,7 @@
 
 import type { SessionStateManager } from './session-state.js';
 import type { UserData } from '../shared/types.js';
-import { diag } from '../../services/diagnostic-logger.js';
+import { diag } from '../../services/observability/diagnostic-logger.js';
 
 // ============================================================================
 // SYNC DIRECTION TYPES

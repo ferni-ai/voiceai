@@ -43,9 +43,9 @@ import {
   type SilenceContext,
 } from '../../personas/meaningful-silence.js';
 import type { PersonaConfig } from '../../personas/types.js';
-import type { ConversationManager } from '../../services/conversation-manager.js';
-import { diag } from '../../services/diagnostic-logger.js';
-import { checkTrialStatus } from '../../services/first-taste-trial.js';
+import type { ConversationManager } from '../../services/conversation-thread/conversation-manager.js';
+import { diag } from '../../services/observability/diagnostic-logger.js';
+import { checkTrialStatus } from '../../services/monetization/first-taste-trial.js';
 import type { SessionServices } from '../../services/index.js';
 import {
   recordCacheAttempt,

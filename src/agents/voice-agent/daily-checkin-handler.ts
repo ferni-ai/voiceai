@@ -14,8 +14,8 @@
  */
 
 import { log } from '@livekit/agents';
-import { diag } from '../../services/diagnostic-logger.js';
-import { getDefaultModel } from '../../services/model-config.js';
+import { diag } from '../../services/observability/diagnostic-logger.js';
+import { getDefaultModel } from '../../services/llm/model-config.js';
 
 // ============================================================================
 // TYPES

@@ -22,14 +22,14 @@ import { resetAllConversationState } from '../../conversation/index.js';
 import { onDeepUnderstandingSessionStart as loadDeepUnderstandingProfiles } from '../../intelligence/index.js';
 import type { PersonaConfig } from '../../personas/types.js';
 import type { AgentId } from '../../services/agent-bus.js';
-import { getConversationState } from '../../services/conversation-state.js';
-import { diag } from '../../services/diagnostic-logger.js';
+import { getConversationState } from '../../services/conversation-thread/conversation-state.js';
+import { diag } from '../../services/observability/diagnostic-logger.js';
 import {
   checkTrialStatus,
   isEligibleForTrial,
   startTrial,
   type TrialCheckResult,
-} from '../../services/first-taste-trial.js';
+} from '../../services/monetization/first-taste-trial.js';
 import { createSessionServices, type SessionServices } from '../../services/index.js';
 import {
   createFirestoreSuperhumanStore,
@@ -78,7 +78,7 @@ import { initializeIntelligence } from '../integrations/unified-intelligence-int
 import { prewarmBuildersInBackground } from '../../intelligence/context-builders/core/loader.js';
 
 // Redis session warmup - pre-warm caches for fast first-turn response
-import { warmSessionCaches, warmHandoffCaches } from '../../services/session-warmup.js';
+import { warmSessionCaches, warmHandoffCaches } from '../../services/session-manager/session-warmup.js';
 
 // Developer Platform: Webhook integration for marketplace personas
 import { onSessionStarted as dispatchSessionStartedWebhook } from '../integrations/developer-webhook-integration.js';
@@ -116,7 +116,7 @@ import { getContextCarrier } from '../../tools/context-carrier.js';
 // Proactive Memory Surfacing - Resets proactive surfacing state
 
 // Session Lifecycle Hooks - presence tracking, correction context, outreach suppression
-import { sessionLifecycle } from '../../services/session/session-lifecycle-hooks.js';
+import { sessionLifecycle } from '../../services/session-manager/session-lifecycle-hooks.js';
 
 // Interval Manager - for session heartbeat
 import { registerInterval, clearNamedInterval } from '../../utils/interval-manager.js';

@@ -23,7 +23,7 @@ import {
   dispatchToolCalled,
   dispatchToolCompleted,
   dispatchToolFailed,
-} from '../../services/developer-webhook-dispatcher.js';
+} from '../../services/integrations/developer-webhook-dispatcher.js';
 import { fireAndForget } from '../../utils/safe-fire-and-forget.js';
 
 const log = getLogger().child({ module: 'developer-webhook-integration' });

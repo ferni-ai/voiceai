@@ -305,6 +305,41 @@ const styles = `
     opacity: 0.5;
   }
   
+  .life-coaching-hub__intro {
+    background: linear-gradient(135deg, var(--color-ferni-tint, rgba(74, 103, 65, 0.08)), transparent);
+    border-radius: var(--radius-lg, 16px);
+    padding: var(--space-4, 16px) var(--space-5, 20px);
+    margin-bottom: var(--space-5, 20px);
+    border: 1px solid var(--color-border-subtle, rgba(74, 103, 65, 0.1));
+  }
+  
+  .life-coaching-hub__intro-text {
+    font-size: 14px;
+    color: var(--color-text-secondary, #70605a);
+    margin: 0 0 var(--space-3, 12px) 0;
+    line-height: 1.5;
+  }
+  
+  .life-coaching-hub__intro-text strong {
+    color: var(--color-ferni, #4a6741);
+  }
+  
+  .life-coaching-hub__intro-stats {
+    display: flex;
+    gap: var(--space-4, 16px);
+    flex-wrap: wrap;
+  }
+  
+  .life-coaching-hub__stat {
+    font-size: 13px;
+    color: var(--color-text-muted, #a09080);
+  }
+  
+  .life-coaching-hub__stat strong {
+    font-weight: 700;
+    color: var(--color-ferni, #4a6741);
+  }
+  
   /* Dark mode */
   @media (prefers-color-scheme: dark) {
     .life-coaching-hub {
@@ -415,17 +450,41 @@ function renderContent(): void {
     content.innerHTML = `
       <div class="life-coaching-hub__empty">
         <div class="life-coaching-hub__empty-icon">${ICONS.search}</div>
-        <p>No capabilities found for "${state.searchQuery}"</p>
+        <p>No results for "${state.searchQuery}"</p>
+        <p style="font-size: 13px; color: var(--color-text-muted); margin-top: 8px;">Try saying what you need - I understand natural language</p>
       </div>
     `;
     return;
   }
+  
+  // Welcome intro for "All Support" tab
+  const showIntro = state.activeTab === 'all' && !state.searchQuery;
   
   // Group by priority
   const highPriority = capabilities.filter(c => c.priority === 'high' || c.priority === 'essential');
   const otherPriority = capabilities.filter(c => c.priority === 'medium' || c.priority === 'low');
   
   let html = '';
+  
+  // Welcome intro
+  if (showIntro) {
+    html += `
+      <div class="life-coaching-hub__intro">
+        <p class="life-coaching-hub__intro-text">
+          This is everything I can help you with. Browse the categories, search for what you need, 
+          or just <strong>click any card</strong> to start a conversation about it.
+        </p>
+        <div class="life-coaching-hub__intro-stats">
+          <span class="life-coaching-hub__stat">
+            <strong>${capabilities.length}</strong> ways I can help
+          </span>
+          <span class="life-coaching-hub__stat">
+            <strong>${capabilities.filter(c => c.isBetterThanHuman).length}</strong> "Better Than Human" features
+          </span>
+        </div>
+      </div>
+    `;
+  }
   
   if (highPriority.length > 0) {
     const title = state.activeTab === 'superhuman' 

@@ -141,7 +141,7 @@ export const weeklyPredictionDef: ToolDefinition = {
         const { getEngagementStore } =
           await import('../../../services/engagement/engagement-store.js');
         const { getEngagementDataSender } =
-          await import('../../../services/engagement-data-sender.js');
+          await import('../../../services/engagement/engagement-data-sender.js');
 
         if (action === 'make-predictions') {
           return {

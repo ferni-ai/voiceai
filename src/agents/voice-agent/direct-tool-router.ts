@@ -222,6 +222,30 @@ const SEARCH_PATTERNS = [
 ];
 
 /**
+ * Timer intent patterns - countdown timers
+ */
+const TIMER_PATTERNS = [
+  // "Set a timer for X minutes"
+  /^(set|start|make)\s+(a\s+)?timer\s+(for\s+)?(\d+)\s*(minute|min|second|sec)s?/i,
+  // "X minute timer"
+  /^(\d+)\s*(minute|min|second|sec)s?\s+timer$/i,
+  // "Timer for X minutes"
+  /^timer\s+(for\s+)?(\d+)\s*(minute|min|second|sec)s?$/i,
+];
+
+/**
+ * Reminder intent patterns - "remind me to..."
+ */
+const REMINDER_PATTERNS = [
+  // "Remind me to..."
+  /^remind\s+me\s+to\s+(.+)/i,
+  // "Set a reminder to..."
+  /^(set|create)\s+(a\s+)?reminder\s+(to\s+)?(.+)/i,
+  // "Don't let me forget to..."
+  /^(don't|do not)\s+let\s+me\s+forget\s+(to\s+)?(.+)/i,
+];
+
+/**
  * Handoff intent patterns - explicit persona switches
  */
 const HANDOFF_PATTERNS: Array<{ pattern: RegExp; personaId: string }> = [
@@ -262,7 +286,7 @@ const HANDOFF_PATTERNS: Array<{ pattern: RegExp; personaId: string }> = [
 // ============================================================================
 
 interface DetectedIntent {
-  type: 'music' | 'weather' | 'news' | 'time' | 'search' | 'handoff' | 'none';
+  type: 'music' | 'weather' | 'news' | 'time' | 'search' | 'timer' | 'reminder' | 'handoff' | 'none';
   confidence: number;
   query?: string;
   topic?: string;
@@ -270,6 +294,14 @@ interface DetectedIntent {
   targetPersonaId?: string;
   /** For time queries - extracted city name if asking about another timezone */
   city?: string;
+  /** For timer - duration in minutes */
+  timerMinutes?: number;
+  /** For timer - duration in seconds */
+  timerSeconds?: number;
+  /** For timer/reminder - label/message */
+  label?: string;
+  /** For reminder - when to remind (natural language) */
+  when?: string;
 }
 
 /**
@@ -384,6 +416,71 @@ function detectIntent(transcript: string, context: DirectRouteContext): Detected
         type: 'search',
         confidence: 0.9,
         query,
+      };
+    }
+  }
+
+  // Check timer patterns
+  for (const pattern of TIMER_PATTERNS) {
+    const match = text.match(pattern);
+    if (match) {
+      // Extract duration - patterns vary
+      let minutes = 0;
+      let seconds = 0;
+      
+      // Find the number and unit in the match
+      const numMatch = text.match(/(\d+)\s*(minute|min|second|sec)/i);
+      if (numMatch) {
+        const value = parseInt(numMatch[1]);
+        const unit = numMatch[2].toLowerCase();
+        if (unit.startsWith('min')) {
+          minutes = value;
+        } else {
+          seconds = value;
+        }
+      }
+
+      log.info({ transcript: text.slice(0, 50), minutes, seconds }, '⏱️ Timer intent detected');
+      return {
+        type: 'timer',
+        confidence: 0.95,
+        timerMinutes: minutes,
+        timerSeconds: seconds,
+      };
+    }
+  }
+
+  // Check reminder patterns
+  for (const pattern of REMINDER_PATTERNS) {
+    const match = text.match(pattern);
+    if (match) {
+      // Extract what to remind and when
+      // "remind me to call mom tomorrow" → message: "call mom tomorrow"
+      // "remind me to call mom in 30 minutes" → message: "call mom", when: "in 30 minutes"
+      let message = '';
+      
+      if (pattern.source.includes('remind\\s+me')) {
+        message = match[1] || '';
+      } else if (pattern.source.includes('set|create')) {
+        message = match[4] || '';
+      } else if (pattern.source.includes("don't")) {
+        message = match[3] || '';
+      }
+
+      // Try to extract "when" from the message if it contains time phrases
+      const timeMatch = message.match(/\s+(in\s+\d+\s+(?:minute|hour|min|hr)s?|tomorrow|tonight|at\s+\d+|next\s+\w+).*$/i);
+      let when = '';
+      if (timeMatch) {
+        when = timeMatch[1];
+        message = message.replace(timeMatch[0], '').trim();
+      }
+
+      log.info({ transcript: text.slice(0, 50), message, when }, '🔔 Reminder intent detected');
+      return {
+        type: 'reminder',
+        confidence: 0.92,
+        label: message,
+        when: when || 'soon',
       };
     }
   }
@@ -532,6 +629,45 @@ async function executeTool(
         };
       }
 
+      case 'timer': {
+        const result = await executeJsonFunction(
+          buildFunctionCall('setTimer', {
+            minutes: intent.timerMinutes || 0,
+            seconds: intent.timerSeconds || 0,
+            label: intent.label,
+          }),
+          {
+            sessionId: context.sessionId,
+            userId: context.userId,
+            personaId: context.personaId,
+          }
+        );
+        return {
+          success: result.success,
+          response: typeof result.result === 'string' ? result.result : undefined,
+          error: result.error,
+        };
+      }
+
+      case 'reminder': {
+        const result = await executeJsonFunction(
+          buildFunctionCall('setReminder', {
+            message: intent.label || '',
+            when: intent.when || 'in 30 minutes',
+          }),
+          {
+            sessionId: context.sessionId,
+            userId: context.userId,
+            personaId: context.personaId,
+          }
+        );
+        return {
+          success: result.success,
+          response: typeof result.result === 'string' ? result.result : undefined,
+          error: result.error,
+        };
+      }
+
       case 'handoff': {
         const targetName = intent.targetPersonaId?.split('-')[0] || 'team member';
         const capitalizedName = targetName.charAt(0).toUpperCase() + targetName.slice(1);
@@ -622,22 +758,28 @@ export async function routeDirectly(
       '✅ Direct routing: Tool executed successfully'
     );
 
+    const toolId =
+      intent.type === 'music'
+        ? 'playMusic'
+        : intent.type === 'weather'
+          ? 'getWeather'
+          : intent.type === 'news'
+            ? 'getNews'
+            : intent.type === 'time'
+              ? intent.city
+                ? 'timeInCity'
+                : 'getCurrentTime'
+              : intent.type === 'search'
+                ? 'searchWeb'
+                : intent.type === 'timer'
+                  ? 'setTimer'
+                  : intent.type === 'reminder'
+                    ? 'setReminder'
+                    : 'handoff';
+
     return {
       handled: true,
-      toolId:
-        intent.type === 'music'
-          ? 'playMusic'
-          : intent.type === 'weather'
-            ? 'getWeather'
-            : intent.type === 'news'
-              ? 'getNews'
-              : intent.type === 'time'
-                ? intent.city
-                  ? 'timeInCity'
-                  : 'getCurrentTime'
-                : intent.type === 'search'
-                  ? 'searchWeb'
-                  : 'handoff',
+      toolId,
       confidence: intent.confidence,
       intent: intent.type,
       speechResponse: result.response,

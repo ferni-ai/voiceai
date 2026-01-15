@@ -15,7 +15,7 @@
 
 import { log, voice } from '@livekit/agents';
 import type { PersonaConfig } from '../../personas/types.js';
-import { diag } from '../../services/diagnostic-logger.js';
+import { diag } from '../../services/observability/diagnostic-logger.js';
 import type { SessionServices } from '../../services/index.js';
 import { autoOptimizer } from '../../tools/optimization/auto-optimizer.js';
 import { deprecationService } from '../../tools/deprecation.js';

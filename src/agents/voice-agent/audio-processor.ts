@@ -26,7 +26,7 @@ import {
   type UnifiedAudioAnalyzer,
 } from '../../speech/audio-prosody/native-analyzer.js';
 // Pre-STT audio analysis (Rust: AGC, noise suppression, bandwidth extension)
-import { getConversationManager } from '../../services/conversation-manager.js';
+import { getConversationManager } from '../../services/conversation-thread/conversation-manager.js';
 import {
   clearSession as clearGeminiSession,
   startEmotionStream,

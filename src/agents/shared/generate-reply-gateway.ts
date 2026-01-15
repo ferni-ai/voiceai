@@ -412,7 +412,7 @@ async function triggerGracefulExit(sessionId: string): Promise<void> {
     await new Promise((resolve) => setTimeout(resolve, 2500));
 
     // Signal frontend to disconnect
-    const { sendFrontendSignal } = await import('../../services/frontend-signal.js');
+    const { sendFrontendSignal } = await import('../../services/pubsub/frontend-signal.js');
     await sendFrontendSignal('conversation_end', {
       reason: 'graceful_exit_failures',
       disconnectDelay: 500, // Short delay since TTS already played
