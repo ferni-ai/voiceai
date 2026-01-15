@@ -18,7 +18,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { registerInterval, clearNamedInterval } from '../../utils/interval-manager.js';
-import { SlackNotificationService } from './integrations/slack-notifications.js';
+import { SlackNotificationService } from '../integrations/slack-notifications.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 // AbortController is a built-in global in Node.js 16+

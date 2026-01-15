@@ -14,7 +14,7 @@
  * will throw when called but the module will still compile.
  */
 
-import { getStore } from '../../memory/store-factory.js';
+import { getStore } from '../memory/store-factory.js';
 import {
   type SubscriptionData,
   type SubscriptionStatus,

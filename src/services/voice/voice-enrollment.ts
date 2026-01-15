@@ -17,7 +17,7 @@
 import { getLogger } from '../../utils/safe-logger.js';
 import { extractSpeakerEmbedding } from '../memory/voice-memory-enhanced.js';
 // Centralized cosine similarity - SIMD-ready implementation
-import { cosineSimilarity } from '../../memory/rust-accelerator.js';
+import { cosineSimilarity } from '../memory/rust-accelerator.js';
 
 const log = getLogger().child({ module: 'VoiceEnrollment' });
 

@@ -11,9 +11,9 @@
  * @module services/chronicle-narrative-bridge
  */
 
-import { embed } from '../../memory/embeddings.js';
-import { getFirestoreVectorStore } from '../../memory/firestore-vector-store/index.js';
-import type { MemoryItem } from '../../memory/interfaces/index.js';
+import { embed } from '../memory/embeddings.js';
+import { getFirestoreVectorStore } from '../memory/firestore-vector-store/index.js';
+import type { MemoryItem } from '../memory/interfaces/index.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { getChronicleService, type ChronicleEntry } from './chronicle/index.js';
 import {
@@ -22,7 +22,7 @@ import {
   loadUserChapters,
   type ChapterType,
   type LifeChapter,
-} from './superhuman/life-narrative.js';
+} from '../superhuman/life-narrative.js';
 
 const log = createLogger({ module: 'ChronicleNarrativeBridge' });
 

@@ -180,7 +180,7 @@ async function initializeGemini(): Promise<void> {
 
   // Use centralized Gemini config
   const { getGeminiClient, isGeminiConfigured, getDefaultModel } =
-    await import('../config/gemini-config.js');
+    await import('../../config/gemini-config.js');
   cachedModelName = getDefaultModel(); // Cache the model name
 
   if (!isGeminiConfigured()) {

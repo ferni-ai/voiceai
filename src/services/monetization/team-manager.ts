@@ -475,7 +475,7 @@ export async function initializeTeamManager(): Promise<TeamManager> {
 
   // Register default packages
   try {
-    const { FINANCIAL_WELLNESS_TEAM } = await import('../personas/team/package-types.js');
+    const { FINANCIAL_WELLNESS_TEAM } = await import('../../personas/team/package-types.js');
     manager.registerPackage(FINANCIAL_WELLNESS_TEAM);
   } catch (error) {
     getLogger().warn({ error }, 'Failed to load default team packages');

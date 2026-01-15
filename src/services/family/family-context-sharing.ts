@@ -13,7 +13,7 @@
  * @module services/family/family-context-sharing
  */
 
-import { getFirestore } from '../../memory/firestore-factory.js';
+import { getFirestore } from '../memory/firestore-factory.js';
 import { getLogger } from '../../utils/safe-logger.js';
 
 const log = getLogger().child({ module: 'FamilyContextSharing' });

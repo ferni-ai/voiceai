@@ -45,7 +45,7 @@ import { getLogger } from '../../utils/safe-logger.js';
 import type { BundleMCPConfig, BundleMCPServer } from './types/commands.js';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
 import { COLLECTIONS, type DeveloperMCPServer } from '../../types/developer-platform.js';
-import { decryptSensitive } from '../../services/privacy-crypto.js';
+import { decryptSensitive } from '../../services/identity/privacy-crypto.js';
 
 const log = getLogger();
 

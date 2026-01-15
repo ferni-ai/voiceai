@@ -20,7 +20,7 @@ import {
   getEngagementStore,
   type StoredRitualStreak,
   type StoredWeatherEntry,
-} from './engagement/engagement-store.js';
+} from '../engagement/engagement-store.js';
 
 // ============================================================================
 // TYPES

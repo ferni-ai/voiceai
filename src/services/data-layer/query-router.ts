@@ -258,7 +258,7 @@ export function explainRouting(query: string): string {
 import { getProductivityStore } from '../stores/productivity-store.js';
 import { getFinancialStore } from '../stores/financial-store.js';
 import { getLifeDataStore } from '../stores/life-data-store.js';
-import { semanticSearch } from '../../memory/semantic-rag.js';
+import { semanticSearch } from '../memory/semantic-rag.js';
 
 /**
  * Execute a routed query

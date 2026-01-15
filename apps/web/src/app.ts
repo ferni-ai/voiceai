@@ -27,6 +27,11 @@ import {
   setWrappingUp,
 } from './state/app.state.js';
 
+// Circadian Manager - Time-aware theming
+import { circadianManager } from './services/circadian-manager.js';
+// Warmth Manager - Relationship-based visual evolution
+import { warmthManager } from './services/warmth-manager.js';
+
 // Services
 import { delightService } from './services/delight.service.js';
 import { checkAndClaimDemoSession, hasPendingClaim } from './services/demo-claim.service.js';
@@ -1023,6 +1028,14 @@ class VoiceAIApp {
   private initializeTheme(): void {
     // Initialize theme from stored preference or system
     initTheme();
+
+    // Initialize circadian manager (time-aware theming - "Better than Apple")
+    circadianManager.injectStyles();
+    circadianManager.init();
+
+    // Initialize warmth manager (relationship-based visual evolution)
+    warmthManager.injectStyles();
+    warmthManager.init();
 
     // Start ambient warmth cycle (WALL-E style time-aware lighting)
     startAmbientCycle();
@@ -3542,6 +3555,8 @@ class VoiceAIApp {
     disposeMoodContext();
     disposeWeatherEffects();
     ferniExpressions.dispose();
+    circadianManager.dispose();
+    warmthManager.dispose();
 
     // FIX: Clean up all tracked event listeners to prevent memory leaks
     for (const { target, event, handler } of this.trackedListeners) {

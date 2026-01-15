@@ -13,10 +13,10 @@
  * @module UserMigration
  */
 
-import { getFirestoreStore } from '../../memory/firestore-store.js';
+import { getFirestoreStore } from '../memory/firestore-store.js';
 import { createUserProfile, type UserProfile } from '../../types/user-profile.js';
 import { createLogger } from '../../utils/safe-logger.js';
-import type { MemoryStore } from '../../memory/store.js';
+import type { MemoryStore } from '../memory/store.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 // Cache the store reference to avoid repeated async calls

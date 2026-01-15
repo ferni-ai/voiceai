@@ -18,7 +18,7 @@
  * - Research shows emotional connection forms in 5-10 minutes
  */
 
-import { getStore } from '../../memory/store-factory.js';
+import { getStore } from '../memory/store-factory.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'FirstTasteTrial' });

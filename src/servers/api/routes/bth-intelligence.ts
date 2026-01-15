@@ -216,8 +216,8 @@ export async function handleBTHIntelligenceRoutes(
       return true;
     }
     try {
-      const { checkService } = await import('../../../services/superhuman/health-check.js');
-      const result = await checkService(serviceId);
+      const { checkServiceHealth } = await import('../../../services/superhuman/health-check.js');
+      const result = await checkServiceHealth(serviceId);
       sendJson(res, result.status === 'healthy' ? 200 : 503, {
         success: result.status === 'healthy',
         message:

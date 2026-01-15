@@ -19,7 +19,7 @@
 
 import { getLogger } from '../../utils/safe-logger.js';
 import type { UserProfile } from '../../types/user-profile.js';
-import { getDefaultStore } from '../../memory/index.js';
+import { getDefaultStore } from '../memory/index.js';
 import { sendVerificationCode, isTwilioConfigured } from '../twilio-sms.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
 

@@ -10,7 +10,7 @@
 
 import { getLogger } from '../../utils/safe-logger.js';
 import { AgentRole } from '../../personas/index.js';
-import { createPersistenceStore, type PersistenceStore } from './persistence/index.js';
+import { createPersistenceStore, type PersistenceStore } from '../persistence/index.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 // Web-push module interface (optional dependency)
@@ -574,7 +574,7 @@ class PushNotificationsBackendService {
     // Use the FCM push notification service from outreach/delivery
     try {
       const { sendPushNotification, isPushNotificationsAvailable, registerPushToken } =
-        await import('./outreach/delivery/push-notifications.js');
+        await import('../outreach/delivery/push-notifications.js');
 
       if (!isPushNotificationsAvailable()) {
         getLogger().warn('FCM not initialized - skipping native push');

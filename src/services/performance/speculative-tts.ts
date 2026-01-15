@@ -17,7 +17,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 // 🦀 Rust-accelerated word counting
-import { countWordsRust, isTokenCountingAvailable } from '../../memory/rust-accelerator.js';
+import { countWordsRust, isTokenCountingAvailable } from '../memory/rust-accelerator.js';
 import { getVoiceIdForPersona } from '../../speech/tts/cartesia-core.js';
 import { CARTESIA_MODEL } from '../../config/voice-ids.js';
 

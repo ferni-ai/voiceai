@@ -15,7 +15,7 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
-import { getRedisCache } from '../../memory/redis-cache.js';
+import { getRedisCache } from '../memory/redis-cache.js';
 import { personaAffinity } from '../superhuman/persona-affinity.js';
 import { userCorrections } from '../superhuman/user-corrections.js';
 import { outreachHistory } from '../outreach/outreach-history.js';

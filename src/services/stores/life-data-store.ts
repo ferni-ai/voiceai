@@ -11,8 +11,8 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
-import { getDefaultStore } from '../../memory/index.js';
-import type { MemoryStore } from '../../memory/store.js';
+import { getDefaultStore } from '../memory/index.js';
+import type { MemoryStore } from '../memory/store.js';
 import type { UserProfile } from '../../types/user-profile.js';
 
 // ============================================================================

@@ -347,7 +347,7 @@ export class MemoryMonitor {
 
       // 2. Clear session data manager stale sessions
       try {
-        const { getSessionDataManager } = await import('../session-data-manager.js');
+        const { getSessionDataManager } = await import('../session-manager/session-data-manager.js');
         const sdm = getSessionDataManager();
         const evicted = await sdm.evictStaleSessions();
         cleaned += evicted;
@@ -376,7 +376,7 @@ export class MemoryMonitor {
 
       // 5. Prune outreach data
       try {
-        const { pruneStaleOutreachData } = await import('../outreach-intelligence.js');
+        const { pruneStaleOutreachData } = await import('../outreach/outreach-intelligence.js');
         pruneStaleOutreachData(7 * 24 * 60 * 60 * 1000); // 7 days
         cleaned++;
       } catch {
@@ -414,7 +414,7 @@ export class MemoryMonitor {
 
     // SessionDataManager stats
     try {
-      const { getSessionDataManager } = await import('../session-data-manager.js');
+      const { getSessionDataManager } = await import('../session-manager/session-data-manager.js');
       const sdmStats = getSessionDataManager().getStats();
       for (const [name, serviceStats] of Object.entries(sdmStats.services)) {
         stats.push({
@@ -471,7 +471,7 @@ export class MemoryMonitor {
 
   private async getSessionStats(): Promise<MemoryMetrics['sessions']> {
     try {
-      const { getSessionDataManager } = await import('../session-data-manager.js');
+      const { getSessionDataManager } = await import('../session-manager/session-data-manager.js');
       const stats = getSessionDataManager().getStats();
       return {
         active: stats.activeSessions,

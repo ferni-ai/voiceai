@@ -200,7 +200,7 @@ async function getMatchingWebhooks(
   personaId?: string
 ): Promise<DeveloperWebhook[]> {
   try {
-    const { getFirestore } = await import('../api/v1/developers/shared/developer-auth.js');
+    const { getFirestore } = await import('../../api/v1/developers/shared/developer-auth.js');
     const db = await getFirestore();
 
     // Query enabled webhooks for this publisher that listen to this event type
@@ -379,7 +379,7 @@ async function logDelivery(
   status: WebhookDeliveryStatus
 ): Promise<void> {
   try {
-    const { getFirestore } = await import('../api/v1/developers/shared/developer-auth.js');
+    const { getFirestore } = await import('../../api/v1/developers/shared/developer-auth.js');
     const db = await getFirestore();
 
     const logEntry: Omit<WebhookDeliveryLog, 'id'> = {
@@ -407,7 +407,7 @@ async function logDelivery(
  */
 async function updateWebhookStatus(webhookId: string, success: boolean): Promise<void> {
   try {
-    const { getFirestore } = await import('../api/v1/developers/shared/developer-auth.js');
+    const { getFirestore } = await import('../../api/v1/developers/shared/developer-auth.js');
     const db = await getFirestore();
 
     const updates: Record<string, unknown> = {

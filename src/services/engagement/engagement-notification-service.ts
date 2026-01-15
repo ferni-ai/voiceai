@@ -25,7 +25,7 @@ import { createPersistenceStore, type PersistenceStore } from '../persistence/in
 import { createReminder, type ScheduledReminder } from '../scheduling/reminder-scheduler.js';
 import { getProductivityStore } from '../stores/productivity-store.js';
 import { getGamificationStore } from './gamification-store.js';
-import { getDefaultStore } from '../../memory/index.js';
+import { getDefaultStore } from '../memory/index.js';
 import { isUserBusy, getNextOutreachWindow } from '../scheduling/calendar-busy-detection.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
 

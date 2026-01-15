@@ -12,7 +12,7 @@ import {
   type EngagementProfile,
   type StoredPrediction,
   type StoredWeatherEntry,
-} from './engagement/engagement-store.js';
+} from '../engagement/engagement-store.js';
 
 // Generic interface for LiveKit room-like objects
 // FIX AUDIT ISSUE: Export the interface so consumers can avoid `any` casts

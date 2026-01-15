@@ -10,7 +10,7 @@ import { createLogger } from '../../utils/safe-logger.js';
 import { getProductivityStore } from '../stores/productivity-store.js';
 import { getFinancialStore } from '../stores/financial-store.js';
 import { getLifeDataStore } from '../stores/life-data-store.js';
-import { getFirestoreVectorStore } from '../../memory/firestore-vector-store/index.js';
+import { getFirestoreVectorStore } from '../memory/firestore-vector-store/index.js';
 import { getIndexingMetrics } from './store-hooks.js';
 import { getSessionMetrics } from './session-integration.js';
 import type { DataLayerHealth, DataLayerMetrics, HealthStatus } from './types.js';

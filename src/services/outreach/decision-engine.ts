@@ -52,7 +52,7 @@ import {
 } from './superhuman-outreach-bridge.js';
 
 // Redis cache for real-time session suppression
-import { getRedisCache } from '../../memory/redis-cache.js';
+import { getRedisCache } from '../memory/redis-cache.js';
 
 // Re-export types from dedicated types module
 export type {

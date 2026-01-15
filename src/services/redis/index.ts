@@ -39,7 +39,7 @@ export {
   getRedisCacheAsync,
   resetRedisCache,
   RedisCache,
-} from '../../memory/redis-cache.js';
+} from '../memory/redis-cache.js';
 
 // ============================================================================
 // REDIS-BACKED MANAGED CACHE (L1 Memory + L2 Redis)
@@ -118,7 +118,7 @@ export {
  */
 export async function isRedisAvailable(): Promise<boolean> {
   try {
-    const { getRedisCache } = await import('../../memory/redis-cache.js');
+    const { getRedisCache } = await import('../memory/redis-cache.js');
     const cache = getRedisCache();
     await cache.initialize();
     return cache.isConnected();
@@ -146,7 +146,7 @@ export async function initializeAllRedisServices(): Promise<{
   const [redisResult, pubsubResult, routerResult] = await Promise.allSettled([
     // Core Redis
     (async () => {
-      const { getRedisCache } = await import('../../memory/redis-cache.js');
+      const { getRedisCache } = await import('../memory/redis-cache.js');
       const cache = getRedisCache();
       await cache.initialize();
       return cache.isConnected();
@@ -191,7 +191,7 @@ export async function shutdownAllRedisServices(): Promise<void> {
     })(),
     // Core Redis
     (async () => {
-      const { resetRedisCache } = await import('../../memory/redis-cache.js');
+      const { resetRedisCache } = await import('../memory/redis-cache.js');
       await resetRedisCache();
     })(),
   ]);

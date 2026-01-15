@@ -246,6 +246,124 @@ const REMINDER_PATTERNS = [
 ];
 
 /**
+ * Music control patterns - pause, resume, stop
+ */
+const MUSIC_CONTROL_PATTERNS: Array<{ pattern: RegExp; action: 'pause' | 'resume' | 'stop' }> = [
+  // Pause
+  { pattern: /^(pause|hold)\s*(the\s+)?(music|song|track)?$/i, action: 'pause' },
+  { pattern: /^(can you |please )?(pause|hold)\s*(the\s+)?(music|song|track)?$/i, action: 'pause' },
+  { pattern: /^stop\s+the\s+(music|song|track)$/i, action: 'stop' },
+  // Resume/unpause
+  { pattern: /^(resume|unpause|continue|keep playing|play)\s*(the\s+)?(music|song|track)?$/i, action: 'resume' },
+  { pattern: /^(can you |please )?(resume|unpause|continue)\s*(the\s+)?(music|song|track)?$/i, action: 'resume' },
+  // Stop completely
+  { pattern: /^(stop|turn off|end|quit)\s*(the\s+)?(music|playback)?$/i, action: 'stop' },
+  { pattern: /^(can you |please )?(stop|turn off|end)\s*(the\s+)?(music|playback)?$/i, action: 'stop' },
+  { pattern: /^no more music$/i, action: 'stop' },
+  { pattern: /^(that's|thats) enough music$/i, action: 'stop' },
+];
+
+/**
+ * Calendar patterns - "What's on my calendar?"
+ */
+const CALENDAR_PATTERNS = [
+  // "What's on my calendar today?"
+  /^what('s| is)\s+(on\s+)?(my\s+)?(calendar|schedule)\s*(today|tomorrow|this week)?/i,
+  // "Do I have anything today?"
+  /^(do i have|am i)\s+(anything|any meetings|any appointments|free|busy)\s*(today|tomorrow|this week)?/i,
+  // "What are my meetings?"
+  /^what\s+(are|is)\s+my\s+(meetings?|appointments?|schedule)(\s+for)?\s*(today|tomorrow|this week)?/i,
+  // "Show me my calendar"
+  /^show\s+(me\s+)?(my\s+)?(calendar|schedule)(\s+for)?\s*(today|tomorrow|this week)?/i,
+  // "Check my calendar"
+  /^check\s+(my\s+)?(calendar|schedule)(\s+for)?\s*(today|tomorrow|this week)?/i,
+];
+
+/**
+ * Habit tracking patterns - "I did my meditation"
+ */
+const HABIT_PATTERNS = [
+  // "I did my X" / "I did X today"
+  /^i\s+(did|completed|finished|just did)\s+(my\s+)?(.+?)(\s+today|\s+this morning|\s+this evening)?$/i,
+  // "Track my X" / "Log my X"
+  /^(track|log|record)\s+(my\s+)?(.+?)(\s+habit)?$/i,
+  // "I meditated" / "I exercised" / "I worked out"
+  /^i\s+(meditated|exercised|worked out|journaled|read|stretched|walked|ran|drank water|did yoga|practiced)(\s+today|\s+this morning)?$/i,
+  // "Check off X" / "Mark X as done"
+  /^(check off|mark|checked)\s+(my\s+)?(.+?)(\s+as done|\s+done|\s+complete)?$/i,
+];
+
+/**
+ * Contact/calling patterns - "Call mom", "Text John"
+ */
+const CONTACT_PATTERNS = [
+  // "Call X"
+  /^(call|phone|ring|dial)\s+(.+)$/i,
+  // "Text X" / "Message X"
+  /^(text|message|send a (text|message) to)\s+(.+)$/i,
+  // "Can you call X"
+  /^(can you |could you |please )?(call|text|message)\s+(.+)$/i,
+  // "I need to call X"
+  /^i (need to|want to|should) (call|text|message)\s+(.+)$/i,
+  // "Reach out to X"
+  /^(reach out to|contact|get in touch with)\s+(.+)$/i,
+];
+
+/**
+ * Note-taking patterns - "Take a note", "Remember this"
+ */
+const NOTE_PATTERNS = [
+  // "Take a note"
+  /^(take|make|create|save)\s+(a\s+)?(note|memo)(:|,)?\s*(.+)?$/i,
+  // "Remember that X" / "Remember this"
+  /^remember\s+(that\s+)?(.+)$/i,
+  // "Note: X"
+  /^note(:|,)\s*(.+)$/i,
+  // "Quick note"
+  /^quick\s+note(:|,)?\s*(.+)?$/i,
+  // "Save this thought"
+  /^save\s+(this\s+)?(thought|idea|note)(:|,)?\s*(.+)?$/i,
+  // "Remind me later about X" (note-style, not timed reminder)
+  /^(jot down|write down)\s+(.+)$/i,
+];
+
+/**
+ * Smart home patterns - "Turn off the lights", "Set thermostat"
+ */
+const SMART_HOME_PATTERNS: Array<{ pattern: RegExp; device: 'lights' | 'thermostat'; action: string }> = [
+  // Lights on/off
+  { pattern: /^(turn\s+)?(on|off)\s+(the\s+)?(lights?|lamp|lamps)(\s+in\s+.+)?$/i, device: 'lights', action: 'toggle' },
+  { pattern: /^(turn|switch)\s+(the\s+)?(lights?|lamp|lamps)\s+(on|off)(\s+in\s+.+)?$/i, device: 'lights', action: 'toggle' },
+  // Dim lights
+  { pattern: /^(dim|brighten)\s+(the\s+)?(lights?|lamp|lamps)(\s+to\s+\d+%?)?/i, device: 'lights', action: 'dim' },
+  { pattern: /^(set|make)\s+(the\s+)?(lights?|lamp|lamps)\s+(brighter|dimmer|to\s+\d+%?)$/i, device: 'lights', action: 'dim' },
+  // Thermostat
+  { pattern: /^(set|turn|make)\s+(the\s+)?(thermostat|temperature|temp|heat|ac|air)\s+(to\s+)?(\d+)(\s+degrees?)?$/i, device: 'thermostat', action: 'set' },
+  { pattern: /^(turn|make)\s+(it|the room|the house)\s+(warmer|cooler|hotter|colder)$/i, device: 'thermostat', action: 'adjust' },
+  { pattern: /^(raise|lower)\s+(the\s+)?(temperature|temp|thermostat)(\s+to\s+\d+)?$/i, device: 'thermostat', action: 'adjust' },
+  // Shorthand
+  { pattern: /^(\d+)\s+degrees?$/i, device: 'thermostat', action: 'set' },
+  { pattern: /^lights?\s+(on|off)$/i, device: 'lights', action: 'toggle' },
+];
+
+/**
+ * Topic-specific news patterns - "Sports news", "Tech headlines"
+ */
+const NEWS_TOPIC_PATTERNS: Array<{ pattern: RegExp; topic: string }> = [
+  { pattern: /^(sports?|football|basketball|baseball|soccer|hockey|tennis|golf)\s+(news|headlines|updates)$/i, topic: 'sports' },
+  { pattern: /^(tech|technology|silicon valley|gadgets?|ai|artificial intelligence)\s+(news|headlines|updates)$/i, topic: 'technology' },
+  { pattern: /^(business|finance|economy|market|stock|wall street)\s+(news|headlines|updates)$/i, topic: 'business' },
+  { pattern: /^(entertainment|celebrity|hollywood|movies?|tv)\s+(news|headlines|updates|gossip)$/i, topic: 'entertainment' },
+  { pattern: /^(politics?|political|government|congress|white house)\s+(news|headlines|updates)$/i, topic: 'politics' },
+  { pattern: /^(world|international|global)\s+(news|headlines|updates)$/i, topic: 'world' },
+  { pattern: /^(local|neighborhood|city)\s+(news|headlines|updates)$/i, topic: 'local' },
+  { pattern: /^(health|medical|healthcare)\s+(news|headlines|updates)$/i, topic: 'health' },
+  { pattern: /^(science|research|scientific)\s+(news|headlines|updates|discoveries)$/i, topic: 'science' },
+  // Also match "What's happening in X"
+  { pattern: /^what('s| is)\s+(happening|going on)\s+(in|with)\s+(sports?|tech|business|politics)$/i, topic: 'dynamic' },
+];
+
+/**
  * Handoff intent patterns - explicit persona switches
  */
 const HANDOFF_PATTERNS: Array<{ pattern: RegExp; personaId: string }> = [
@@ -286,7 +404,7 @@ const HANDOFF_PATTERNS: Array<{ pattern: RegExp; personaId: string }> = [
 // ============================================================================
 
 interface DetectedIntent {
-  type: 'music' | 'weather' | 'news' | 'time' | 'search' | 'timer' | 'reminder' | 'handoff' | 'none';
+  type: 'music' | 'musicControl' | 'weather' | 'news' | 'time' | 'search' | 'timer' | 'reminder' | 'habit' | 'calendar' | 'contact' | 'note' | 'smartHome' | 'handoff' | 'none';
   confidence: number;
   query?: string;
   topic?: string;
@@ -302,6 +420,21 @@ interface DetectedIntent {
   label?: string;
   /** For reminder - when to remind (natural language) */
   when?: string;
+  /** For habit - the habit that was completed */
+  habitName?: string;
+  /** For calendar - which day to check */
+  calendarDay?: 'today' | 'tomorrow' | 'week';
+  /** For music control - what action */
+  musicAction?: 'pause' | 'resume' | 'stop';
+  /** For contact - who to contact and how */
+  contactName?: string;
+  contactMethod?: 'call' | 'text';
+  /** For note - the content to save */
+  noteContent?: string;
+  /** For smart home - device and action */
+  smartDevice?: 'lights' | 'thermostat';
+  smartAction?: string;
+  smartValue?: string;
 }
 
 /**
@@ -357,6 +490,18 @@ function detectIntent(transcript: string, context: DirectRouteContext): Detected
         type: 'music',
         confidence: 0.95,
         query,
+      };
+    }
+  }
+
+  // Check music control patterns (pause/resume/stop)
+  for (const { pattern, action } of MUSIC_CONTROL_PATTERNS) {
+    if (pattern.test(text)) {
+      log.info({ transcript: text.slice(0, 50), action }, '🎛️ Music control intent detected');
+      return {
+        type: 'musicControl',
+        confidence: 0.95,
+        musicAction: action,
       };
     }
   }
@@ -481,6 +626,175 @@ function detectIntent(transcript: string, context: DirectRouteContext): Detected
         confidence: 0.92,
         label: message,
         when: when || 'soon',
+      };
+    }
+  }
+
+  // Check calendar patterns
+  for (const pattern of CALENDAR_PATTERNS) {
+    const match = text.match(pattern);
+    if (match) {
+      // Determine which day to check
+      const dayText = match[match.length - 1]?.toLowerCase() || '';
+      let calendarDay: 'today' | 'tomorrow' | 'week' = 'today';
+      
+      if (dayText.includes('tomorrow')) {
+        calendarDay = 'tomorrow';
+      } else if (dayText.includes('week')) {
+        calendarDay = 'week';
+      }
+
+      log.info({ transcript: text.slice(0, 50), calendarDay }, '📅 Calendar intent detected');
+      return {
+        type: 'calendar',
+        confidence: 0.92,
+        calendarDay,
+      };
+    }
+  }
+
+  // Check habit tracking patterns
+  for (const pattern of HABIT_PATTERNS) {
+    const match = text.match(pattern);
+    if (match) {
+      let habitName = '';
+      
+      // Extract habit name based on pattern type
+      if (pattern.source.includes('i\\s+(meditated|exercised')) {
+        // Direct verb pattern: "I meditated" → "meditation"
+        const verb = match[1]?.toLowerCase();
+        const verbToHabit: Record<string, string> = {
+          'meditated': 'meditation',
+          'exercised': 'exercise',
+          'worked out': 'workout',
+          'journaled': 'journaling',
+          'read': 'reading',
+          'stretched': 'stretching',
+          'walked': 'walking',
+          'ran': 'running',
+          'drank water': 'water',
+          'did yoga': 'yoga',
+          'practiced': 'practice',
+        };
+        habitName = verbToHabit[verb] || verb;
+      } else if (pattern.source.includes('i\\s+(did|completed')) {
+        // "I did my meditation" → "meditation"
+        habitName = match[3]?.trim() || '';
+      } else if (pattern.source.includes('track|log|record')) {
+        // "Track my meditation" → "meditation"
+        habitName = match[3]?.trim() || '';
+      } else if (pattern.source.includes('check off|mark')) {
+        // "Check off meditation" → "meditation"
+        habitName = match[3]?.trim() || '';
+      }
+
+      // Clean up habit name
+      habitName = habitName.replace(/\s+(habit|today|this morning|this evening)$/i, '').trim();
+
+      if (habitName) {
+        log.info({ transcript: text.slice(0, 50), habitName }, '✅ Habit intent detected');
+        return {
+          type: 'habit',
+          confidence: 0.9,
+          habitName,
+        };
+      }
+    }
+  }
+
+  // Check contact/calling patterns
+  for (const pattern of CONTACT_PATTERNS) {
+    const match = text.match(pattern);
+    if (match) {
+      // Determine contact method (call vs text)
+      const method = text.match(/^(call|phone|ring|dial)/i) ? 'call' : 'text';
+      
+      // Extract contact name - it's usually the last capture group
+      let contactName = '';
+      for (let i = match.length - 1; i >= 0; i--) {
+        if (match[i] && !['call', 'text', 'message', 'phone', 'ring', 'dial', 'contact', 'reach out to'].some(w => match[i]?.toLowerCase() === w)) {
+          contactName = match[i].trim();
+          break;
+        }
+      }
+
+      if (contactName) {
+        log.info({ transcript: text.slice(0, 50), contactName, method }, '📞 Contact intent detected');
+        return {
+          type: 'contact',
+          confidence: 0.9,
+          contactName,
+          contactMethod: method,
+        };
+      }
+    }
+  }
+
+  // Check note-taking patterns
+  for (const pattern of NOTE_PATTERNS) {
+    const match = text.match(pattern);
+    if (match) {
+      // Extract note content - usually the last non-empty capture group
+      let noteContent = '';
+      for (let i = match.length - 1; i >= 0; i--) {
+        if (match[i] && match[i].length > 2) {
+          noteContent = match[i].trim();
+          break;
+        }
+      }
+
+      // For "remember that X" patterns, the content is after "that"
+      if (pattern.source.includes('remember') && !noteContent) {
+        const rememberMatch = text.match(/remember\s+(?:that\s+)?(.+)$/i);
+        if (rememberMatch) noteContent = rememberMatch[1];
+      }
+
+      log.info({ transcript: text.slice(0, 50), noteContent: noteContent.slice(0, 30) }, '📝 Note intent detected');
+      return {
+        type: 'note',
+        confidence: 0.88,
+        noteContent: noteContent || text,
+      };
+    }
+  }
+
+  // Check smart home patterns
+  for (const { pattern, device, action } of SMART_HOME_PATTERNS) {
+    const match = text.match(pattern);
+    if (match) {
+      let smartValue = '';
+      
+      // Extract value for thermostat (temperature) or lights (brightness)
+      const tempMatch = text.match(/(\d+)\s*degrees?/i) || text.match(/to\s+(\d+)/i);
+      if (tempMatch) {
+        smartValue = tempMatch[1];
+      }
+      
+      // Extract on/off state for lights
+      const stateMatch = text.match(/\b(on|off)\b/i);
+      if (device === 'lights' && stateMatch) {
+        smartValue = stateMatch[1].toLowerCase();
+      }
+
+      log.info({ transcript: text.slice(0, 50), device, action, value: smartValue }, '🏠 Smart home intent detected');
+      return {
+        type: 'smartHome',
+        confidence: 0.9,
+        smartDevice: device,
+        smartAction: action,
+        smartValue,
+      };
+    }
+  }
+
+  // Check topic-specific news patterns
+  for (const { pattern, topic } of NEWS_TOPIC_PATTERNS) {
+    if (pattern.test(text)) {
+      log.info({ transcript: text.slice(0, 50), topic }, '📰 Topic news intent detected');
+      return {
+        type: 'news',
+        confidence: 0.92,
+        topic,
       };
     }
   }
@@ -668,6 +982,144 @@ async function executeTool(
         };
       }
 
+      case 'habit': {
+        const result = await executeJsonFunction(
+          buildFunctionCall('trackHabit', {
+            habitName: intent.habitName || '',
+          }),
+          {
+            sessionId: context.sessionId,
+            userId: context.userId,
+            personaId: context.personaId,
+          }
+        );
+        return {
+          success: result.success,
+          response: typeof result.result === 'string' ? result.result : undefined,
+          error: result.error,
+        };
+      }
+
+      case 'calendar': {
+        // Use getCalendarWeek for "this week", otherwise getCalendarToday
+        const toolName = intent.calendarDay === 'week' ? 'getCalendarWeek' : 'getCalendarToday';
+        const result = await executeJsonFunction(
+          buildFunctionCall(toolName, {}),
+          {
+            sessionId: context.sessionId,
+            userId: context.userId,
+            personaId: context.personaId,
+          }
+        );
+        return {
+          success: result.success,
+          response: typeof result.result === 'string' ? result.result : undefined,
+          error: result.error,
+        };
+      }
+
+      case 'musicControl': {
+        // Map action to tool name
+        const actionToTool: Record<string, string> = {
+          pause: 'pauseMusic',
+          resume: 'resumeMusic',
+          stop: 'stopMusic',
+        };
+        const toolName = actionToTool[intent.musicAction || 'pause'];
+        
+        const result = await executeJsonFunction(
+          buildFunctionCall(toolName, {}),
+          {
+            sessionId: context.sessionId,
+            userId: context.userId,
+            personaId: context.personaId,
+          }
+        );
+        return {
+          success: result.success,
+          response: typeof result.result === 'string' ? result.result : undefined,
+          error: result.error,
+        };
+      }
+
+      case 'contact': {
+        // Use reachOut tool for contacting people
+        const result = await executeJsonFunction(
+          buildFunctionCall('reachOut', {
+            contactName: intent.contactName || '',
+            method: intent.contactMethod || 'call',
+          }),
+          {
+            sessionId: context.sessionId,
+            userId: context.userId,
+            personaId: context.personaId,
+          }
+        );
+        return {
+          success: result.success,
+          response: typeof result.result === 'string' ? result.result : undefined,
+          error: result.error,
+        };
+      }
+
+      case 'note': {
+        // Use quickNote tool for saving notes
+        const result = await executeJsonFunction(
+          buildFunctionCall('quickNote', {
+            content: intent.noteContent || '',
+          }),
+          {
+            sessionId: context.sessionId,
+            userId: context.userId,
+            personaId: context.personaId,
+          }
+        );
+        return {
+          success: result.success,
+          response: typeof result.result === 'string' ? result.result : undefined,
+          error: result.error,
+        };
+      }
+
+      case 'smartHome': {
+        // Use appropriate smart home tool based on device
+        if (intent.smartDevice === 'lights') {
+          const result = await executeJsonFunction(
+            buildFunctionCall('controlLight', {
+              action: intent.smartValue === 'off' ? 'off' : 'on',
+              brightness: intent.smartAction === 'dim' ? parseInt(intent.smartValue || '50') : undefined,
+            }),
+            {
+              sessionId: context.sessionId,
+              userId: context.userId,
+              personaId: context.personaId,
+            }
+          );
+          return {
+            success: result.success,
+            response: typeof result.result === 'string' ? result.result : undefined,
+            error: result.error,
+          };
+        } else if (intent.smartDevice === 'thermostat') {
+          const result = await executeJsonFunction(
+            buildFunctionCall('setThermostat', {
+              temperature: parseInt(intent.smartValue || '72'),
+            }),
+            {
+              sessionId: context.sessionId,
+              userId: context.userId,
+              personaId: context.personaId,
+            }
+          );
+          return {
+            success: result.success,
+            response: typeof result.result === 'string' ? result.result : undefined,
+            error: result.error,
+          };
+        }
+        return { success: false, error: 'Unknown smart home device' };
+      }
+
       case 'handoff': {
         const targetName = intent.targetPersonaId?.split('-')[0] || 'team member';
         const capitalizedName = targetName.charAt(0).toUpperCase() + targetName.slice(1);
@@ -758,24 +1210,32 @@ export async function routeDirectly(
       '✅ Direct routing: Tool executed successfully'
     );
 
-    const toolId =
-      intent.type === 'music'
-        ? 'playMusic'
-        : intent.type === 'weather'
-          ? 'getWeather'
-          : intent.type === 'news'
-            ? 'getNews'
-            : intent.type === 'time'
-              ? intent.city
-                ? 'timeInCity'
-                : 'getCurrentTime'
-              : intent.type === 'search'
-                ? 'searchWeb'
-                : intent.type === 'timer'
-                  ? 'setTimer'
-                  : intent.type === 'reminder'
-                    ? 'setReminder'
-                    : 'handoff';
+    // Map intent type to tool ID
+    const toolIdMap: Record<string, string> = {
+      music: 'playMusic',
+      weather: 'getWeather',
+      news: 'getNews',
+      search: 'searchWeb',
+      timer: 'setTimer',
+      reminder: 'setReminder',
+      habit: 'trackHabit',
+      contact: 'reachOut',
+      note: 'quickNote',
+      handoff: 'handoff',
+    };
+
+    let toolId: string;
+    if (intent.type === 'musicControl') {
+      toolId = intent.musicAction === 'resume' ? 'resumeMusic' : intent.musicAction === 'stop' ? 'stopMusic' : 'pauseMusic';
+    } else if (intent.type === 'time') {
+      toolId = intent.city ? 'timeInCity' : 'getCurrentTime';
+    } else if (intent.type === 'calendar') {
+      toolId = intent.calendarDay === 'week' ? 'getCalendarWeek' : 'getCalendarToday';
+    } else if (intent.type === 'smartHome') {
+      toolId = intent.smartDevice === 'thermostat' ? 'setThermostat' : 'controlLight';
+    } else {
+      toolId = toolIdMap[intent.type] || 'unknown';
+    }
 
     return {
       handled: true,

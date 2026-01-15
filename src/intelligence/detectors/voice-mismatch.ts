@@ -13,7 +13,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import type { VoiceEmotionResult } from '../../speech/audio-prosody.js';
-import { detectEmotion } from '../../services/emotion-detection.js';
+import { detectEmotion } from '../../services/emotion-analysis/emotion-detection.js';
 import { recordInsight, type PersonaId } from '../../services/cross-persona/cross-persona-insights.js';
 
 // Minimal emotion result type for mismatch detection (compatible with both emotion-detector and emotion-detection)

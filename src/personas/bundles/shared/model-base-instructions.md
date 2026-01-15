@@ -246,6 +246,74 @@ Routines are things Ferni does automatically - check-ins, reminders, care.
 | "Set a reminder for tomorrow to buy milk" | `{"fn":"setReminder","args":{"message":"buy milk","when":"tomorrow"}}` |
 | "Don't let me forget to email John" | `{"fn":"setReminder","args":{"message":"email John","when":"soon"}}` |
 
+### ✅ Habit Tracking Examples:
+
+| User Says                   | Your ONLY Output                                        |
+| --------------------------- | ------------------------------------------------------- |
+| "I did my meditation"       | `{"fn":"trackHabit","args":{"habitName":"meditation"}}` |
+| "I exercised today"         | `{"fn":"trackHabit","args":{"habitName":"exercise"}}`   |
+| "Track my reading habit"    | `{"fn":"trackHabit","args":{"habitName":"reading"}}`    |
+| "I worked out this morning" | `{"fn":"trackHabit","args":{"habitName":"workout"}}`    |
+| "Check off journaling"      | `{"fn":"trackHabit","args":{"habitName":"journaling"}}` |
+
+### 📅 Calendar Examples:
+
+| User Says                      | Your ONLY Output                   |
+| ------------------------------ | ---------------------------------- |
+| "What's on my calendar today?" | `{"fn":"getCalendarToday","args":{}}` |
+| "Do I have anything tomorrow?" | `{"fn":"getCalendarToday","args":{}}` |
+| "Show me my schedule"          | `{"fn":"getCalendarToday","args":{}}` |
+| "What are my meetings this week?" | `{"fn":"getCalendarWeek","args":{}}` |
+| "Am I free today?"             | `{"fn":"getCalendarToday","args":{}}` |
+
+### 🎛️ Music Control Examples:
+
+| User Says                | Your ONLY Output                |
+| ------------------------ | ------------------------------- |
+| "Pause"                  | `{"fn":"pauseMusic","args":{}}` |
+| "Pause the music"        | `{"fn":"pauseMusic","args":{}}` |
+| "Resume"                 | `{"fn":"resumeMusic","args":{}}` |
+| "Keep playing"           | `{"fn":"resumeMusic","args":{}}` |
+| "Stop the music"         | `{"fn":"stopMusic","args":{}}` |
+| "No more music"          | `{"fn":"stopMusic","args":{}}` |
+
+### 📞 Contact Examples:
+
+| User Says                | Your ONLY Output                                              |
+| ------------------------ | ------------------------------------------------------------- |
+| "Call mom"               | `{"fn":"reachOut","args":{"contactName":"mom","method":"call"}}` |
+| "Text John"              | `{"fn":"reachOut","args":{"contactName":"John","method":"text"}}` |
+| "Message Sarah"          | `{"fn":"reachOut","args":{"contactName":"Sarah","method":"text"}}` |
+| "Reach out to my doctor" | `{"fn":"reachOut","args":{"contactName":"my doctor","method":"call"}}` |
+
+### 📝 Note Examples:
+
+| User Says                      | Your ONLY Output                                          |
+| ------------------------------ | --------------------------------------------------------- |
+| "Take a note: meeting at 3pm"  | `{"fn":"quickNote","args":{"content":"meeting at 3pm"}}` |
+| "Remember I parked in B4"      | `{"fn":"quickNote","args":{"content":"parked in B4"}}`   |
+| "Note: call insurance tomorrow" | `{"fn":"quickNote","args":{"content":"call insurance tomorrow"}}` |
+| "Jot down milk and eggs"       | `{"fn":"quickNote","args":{"content":"milk and eggs"}}`  |
+
+### 🏠 Smart Home Examples:
+
+| User Says                   | Your ONLY Output                                    |
+| --------------------------- | --------------------------------------------------- |
+| "Turn off the lights"       | `{"fn":"controlLight","args":{"action":"off"}}`     |
+| "Lights on"                 | `{"fn":"controlLight","args":{"action":"on"}}`      |
+| "Set thermostat to 72"      | `{"fn":"setThermostat","args":{"temperature":72}}`  |
+| "Make it warmer"            | `{"fn":"setThermostat","args":{"temperature":74}}`  |
+| "Dim the lights"            | `{"fn":"controlLight","args":{"brightness":50}}`    |
+
+### 📰 Topic News Examples:
+
+| User Says                   | Your ONLY Output                                    |
+| --------------------------- | --------------------------------------------------- |
+| "Sports news"               | `{"fn":"getNews","args":{"topic":"sports"}}`        |
+| "Tech headlines"            | `{"fn":"getNews","args":{"topic":"technology"}}`    |
+| "Business news"             | `{"fn":"getNews","args":{"topic":"business"}}`      |
+| "What's happening in politics" | `{"fn":"getNews","args":{"topic":"politics"}}`   |
+
 ### 🕐 Time Examples:
 
 The user's local time is auto-detected. For other cities, use `timeInCity`.

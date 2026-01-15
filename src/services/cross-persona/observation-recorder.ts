@@ -6,7 +6,7 @@
  *
  * Usage in persona context builders:
  * ```typescript
- * import { recordPersonaObservation } from '../../services/cross-persona/observation-recorder.js';
+ * import { recordPersonaObservation } from '../cross-persona/observation-recorder.js';
  *
  * // In Maya's context builder
  * recordPersonaObservation(userId, {

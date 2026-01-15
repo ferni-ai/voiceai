@@ -22,7 +22,7 @@ import {
   registerDDoSAlertCallback,
   startDDoSMonitoring,
 } from '../../utils/ddos-protection.js';
-import { notifyDDoSAlert } from '../../services/slack-notifications.js';
+import { notifyDDoSAlert } from '../../services/integrations/slack-notifications.js';
 import { rateLimit, optionalAuthAsync } from '../../api/auth-middleware.js';
 import { parseRawBody } from '../../api/helpers.js';
 
@@ -196,19 +196,19 @@ import { handleOutboundCallRoutes } from '../../api/outbound-call-handler.js';
 import {
   initInsightsWebSocket,
   shutdownInsightsWebSocket,
-} from '../../services/insights-websocket.js';
+} from '../../services/cross-persona/insights-websocket.js';
 
 // WebSocket for life context (Phase 6)
 import {
   initLifeContextWebSocket,
   shutdownLifeContextWebSocket,
-} from '../../services/life-context-websocket.js';
+} from '../../services/pubsub/life-context-websocket.js';
 
 // WebSocket for user events (voice-triggered theme/navigation changes)
 import {
   initUserEventsWebSocket,
   shutdownUserEventsWebSocket,
-} from '../../services/user-events-websocket.js';
+} from '../../services/pubsub/user-events-websocket.js';
 import { handleMarketplaceRoutes } from '../../api/marketplace-routes.js';
 // SECURITY: Uses new modular version with Firebase auth (no x-user-id)
 import { handleCustomAgentRoutes } from '../../api/custom-agent/index.js';

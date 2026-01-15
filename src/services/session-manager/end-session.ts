@@ -25,7 +25,7 @@ import {
   clearCurrentSessionMomentsGetter,
   summarizeConversation,
   type ConversationTurn,
-} from '../../memory/index.js';
+} from '../memory/index.js';
 
 // Context imports
 import { removeContextManager } from '../../context/index.js';
@@ -67,7 +67,7 @@ import { processAccumulatedSignals } from '../conversation-thread/superhuman-out
 
 // Session types
 import type { GlobalServices, SessionServices } from '../types.js';
-import type { HumanizingStateUpdate } from '../humanizing-state.js';
+import type { HumanizingStateUpdate } from '../session-manager/humanizing-state.js';
 
 /**
  * Options for ending a session
@@ -151,7 +151,7 @@ export async function handleEndSession(options: EndSessionOptions): Promise<void
   // This ensures important entities and emotional arcs persist to L2
   if (validatedUserId) {
     try {
-      const { onSessionEnd } = await import('../../memory/dynamic/stm-promotion.js');
+      const { onSessionEnd } = await import('../memory/dynamic/stm-promotion.js');
       await onSessionEnd(sessionId, validatedUserId);
       log.debug({ sessionId, userId: validatedUserId }, '📤 STM promoted to Firestore');
     } catch (stmError) {
@@ -164,7 +164,7 @@ export async function handleEndSession(options: EndSessionOptions): Promise<void
   // we consolidate into richer, more meaningful representations
   if (validatedUserId) {
     try {
-      const { consolidateUserMemories } = await import('../../memory/memory-lifecycle.js');
+      const { consolidateUserMemories } = await import('../memory/memory-lifecycle.js');
       const consolidationResult = await consolidateUserMemories(validatedUserId);
       if (consolidationResult.consolidated > 0) {
         log.info(
@@ -396,8 +396,8 @@ async function generateSummary(
 
   // Try LLM summarization first
   try {
-    const { createSummarizationLLMCaller } = await import('../llm-utils.js');
-    const { summarizeWithLLM } = await import('../../memory/index.js');
+    const { createSummarizationLLMCaller } = await import('../llm/llm-utils.js');
+    const { summarizeWithLLM } = await import('../memory/index.js');
     const llmCaller = createSummarizationLLMCaller();
 
     const summary = await withTimeout(
@@ -520,7 +520,7 @@ async function applyHumanizingState(
       mergeHumanizingStateUpdate,
       applyHumanizingStateToProfile,
       logHumanizingStateSummary,
-    } = await import('../humanizing-state.js');
+    } = await import('../session-manager/humanizing-state.js');
 
     let humanizingState = getHumanizingState(profile);
 
@@ -790,7 +790,7 @@ async function extractHumanMemorySignals(
 
   try {
     const { extractHumanSignals, mergeSignalsIntoMemory } =
-      await import('../../memory/human-signal-extractor.js');
+      await import('../memory/human-signal-extractor.js');
 
     if (turns.length > 0) {
       const signals = extractHumanSignals(turns, {
@@ -837,7 +837,7 @@ async function indexUserMemories(userId: string, profile: UserProfile): Promise<
   const log = getLogger();
 
   try {
-    const { indexUserMemories: doIndex } = await import('../../memory/user-memory-indexer.js');
+    const { indexUserMemories: doIndex } = await import('../memory/user-memory-indexer.js');
     void doIndex(userId, profile, {
       categories: [
         'key_moment',
@@ -990,7 +990,7 @@ async function captureGrowthSnapshot(userId: string, services: SessionServices):
   const log = getLogger();
 
   try {
-    const { getGrowthVisibilityEngine } = await import('../growth-visibility-engine.js');
+    const { getGrowthVisibilityEngine } = await import('../engagement/growth-visibility-engine.js');
     const growthEngine = getGrowthVisibilityEngine(userId);
     growthEngine.captureSnapshot();
 

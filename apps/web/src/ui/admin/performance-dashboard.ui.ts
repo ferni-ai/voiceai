@@ -11,6 +11,7 @@
  * @module ui/admin/performance-dashboard.ui
  */
 
+import { DURATION, EASING } from '../../config/animation-constants.js';
 import { createLogger } from '../../utils/logger.js';
 import { t } from '../../i18n/index.js';
 

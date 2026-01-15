@@ -214,9 +214,6 @@ describe('DayAwarenessCache', () => {
       // Both should return valid context
       expect(briefingNY.day.date).toBeDefined();
       expect(briefingLA.day.date).toBeDefined();
-
-      // They might have different times depending on current time
-      // (we can't assert exact difference as it depends on DST)
     });
 
     it('handles invalid timezone gracefully', () => {
@@ -293,11 +290,8 @@ describe('DayAwarenessCache', () => {
   });
 
   describe('time of day categorization', () => {
-    // These tests mock Date to test specific hours
-    const originalDate = global.Date;
-
     afterEach(() => {
-      global.Date = originalDate;
+      vi.useRealTimers();
     });
 
     it('categorizes early morning (5-8)', () => {

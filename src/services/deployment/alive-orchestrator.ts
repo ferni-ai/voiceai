@@ -15,7 +15,7 @@
  * not like a feature checklist. The goal is genuine connection.
  */
 
-import type { VoiceEmotionResult } from '../speech/audio-prosody.js';
+import type { VoiceEmotionResult } from '../../speech/audio-prosody.js';
 import type { GameMemory } from '../../types/user-profile.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import {
@@ -27,7 +27,7 @@ import {
 } from './games/game-intelligence.js';
 import type { GameResult, GameType } from './games/types.js';
 import { getVoiceMusicBridge, type VoiceMusicSuggestion } from './musical-you/index.js';
-import { getAllOurSongs } from './trust-systems/our-songs.js';
+import { getAllOurSongs } from '../trust-systems/our-songs.js';
 
 const log = getLogger();
 

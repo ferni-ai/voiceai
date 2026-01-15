@@ -882,6 +882,150 @@
         "cancelReminder",
         "cancel reminder"
       ]
+    },
+
+    "habits": {
+      "description": "Habit tracking and coaching tools",
+      "patterns": [
+        "trackHabit",
+        "track habit",
+        "Track habit",
+        "i did my",
+        "I did my",
+        "i completed",
+        "I completed",
+        "log habit",
+        "Log habit",
+        "record habit",
+        "Record habit",
+        "check off",
+        "Check off",
+        "mark as done",
+        "Mark as done",
+        "i meditated",
+        "I meditated",
+        "i exercised",
+        "I exercised",
+        "i worked out",
+        "I worked out"
+      ]
+    },
+
+    "calendar": {
+      "description": "Calendar and scheduling tools",
+      "patterns": [
+        "getCalendarToday",
+        "get calendar today",
+        "getCalendarWeek",
+        "get calendar week",
+        "what's on my calendar",
+        "What's on my calendar",
+        "my schedule",
+        "My schedule",
+        "any meetings",
+        "Any meetings",
+        "do I have anything",
+        "Do I have anything",
+        "show my calendar",
+        "Show my calendar",
+        "check my calendar",
+        "Check my calendar"
+      ]
+    },
+
+    "musicControl": {
+      "description": "Music playback control tools",
+      "patterns": [
+        "pauseMusic",
+        "pause music",
+        "Pause music",
+        "pause the music",
+        "Pause the music",
+        "resumeMusic",
+        "resume music",
+        "Resume music",
+        "unpause",
+        "Unpause",
+        "keep playing",
+        "Keep playing",
+        "stopMusic",
+        "stop music",
+        "Stop music",
+        "stop the music",
+        "Stop the music",
+        "turn off music",
+        "Turn off music",
+        "no more music",
+        "No more music"
+      ]
+    },
+
+    "contacts": {
+      "description": "Contact and calling tools",
+      "patterns": [
+        "reachOut",
+        "reach out",
+        "Reach out",
+        "call",
+        "Call",
+        "text",
+        "Text",
+        "message",
+        "Message",
+        "phone",
+        "Phone",
+        "contact",
+        "Contact",
+        "send a text",
+        "Send a text",
+        "make a call",
+        "Make a call"
+      ]
+    },
+
+    "notes": {
+      "description": "Note-taking and memory tools",
+      "patterns": [
+        "quickNote",
+        "quick note",
+        "Quick note",
+        "take a note",
+        "Take a note",
+        "save a note",
+        "Save a note",
+        "remember",
+        "Remember",
+        "note:",
+        "Note:",
+        "jot down",
+        "Jot down",
+        "write down",
+        "Write down"
+      ]
+    },
+
+    "smartHome": {
+      "description": "Smart home control tools",
+      "patterns": [
+        "controlLight",
+        "control light",
+        "Control light",
+        "setThermostat",
+        "set thermostat",
+        "Set thermostat",
+        "turn on",
+        "Turn on",
+        "turn off",
+        "Turn off",
+        "lights on",
+        "Lights on",
+        "lights off",
+        "Lights off",
+        "temperature",
+        "Temperature",
+        "degrees",
+        "Degrees"
+      ]
     }
   },
 

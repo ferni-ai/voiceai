@@ -12,9 +12,9 @@
 
 import express from 'express';
 import { getLogger } from '../../utils/safe-logger.js';
-import { getVectorStore, type VectorStore } from '../../memory/vector-store.js';
-import { embed } from '../../memory/embeddings.js';
-import type { VectorSearchOptions } from '../../memory/vector-store-interface.js';
+import { getVectorStore, type VectorStore } from '../memory/vector-store.js';
+import { embed } from '../memory/embeddings.js';
+import type { VectorSearchOptions } from '../memory/vector-store-interface.js';
 
 const log = getLogger().child({ module: 'memory-service' });
 

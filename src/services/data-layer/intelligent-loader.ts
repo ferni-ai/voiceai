@@ -540,7 +540,7 @@ export class IntelligentDataLoader {
   // ============================================================================
 
   private async loadProfile() {
-    const { getStore } = await import('../../memory/store-factory.js');
+    const { getStore } = await import('../memory/store-factory.js');
     const store = await getStore();
     return store.getProfile(this.userId);
   }

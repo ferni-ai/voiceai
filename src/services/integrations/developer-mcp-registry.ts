@@ -142,7 +142,7 @@ export async function loadDeveloperMCPServers(
 
   try {
     // Lazy import Firestore to avoid circular deps
-    const { getFirestore } = await import('../api/v1/developers/shared/developer-auth.js');
+    const { getFirestore } = await import('../../api/v1/developers/shared/developer-auth.js');
     const db = await getFirestore();
 
     // Build query - get enabled servers for this publisher
@@ -195,7 +195,7 @@ export async function getDeveloperMCPServer(
   publisherId: string
 ): Promise<MCPServerConfig | null> {
   try {
-    const { getFirestore } = await import('../api/v1/developers/shared/developer-auth.js');
+    const { getFirestore } = await import('../../api/v1/developers/shared/developer-auth.js');
     const db = await getFirestore();
 
     const doc = await db.collection(COLLECTIONS.MCP_SERVERS).doc(serverId).get();

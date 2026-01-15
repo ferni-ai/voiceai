@@ -147,7 +147,7 @@ export async function startup(): Promise<AppConfig> {
   // This tracks all user data caches and cleans them up on session end
   logger.info('Initializing Session Data Manager...');
   try {
-    const { initializeSessionDataManager } = await import('./services/session-data-manager.js');
+    const { initializeSessionDataManager } = await import('./services/session-manager/session-data-manager.js');
     initializeSessionDataManager({
       maxSessionAge: 4 * 60 * 60 * 1000, // 4 hours (safety net for orphaned sessions)
       evictionCheckInterval: 5 * 60 * 1000, // Check every 5 minutes
@@ -534,7 +534,7 @@ export async function shutdown(): Promise<void> {
     // Shutdown Session Data Manager (clears all user caches)
     logger.info('Shutting down Session Data Manager...');
     try {
-      const { shutdownSessionDataManager } = await import('./services/session-data-manager.js');
+      const { shutdownSessionDataManager } = await import('./services/session-manager/session-data-manager.js');
       await shutdownSessionDataManager();
       logger.info('✓ Session Data Manager shut down');
     } catch (error) {

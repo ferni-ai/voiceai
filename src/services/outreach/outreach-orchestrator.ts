@@ -15,8 +15,8 @@
 import { EventEmitter } from 'events';
 import type { UserProfile } from '../../types/user-profile.js';
 import { createLogger } from '../../utils/safe-logger.js';
-import { getCelebrationEngine, type CelebrationTrigger } from '../celebration-engine.js';
-import { getGrowthVisibilityEngine } from '../growth-visibility-engine.js';
+import { getCelebrationEngine, type CelebrationTrigger } from '../engagement/celebration-engine.js';
+import { getGrowthVisibilityEngine } from '../engagement/growth-visibility-engine.js';
 import { getOutreachDecisionEngine, type OutreachDecision } from './decision-engine.js';
 import {
   getThinkingOfYouEngine,

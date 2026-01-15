@@ -18,9 +18,9 @@
  * - Productivity (tasks, notes, journal entries)
  */
 
-import { getEngagementStore } from './engagement/engagement-store.js';
+import { getEngagementStore } from '../engagement/engagement-store.js';
 import { getConversationHistoryService } from '../stores/conversation-history.js';
-import { getCognitiveMemoryService } from './memory/cognitive-memory.js';
+import { getCognitiveMemoryService } from '../memory/cognitive-memory.js';
 import { getLogger } from '../../utils/safe-logger.js';
 
 const log = getLogger();
@@ -428,7 +428,7 @@ class DataExportService {
 
   private async exportContacts(userId: string) {
     try {
-      const { getUserContacts } = await import('./contacts.js');
+      const { getUserContacts } = await import('../identity/contacts.js');
       const contacts = await getUserContacts(userId);
 
       return contacts.map((c) => ({
@@ -463,7 +463,7 @@ class DataExportService {
         getUncelebratedWins,
         getPendingIntentions,
         getDueMoments,
-      } = await import('./trust-systems/index.js');
+      } = await import('../trust-systems/index.js');
 
       await loadTrustProfiles(userId);
 
@@ -518,7 +518,7 @@ class DataExportService {
 
   private async exportWellbeing(userId: string) {
     try {
-      const { exportWellbeingData } = await import('./wellbeing-tracking/persistence.js');
+      const { exportWellbeingData } = await import('../wellbeing-tracking/persistence.js');
       const data = await exportWellbeingData(userId);
 
       if (!data) return null;
@@ -548,7 +548,7 @@ class DataExportService {
 
   private async exportHabits(userId: string) {
     try {
-      const { getProductivityStore } = await import('./stores/productivity-store.js');
+      const { getProductivityStore } = await import('../stores/productivity-store.js');
       const store = getProductivityStore();
       await store.loadUserData(userId);
       const data = store.getFullUserData(userId);
@@ -603,7 +603,7 @@ class DataExportService {
 
   private async exportProductivity(userId: string) {
     try {
-      const { getProductivityStore } = await import('./stores/productivity-store.js');
+      const { getProductivityStore } = await import('../stores/productivity-store.js');
       const store = getProductivityStore();
       await store.loadUserData(userId);
       const data = store.getFullUserData(userId);
@@ -699,7 +699,7 @@ class DataExportService {
 
   private async getContactsCount(userId: string): Promise<number> {
     try {
-      const { getUserContacts } = await import('./contacts.js');
+      const { getUserContacts } = await import('../identity/contacts.js');
       const contacts = await getUserContacts(userId);
       return contacts.length;
     } catch {
@@ -710,7 +710,7 @@ class DataExportService {
   private async getTrustDataCount(userId: string): Promise<number> {
     try {
       const { loadTrustProfiles, getActiveBoundaries, getGrowthPatterns, getSharedMoments } =
-        await import('./trust-systems/index.js');
+        await import('../trust-systems/index.js');
       await loadTrustProfiles(userId);
       return (
         getActiveBoundaries(userId).length +
@@ -724,7 +724,7 @@ class DataExportService {
 
   private async getWellbeingCount(userId: string): Promise<number> {
     try {
-      const { exportWellbeingData } = await import('./wellbeing-tracking/persistence.js');
+      const { exportWellbeingData } = await import('../wellbeing-tracking/persistence.js');
       const data = await exportWellbeingData(userId);
       return data?.snapshots?.length || 0;
     } catch {
@@ -734,7 +734,7 @@ class DataExportService {
 
   private async getHabitsCount(userId: string): Promise<number> {
     try {
-      const { getProductivityStore } = await import('./stores/productivity-store.js');
+      const { getProductivityStore } = await import('../stores/productivity-store.js');
       const store = getProductivityStore();
       await store.loadUserData(userId);
       const data = store.getFullUserData(userId);
@@ -746,7 +746,7 @@ class DataExportService {
 
   private async getProductivityCount(userId: string): Promise<number> {
     try {
-      const { getProductivityStore } = await import('./stores/productivity-store.js');
+      const { getProductivityStore } = await import('../stores/productivity-store.js');
       const store = getProductivityStore();
       await store.loadUserData(userId);
       const data = store.getFullUserData(userId);
@@ -796,7 +796,7 @@ class DataExportService {
 
       // 3. Delete wellbeing data
       try {
-        const { deleteWellbeingData } = await import('./wellbeing-tracking/persistence.js');
+        const { deleteWellbeingData } = await import('../wellbeing-tracking/persistence.js');
         await deleteWellbeingData(userId);
         deletionResults['wellbeing'] = true;
       } catch (e) {
@@ -806,7 +806,7 @@ class DataExportService {
 
       // 4. Delete trust data
       try {
-        const { deleteTrustProfiles } = await import('./trust-systems/index.js');
+        const { deleteTrustProfiles } = await import('../trust-systems/index.js');
         await deleteTrustProfiles(userId);
         deletionResults['trust'] = true;
       } catch (e) {
@@ -816,7 +816,7 @@ class DataExportService {
 
       // 5. Delete contacts
       try {
-        const { deleteAllContacts } = await import('./contacts.js');
+        const { deleteAllContacts } = await import('../identity/contacts.js');
         await deleteAllContacts(userId);
         deletionResults['contacts'] = true;
       } catch (e) {
@@ -826,7 +826,7 @@ class DataExportService {
 
       // 6. Delete productivity data
       try {
-        const { getProductivityStore } = await import('./stores/productivity-store.js');
+        const { getProductivityStore } = await import('../stores/productivity-store.js');
         const store = getProductivityStore();
         await store.clearUserData(userId);
         deletionResults['productivity'] = true;

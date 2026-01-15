@@ -23,7 +23,7 @@
 import { createLogger } from '../../utils/safe-logger.js';
 import { registerInterval, clearNamedInterval, hasInterval } from '../../utils/interval-manager.js';
 import { CircuitBreaker, CircuitBreakerOptions, CircuitState } from './circuit-breaker.js';
-import type { RedisCache } from '../../memory/redis-cache.js';
+import type { RedisCache } from '../memory/redis-cache.js';
 
 const log = createLogger({ module: 'redis-circuit-breaker' });
 
@@ -101,7 +101,7 @@ export class RedisCircuitBreaker extends CircuitBreaker {
    */
   private async initializeRedis(): Promise<void> {
     try {
-      const { getRedisCache } = await import('../../memory/redis-cache.js');
+      const { getRedisCache } = await import('../memory/redis-cache.js');
       const cache = getRedisCache();
       await cache.initialize();
 

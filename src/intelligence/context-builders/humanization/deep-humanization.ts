@@ -37,7 +37,7 @@ import {
 } from '../../../services/humanization/index.js';
 
 import { getEmotionalArcTracker, type NarrativePhase } from '../../../conversation/index.js';
-import { getPersonaRelationshipStage } from '../../../services/per-persona-relationship.js';
+import { getPersonaRelationshipStage } from '../../../services/persona-service/per-persona-relationship.js';
 
 const log = createLogger({ module: 'DeepHumanization' });
 

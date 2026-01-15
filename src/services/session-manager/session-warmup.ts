@@ -197,7 +197,7 @@ export async function warmSessionCaches(
       fn: async () => {
         try {
           const { initializeCache } =
-            await import('../tools/semantic-router/integration/redis-cache.js');
+            await import('../../tools/semantic-router/integration/redis-cache.js');
           await initializeCache();
           warmedCaches.push('semantic-router');
         } catch (error) {
@@ -269,7 +269,7 @@ export async function warmHandoffCaches(
 
   try {
     const { preloadPersonaInsights } =
-      await import('../intelligence/context-builders/persona-insights-cache.js');
+      await import('../../intelligence/context-builders/persona-insights-cache.js');
 
     // Preload persona insights in background
     await preloadPersonaInsights(sessionId, anticipatedPersonaId, userId, async () => {

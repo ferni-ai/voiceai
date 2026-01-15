@@ -9,7 +9,7 @@
  * All data is user-scoped and persists across sessions.
  */
 
-import { getDefaultStore, type MemoryStore } from '../../memory/index.js';
+import { getDefaultStore, type MemoryStore } from '../memory/index.js';
 import type { UserProfile } from '../../types/user-profile.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';

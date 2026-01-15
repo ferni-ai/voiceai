@@ -12,7 +12,7 @@
  */
 
 import * as crypto from 'crypto';
-import { getStore } from '../../memory/store-factory.js';
+import { getStore } from '../memory/store-factory.js';
 import {
   createDefaultSubscription,
   type SubscriptionStatus,

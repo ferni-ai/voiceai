@@ -103,6 +103,21 @@ export { toolCache, ToolResultCache } from './tool-cache.js';
 export { circuitBreaker, ServiceCircuitBreaker } from './circuit-breaker.js';
 
 // ============================================================================
+// PERSONA TOOL VOICE
+// ============================================================================
+
+export {
+  getPersonaToolVoice,
+  getPersonaAcknowledgment,
+  getPersonaReactionPrefix,
+  getPersonaFollowUpHook,
+  getPersonaThinkingSound,
+  getPersonaApology,
+  wrapToolResultNaturally,
+  type PersonaToolVoice,
+} from './persona-tool-voice.js';
+
+// ============================================================================
 // SOURCE PRIORITIZATION
 // ============================================================================
 

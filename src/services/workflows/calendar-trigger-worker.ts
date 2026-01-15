@@ -97,7 +97,7 @@ async function sendPreMeetingPushNotification(
     }
 
     // Send push notification
-    const { getPushNotificationsService } = await import('../push-notifications.js');
+    const { getPushNotificationsService } = await import('../outreach/push-notifications.js');
     const pushService = getPushNotificationsService();
 
     const sent = await pushService.sendNotification(userId, {

@@ -431,7 +431,7 @@ function computeDayContext(timezone?: string): DayAwarenessContext {
 
 async function preWarmNews(): Promise<string[] | undefined> {
   try {
-    const { getGeneralNews } = await import('../tools/domains/information/news.js');
+    const { getGeneralNews } = await import('../../tools/domains/information/news.js');
     const newsResult = await getGeneralNews();
     // Extract headlines from the formatted result (best effort)
     // The result contains SSML, so we just store it as-is for now
@@ -449,7 +449,7 @@ async function preWarmNews(): Promise<string[] | undefined> {
 
 async function preWarmWeather(city: string): Promise<void> {
   try {
-    const { getCurrentWeather } = await import('../tools/domains/information/weather.js');
+    const { getCurrentWeather } = await import('../../tools/domains/information/weather.js');
     const weather = await getCurrentWeather(city);
 
     weatherCache.set(city.toLowerCase(), {

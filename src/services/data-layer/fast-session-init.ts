@@ -83,7 +83,7 @@ export async function fastSessionStart(
   let isReturningUser = false;
 
   try {
-    const { getStore } = await import('../../memory/store-factory.js');
+    const { getStore } = await import('../memory/store-factory.js');
     const store = await getStore();
 
     profile = await store.getProfile(userId);
@@ -118,7 +118,7 @@ export async function fastSessionStart(
   scheduleBackgroundTask('knowledge_capture', async () => {
     try {
       const { initializeKnowledgeCapture } =
-        await import('../../memory/knowledge-graph/services/knowledge-capture.js');
+        await import('../memory/knowledge-graph/services/knowledge-capture.js');
       await initializeKnowledgeCapture();
       log.debug({ userId }, '🧠 Knowledge graph LLM capture initialized');
     } catch {

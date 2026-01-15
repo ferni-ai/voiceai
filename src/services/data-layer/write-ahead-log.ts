@@ -292,7 +292,7 @@ export class WriteAheadLog {
 
     try {
       // Dynamic import to avoid circular deps
-      const { getFirestoreDb } = await import('./superhuman/firestore-utils.js');
+      const { getFirestoreDb } = await import('../superhuman/firestore-utils.js');
       const db = getFirestoreDb();
 
       if (!db) {
@@ -444,7 +444,7 @@ export async function initializeWriteAheadLog(): Promise<WriteAheadLog> {
 
   // Configure batch writer with Firestore
   wal.configureBatchWriter(async (entries) => {
-    const { getFirestoreDb } = await import('./superhuman/firestore-utils.js');
+    const { getFirestoreDb } = await import('../superhuman/firestore-utils.js');
     const db = getFirestoreDb();
 
     if (!db) {

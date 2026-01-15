@@ -58,7 +58,7 @@ export async function initializeRedisCache(): Promise<void> {
   if (redisInitialized) return;
 
   try {
-    const { getRedisCache } = await import('../../memory/redis-cache.js');
+    const { getRedisCache } = await import('../memory/redis-cache.js');
     const cache = getRedisCache();
     await cache.initialize();
 

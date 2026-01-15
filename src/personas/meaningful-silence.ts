@@ -22,7 +22,7 @@ import {
   stopAmbientMusic as stopAmbient,
 } from '../audio/ambient-music.js';
 import { getMusicPlayer } from '../audio/index.js';
-import { getMusicConversationStarter, getSpontaneousMusicOffer } from '../services/dj-service.js';
+import { getMusicConversationStarter, getSpontaneousMusicOffer } from '../services/music/dj-service.js';
 import type { PersonaConfig, StoryConfig } from './types.js';
 import { getCanonicalPersonaId } from './voice-registry.js';
 // Dynamic question generation - Better than Human approach

@@ -484,7 +484,7 @@ export async function pruneAllProfiles(options?: {
   };
 
   try {
-    const { getStore } = await import('../../memory/store-factory.js');
+    const { getStore } = await import('../memory/store-factory.js');
     const store = await getStore();
 
     // Get all users (with limit)
@@ -544,7 +544,7 @@ export async function pruneProfileOnSessionEnd(
   options?: { saveImmediately?: boolean }
 ): Promise<PruningResult | null> {
   try {
-    const { getStore } = await import('../../memory/store-factory.js');
+    const { getStore } = await import('../memory/store-factory.js');
     const store = await getStore();
 
     const profile = await store.getProfile(userId);

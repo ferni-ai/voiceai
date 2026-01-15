@@ -27,7 +27,7 @@
 import { createLogger } from '../../utils/safe-logger.js';
 import { registerInterval, clearNamedInterval } from '../../utils/interval-manager.js';
 import { getFeatureFlags } from './feature-flags.js';
-import { notifyRollout } from './integrations/slack-notifications.js';
+import { notifyRollout } from '../integrations/slack-notifications.js';
 
 const log = createLogger({ module: 'FeatureRollout' });
 

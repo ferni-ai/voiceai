@@ -45,12 +45,12 @@ async function registerStorageServices(useMocks = false): Promise<void> {
 
   if (useMocks) {
     // Register mock stores for testing
-    const { InMemoryStore } = await import('../../memory/in-memory-store.js');
+    const { InMemoryStore } = await import('../memory/in-memory-store.js');
     const mockStore = new InMemoryStore();
     await mockStore.initialize();
     container.registerInstance(Tokens.MemoryStore, mockStore);
 
-    const { VectorStore } = await import('../../memory/vector-store.js');
+    const { VectorStore } = await import('../memory/vector-store.js');
     const mockVectorStore = new VectorStore();
     container.registerInstance(Tokens.VectorStore, mockVectorStore);
 
@@ -58,13 +58,13 @@ async function registerStorageServices(useMocks = false): Promise<void> {
   } else {
     // Register real stores - lazy loaded
     container.registerSingleton(Tokens.MemoryStore, async () => {
-      const { initializeMemorySystem } = await import('../../memory/index.js');
+      const { initializeMemorySystem } = await import('../memory/index.js');
       const { store } = await initializeMemorySystem({ indexPersona: false });
       return store;
     });
 
     container.registerSingleton(Tokens.VectorStore, async () => {
-      const { getVectorStore } = await import('../../memory/index.js');
+      const { getVectorStore } = await import('../memory/index.js');
       return getVectorStore();
     });
 

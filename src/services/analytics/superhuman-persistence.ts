@@ -146,9 +146,9 @@ export async function loadSuperhumanData(
     }
 
     // Import engines dynamically to avoid circular dependencies
-    const { getProactiveMemoryEngine } = await import('../conversation/proactive-memory.js');
+    const { getProactiveMemoryEngine } = await import('../../conversation/proactive-memory.js');
     const { getPredictiveAnticipationEngine } =
-      await import('../conversation/predictive-anticipation.js');
+      await import('../../conversation/predictive-anticipation.js');
 
     // Load memories into proactive memory engine
     const memoryEngine = getProactiveMemoryEngine(sessionId);
@@ -181,7 +181,7 @@ export async function loadSuperhumanData(
           ? {
               ...data.learning.baseline,
               preferredNeed: (data.learning.baseline.preferredNeed ||
-                'unknown') as import('../conversation/predictive-anticipation.js').PredictedNeed,
+                'unknown') as import('../../conversation/predictive-anticipation.js').PredictedNeed,
             }
           : undefined,
       };
@@ -214,9 +214,9 @@ export async function saveSuperhumanData(
 ): Promise<void> {
   try {
     // Import engines dynamically
-    const { getProactiveMemoryEngine } = await import('../conversation/proactive-memory.js');
+    const { getProactiveMemoryEngine } = await import('../../conversation/proactive-memory.js');
     const { getPredictiveAnticipationEngine } =
-      await import('../conversation/predictive-anticipation.js');
+      await import('../../conversation/predictive-anticipation.js');
 
     const memoryEngine = getProactiveMemoryEngine(sessionId);
     const anticipationEngine = getPredictiveAnticipationEngine(sessionId);

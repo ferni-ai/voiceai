@@ -12,8 +12,8 @@ import { registerInterval, clearNamedInterval, hasInterval } from '../../utils/i
 import {
   getGlobalPerformanceSummary,
   PERFORMANCE_THRESHOLDS,
-} from './performance/turn-profiler.js';
-import { getReliabilityDashboard } from './performance/tool-execution-reliability.js';
+} from '../performance/turn-profiler.js';
+import { getReliabilityDashboard } from '../performance/tool-execution-reliability.js';
 import { getCircuitBreaker } from '../../utils/circuit-breaker.js';
 
 const log = createLogger({ module: 'PerformanceAlerts' });

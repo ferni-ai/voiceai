@@ -62,6 +62,56 @@ const NEWS_TRANSITIONS = [
 ];
 
 /**
+ * Persona-specific intro phrases for news
+ * More conversational than generic "Here are the headlines"
+ */
+const PERSONA_NEWS_INTROS: Record<string, string[]> = {
+  ferni: [
+    "Here's what's happening:",
+    "So here's the news:",
+    "Okay, so...",
+    "Alright, here we go:",
+  ],
+  'peter-john': [
+    "Here's what the data shows:",
+    "From my research:",
+    "The latest reports indicate:",
+  ],
+  'maya-santos': [
+    "Here's the scoop:",
+    "So here's what's up:",
+    "Alright, news time:",
+  ],
+  'alex-chen': [
+    "Here's what's going on:",
+    "The headlines:",
+    "Here's the rundown:",
+  ],
+  'jordan-taylor': [
+    "Okay so here's the news!",
+    "Here's what's happening:",
+    "Alright, big news:",
+  ],
+  nayan: [
+    "Here's what the world is doing:",
+    "The currents of today:",
+    "What's stirring in the world:",
+  ],
+};
+
+/**
+ * Follow-up hooks to invite engagement after news
+ */
+const NEWS_FOLLOW_UPS = [
+  'Want me to dig into any of those?',
+  'Anything catch your interest?',
+  'Want more detail on any of these?',
+  '', // Sometimes no follow-up
+  '',
+  '',
+];
+
+/**
  * Detect the emotional weight of a headline for appropriate delivery
  */
 function detectHeadlineWeight(headline: string): 'heavy' | 'light' | 'surprising' | 'neutral' {
@@ -97,15 +147,21 @@ function detectHeadlineWeight(headline: string): 'heavy' | 'light' | 'surprising
  * - Natural transitions between stories
  * - Emotional awareness in delivery
  * - Not robotic/uniform pacing
+ * - Persona-specific voice and reactions
  *
  * @param headlines - Array of headline strings
- * @param intro - Introduction phrase
+ * @param intro - Introduction phrase (used as fallback)
  * @param isStale - If true, adds a disclaimer about data freshness
+ * @param options - Additional options for personalization
  */
 function formatNewsWithSSML(
   headlines: (string | undefined)[],
   intro: string,
-  isStale = false
+  isStale = false,
+  options?: {
+    personaId?: string;
+    addFollowUp?: boolean;
+  }
 ): string {
   // Filter out undefined headlines
   const validHeadlines = headlines.filter(
@@ -118,11 +174,19 @@ function formatNewsWithSSML(
 
   const parts: string[] = [];
 
+  // Get persona-specific intro if available
+  const personaIntros = options?.personaId
+    ? PERSONA_NEWS_INTROS[options.personaId] || PERSONA_NEWS_INTROS.ferni
+    : null;
+  const actualIntro = personaIntros
+    ? personaIntros[Math.floor(Math.random() * personaIntros.length)]
+    : intro;
+
   // Add stale data disclaimer if using cached data
   const staleDisclaimer = isStale ? ' from a little while ago' : '';
 
   // Warm intro with natural pace
-  parts.push(`<speed ratio="0.95"/>${intro}${staleDisclaimer}`);
+  parts.push(`<speed ratio="0.95"/>${actualIntro}${staleDisclaimer}`);
   parts.push('<break time="350ms"/>');
 
   validHeadlines.forEach((headline, index) => {
@@ -171,6 +235,15 @@ function formatNewsWithSSML(
 
   // Warm closing breath
   parts.push('<break time="250ms"/>');
+
+  // Add follow-up hook sometimes (invites engagement)
+  if (options?.addFollowUp !== false && validHeadlines.length >= 2) {
+    const followUp = NEWS_FOLLOW_UPS[Math.floor(Math.random() * NEWS_FOLLOW_UPS.length)];
+    if (followUp) {
+      parts.push('<break time="300ms"/>');
+      parts.push(`<speed ratio="0.98"/>${followUp}`);
+    }
+  }
 
   return parts.join('');
 }

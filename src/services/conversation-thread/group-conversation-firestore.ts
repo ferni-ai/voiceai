@@ -29,7 +29,7 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
-import { getFirestoreDb, cleanForFirestore } from './superhuman/firestore-utils.js';
+import { getFirestoreDb, cleanForFirestore } from '../superhuman/firestore-utils.js';
 import type {
   GroupConversation,
   GroupParticipant,

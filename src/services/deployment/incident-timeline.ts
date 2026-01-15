@@ -12,7 +12,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { SlackNotificationService } from './integrations/slack-notifications.js';
+import { SlackNotificationService } from '../integrations/slack-notifications.js';
 import { generateRunbook, type Runbook } from './smart-runbooks.js';
 
 const log = createLogger({ module: 'IncidentTimeline' });

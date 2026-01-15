@@ -12,7 +12,7 @@
 
 import { getLogger } from '../../utils/safe-logger.js';
 // Centralized embedding operations - cosineSimilarity uses SIMD-ready implementation
-import { embed, cosineSimilarity } from '../../memory/embeddings.js';
+import { embed, cosineSimilarity } from '../memory/embeddings.js';
 import type {
   AgentStory,
   AgentWisdom,

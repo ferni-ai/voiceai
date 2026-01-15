@@ -420,7 +420,7 @@ class HandoffMetricsService {
   private sendToAdminDashboard(trace: HandoffTrace): void {
     try {
       // Lazy import to avoid circular dependencies
-      import('../api/v1/admin/diagnostics.js')
+      import('../../api/v1/admin/diagnostics.js')
         .then(({ recordHandoffEvent }) => {
           recordHandoffEvent({
             from: trace.fromAgent,

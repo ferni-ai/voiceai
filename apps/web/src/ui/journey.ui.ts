@@ -328,26 +328,16 @@ function createModal(): void {
       </header>
 
       <div class="journey-body">
+        <!-- Journey Map Section - Visual path showing relationship stages -->
+        <section class="journey-map-section">
+          ${renderJourneyMap(stage, progressPercent)}
+        </section>
+        
         <!-- Progress Overview Section -->
         <section class="journey-progress-overview">
-          <div class="journey-progress-ring-container">
-            <svg class="journey-progress-ring" viewBox="0 0 100 100">
-              <circle class="journey-progress-ring__bg" cx="50" cy="50" r="43" />
-              <circle 
-                class="journey-progress-ring__fill" 
-                cx="50" cy="50" r="43"
-                stroke-dasharray="${2 * Math.PI * 43}"
-                stroke-dashoffset="${2 * Math.PI * 43 * (1 - progressPercent / 100)}"
-              />
-            </svg>
-            <div class="journey-progress-ring__text">
-              <span class="journey-progress-ring__percent">${progressPercent}%</span>
-              <span class="journey-progress-ring__label">progress</span>
-            </div>
-          </div>
-          
           <h2 class="journey-stage-name">${stageName}</h2>
           <p class="journey-stage-tagline">${stageInfo?.tagline ?? 'Just getting started'}</p>
+          <p class="journey-stage-description">${stageInfo?.description ?? ''}</p>
           
           <div class="journey-stats-row">
             <div class="journey-stat">

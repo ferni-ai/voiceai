@@ -20,7 +20,7 @@
  * persist across sessions via Firestore/PostgreSQL.
  */
 
-import { getDefaultStore } from '../../memory/index.js';
+import { getDefaultStore } from '../memory/index.js';
 import type { UserProfile } from '../../types/user-profile.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
@@ -328,7 +328,7 @@ export function getMemoriesCacheStats(): { users: number; entries: number } {
  */
 export async function registerWithSessionDataManager(): Promise<void> {
   try {
-    const { getSessionDataManager } = await import('../session-data-manager.js');
+    const { getSessionDataManager } = await import('../session-manager/session-data-manager.js');
     getSessionDataManager().registerService({
       name: 'PersonaMemories',
       clearUserData: clearUserMemoriesCache,

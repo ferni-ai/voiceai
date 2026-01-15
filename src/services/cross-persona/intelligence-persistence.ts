@@ -71,7 +71,7 @@ import {
 import {
   getBetterThanHuman,
   getExistingBetterThanHumanForUser,
-} from '../conversation/superhuman/orchestrator.js';
+} from '../../conversation/superhuman/orchestrator.js';
 
 // ============================================================================
 // TYPES

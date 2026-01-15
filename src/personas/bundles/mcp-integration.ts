@@ -26,7 +26,7 @@ import type { BundleMCPConfig, BundleMCPServer } from './types/commands.js';
 import {
   loadDeveloperMCPServers,
   type MCPServerConfig,
-} from '../../services/developer-mcp-registry.js';
+} from '../../services/integrations/developer-mcp-registry.js';
 
 const log = getLogger();
 

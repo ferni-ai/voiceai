@@ -601,13 +601,13 @@ export default {
 export {
   getGlobalPerformanceSummary,
   PERFORMANCE_THRESHOLDS,
-} from './performance/turn-profiler.js';
+} from '../performance/turn-profiler.js';
 
 // Tool response caching metrics
-export { getToolCacheMetrics } from './performance/tool-response-cache.js';
+export { getToolCacheMetrics } from '../performance/tool-response-cache.js';
 
 // Speculative TTS metrics
-export { getSpeculativeTTSMetrics } from './performance/speculative-tts.js';
+export { getSpeculativeTTSMetrics } from '../performance/speculative-tts.js';
 
 // Tool execution reliability (retries, circuit breakers)
-export { getReliabilityDashboard } from './performance/tool-execution-reliability.js';
+export { getReliabilityDashboard } from '../performance/tool-execution-reliability.js';

@@ -11,7 +11,7 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
-import { getUserContactInfo } from './outreach/user-contact.js';
+import { getUserContactInfo } from '../outreach/user-contact.js';
 import {
   getPreferences,
   setPreferences,
@@ -237,7 +237,7 @@ export async function sendBroadcast(
   scheduledFor?: Date
 ): Promise<{ sent: number; failed: number; skipped: number }> {
   const { scheduleText, scheduleEmail, canReachUser } =
-    await import('../tools/domains/proactive/outreach/index.js');
+    await import('../../tools/domains/proactive/outreach/index.js');
   const { canSendOutreach } = await import('./outreach-intelligence.js');
 
   let sent = 0;

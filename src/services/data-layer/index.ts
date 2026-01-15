@@ -24,9 +24,9 @@ import { getFinancialStore, type MayaFinancialData } from '../stores/financial-s
 import { getLifeDataStore, type UserLifeData } from '../stores/life-data-store.js';
 
 // Memory imports
-import { semanticSearch } from '../../memory/semantic-rag.js';
-import { embed } from '../../memory/embeddings.js';
-import { getFirestoreVectorStore } from '../../memory/firestore-vector-store/index.js';
+import { semanticSearch } from '../memory/semantic-rag.js';
+import { embed } from '../memory/embeddings.js';
+import { getFirestoreVectorStore } from '../memory/firestore-vector-store/index.js';
 
 const log = createLogger({ module: 'data-layer' });
 
@@ -150,7 +150,7 @@ export {
   indexRelationshipMilestone,
   indexSeasonalPattern,
   indexPredictiveCoaching,
-} from './integrations/index.js';
+} from '../integrations/index.js';
 
 // Re-export observability utilities
 export {

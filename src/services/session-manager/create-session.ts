@@ -20,7 +20,7 @@ import type { UserProfile } from '../../types/user-profile.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import { stripSSML } from '../../utils/text-utils.js';
 // 🦀 Rust-accelerated word counting
-import { countWordsRust, isTokenCountingAvailable } from '../../memory/rust-accelerator.js';
+import { countWordsRust, isTokenCountingAvailable } from '../memory/rust-accelerator.js';
 
 const log = getLogger();
 const RUST_COUNTING_AVAILABLE = isTokenCountingAvailable();
@@ -70,7 +70,7 @@ import {
   setCurrentSessionMomentsGetter,
   summarizeConversation,
   type ConversationTurn,
-} from '../../memory/index.js';
+} from '../memory/index.js';
 
 // Intelligence imports
 import {
@@ -425,7 +425,7 @@ export async function createSessionServices(
   if (userProfile?.customData && isReturningUser) {
     const customData = userProfile.customData as {
       emotionalMoments?: Array<
-        import('../intelligence/tracking/emotional-memory.js').EmotionalMoment
+        import('../../intelligence/tracking/emotional-memory.js').EmotionalMoment
       >;
     };
     if (customData.emotionalMoments?.length) {
@@ -443,17 +443,17 @@ export async function createSessionServices(
   // ============================================================================
 
   let existingThreads:
-    | Array<import('../intelligence/tracking/cross-session.js').OpenThread>
+    | Array<import('../../intelligence/tracking/cross-session.js').OpenThread>
     | undefined;
   let existingFollowUps:
-    | Array<import('../intelligence/tracking/cross-session.js').PromisedFollowUp>
+    | Array<import('../../intelligence/tracking/cross-session.js').PromisedFollowUp>
     | undefined;
 
   if (userProfile?.customData && isReturningUser) {
     const customData = userProfile.customData as {
-      openThreads?: Array<import('../intelligence/tracking/cross-session.js').OpenThread>;
+      openThreads?: Array<import('../../intelligence/tracking/cross-session.js').OpenThread>;
       promisedFollowUps?: Array<
-        import('../intelligence/tracking/cross-session.js').PromisedFollowUp
+        import('../../intelligence/tracking/cross-session.js').PromisedFollowUp
       >;
     };
 
@@ -1646,7 +1646,7 @@ export async function createSessionServices(
             // Try LLM summarization first for richer understanding, fall back to extraction
             try {
               const { createSummarizationLLMCaller } = await import('../llm/llm-utils.js');
-              const { summarizeWithLLM } = await import('../../memory/index.js');
+              const { summarizeWithLLM } = await import('../memory/index.js');
               const llmCaller = createSummarizationLLMCaller();
 
               summary = await withTimeout(
@@ -1945,7 +1945,7 @@ export async function createSessionServices(
           // ================================================================
           try {
             const { extractHumanSignals, mergeSignalsIntoMemory } =
-              await import('../../memory/human-signal-extractor.js');
+              await import('../memory/human-signal-extractor.js');
 
             if (turns.length > 0) {
               const signals = extractHumanSignals(turns, {
@@ -2009,7 +2009,7 @@ export async function createSessionServices(
           // This enables "remember when..." queries across all user data
           // Including human-centric memory: dates, values, dreams, growth, etc.
           try {
-            const { indexUserMemories } = await import('../../memory/user-memory-indexer.js');
+            const { indexUserMemories } = await import('../memory/user-memory-indexer.js');
             void indexUserMemories(validatedUserId, updatedProfile, {
               // Index both profile data AND human-centric memory
               categories: [

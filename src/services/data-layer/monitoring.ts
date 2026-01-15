@@ -7,7 +7,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { getFirestoreVectorStore } from '../../memory/firestore-vector-store/index.js';
+import { getFirestoreVectorStore } from '../memory/firestore-vector-store/index.js';
 
 const log = createLogger({ module: 'SemanticMonitoring' });
 

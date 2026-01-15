@@ -12,7 +12,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { onSessionSummaryChange } from '../data-layer/hooks/better-than-human-hooks.js';
-import { writeSessionContinuity } from '../../memory/dynamic/memory-continuity.js';
+import { writeSessionContinuity } from '../memory/dynamic/memory-continuity.js';
 
 const log = createLogger({ module: 'SessionSummary' });
 

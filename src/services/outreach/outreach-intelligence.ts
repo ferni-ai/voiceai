@@ -22,14 +22,14 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
-import { createPersistenceStore, type PersistenceStore } from './persistence/index.js';
+import { createPersistenceStore, type PersistenceStore } from '../persistence/index.js';
 import {
   scheduleText,
   scheduleEmail,
   scheduleCall,
   getUserContactInfo,
   setUserContactInfo,
-} from './outreach/user-contact.js';
+} from '../outreach/user-contact.js';
 import { AgentRole } from '../../personas/index.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
@@ -152,7 +152,7 @@ export async function initializeOutreachPersistence(): Promise<void> {
 
   // Register with SessionDataManager
   try {
-    const { getSessionDataManager } = await import('./session-data-manager.js');
+    const { getSessionDataManager } = await import('../session-manager/session-data-manager.js');
     getSessionDataManager().registerService({
       name: 'OutreachIntelligence',
       clearUserData: clearUserOutreachData,
@@ -948,7 +948,7 @@ export async function executeOutreach(
 
   // Execute immediately (using the proactive outreach functions)
   const { textUser, emailUser, callUser } =
-    await import('../tools/domains/proactive/outreach/index.js');
+    await import('../../tools/domains/proactive/outreach/index.js');
 
   let result;
   switch (method) {

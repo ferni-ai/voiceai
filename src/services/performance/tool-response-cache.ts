@@ -30,7 +30,7 @@ import { createLogger } from '../../utils/safe-logger.js';
 import { LRUCache } from 'lru-cache';
 
 // Redis backing type (lazy loaded)
-type RedisCache = ReturnType<typeof import('../../memory/redis-cache.js').getRedisCache> | null;
+type RedisCache = ReturnType<typeof import('../memory/redis-cache.js').getRedisCache> | null;
 
 const log = createLogger({ module: 'ToolResponseCache' });
 
@@ -198,7 +198,7 @@ class ToolResponseCache {
     }
 
     try {
-      const { getRedisCache } = await import('../../memory/redis-cache.js');
+      const { getRedisCache } = await import('../memory/redis-cache.js');
       this.redisCache = getRedisCache();
       await this.redisCache.initialize();
       this.redisInitialized = true;

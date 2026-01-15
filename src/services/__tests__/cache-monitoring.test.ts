@@ -47,7 +47,7 @@ vi.mock('../../personas/cognitive-advanced.js', () => ({
   })),
 }));
 
-vi.mock('../../memory/embedding-cache.js', () => ({
+vi.mock('../memory/embedding-cache.js', () => ({
   getEmbeddingCache: vi.fn(() => ({
     getStats: () => ({
       size: 100,
@@ -60,7 +60,7 @@ vi.mock('../../memory/embedding-cache.js', () => ({
   })),
 }));
 
-vi.mock('../../memory/redis-cache.js', () => ({
+vi.mock('../memory/redis-cache.js', () => ({
   getRedisCache: vi.fn(() => ({
     isConnected: () => true,
   })),

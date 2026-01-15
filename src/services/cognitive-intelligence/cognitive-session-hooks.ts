@@ -18,7 +18,7 @@ import {
   syncCognitiveToProfile,
   loadCognitiveFromProfile,
   getCognitiveSession,
-} from './memory/cognitive-memory.js';
+} from '../memory/cognitive-memory.js';
 import { cognitiveBroadcast } from './cognitive-broadcast.js';
 
 const logger = getLogger();

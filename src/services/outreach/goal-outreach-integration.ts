@@ -13,11 +13,11 @@
  * PERSISTENCE: Goals and streaks are persisted to Firestore.
  */
 
-import { canReachUser, scheduleEmail, scheduleText } from './outreach/user-contact.js';
+import { canReachUser, scheduleEmail, scheduleText } from '../outreach/user-contact.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import { registerInterval, clearNamedInterval, hasInterval } from '../../utils/interval-manager.js';
 import { canSendOutreach, getPreferences } from './outreach-intelligence.js';
-import { createPersistenceStore, type PersistenceStore } from './persistence/index.js';
+import { createPersistenceStore, type PersistenceStore } from '../persistence/index.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 // ============================================================================
@@ -683,7 +683,7 @@ export async function sendMissedCheckInNudges(maxDaysSinceContact = 3): Promise<
 
   try {
     // Get engagement store to find users who haven't interacted recently
-    const { getEngagementStore } = await import('./engagement/engagement-store.js');
+    const { getEngagementStore } = await import('../engagement/engagement-store.js');
     const store = await getEngagementStore();
 
     if (!store) {
@@ -734,7 +734,7 @@ export async function sendMissedCheckInNudges(maxDaysSinceContact = 3): Promise<
 
       // Send a gentle re-engagement nudge
       try {
-        const { triggerOutreach } = await import('./outreach/index.js');
+        const { triggerOutreach } = await import('../outreach/index.js');
         const preferredPersona = (profile.preferences?.favoritePersona ||
           'ferni') as import('./agent-bus.js').AgentId;
 
@@ -747,7 +747,7 @@ export async function sendMissedCheckInNudges(maxDaysSinceContact = 3): Promise<
           priority: 'low',
           reason: nudgeMessage,
           suggestedPersona: preferredPersona,
-        } as import('./outreach/decision-engine.js').OutreachTrigger);
+        } as import('../outreach/decision-engine.js').OutreachTrigger);
 
         nudgesSent++;
         getLogger().info(

@@ -328,7 +328,7 @@ function getCulturalContext(): CulturalContext {
 
 async function getMusicContext(): Promise<MusicContext | undefined> {
   try {
-    const { getMusicPlayer } = await import('../audio/index.js');
+    const { getMusicPlayer } = await import('../../audio/index.js');
     const musicPlayer = getMusicPlayer();
     const state = musicPlayer.getState();
 
