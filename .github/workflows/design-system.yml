@@ -93,7 +93,7 @@ jobs:
         working-directory: packages/ferni-react
 
       - name: Upload React package artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ferni-react-dist
           path: packages/ferni-react/dist/
@@ -105,7 +105,7 @@ jobs:
         working-directory: apps/vscode-extension
 
       - name: Upload VS Code extension artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: vscode-extension-dist
           path: apps/vscode-extension/dist/
@@ -117,7 +117,7 @@ jobs:
         working-directory: apps/figma-plugin
 
       - name: Upload Figma plugin artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: figma-plugin-dist
           path: apps/figma-plugin/dist/
@@ -156,7 +156,7 @@ jobs:
         working-directory: design-system
 
       - name: Upload Storybook
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: storybook-static
           path: design-system/storybook-static/
@@ -245,7 +245,7 @@ jobs:
         continue-on-error: true # May fail if VSCE_TOKEN not set
 
       - name: Upload VSIX artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ferni-design-system.vsix
           path: apps/vscode-extension/*.vsix

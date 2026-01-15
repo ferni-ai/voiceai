@@ -127,14 +127,14 @@ jobs:
 
       # Upload artifacts
       - name: Upload rust-perf artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: rust-perf-${{ matrix.node_arch }}
           path: apps/rust-perf/*.node
           if-no-files-found: error
 
       - name: Upload rust-audio artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: rust-audio-${{ matrix.node_arch }}
           path: apps/rust-audio/*.node
