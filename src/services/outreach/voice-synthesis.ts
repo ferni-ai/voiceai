@@ -9,6 +9,7 @@
 
 import { Storage } from '@google-cloud/storage';
 import { getLogger } from '../../utils/safe-logger.js';
+import { CARTESIA_MODEL, CARTESIA_API_VERSION } from '../../config/voice-ids.js';
 
 const log = getLogger().child({ module: 'outreach-voice-synthesis' });
 
@@ -194,11 +195,11 @@ async function synthesizeWithCartesia(
       method: 'POST',
       headers: {
         'X-API-Key': config.cartesiaApiKey,
-        'Cartesia-Version': '2024-06-10',
+        'Cartesia-Version': CARTESIA_API_VERSION,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model_id: 'sonic-english',
+        model_id: CARTESIA_MODEL,
         transcript: text,
         voice: {
           mode: 'id',

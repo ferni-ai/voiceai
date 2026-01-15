@@ -17,6 +17,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { getContentGenerationModel, TEMP_CONTENT, MAX_TOKENS_SHORT } from '../../config/gemini-config.js';
 
 const log = createLogger({ module: 'LLMContentGenerator' });
 
@@ -338,8 +339,8 @@ async function getDefaultLLMProvider(): Promise<LLMProvider> {
     }
 
     const genAI = new GoogleGenerativeAI(apiKey);
-    const modelName =
-      process.env.GEMINI_OUTREACH_MODEL || process.env.GEMINI_MODEL || 'gemini-2.0-flash-exp';
+    // Use content generation model (can be overridden via env)
+    const modelName = process.env.GEMINI_OUTREACH_MODEL || getContentGenerationModel();
     const model = genAI.getGenerativeModel({ model: modelName });
 
     return {
@@ -347,8 +348,8 @@ async function getDefaultLLMProvider(): Promise<LLMProvider> {
         const result = await model.generateContent({
           contents: [{ role: 'user', parts: [{ text: `${systemPrompt}\n\n---\n\n${prompt}` }] }],
           generationConfig: {
-            temperature: 0.8,
-            maxOutputTokens: 300,
+            temperature: TEMP_CONTENT,
+            maxOutputTokens: MAX_TOKENS_SHORT,
           },
         });
         return result.response.text().trim();

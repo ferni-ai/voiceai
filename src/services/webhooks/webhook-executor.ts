@@ -16,6 +16,11 @@ import type {
   WebhookPayloadContext,
 } from './types.js';
 import { recordExecution } from './webhook-config-store.js';
+import {
+  MAX_RETRIES_LIGHT,
+  RETRY_DELAY_MS as RESILIENCE_RETRY_DELAY,
+  HTTP_TIMEOUT_MS,
+} from '../../config/resilience-config.js';
 
 const log = createLogger({ module: 'webhook-executor' });
 
@@ -29,9 +34,9 @@ const DEFAULT_RATE_LIMIT: RateLimitConfig = {
   defaultCooldownSeconds: 5,
 };
 
-const WEBHOOK_TIMEOUT_MS = 10_000; // 10 seconds
-const MAX_RETRIES = 2; // Retry twice for transient failures
-const RETRY_DELAY_MS = 1000; // 1 second between retries
+const WEBHOOK_TIMEOUT_MS = HTTP_TIMEOUT_MS; // From resilience-config
+const MAX_RETRIES = MAX_RETRIES_LIGHT; // Retry twice for transient failures
+const RETRY_DELAY_MS = RESILIENCE_RETRY_DELAY; // From resilience-config
 
 /**
  * Sleep helper for retry delay

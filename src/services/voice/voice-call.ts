@@ -13,6 +13,7 @@ import { enhanceOutboundMessage, type OutboundSsmlOptions } from '../outreach/ou
 
 // Voice registry for consistent voice ID resolution
 import { getPersonaDisplayName, getVoiceId } from '../../personas/voice-registry.js';
+import { CARTESIA_MODEL, CARTESIA_API_VERSION } from '../../config/voice-ids.js';
 
 // Circuit breaker for Cartesia TTS - prevents hammering a failing TTS service
 const cartesiaCircuitBreaker = getCircuitBreaker('cartesia-tts-voice-call', {
@@ -116,11 +117,11 @@ export async function generatePersonaVoice(
         method: 'POST',
         headers: {
           'X-API-Key': CARTESIA_API_KEY,
-          'Cartesia-Version': '2024-06-10',
+          'Cartesia-Version': CARTESIA_API_VERSION,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model_id: 'sonic-english', // Cartesia's English TTS model
+          model_id: CARTESIA_MODEL,
           transcript: cleanText,
           voice: {
             mode: 'id',

@@ -22,6 +22,8 @@ import {
   type ContentContext,
 } from '../services/llm-dynamic-content.js';
 import { callLLM } from '../services/llm-utils.js';
+import { TEMP_CONTENT, MAX_TOKENS_TINY, LLM_SHORT_TIMEOUT_MS } from '../config/gemini-config.js';
+import { HTTP_TIMEOUT_SHORT_MS } from '../config/resilience-config.js';
 import {
   getMusicCommentary,
   hasArtistInfo,
@@ -139,9 +141,9 @@ async function generateLLMInterjection(
       const prompt = buildMusicInterjectionPrompt(context, moment);
 
       const result = await callLLM(prompt, {
-        maxTokens: 100, // Keep it brief
-        temperature: 0.8, // Creative but not wild
-        timeout: 3000, // Fast timeout for responsiveness
+        maxTokens: MAX_TOKENS_TINY, // Keep it brief
+        temperature: TEMP_CONTENT, // Creative but not wild
+        timeout: HTTP_TIMEOUT_SHORT_MS, // Fast timeout for responsiveness
       });
 
       if (result) {

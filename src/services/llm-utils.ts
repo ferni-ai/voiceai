@@ -15,7 +15,15 @@
  * @module services/llm-utils
  */
 
-import { getDefaultModel, getGeminiClient } from '../config/gemini-config.js';
+import {
+  getDefaultModel,
+  getGeminiClient,
+  getOpenAIFallbackModel,
+  TEMP_EXTRACTION,
+  MAX_TOKENS_MEDIUM,
+  LLM_TIMEOUT_MS,
+} from '../config/gemini-config.js';
+import { CIRCUIT_FAILURE_THRESHOLD, CIRCUIT_RESET_TIMEOUT_MS, CIRCUIT_SUCCESS_THRESHOLD } from '../config/resilience-config.js';
 import { CircuitOpenError, getCircuitBreaker } from '../utils/circuit-breaker.js';
 import { getLogger } from '../utils/safe-logger.js';
 
@@ -27,15 +35,15 @@ const USE_VERTEX_AI = process.env.USE_VERTEX_AI !== 'false';
 // ============================================================================
 
 const vertexAICircuitBreaker = getCircuitBreaker('vertex-ai', {
-  failureThreshold: 3,
-  resetTimeout: 30000, // 30 seconds
-  successThreshold: 2,
+  failureThreshold: CIRCUIT_FAILURE_THRESHOLD,
+  resetTimeout: CIRCUIT_RESET_TIMEOUT_MS,
+  successThreshold: CIRCUIT_SUCCESS_THRESHOLD,
 });
 
 const openAICircuitBreaker = getCircuitBreaker('openai', {
-  failureThreshold: 3,
-  resetTimeout: 30000, // 30 seconds
-  successThreshold: 2,
+  failureThreshold: CIRCUIT_FAILURE_THRESHOLD,
+  resetTimeout: CIRCUIT_RESET_TIMEOUT_MS,
+  successThreshold: CIRCUIT_SUCCESS_THRESHOLD,
 });
 
 // ============================================================================
@@ -129,7 +137,7 @@ async function callVertexAI(prompt: string, options: LLMCallOptions = {}): Promi
       return null;
     }
 
-    const { maxTokens = 500, temperature = 0.3, timeout = 5000 } = options;
+    const { maxTokens = MAX_TOKENS_MEDIUM, temperature = TEMP_EXTRACTION, timeout = LLM_TIMEOUT_MS } = options;
 
     // Use AbortController for timeout
     // eslint-disable-next-line no-undef
@@ -202,7 +210,7 @@ async function callGeminiAPI(prompt: string, options: LLMCallOptions = {}): Prom
       return null;
     }
 
-    const { maxTokens = 500, temperature = 0.3, timeout = 5000 } = options;
+    const { maxTokens = MAX_TOKENS_MEDIUM, temperature = TEMP_EXTRACTION, timeout = LLM_TIMEOUT_MS } = options;
 
     // Use AbortController for timeout
     // eslint-disable-next-line no-undef
@@ -323,7 +331,7 @@ async function callOpenAI(prompt: string, options: LLMCallOptions = {}): Promise
             };
           }
         ).chat.completions.create({
-          model: 'gpt-4o-mini',
+          model: getOpenAIFallbackModel(),
           messages: [{ role: 'user', content: prompt }],
           max_tokens: maxTokens,
           temperature,

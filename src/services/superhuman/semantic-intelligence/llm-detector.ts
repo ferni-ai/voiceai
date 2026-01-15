@@ -16,7 +16,7 @@
 
 import { createLogger } from '../../../utils/safe-logger.js';
 import { getCircuitBreaker, CircuitOpenError } from '../../../utils/circuit-breaker.js';
-import { getGeminiClient } from '../../../config/gemini-config.js';
+import { getGeminiClient, TEMP_CLASSIFICATION, MAX_TOKENS_SHORT } from '../../../config/gemini-config.js';
 import { getDefaultModel, getShortLLMTimeout } from '../../model-config.js';
 import type { ExtractedPerson, PersonRelationship } from './person-extractor.js';
 
@@ -26,7 +26,7 @@ const log = createLogger({ module: 'llm-detector' });
 // CONFIGURATION (from centralized model-config.ts)
 // ============================================================================
 
-const MAX_TOKENS = 200; // Short responses only
+const MAX_TOKENS = MAX_TOKENS_SHORT; // Short responses only (from centralized config)
 
 // Circuit breaker for LLM calls
 const llmCircuitBreaker = getCircuitBreaker('semantic-llm', {
@@ -114,7 +114,7 @@ async function callLLM<T>(
           contents: prompt,
           config: {
             maxOutputTokens: MAX_TOKENS,
-            temperature: 0.1, // Low for consistent classification
+            temperature: TEMP_CLASSIFICATION, // Low for consistent classification
           },
         }),
         new Promise<never>((_, reject) => {

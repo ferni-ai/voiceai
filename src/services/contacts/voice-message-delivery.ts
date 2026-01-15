@@ -16,6 +16,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { getContact, recordInteraction } from './contact-relationship-service.js';
+import { CARTESIA_MODEL, CARTESIA_API_VERSION } from '../../config/voice-ids.js';
 
 const log = createLogger({ module: 'voice-message-delivery' });
 
@@ -82,11 +83,11 @@ async function generateSpeechCartesia(text: string, config: TTSConfig): Promise<
     method: 'POST',
     headers: {
       'X-API-Key': apiKey,
-      'Cartesia-Version': '2024-06-10',
+      'Cartesia-Version': CARTESIA_API_VERSION,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model_id: 'sonic-english',
+      model_id: CARTESIA_MODEL,
       transcript: text,
       voice: {
         mode: 'id',

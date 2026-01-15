@@ -13,6 +13,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { getLightModel, TEMP_CREATIVE, MAX_TOKENS_STANDARD } from '../../config/gemini-config.js';
 import { readFile } from 'fs/promises';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
@@ -371,11 +372,11 @@ export async function generatePersonaExpressions(
     const prompt = buildPrompt(config, themes, context, voiceDna);
 
     const model = genai.models.generateContent({
-      model: 'gemini-2.0-flash-lite',
+      model: getLightModel(),
       contents: prompt,
       config: {
-        temperature: 0.9,
-        maxOutputTokens: 800,
+        temperature: TEMP_CREATIVE,
+        maxOutputTokens: MAX_TOKENS_STANDARD,
       },
     });
 

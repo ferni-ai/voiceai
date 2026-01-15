@@ -11,6 +11,7 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
+import { getOpenAIFallbackModel, TEMP_EXTRACTION } from '../../config/gemini-config.js';
 // Centralized embedding operations - cosineSimilarity uses SIMD-ready implementation
 import { embed, cosineSimilarity } from '../../memory/embeddings.js';
 import type {
@@ -399,7 +400,7 @@ export async function extractMetadata(
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: getOpenAIFallbackModel(),
         messages: [
           {
             role: 'system',
@@ -413,7 +414,7 @@ Be warm and human in your interpretations. Always respond with valid JSON.`,
           },
         ],
         response_format: { type: 'json_object' },
-        temperature: 0.3,
+        temperature: TEMP_EXTRACTION,
       }),
     });
 

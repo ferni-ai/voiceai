@@ -14,6 +14,7 @@ import type { Room, RemoteParticipant } from '@livekit/rtc-node';
 import { getLogger } from '../../utils/safe-logger.js';
 import { diag } from '../../services/diagnostic-logger.js';
 import { callLLM } from '../../services/llm-utils.js';
+import { TEMP_EXTRACTION, MAX_TOKENS_MEDIUM, LLM_TIMEOUT_MS } from '../../config/gemini-config.js';
 import {
   createParticipantRegistry,
   createUserParticipant,
@@ -400,9 +401,9 @@ Rules:
 
     try {
       const result = await callLLM(prompt, {
-        maxTokens: 500,
-        temperature: 0.3, // Lower temperature for structured output
-        timeout: 5000,
+        maxTokens: MAX_TOKENS_MEDIUM,
+        temperature: TEMP_EXTRACTION, // Lower temperature for structured output
+        timeout: LLM_TIMEOUT_MS,
       });
 
       if (!result) {

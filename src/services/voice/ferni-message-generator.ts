@@ -14,6 +14,8 @@ import {
   getContextForOutreach,
   loadUserContextFromFirestore,
 } from '../outreach/context-aggregator.js';
+import { TEMP_CREATIVE, MAX_TOKENS_TINY } from '../../config/gemini-config.js';
+import { HTTP_TIMEOUT_MS } from '../../config/resilience-config.js';
 
 const log = createLogger({ module: 'ferni-message-generator' });
 
@@ -319,12 +321,12 @@ async function generateWithGemini(prompt: string): Promise<string | null> {
         body: JSON.stringify({
           contents: [{ parts: [{ text: prompt }] }],
           generationConfig: {
-            temperature: 0.9, // Higher for more natural variation
-            maxOutputTokens: 150, // Keep it short
+            temperature: TEMP_CREATIVE, // Higher for more natural variation
+            maxOutputTokens: MAX_TOKENS_TINY, // Keep it short
             topP: 0.95,
           },
         }),
-        signal: AbortSignal.timeout(10000),
+        signal: AbortSignal.timeout(HTTP_TIMEOUT_MS),
       }
     );
 

@@ -15,6 +15,7 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import OpenAI from 'openai';
+import { getOpenAIFallbackModel, MAX_TOKENS_SHORT, TEMP_CONTENT } from '../config/gemini-config.js';
 import { getLogger } from '../utils/safe-logger.js';
 import { parseBody, sendJSON, sendError, handleCorsPreflightIfNeeded } from './helpers.js';
 import { rateLimit } from './auth-middleware.js';
@@ -172,10 +173,10 @@ Remember: Keep responses brief (2-3 sentences max), warm, and genuine. You're ha
       messages.push({ role: 'user', content: userMessage });
 
       const completion = await openai.chat.completions.create({
-        model: 'gpt-4o-mini',
+        model: getOpenAIFallbackModel(),
         messages,
-        max_tokens: 200,
-        temperature: 0.85,
+        max_tokens: MAX_TOKENS_SHORT,
+        temperature: TEMP_CONTENT,
       });
 
       const response = completion.choices[0]?.message?.content;

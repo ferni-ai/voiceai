@@ -14,6 +14,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { callLLM } from '../llm-utils.js';
+import { TEMP_REASONING, TEMP_BALANCED, MAX_TOKENS_STANDARD, MAX_TOKENS_SHORT } from '../../config/gemini-config.js';
 
 const log = createLogger({ module: 'ProactiveInsightGenerator' });
 
@@ -118,8 +119,8 @@ export async function generateProactiveInsights(
     const prompt = INSIGHT_GENERATION_PROMPT.replace('{context}', contextStr);
     
     const response = await callLLM(prompt, { 
-      maxTokens: 1000, 
-      temperature: 0.7 // Slightly creative 
+      maxTokens: MAX_TOKENS_STANDARD, 
+      temperature: TEMP_REASONING // Slightly creative 
     });
     
     if (!response) {
@@ -170,7 +171,7 @@ Respond with ONLY valid JSON:
 }`;
 
   try {
-    const response = await callLLM(prompt, { maxTokens: 300, temperature: 0.5 });
+    const response = await callLLM(prompt, { maxTokens: MAX_TOKENS_SHORT, temperature: TEMP_BALANCED });
     
     if (!response) return null;
     

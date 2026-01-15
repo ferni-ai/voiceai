@@ -10,6 +10,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { callLLM } from '../llm-utils.js';
+import { TEMP_CONTENT, MAX_TOKENS_STANDARD } from '../../config/gemini-config.js';
 import { getContact, recordInteraction } from './contact-relationship-service.js';
 import type { Firestore } from '@google-cloud/firestore';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
@@ -389,8 +390,8 @@ Return as a JSON array of 5 suggestions.`;
 
   try {
     const response = await callLLM(prompt, {
-      temperature: 0.8,
-      maxTokens: 800,
+      temperature: TEMP_CONTENT,
+      maxTokens: MAX_TOKENS_STANDARD,
     });
 
     // Parse JSON response

@@ -12,6 +12,7 @@
 
 import { createLogger } from '../utils/safe-logger.js';
 import type { GoogleGenerativeAI } from '@google/generative-ai';
+import { TEMP_EXTRACTION } from '../config/gemini-config.js';
 
 const log = createLogger({ module: 'SmartRunbooks' });
 
@@ -314,7 +315,7 @@ export async function generateRunbook(
       model: cachedModelName, // From centralized config
       generationConfig: {
         responseMimeType: 'application/json',
-        temperature: 0.3, // Lower temperature for more consistent output
+        temperature: TEMP_EXTRACTION, // Lower temperature for more consistent output
       },
     });
 

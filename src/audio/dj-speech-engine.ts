@@ -17,6 +17,8 @@
 import { callLLM } from '../services/llm-utils.js';
 import { createLogger } from '../utils/safe-logger.js';
 import type { MusicTrack } from './music-player.js';
+import { TEMP_CONTENT, MAX_TOKENS_TINY } from '../config/gemini-config.js';
+import { HTTP_TIMEOUT_SHORT_MS } from '../config/resilience-config.js';
 
 const log = createLogger({ module: 'DJSpeechEngine' });
 
@@ -460,9 +462,9 @@ export async function generateLLMInterjection(
       const prompt = buildInterjectionPrompt(context, moment);
 
       const result = await callLLM(prompt, {
-        maxTokens: 100,
-        temperature: 0.8,
-        timeout: 3000,
+        maxTokens: MAX_TOKENS_TINY,
+        temperature: TEMP_CONTENT,
+        timeout: HTTP_TIMEOUT_SHORT_MS,
       });
 
       if (result) {

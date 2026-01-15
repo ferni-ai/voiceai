@@ -18,6 +18,14 @@
 
 import { callLLM } from './llm-utils.js';
 import { getLogger } from '../utils/safe-logger.js';
+import {
+  TEMP_BALANCED,
+  TEMP_REASONING,
+  TEMP_CONTENT,
+  TEMP_CREATIVE,
+  MAX_TOKENS_TINY,
+  LLM_TIMEOUT_MS,
+} from '../config/gemini-config.js';
 
 const log = getLogger();
 
@@ -651,9 +659,9 @@ export function getContentCacheStats(): {
 registerContentGenerator('thinking_phrase', {
   voiceDna: FERNI_VOICE_DNA,
   templates: ['Okay.', 'Right.', 'Yeah.', 'Huh.', "That's a hard one."],
-  maxTokens: 50,
-  temperature: 0.7,
-  timeout: 4000,
+  maxTokens: MAX_TOKENS_TINY,
+  temperature: TEMP_REASONING,
+  timeout: LLM_TIMEOUT_MS,
   buildPrompt: (context) => `${getPersonaVoiceDna(context.personaId)}
 
 ## TASK
@@ -709,9 +717,9 @@ Generate ONE empathetic reflection. No quotes:`,
 registerContentGenerator('proactive_starter', {
   voiceDna: FERNI_VOICE_DNA,
   templates: ["What's on your mind?", 'How are you doing?', "What's been happening?"],
-  maxTokens: 60,
-  temperature: 0.9,
-  timeout: 5000,
+  maxTokens: MAX_TOKENS_TINY,
+  temperature: TEMP_CREATIVE,
+  timeout: LLM_TIMEOUT_MS,
   buildPrompt: (context) => `${getPersonaVoiceDna(context.personaId)}
 
 ## TASK
@@ -735,9 +743,9 @@ Generate ONE conversation starter. No quotes:`,
 registerContentGenerator('post_music_checkin', {
   voiceDna: FERNI_VOICE_DNA,
   templates: ['How was that?', 'Did that hit?', 'Good choice?'],
-  maxTokens: 40,
-  temperature: 0.8,
-  timeout: 4000,
+  maxTokens: MAX_TOKENS_TINY,
+  temperature: TEMP_CONTENT,
+  timeout: LLM_TIMEOUT_MS,
   buildPrompt: (context) => `${getPersonaVoiceDna(context.personaId)}
 
 ## TASK
@@ -760,9 +768,9 @@ Generate ONE brief check-in. No quotes:`,
 registerContentGenerator('celebration', {
   voiceDna: FERNI_VOICE_DNA,
   templates: ["That's huge!", 'Yes!', 'I love that.', 'Look at you!'],
-  maxTokens: 50,
-  temperature: 0.9,
-  timeout: 4000,
+  maxTokens: MAX_TOKENS_TINY,
+  temperature: TEMP_CREATIVE,
+  timeout: LLM_TIMEOUT_MS,
   buildPrompt: (context) => `${getPersonaVoiceDna(context.personaId)}
 
 ## TASK
@@ -785,9 +793,9 @@ Generate ONE celebration phrase. No quotes:`,
 registerContentGenerator('question_followup', {
   voiceDna: FERNI_VOICE_DNA,
   templates: ['What made you think of that?', 'How long has that been going on?'],
-  maxTokens: 60,
-  temperature: 0.8,
-  timeout: 5000,
+  maxTokens: MAX_TOKENS_TINY,
+  temperature: TEMP_CONTENT,
+  timeout: LLM_TIMEOUT_MS,
   buildPrompt: (context) => `${getPersonaVoiceDna(context.personaId)}
 
 ## TASK
@@ -812,9 +820,9 @@ Generate ONE follow-up question. No quotes:`,
 registerContentGenerator('active_listening', {
   voiceDna: FERNI_VOICE_DNA,
   templates: ['Mm.', 'Yeah.', 'Right.'],
-  maxTokens: 30,
-  temperature: 0.6,
-  timeout: 3000,
+  maxTokens: MAX_TOKENS_TINY,
+  temperature: TEMP_BALANCED,
+  timeout: LLM_TIMEOUT_MS,
   buildPrompt: (context) => `${getPersonaVoiceDna(context.personaId)}
 
 ## TASK
@@ -841,9 +849,9 @@ Generate ONE brief sound. No quotes:`,
 registerContentGenerator('greeting', {
   voiceDna: FERNI_VOICE_DNA,
   templates: ['Hey.', 'Hi there.', "What's up?", 'Hey, you.'],
-  maxTokens: 40,
-  temperature: 0.8,
-  timeout: 4000,
+  maxTokens: MAX_TOKENS_TINY,
+  temperature: TEMP_CONTENT,
+  timeout: LLM_TIMEOUT_MS,
   buildPrompt: (context) => `${getPersonaVoiceDna(context.personaId)}
 
 ## TASK
@@ -867,9 +875,9 @@ Generate ONE greeting. No quotes:`,
 registerContentGenerator('closing', {
   voiceDna: FERNI_VOICE_DNA,
   templates: ['Take care.', 'Talk soon.', "I'm here when you need me.", 'Good talk.'],
-  maxTokens: 50,
-  temperature: 0.8,
-  timeout: 4000,
+  maxTokens: MAX_TOKENS_TINY,
+  temperature: TEMP_CONTENT,
+  timeout: LLM_TIMEOUT_MS,
   buildPrompt: (context) => `${getPersonaVoiceDna(context.personaId)}
 
 ## TASK
@@ -894,9 +902,9 @@ Generate ONE closing. No quotes:`,
 registerContentGenerator('transition', {
   voiceDna: FERNI_VOICE_DNA,
   templates: ['So.', 'Anyway.', 'Speaking of which...', 'That reminds me.'],
-  maxTokens: 40,
-  temperature: 0.7,
-  timeout: 4000,
+  maxTokens: MAX_TOKENS_TINY,
+  temperature: TEMP_REASONING,
+  timeout: LLM_TIMEOUT_MS,
   buildPrompt: (context) => `${getPersonaVoiceDna(context.personaId)}
 
 ## TASK
@@ -951,9 +959,9 @@ Generate ONE encouragement. No quotes:`,
 registerContentGenerator('acknowledgment', {
   voiceDna: FERNI_VOICE_DNA,
   templates: ['Got it.', 'Makes sense.', 'I see.', 'Okay.'],
-  maxTokens: 30,
-  temperature: 0.6,
-  timeout: 3000,
+  maxTokens: MAX_TOKENS_TINY,
+  temperature: TEMP_BALANCED,
+  timeout: LLM_TIMEOUT_MS,
   buildPrompt: (context) => `${getPersonaVoiceDna(context.personaId)}
 
 ## TASK
@@ -975,9 +983,9 @@ Generate ONE acknowledgment. No quotes:`,
 registerContentGenerator('clarification', {
   voiceDna: FERNI_VOICE_DNA,
   templates: ['Wait, what do you mean?', 'Say more?', "I want to make sure I'm getting this."],
-  maxTokens: 50,
-  temperature: 0.7,
-  timeout: 4000,
+  maxTokens: MAX_TOKENS_TINY,
+  temperature: TEMP_REASONING,
+  timeout: LLM_TIMEOUT_MS,
   buildPrompt: (context) => `${getPersonaVoiceDna(context.personaId)}
 
 ## TASK
@@ -1000,9 +1008,9 @@ Generate ONE clarification request. No quotes:`,
 registerContentGenerator('summary_intro', {
   voiceDna: FERNI_VOICE_DNA,
   templates: ['So, to recap...', "Here's what I'm hearing.", "Let me make sure I've got this."],
-  maxTokens: 40,
-  temperature: 0.6,
-  timeout: 4000,
+  maxTokens: MAX_TOKENS_TINY,
+  temperature: TEMP_BALANCED,
+  timeout: LLM_TIMEOUT_MS,
   buildPrompt: (context) => `${getPersonaVoiceDna(context.personaId)}
 
 ## TASK
@@ -1024,9 +1032,9 @@ Generate ONE summary intro. No quotes:`,
 registerContentGenerator('humor', {
   voiceDna: FERNI_VOICE_DNA,
   templates: ['Ha!', "That's a good one.", "I mean, you're not wrong."],
-  maxTokens: 50,
-  temperature: 0.9,
-  timeout: 4000,
+  maxTokens: MAX_TOKENS_TINY,
+  temperature: TEMP_CREATIVE,
+  timeout: LLM_TIMEOUT_MS,
   buildPrompt: (context) => `${getPersonaVoiceDna(context.personaId)}
 
 ## TASK

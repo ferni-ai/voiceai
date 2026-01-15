@@ -16,6 +16,7 @@
 
 import { getLogger } from '../../utils/safe-logger.js';
 import { callLLM } from '../llm-utils.js';
+import { TEMP_REASONING, MAX_TOKENS_SHORT, LLM_TIMEOUT_MS } from '../../config/gemini-config.js';
 import type { RelationshipStage } from './persona-voice-generator.js';
 import {
   classifyIntent,
@@ -368,9 +369,9 @@ async function generateFromLLM(
 ): Promise<EnrichedMessage> {
   const prompt = buildEnrichmentPrompt(context);
   const enrichedText = await callLLM(prompt, {
-    maxTokens: 300,
-    temperature: 0.7,
-    timeout: 5000,
+    maxTokens: MAX_TOKENS_SHORT,
+    temperature: TEMP_REASONING,
+    timeout: LLM_TIMEOUT_MS,
   });
 
   if (!enrichedText) {
@@ -423,9 +424,9 @@ export async function enrichVoicemailMessage(context: EnrichmentContext): Promis
     // Try to get structured components
     const componentsPrompt = buildVoicemailComponentsPrompt(context);
     const componentsResponse = await callLLM(componentsPrompt, {
-      maxTokens: 400,
-      temperature: 0.6,
-      timeout: 5000,
+      maxTokens: MAX_TOKENS_SHORT,
+      temperature: TEMP_REASONING,
+      timeout: LLM_TIMEOUT_MS,
     });
 
     if (componentsResponse) {

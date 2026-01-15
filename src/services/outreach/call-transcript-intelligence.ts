@@ -18,6 +18,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { getOpenAIFallbackModel, getDefaultModel, TEMP_REASONING, MAX_TOKENS_LONG } from '../../config/gemini-config.js';
 
 const log = createLogger({ module: 'call-transcript-intelligence' });
 
@@ -271,7 +272,7 @@ async function callLLMForAnalysis(prompt: string): Promise<ConversationInsights>
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'gpt-4o-mini',
+          model: getOpenAIFallbackModel(),
           messages: [
             {
               role: 'system',
@@ -280,8 +281,8 @@ async function callLLMForAnalysis(prompt: string): Promise<ConversationInsights>
             },
             { role: 'user', content: prompt },
           ],
-          temperature: 0.7,
-          max_tokens: 1500,
+          temperature: TEMP_REASONING,
+          max_tokens: MAX_TOKENS_LONG,
         }),
       });
 
@@ -306,13 +307,13 @@ async function callLLMForAnalysis(prompt: string): Promise<ConversationInsights>
   const geminiKey = process.env.GOOGLE_API_KEY;
   if (geminiKey) {
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/${getDefaultModel()}:generateContent?key=${geminiKey}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { temperature: 0.7 },
+          generationConfig: { temperature: TEMP_REASONING },
         }),
       }
     );

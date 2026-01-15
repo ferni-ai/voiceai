@@ -13,6 +13,7 @@ import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { sendEmail, sendSMS } from '../communication-service.js';
 import { callLLM } from '../llm-utils.js';
+import { TEMP_REASONING, MAX_TOKENS_SHORT, LLM_TIMEOUT_MS } from '../../config/gemini-config.js';
 import { loadNetwork } from '../superhuman/relationship-network.js';
 import { loadPersonalDates } from '../superhuman/seasonal-awareness.js';
 import { getGroup, getGroups } from './contact-groups.js';
@@ -449,9 +450,9 @@ export async function generatePersonalizedMessageLLM(context: OutreachContext): 
 
   try {
     const llmResponse = await callLLM(prompt, {
-      maxTokens: 300,
-      temperature: 0.7,
-      timeout: 5000,
+      maxTokens: MAX_TOKENS_SHORT,
+      temperature: TEMP_REASONING,
+      timeout: LLM_TIMEOUT_MS,
     });
 
     if (llmResponse && llmResponse.length > 20) {

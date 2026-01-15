@@ -23,6 +23,13 @@ import {
   getGeminiClient,
   isGeminiConfigured,
   getDefaultModel,
+  TEMP_EXTRACTION,
+  TEMP_REASONING,
+  TEMP_CONTENT,
+  TEMP_CREATIVE,
+  MAX_TOKENS_TINY,
+  MAX_TOKENS_SHORT,
+  MAX_TOKENS_MEDIUM,
 } from '../../config/gemini-config.js';
 
 // ============================================================================
@@ -287,8 +294,8 @@ Remember: This is their first impression of Ferni. Make it count.`;
     const chat = model.startChat({
       history,
       generationConfig: {
-        maxOutputTokens: 150,
-        temperature: 0.7,
+        maxOutputTokens: MAX_TOKENS_TINY,
+        temperature: TEMP_REASONING,
       },
     });
 
@@ -386,8 +393,8 @@ Give a BRIEF response (1-2 sentences) that shows your unique perspective and per
     const result = await model.generateContent({
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
       generationConfig: {
-        maxOutputTokens: 100,
-        temperature: 0.8,
+        maxOutputTokens: MAX_TOKENS_TINY,
+        temperature: TEMP_CONTENT,
       },
     });
 
@@ -475,8 +482,8 @@ Respond in JSON format:
     const result = await model.generateContent({
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
       generationConfig: {
-        maxOutputTokens: 200,
-        temperature: 0.3,
+        maxOutputTokens: MAX_TOKENS_SHORT,
+        temperature: TEMP_EXTRACTION,
         responseMimeType: 'application/json',
       },
     });
@@ -590,8 +597,8 @@ Respond in JSON:
     const result = await model.generateContent({
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
       generationConfig: {
-        maxOutputTokens: 300,
-        temperature: 0.8,
+        maxOutputTokens: MAX_TOKENS_SHORT,
+        temperature: TEMP_CONTENT,
         responseMimeType: 'application/json',
       },
     });
@@ -707,8 +714,8 @@ Make them feel REAL and specific, not generic. No made-up names.`;
     const result = await model.generateContent({
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
       generationConfig: {
-        maxOutputTokens: 500,
-        temperature: 0.9,
+        maxOutputTokens: MAX_TOKENS_MEDIUM,
+        temperature: TEMP_CREATIVE,
         responseMimeType: 'application/json',
       },
     });
@@ -780,8 +787,8 @@ Just return the text, no quotes.`;
     const result = await model.generateContent({
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
       generationConfig: {
-        maxOutputTokens: 30,
-        temperature: 0.9,
+        maxOutputTokens: MAX_TOKENS_TINY,
+        temperature: TEMP_CREATIVE,
       },
     });
 
@@ -873,8 +880,8 @@ Return JSON:
     const result = await model.generateContent({
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
       generationConfig: {
-        maxOutputTokens: 150,
-        temperature: 0.7,
+        maxOutputTokens: MAX_TOKENS_TINY,
+        temperature: TEMP_REASONING,
         responseMimeType: 'application/json',
       },
     });

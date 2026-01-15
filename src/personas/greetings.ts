@@ -11,7 +11,7 @@
  */
 
 import { getLogger } from '../utils/safe-logger.js';
-import { getDefaultModel } from '../services/model-config.js';
+import { getDefaultModel, TEMP_CREATIVE } from '../services/model-config.js';
 
 import { getDayContext } from './behaviors.js';
 import type { GreetingStyle, PersonaConfig } from './types.js';
@@ -573,7 +573,7 @@ Generate ONE greeting (2-4 sentences max). Be warm and natural.`;
         body: JSON.stringify({
           contents: [{ parts: [{ text: prompt }] }],
           generationConfig: {
-            temperature: 0.9,
+            temperature: TEMP_CREATIVE,
             maxOutputTokens: 150,
           },
         }),

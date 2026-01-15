@@ -14,6 +14,7 @@ import { EventEmitter } from 'events';
 
 import { clearNamedInterval, registerInterval } from '../../utils/interval-manager.js';
 import { getLogger } from '../../utils/safe-logger.js';
+import { MAX_RETRIES } from '../../config/resilience-config.js';
 
 import type {
   BackgroundData,
@@ -87,7 +88,7 @@ export class TaskQueueService extends EventEmitter {
       priority: params.priority ?? 'medium',
       scheduledFor: params.scheduledFor,
       retryCount: 0,
-      maxRetries: 3,
+      maxRetries: MAX_RETRIES,
       status: 'pending',
       createdBy: params.createdBy ?? 'system',
       parentWorkflowId: params.workflowId,

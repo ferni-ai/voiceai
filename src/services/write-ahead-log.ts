@@ -16,6 +16,7 @@
 
 import { createLogger } from '../utils/safe-logger.js';
 import { registerInterval, clearNamedInterval, hasInterval } from '../utils/interval-manager.js';
+import { MAX_RETRIES, BATCH_SIZE_MEDIUM } from '../config/resilience-config.js';
 
 const log = createLogger({ module: 'WriteAheadLog' });
 
@@ -81,9 +82,9 @@ export class WriteAheadLog {
 
   constructor(config?: Partial<WALConfig>) {
     this.config = {
-      maxQueueSize: 50,
+      maxQueueSize: BATCH_SIZE_MEDIUM,
       flushIntervalMs: 5000,
-      maxRetries: 3,
+      maxRetries: MAX_RETRIES,
       enableLocalFallback: true,
       ...config,
     };

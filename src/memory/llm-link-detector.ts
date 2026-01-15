@@ -16,6 +16,7 @@
 
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { createLogger } from '../utils/safe-logger.js';
+import { getClassificationModel, TEMP_CLASSIFICATION } from '../config/gemini-config.js';
 import { getMemoryGraph, type LinkType, type MemoryLink } from './memory-graph.js';
 
 // Map our semantic link types to the MemoryGraph link types
@@ -67,8 +68,8 @@ export interface LLMLinkDetectorConfig {
 }
 
 const DEFAULT_CONFIG: LLMLinkDetectorConfig = {
-  model: 'gemini-1.5-flash-latest',
-  temperature: 0.1,
+  model: getClassificationModel(),
+  temperature: TEMP_CLASSIFICATION,
   maxPairsPerCall: 10,
   minConfidenceThreshold: 0.6,
   maxCallsPerMinute: 10,

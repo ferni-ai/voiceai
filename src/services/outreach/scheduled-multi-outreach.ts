@@ -11,6 +11,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
+import { MAX_RETRIES } from '../../config/resilience-config.js';
 
 const log = createLogger({ module: 'ScheduledMultiOutreach' });
 
@@ -126,7 +127,7 @@ export async function scheduleOutreach(
     updatedAt: now,
     batchId,
     retryCount: 0,
-    maxRetries: 3,
+    maxRetries: MAX_RETRIES,
   };
 
   await firestore

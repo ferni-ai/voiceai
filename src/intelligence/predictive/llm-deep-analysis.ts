@@ -34,6 +34,7 @@
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb, cleanForFirestore } from '../../services/superhuman/firestore-utils.js';
 import { Timestamp, type DocumentReference } from '@google-cloud/firestore';
+import { TEMP_EXTRACTION, MAX_TOKENS_EXTENDED } from '../../config/gemini-config.js';
 
 const log = createLogger({ module: 'llm-deep-analysis' });
 
@@ -243,9 +244,10 @@ export async function runDeepAnalysis(input: DeepAnalysisInput): Promise<DeepAna
       throw new Error('GOOGLE_API_KEY not configured');
     }
 
+    const { getExtractionModel } = await import('../../config/gemini-config.js');
     const genai = new GoogleGenerativeAI(apiKey);
-    // Use gemini-1.5-flash for cost-effective batch analysis
-    const model = genai.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    // Use extraction model for cost-effective batch analysis
+    const model = genai.getGenerativeModel({ model: getExtractionModel() });
 
     const prompt = buildAnalysisPrompt(input);
 
@@ -263,8 +265,8 @@ export async function runDeepAnalysis(input: DeepAnalysisInput): Promise<DeepAna
         { role: 'user', parts: [{ text: prompt }] },
       ],
       generationConfig: {
-        temperature: 0.3, // Lower temperature for analytical consistency
-        maxOutputTokens: 4096,
+        temperature: TEMP_EXTRACTION, // Lower temperature for analytical consistency
+        maxOutputTokens: MAX_TOKENS_EXTENDED,
         responseMimeType: 'application/json',
       },
     });
@@ -289,7 +291,7 @@ export async function runDeepAnalysis(input: DeepAnalysisInput): Promise<DeepAna
       hypotheses: parsed.hypotheses || [],
       outreachSuggestions: parsed.outreachSuggestions || [],
       coachingGuidance: parsed.coachingGuidance || [],
-      model: 'gemini-1.5-flash',
+      model: getExtractionModel(),
       tokenUsage: {
         input: response.usageMetadata?.promptTokenCount || 0,
         output: response.usageMetadata?.candidatesTokenCount || 0,

@@ -11,6 +11,7 @@
  */
 
 import { createLogger } from '../../../utils/safe-logger.js';
+import { getExtractionModel, TEMP_CLASSIFICATION } from '../../../config/gemini-config.js';
 import type { ExtractedFact } from '../../entity-store/types.js';
 
 const log = createLogger({ module: 'LLMFactExtractor' });
@@ -82,9 +83,9 @@ async function getGeminiModel() {
 
     const genAI = new GoogleGenerativeAI(apiKey);
     geminiModel = genAI.getGenerativeModel({
-      model: 'gemini-1.5-flash',
+      model: getExtractionModel(),
       generationConfig: {
-        temperature: 0.1,
+        temperature: TEMP_CLASSIFICATION,
         maxOutputTokens: 2000,
         responseMimeType: 'application/json',
       },
@@ -169,7 +170,7 @@ Extract facts as JSON array with: entityId, type (attribute/event/relationship/s
     return {
       facts,
       processingTimeMs: Date.now() - startTime,
-      modelUsed: 'gemini-1.5-flash',
+      modelUsed: getExtractionModel(),
     };
   } catch (error) {
     log.error({ error: String(error) }, 'Fact extraction failed');

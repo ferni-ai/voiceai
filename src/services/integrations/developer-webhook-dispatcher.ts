@@ -20,6 +20,12 @@
 import crypto from 'crypto';
 import { getLogger } from '../../utils/safe-logger.js';
 import {
+  MAX_RETRIES,
+  RETRY_DELAY_MS,
+  RETRY_MAX_DELAY_MS,
+  HTTP_TIMEOUT_MS,
+} from '../../config/resilience-config.js';
+import {
   COLLECTIONS,
   type WebhookPayload,
   type WebhookEventType,
@@ -31,20 +37,17 @@ import {
 const log = getLogger().child({ module: 'webhook-dispatcher' });
 
 // ============================================================================
-// CONFIGURATION
+// CONFIGURATION (from centralized resilience-config)
 // ============================================================================
 
-/** Maximum retry attempts */
-const MAX_RETRIES = 3;
+/** Base delay between retries (from resilience-config) */
+const BASE_RETRY_DELAY = RETRY_DELAY_MS;
 
-/** Base delay between retries (ms) */
-const BASE_RETRY_DELAY = 1000;
+/** Maximum delay between retries (from resilience-config) */
+const MAX_RETRY_DELAY = RETRY_MAX_DELAY_MS;
 
-/** Maximum delay between retries (ms) */
-const MAX_RETRY_DELAY = 30000;
-
-/** Webhook request timeout (ms) */
-const REQUEST_TIMEOUT = 10000;
+/** Webhook request timeout (from resilience-config) */
+const REQUEST_TIMEOUT = HTTP_TIMEOUT_MS;
 
 // ============================================================================
 // TYPES

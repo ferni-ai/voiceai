@@ -17,6 +17,7 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import OpenAI from 'openai';
+import { getOpenAIFallbackModel, MAX_TOKENS_SHORT, TEMP_CONTENT } from '../config/gemini-config.js';
 import { transcribeAudioBuffer } from '../services/custom-agent/memory-capture.service.js';
 import {
   generatePrompts,
@@ -618,13 +619,13 @@ async function generateTwinResponse(request: TwinResponseRequest): Promise<strin
       const openai = new OpenAI({ apiKey: openaiKey });
 
       const completion = await openai.chat.completions.create({
-        model: 'gpt-4o-mini',
+        model: getOpenAIFallbackModel(),
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userMessage },
         ],
-        max_tokens: 300,
-        temperature: 0.8,
+        max_tokens: MAX_TOKENS_SHORT,
+        temperature: TEMP_CONTENT,
       });
 
       const response = completion.choices[0]?.message?.content;

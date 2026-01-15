@@ -17,6 +17,7 @@
 
 import { createLogger } from '../../../../utils/safe-logger.js';
 import { callLLM } from '../../../../services/llm-utils.js';
+import { TEMP_REASONING, MAX_TOKENS_TINY, LLM_TIMEOUT_MS } from '../../../../config/gemini-config.js';
 import type { OutreachIntent } from './unified-outreach.js';
 
 const log = createLogger({ module: 'message-crafting' });
@@ -190,9 +191,9 @@ Remember: ${channel === 'text' ? 'Keep it to 1-2 sentences like a real text.' : 
     const combinedPrompt = `${systemPrompt}\n\n---\n\n${userPrompt}`;
 
     const message = await callLLM(combinedPrompt, {
-      maxTokens: 150, // Keep it short
-      temperature: 0.7, // Some creativity but not too wild
-      timeout: 5000,
+      maxTokens: MAX_TOKENS_TINY, // Keep it short
+      temperature: TEMP_REASONING, // Some creativity but not too wild
+      timeout: LLM_TIMEOUT_MS,
     });
 
     if (message && message.length > 5 && message.length < 500) {

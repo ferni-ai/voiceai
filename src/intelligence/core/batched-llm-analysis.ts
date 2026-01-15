@@ -19,7 +19,12 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { getDefaultModel } from '../../services/model-config.js';
+import {
+  getDefaultModel,
+  getOpenAIFallbackModel,
+  TEMP_CLASSIFICATION,
+  MAX_TOKENS_STANDARD,
+} from '../../services/model-config.js';
 
 const log = createLogger({ module: 'BatchedLLMAnalysis' });
 
@@ -344,8 +349,8 @@ class BatchedLLMAnalyzer {
         model: getDefaultModel(),
         contents: `${ANALYSIS_SYSTEM_PROMPT}\n\n${prompt}`,
         config: {
-          temperature: 0.1, // Low temperature for consistent analysis
-          maxOutputTokens: 1000,
+          temperature: TEMP_CLASSIFICATION, // Low temperature for consistent analysis
+          maxOutputTokens: MAX_TOKENS_STANDARD,
         },
       });
 
@@ -375,13 +380,13 @@ class BatchedLLMAnalyzer {
         const openai = new OpenAI();
 
         const response = await openai.chat.completions.create({
-          model: 'gpt-4o-mini',
+          model: getOpenAIFallbackModel(),
           messages: [
             { role: 'system', content: ANALYSIS_SYSTEM_PROMPT },
             { role: 'user', content: prompt },
           ],
-          temperature: 0.1,
-          max_tokens: 1000,
+          temperature: TEMP_CLASSIFICATION,
+          max_tokens: MAX_TOKENS_STANDARD,
           response_format: { type: 'json_object' },
         });
 

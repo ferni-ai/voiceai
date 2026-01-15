@@ -11,6 +11,7 @@
  */
 
 import { createLogger } from '../../../utils/safe-logger.js';
+import { getExtractionModel, TEMP_CLASSIFICATION } from '../../../config/gemini-config.js';
 import type { EntityRelationship, EdgeType } from '../../entity-store/types.js';
 
 const log = createLogger({ module: 'LLMRelationshipExtractor' });
@@ -106,9 +107,9 @@ async function getGeminiModel() {
 
     const genAI = new GoogleGenerativeAI(apiKey);
     geminiModel = genAI.getGenerativeModel({
-      model: 'gemini-1.5-flash',
+      model: getExtractionModel(),
       generationConfig: {
-        temperature: 0.1,
+        temperature: TEMP_CLASSIFICATION,
         maxOutputTokens: 2000,
         responseMimeType: 'application/json',
       },
@@ -213,7 +214,7 @@ Extract relationships as JSON array with: fromEntityId, toEntityId, type, label,
     return {
       relationships,
       processingTimeMs: Date.now() - startTime,
-      modelUsed: 'gemini-1.5-flash',
+      modelUsed: getExtractionModel(),
     };
   } catch (error) {
     log.error({ error: String(error) }, 'Relationship extraction failed');

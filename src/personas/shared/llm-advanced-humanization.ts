@@ -11,6 +11,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { getLightModel, TEMP_CONTENT, MAX_TOKENS_TINY } from '../../config/gemini-config.js';
 
 const log = createLogger({ module: 'llm-humanization' });
 
@@ -286,11 +287,11 @@ CRITICAL:
 Return ONLY the response text with SSML. No JSON, no explanation.`;
 
     const model = genai.models.generateContent({
-      model: 'gemini-2.0-flash-lite',
+      model: getLightModel(),
       contents: prompt,
       config: {
-        temperature: 0.85,
-        maxOutputTokens: 150,
+        temperature: TEMP_CONTENT,
+        maxOutputTokens: MAX_TOKENS_TINY,
       },
     });
 

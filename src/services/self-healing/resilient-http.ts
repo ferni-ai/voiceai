@@ -22,6 +22,15 @@ import { createLogger } from '../../utils/safe-logger.js';
 import { createCircuitBreaker, CircuitBreakerError } from './circuit-breaker.js';
 import { withResilience } from './resilient-executor.js';
 import { humanizeError, type HumanizedError } from './error-humanizer.js';
+import {
+  MAX_RETRIES,
+  MAX_RETRIES_LIGHT,
+  HTTP_TIMEOUT_MS,
+  RETRY_DELAY_MS,
+  RETRY_MAX_DELAY_MS,
+  CIRCUIT_FAILURE_THRESHOLD,
+  CIRCUIT_RESET_TIMEOUT_MS,
+} from '../../config/resilience-config.js';
 
 const log = createLogger({ module: 'resilient-http' });
 
@@ -262,12 +271,12 @@ const DEFAULT_OPTIONS: Required<
     'onCircuitStateChange' | 'onRequest' | 'onResponse' | 'defaultHeaders' | 'shouldRetry'
   >
 > = {
-  failureThreshold: 5,
-  recoveryTimeout: 30000,
-  maxRetries: 3,
-  timeout: 10000,
-  baseDelay: 1000,
-  maxDelay: 10000,
+  failureThreshold: CIRCUIT_FAILURE_THRESHOLD,
+  recoveryTimeout: CIRCUIT_RESET_TIMEOUT_MS,
+  maxRetries: MAX_RETRIES,
+  timeout: HTTP_TIMEOUT_MS,
+  baseDelay: RETRY_DELAY_MS,
+  maxDelay: RETRY_MAX_DELAY_MS,
 };
 
 // Registry of all clients for health dashboard
@@ -547,8 +556,8 @@ let _smartThingsClient: ResilientClient | null = null;
 export function getYahooFinanceClient(): ResilientClient {
   if (!_yahooFinanceClient) {
     _yahooFinanceClient = createResilientClient('yahoo-finance', {
-      timeout: 8000,
-      maxRetries: 2,
+      timeout: HTTP_TIMEOUT_MS,
+      maxRetries: MAX_RETRIES_LIGHT,
       defaultHeaders: { 'User-Agent': 'Mozilla/5.0' },
     });
   }
@@ -558,8 +567,8 @@ export function getYahooFinanceClient(): ResilientClient {
 export function getAlphaVantageClient(): ResilientClient {
   if (!_alphaVantageClient) {
     _alphaVantageClient = createResilientClient('alpha-vantage', {
-      timeout: 8000,
-      maxRetries: 2,
+      timeout: HTTP_TIMEOUT_MS,
+      maxRetries: MAX_RETRIES_LIGHT,
     });
   }
   return _alphaVantageClient;
@@ -568,8 +577,8 @@ export function getAlphaVantageClient(): ResilientClient {
 export function getGoogleApisClient(): ResilientClient {
   if (!_googleApisClient) {
     _googleApisClient = createResilientClient('google-apis', {
-      timeout: 5000,
-      maxRetries: 2,
+      timeout: HTTP_TIMEOUT_MS,
+      maxRetries: MAX_RETRIES_LIGHT,
     });
   }
   return _googleApisClient;
@@ -578,8 +587,8 @@ export function getGoogleApisClient(): ResilientClient {
 export function getWikipediaClient(): ResilientClient {
   if (!_wikipediaClient) {
     _wikipediaClient = createResilientClient('wikipedia', {
-      timeout: 5000,
-      maxRetries: 2,
+      timeout: HTTP_TIMEOUT_MS,
+      maxRetries: MAX_RETRIES_LIGHT,
       defaultHeaders: { 'User-Agent': 'VoiceAgent/1.0' },
     });
   }
@@ -589,8 +598,8 @@ export function getWikipediaClient(): ResilientClient {
 export function getHomeAssistantClient(): ResilientClient {
   if (!_homeAssistantClient) {
     _homeAssistantClient = createResilientClient('home-assistant', {
-      timeout: 10000,
-      maxRetries: 2,
+      timeout: HTTP_TIMEOUT_MS,
+      maxRetries: MAX_RETRIES_LIGHT,
       failureThreshold: 3, // Smart home should fail faster
     });
   }
@@ -600,8 +609,8 @@ export function getHomeAssistantClient(): ResilientClient {
 export function getHueClient(): ResilientClient {
   if (!_hueClient) {
     _hueClient = createResilientClient('philips-hue', {
-      timeout: 5000,
-      maxRetries: 2,
+      timeout: HTTP_TIMEOUT_MS,
+      maxRetries: MAX_RETRIES_LIGHT,
       failureThreshold: 3,
     });
   }
@@ -611,8 +620,8 @@ export function getHueClient(): ResilientClient {
 export function getLifxClient(): ResilientClient {
   if (!_lifxClient) {
     _lifxClient = createResilientClient('lifx', {
-      timeout: 10000,
-      maxRetries: 2,
+      timeout: HTTP_TIMEOUT_MS,
+      maxRetries: MAX_RETRIES_LIGHT,
       failureThreshold: 3,
     });
   }
@@ -622,8 +631,8 @@ export function getLifxClient(): ResilientClient {
 export function getSmartThingsClient(): ResilientClient {
   if (!_smartThingsClient) {
     _smartThingsClient = createResilientClient('smartthings', {
-      timeout: 10000,
-      maxRetries: 2,
+      timeout: HTTP_TIMEOUT_MS,
+      maxRetries: MAX_RETRIES_LIGHT,
       failureThreshold: 3,
     });
   }

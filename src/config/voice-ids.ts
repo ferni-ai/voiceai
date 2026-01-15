@@ -18,7 +18,7 @@ import { createLogger } from '../utils/safe-logger.js';
 const log = createLogger({ module: 'VoiceIds' });
 
 // =============================================================================
-// CARTESIA MODEL
+// CARTESIA CONFIGURATION
 // =============================================================================
 
 /**
@@ -26,6 +26,16 @@ const log = createLogger({ module: 'VoiceIds' });
  * sonic-3 is the latest with best quality.
  */
 export const CARTESIA_MODEL = process.env.CARTESIA_MODEL || 'sonic-3-latest';
+
+/**
+ * Cartesia API version for all TTS requests
+ */
+export const CARTESIA_API_VERSION = process.env.CARTESIA_API_VERSION || '2024-06-10';
+
+/**
+ * Cartesia API URL
+ */
+export const CARTESIA_API_URL = process.env.CARTESIA_API_URL || 'https://api.cartesia.ai';
 
 // =============================================================================
 // CANONICAL VOICE IDS

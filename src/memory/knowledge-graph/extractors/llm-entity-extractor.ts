@@ -9,6 +9,7 @@
  */
 
 import { createLogger } from '../../../utils/safe-logger.js';
+import { getExtractionModel, TEMP_CLASSIFICATION } from '../../../config/gemini-config.js';
 import type { EntityType } from '../../entity-store/types.js';
 
 const log = createLogger({ module: 'LLMEntityExtractor' });
@@ -122,9 +123,9 @@ async function getGeminiModel() {
 
     const genAI = new GoogleGenerativeAI(apiKey);
     geminiModel = genAI.getGenerativeModel({
-      model: 'gemini-1.5-flash',
+      model: getExtractionModel(),
       generationConfig: {
-        temperature: 0.1, // Low temperature for structured extraction
+        temperature: TEMP_CLASSIFICATION, // Low temperature for structured extraction
         maxOutputTokens: 2000,
         responseMimeType: 'application/json',
       },
@@ -201,7 +202,7 @@ Extract all entities as JSON array:`;
     return {
       entities,
       processingTimeMs: Date.now() - startTime,
-      modelUsed: 'gemini-1.5-flash',
+      modelUsed: getExtractionModel(),
     };
   } catch (error) {
     log.error({ error: String(error), userId: context.userId }, 'Entity extraction failed');

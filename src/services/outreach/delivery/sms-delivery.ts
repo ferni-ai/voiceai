@@ -13,6 +13,7 @@ import Twilio from 'twilio';
 import type { MessageListInstanceCreateOptions } from 'twilio/lib/rest/api/v2010/account/message.js';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { validateSmsContent } from '../../brand/index.js';
+import { MAX_RETRIES as RESILIENCE_MAX_RETRIES } from '../../../config/resilience-config.js';
 
 const log = getLogger().child({ module: 'sms-delivery' });
 
@@ -77,8 +78,8 @@ const pendingRetries = new Map<string, NodeJS.Timeout>();
 const SMS_CHAR_LIMIT = 160;
 const SMS_CONCAT_LIMIT = 1600; // 10 segments max
 
-// Retry configuration
-const MAX_RETRIES = 3;
+// Retry configuration (from centralized resilience-config)
+const MAX_RETRIES = RESILIENCE_MAX_RETRIES;
 const RETRY_DELAYS = [30_000, 60_000, 180_000]; // 30s, 1m, 3m
 
 // Cleanup configuration - prevent unbounded memory growth

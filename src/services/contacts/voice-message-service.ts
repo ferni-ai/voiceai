@@ -9,6 +9,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { callLLM } from '../llm-utils.js';
+import { TEMP_REASONING, MAX_TOKENS_TINY } from '../../config/gemini-config.js';
 import type { ContactRelationship } from './contact-relationship-service.js';
 
 const log = createLogger({ module: 'VoiceMessageService' });
@@ -261,8 +262,8 @@ Script:`;
 
   try {
     const script = await callLLM(prompt, {
-      temperature: 0.7,
-      maxTokens: 150,
+      temperature: TEMP_REASONING,
+      maxTokens: MAX_TOKENS_TINY,
     });
 
     return script || `Hey ${contact.name}, just wanted to reach out and say hi. Thinking of you!`;
