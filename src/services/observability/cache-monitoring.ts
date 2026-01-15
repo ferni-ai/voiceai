@@ -17,7 +17,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { registerInterval, clearNamedInterval, hasInterval } from '../../utils/interval-manager.js';
-import { getContentCacheStats, pruneExpiredContent } from './persona-content-loader.js';
+import { getContentCacheStats, pruneExpiredContent } from '../persona-service/persona-content-loader.js';
 import {
   getContextOutputCacheStats,
   getRegistryStats,

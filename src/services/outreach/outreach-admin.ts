@@ -17,14 +17,14 @@ import {
   setPreferences,
   type OutreachTrigger,
   type UserOutreachPreferences,
-} from './outreach-intelligence.js';
+} from '../outreach/outreach-intelligence.js';
 import {
   getUserAnalytics,
   getGlobalAnalytics,
   generateSummaryReport,
   getOptimizationRecommendations,
-} from './analytics/outreach-analytics.js';
-import { getPendingReminders, cancelReminder } from './scheduling/reminder-scheduler.js';
+} from '../analytics/outreach-analytics.js';
+import { getPendingReminders, cancelReminder } from '../scheduling/reminder-scheduler.js';
 
 // ============================================================================
 // TYPES
@@ -238,7 +238,7 @@ export async function sendBroadcast(
 ): Promise<{ sent: number; failed: number; skipped: number }> {
   const { scheduleText, scheduleEmail, canReachUser } =
     await import('../../tools/domains/proactive/outreach/index.js');
-  const { canSendOutreach } = await import('./outreach-intelligence.js');
+  const { canSendOutreach } = await import('../outreach/outreach-intelligence.js');
 
   let sent = 0;
   let failed = 0;

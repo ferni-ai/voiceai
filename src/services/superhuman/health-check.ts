@@ -91,7 +91,7 @@ async function checkService(serviceId: string): Promise<ServiceHealth> {
       }
 
       case 'learning-engine': {
-        const { LearningEngine } = await import('../memory/learning-engine.js');
+        const { LearningEngine } = await import('../../memory/learning-engine.js');
         const engine = new LearningEngine();
         return {
           id: serviceId,
@@ -103,7 +103,7 @@ async function checkService(serviceId: string): Promise<ServiceHealth> {
       }
 
       case 'memory-consolidation': {
-        const { getMemoryConsolidator } = await import('../memory/memory-consolidator.js');
+        const { getMemoryConsolidator } = await import('../../memory/memory-consolidator.js');
         const consolidator = getMemoryConsolidator();
         return {
           id: serviceId,

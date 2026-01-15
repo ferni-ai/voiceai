@@ -131,7 +131,7 @@ let costCheckCount = 0;
 
 async function getHealthMonitors() {
   try {
-    return await import('./self-healing/health-monitors.js');
+    return await import('../self-healing/health-monitors.js');
   } catch {
     return null;
   }
@@ -139,7 +139,7 @@ async function getHealthMonitors() {
 
 async function getCostTracking() {
   try {
-    return await import('./observability/cost-tracking.js');
+    return await import('../observability/cost-tracking.js');
   } catch {
     return null;
   }
@@ -147,7 +147,7 @@ async function getCostTracking() {
 
 async function getCircuitStats() {
   try {
-    const { getAllCircuitStats } = await import('./self-healing/circuit-breaker.js');
+    const { getAllCircuitStats } = await import('../self-healing/circuit-breaker.js');
     return getAllCircuitStats();
   } catch {
     return [];
@@ -156,7 +156,7 @@ async function getCircuitStats() {
 
 async function getAIDiagnostics() {
   try {
-    return await import('./self-healing/ai-diagnostics.js');
+    return await import('../self-healing/ai-diagnostics.js');
   } catch {
     return null;
   }
@@ -631,7 +631,7 @@ async function detectDisconnectPattern(): Promise<DisconnectPattern | null> {
   // Get call quality metrics
   let callQuality;
   try {
-    const cqm = await import('./analytics/call-quality-monitor.js');
+    const cqm = await import('../analytics/call-quality-monitor.js');
     callQuality = cqm.calculateMetrics();
   } catch {
     return null;
@@ -640,7 +640,7 @@ async function detectDisconnectPattern(): Promise<DisconnectPattern | null> {
   // Get crash analytics
   let crashData;
   try {
-    const { getCrashSummary } = await import('../agents/shared/crash-analytics.js');
+    const { getCrashSummary } = await import('../../agents/shared/crash-analytics.js');
     crashData = getCrashSummary();
   } catch {
     crashData = null;

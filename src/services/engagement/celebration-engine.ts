@@ -28,7 +28,7 @@
 
 import type { UserProfile } from '../../types/user-profile.js';
 import { createLogger } from '../../utils/safe-logger.js';
-import { humanizationSignalEmitter } from './humanization/humanization-signal-emitter.js';
+import { humanizationSignalEmitter } from '../humanization/humanization-signal-emitter.js';
 
 const log = createLogger({ module: 'CelebrationEngine' });
 

@@ -585,7 +585,7 @@ export class FeatureRolloutService {
 
     // Integrate with observability hub for real metrics
     try {
-      const { observabilityHub } = await import('./observability/hub.js');
+      const { observabilityHub } = await import('../observability/hub.js');
       const snapshot = observabilityHub.getSnapshot(5); // Last 5 minutes
 
       // Use LLM and UX metrics for rollout decisions

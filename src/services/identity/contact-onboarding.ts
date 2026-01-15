@@ -15,7 +15,7 @@ import {
   type UserContactInfo,
 } from '../outreach/user-contact.js';
 import { getLogger } from '../../utils/safe-logger.js';
-import { setPreferences } from './outreach-intelligence.js';
+import { setPreferences } from '../outreach/outreach-intelligence.js';
 
 // ============================================================================
 // TYPES

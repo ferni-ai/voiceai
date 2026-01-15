@@ -344,14 +344,14 @@ export async function handlePaymentSucceeded(paymentIntent: {
   switch (type) {
     case 'tip': {
       // Import and update tip jar
-      const { tipJar } = await import('./monetization/tip-jar.js');
+      const { tipJar } = await import('../monetization/tip-jar.js');
       await tipJar.complete(paymentIntent.metadata.tip_id || '', paymentIntent.id);
       break;
     }
 
     case 'value_capture': {
       // Import and update value capture
-      const { valueCapture } = await import('./monetization/value-capture.js');
+      const { valueCapture } = await import('../monetization/value-capture.js');
       await valueCapture.recordContribution({
         eventId: paymentIntent.metadata.event_id || '',
         amountCents: paymentIntent.amount,
@@ -362,7 +362,7 @@ export async function handlePaymentSucceeded(paymentIntent: {
 
     case 'ferni_fund': {
       // Import and update ferni fund
-      const { ferniFund } = await import('./monetization/ferni-fund.js');
+      const { ferniFund } = await import('../monetization/ferni-fund.js');
       await ferniFund.contribute({
         userId,
         amountCents: paymentIntent.amount,

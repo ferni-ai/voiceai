@@ -12,7 +12,7 @@
 
 import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
 import { getLogger } from '../../utils/safe-logger.js';
-import type { AgentId } from './agent-bus.js';
+import type { AgentId } from '../agent-bus.js';
 import type { Firestore as FirestoreType } from '@google-cloud/firestore';
 
 // ============================================================================

@@ -1945,7 +1945,7 @@ export async function createSessionServices(
           // ================================================================
           try {
             const { extractHumanSignals, mergeSignalsIntoMemory } =
-              await import('../memory/human-signal-extractor.js');
+              await import('../../memory/human-signal-extractor.js');
 
             if (turns.length > 0) {
               const signals = extractHumanSignals(turns, {
@@ -2009,7 +2009,7 @@ export async function createSessionServices(
           // This enables "remember when..." queries across all user data
           // Including human-centric memory: dates, values, dreams, growth, etc.
           try {
-            const { indexUserMemories } = await import('../memory/user-memory-indexer.js');
+            const { indexUserMemories } = await import('../../memory/user-memory-indexer.js');
             void indexUserMemories(validatedUserId, updatedProfile, {
               // Index both profile data AND human-centric memory
               categories: [

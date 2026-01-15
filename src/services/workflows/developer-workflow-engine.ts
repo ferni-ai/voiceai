@@ -9,7 +9,7 @@
 
 import { getLogger } from '../../utils/safe-logger.js';
 import { COLLECTIONS, ID_PREFIXES, type WebhookEventType } from '../../types/developer-platform.js';
-import { dispatchWebhookEvent } from './developer-webhook-dispatcher.js';
+import { dispatchWebhookEvent } from '../integrations/developer-webhook-dispatcher.js';
 import {
   callMCPTool,
   getMCPConnection,

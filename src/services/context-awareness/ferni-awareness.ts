@@ -17,7 +17,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import type { UserProfile } from '../../types/user-profile.js';
-import type { SessionServices } from './types.js';
+import type { SessionServices } from '../types.js';
 
 const log = createLogger({ module: 'FerniAwareness' });
 

@@ -24,9 +24,9 @@ import {
   getSongSelectionContext,
   type MilestoneEvent,
   type SongSelectionContext,
-} from './games/game-intelligence.js';
-import type { GameResult, GameType } from './games/types.js';
-import { getVoiceMusicBridge, type VoiceMusicSuggestion } from './musical-you/index.js';
+} from '../games/game-intelligence.js';
+import type { GameResult, GameType } from '../games/types.js';
+import { getVoiceMusicBridge, type VoiceMusicSuggestion } from '../musical-you/index.js';
 import { getAllOurSongs } from '../trust-systems/our-songs.js';
 
 const log = getLogger();

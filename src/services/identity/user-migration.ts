@@ -13,7 +13,7 @@
  * @module UserMigration
  */
 
-import { getFirestoreStore } from '../memory/firestore-store.js';
+import { getFirestoreStore } from '../../memory/firestore-store.js';
 import { createUserProfile, type UserProfile } from '../../types/user-profile.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import type { MemoryStore } from '../../memory/store.js';

@@ -14,7 +14,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import type { VoiceParameters } from './voice/dynamic-voice-parameters.js';
+import type { VoiceParameters } from './dynamic-voice-parameters.js';
 
 const log = createLogger({ module: 'VoicePackService' });
 

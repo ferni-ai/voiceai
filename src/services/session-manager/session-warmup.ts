@@ -110,7 +110,7 @@ export async function warmSessionCaches(
       fn: async () => {
         // ⚡ Pre-warm user profile cache for faster session init
         // This is the biggest latency win - profile load is ~100-500ms from Firestore
-        const { getProfileWithCache } = await import('./data-layer/profile-cache.js');
+        const { getProfileWithCache } = await import('../data-layer/profile-cache.js');
         const { getStore } = await import('../../memory/store-factory.js');
         const store = await getStore();
         const profile = await getProfileWithCache(userId, async (uid) => store.getProfile(uid));
@@ -158,7 +158,7 @@ export async function warmSessionCaches(
         try {
           // Superhuman services cache warmup is handled internally
           // Just ensure the module is loaded
-          await import('./superhuman/index.js');
+          await import('../superhuman/index.js');
           warmedCaches.push('superhuman-services');
         } catch (error) {
           // Superhuman services may not be fully initialized yet
@@ -170,7 +170,7 @@ export async function warmSessionCaches(
       name: 'predictive-patterns',
       fn: async () => {
         try {
-          const { initializeRedisCache } = await import('./superhuman/predictive-coaching.js');
+          const { initializeRedisCache } = await import('../superhuman/predictive-coaching.js');
           await initializeRedisCache();
           warmedCaches.push('predictive-patterns');
         } catch (error) {
@@ -294,7 +294,7 @@ export async function clearSessionWarmupCaches(userId: string): Promise<void> {
 
   try {
     // Clear from memory cache manager
-    const { clearUserCaches } = await import('./data-layer/memory-cache-manager.js');
+    const { clearUserCaches } = await import('../data-layer/memory-cache-manager.js');
     clearUserCaches(userId);
   } catch (error) {
     log.debug({ error: String(error) }, 'Session warmup cache clear failed');

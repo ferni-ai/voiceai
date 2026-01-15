@@ -14,7 +14,7 @@ import { getLogger } from '../../utils/safe-logger.js';
 import { registerInterval, clearNamedInterval } from '../../utils/interval-manager.js';
 
 // Import metrics for observability
-import { persistenceMetrics } from './analytics/persistence-metrics.js';
+import { persistenceMetrics } from '../analytics/persistence-metrics.js';
 
 // Intelligence Engines
 import {

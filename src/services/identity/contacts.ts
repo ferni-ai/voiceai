@@ -32,7 +32,7 @@ import type { Firestore as FirestoreType } from '@google-cloud/firestore';
 import * as fs from 'fs';
 import * as path from 'path';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
-import { onContactChange } from './data-layer/hooks/contacts-hooks.js';
+import { onContactChange } from '../data-layer/hooks/contacts-hooks.js';
 
 // ============================================================================
 // TYPES

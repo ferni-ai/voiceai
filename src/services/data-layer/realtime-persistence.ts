@@ -100,7 +100,7 @@ export async function persistExtractedDetails(
   }
 
   const result = await withRetry(async () => {
-    const { getFirestoreStore } = await import('../memory/firestore-store.js');
+    const { getFirestoreStore } = await import('../../memory/firestore-store.js');
     const store = getFirestoreStore();
 
     // Get current profile

@@ -9,7 +9,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { createHmac, timingSafeEqual } from 'crypto';
-import type { WebhookConfig, WebhookEvent, WebhookHandler } from './types.js';
+import type { WebhookConfig, WebhookEvent, WebhookHandler } from '../types.js';
 
 const log = createLogger({ module: 'webhook-router' });
 

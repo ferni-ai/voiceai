@@ -10,7 +10,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import type { RateLimitState, RateLimitResult, RateLimitConfig } from './types.js';
+import type { RateLimitState, RateLimitResult, RateLimitConfig } from '../types.js';
 import { INTEGRATIONS } from './integration-hub.js';
 
 const log = createLogger({ module: 'rate-limiter' });

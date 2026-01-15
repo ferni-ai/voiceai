@@ -19,7 +19,7 @@ import {
   getGoogleApisClient,
   getWikipediaClient,
   getYahooFinanceClient,
-} from './self-healing/index.js';
+} from '../self-healing/index.js';
 
 const logger = getLogger();
 

@@ -6,7 +6,7 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
-import { PERSONA_RITUALS } from './daily-rituals.js';
+import { PERSONA_RITUALS } from '../scheduling/daily-rituals.js';
 import {
   EngagementStore,
   type EngagementProfile,

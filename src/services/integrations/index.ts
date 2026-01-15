@@ -25,7 +25,7 @@ export type {
   ApiRequestConfig,
   ApiResponse,
   IntegrationRegistry,
-} from './types.js';
+} from '../types.js';
 
 // Integration Hub
 export {

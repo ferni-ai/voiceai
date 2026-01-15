@@ -434,3 +434,54 @@ export function resetMetrics(): void {
     avgSyncDurationMs: 0,
   });
 }
+
+// ============================================================================
+// MEMORY ATTRIBUTION METRICS
+// ============================================================================
+
+interface MemoryAttributionMetrics {
+  totalAttributions: number;
+  memoriesInjected: number;
+  memoriesAttributed: number;
+  avgAttributionRate: number;
+}
+
+const attributionMetrics: MemoryAttributionMetrics = {
+  totalAttributions: 0,
+  memoriesInjected: 0,
+  memoriesAttributed: 0,
+  avgAttributionRate: 0,
+};
+
+/**
+ * Record memory attribution after agent turn
+ * Tracks how many injected memories were actually used
+ */
+export function recordMemoryAttribution(
+  injectedCount: number,
+  attributedCount: number,
+  _breakdown: { explicit: number; implicit: number; semantic: number }
+): void {
+  attributionMetrics.totalAttributions++;
+  attributionMetrics.memoriesInjected += injectedCount;
+  attributionMetrics.memoriesAttributed += attributedCount;
+
+  if (attributionMetrics.memoriesInjected > 0) {
+    attributionMetrics.avgAttributionRate =
+      attributionMetrics.memoriesAttributed / attributionMetrics.memoriesInjected;
+  }
+}
+
+/**
+ * Record that memories were injected into context
+ */
+export function recordMemoriesInjected(count: number): void {
+  attributionMetrics.memoriesInjected += count;
+}
+
+/**
+ * Get memory attribution metrics
+ */
+export function getAttributionMetrics(): MemoryAttributionMetrics {
+  return { ...attributionMetrics };
+}

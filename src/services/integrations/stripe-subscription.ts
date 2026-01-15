@@ -28,7 +28,7 @@ import {
   needsUsageReset,
 } from '../../types/subscription.js';
 import { createLogger } from '../../utils/safe-logger.js';
-import { finops } from './observability/finops.js';
+import { finops } from '../observability/finops.js';
 
 const log = createLogger({ module: 'StripeSubscription' });
 
@@ -264,7 +264,7 @@ export async function createCheckoutSession(params: {
   if (currency && currency !== 'USD') {
     // Use locale-specific price ID from pricing module
     try {
-      const { getStripePriceId } = await import('../i18n/pricing.js');
+      const { getStripePriceId } = await import('../../i18n/pricing.js');
       priceId = getStripePriceId(tier, currency as 'USD');
     } catch {
       // Fallback to default USD price

@@ -16,7 +16,7 @@
 
 import { getLogger } from '../../utils/safe-logger.js';
 import { COLLECTIONS, type DeveloperMCPServer } from '../../types/developer-platform.js';
-import { decryptSensitive } from './privacy-crypto.js';
+import { decryptSensitive } from '../identity/privacy-crypto.js';
 
 const log = getLogger().child({ module: 'developer-mcp-registry' });
 

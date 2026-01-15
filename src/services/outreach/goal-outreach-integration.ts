@@ -16,7 +16,7 @@
 import { canReachUser, scheduleEmail, scheduleText } from '../outreach/user-contact.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import { registerInterval, clearNamedInterval, hasInterval } from '../../utils/interval-manager.js';
-import { canSendOutreach, getPreferences } from './outreach-intelligence.js';
+import { canSendOutreach, getPreferences } from '../outreach/outreach-intelligence.js';
 import { createPersistenceStore, type PersistenceStore } from '../persistence/index.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
@@ -693,7 +693,7 @@ export async function sendMissedCheckInNudges(maxDaysSinceContact = 3): Promise<
 
     // Get all engagement profiles (in production, this should be paginated/batched)
     // Note: This feature requires direct Firestore access - skip if not available
-    const { getFirestoreStore } = await import('../memory/firestore-store.js');
+    const { getFirestoreStore } = await import('../../memory/firestore-store.js');
     const firestoreStore = getFirestoreStore();
 
     if (!firestoreStore) {
@@ -736,7 +736,7 @@ export async function sendMissedCheckInNudges(maxDaysSinceContact = 3): Promise<
       try {
         const { triggerOutreach } = await import('../outreach/index.js');
         const preferredPersona = (profile.preferences?.favoritePersona ||
-          'ferni') as import('./agent-bus.js').AgentId;
+          'ferni') as import('../agent-bus.js').AgentId;
 
         const nudgeMessage = generateMissedCheckInMessage(daysSinceContact, activeGoals[0]);
 
