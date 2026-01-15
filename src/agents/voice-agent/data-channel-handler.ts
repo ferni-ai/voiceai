@@ -591,7 +591,7 @@ async function handleVoicePackChange(
   getLogger().info({ packId: message.packId }, '🎤 User changed voice pack via Personalize');
 
   try {
-    const { handleVoicePackMessage } = await import('../../services/voice-pack-service.js');
+    const { handleVoicePackMessage } = await import('../../services/voice/voice-pack-service.js');
     // Pass full message including type for voice pack service
     handleVoicePackMessage(userId ?? 'anonymous', { type: message.type, packId: message.packId });
 

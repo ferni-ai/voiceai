@@ -7,14 +7,14 @@
  * @module services/performance-alerts
  */
 
-import { createLogger } from '../utils/safe-logger.js';
-import { registerInterval, clearNamedInterval, hasInterval } from '../utils/interval-manager.js';
+import { createLogger } from '../../utils/safe-logger.js';
+import { registerInterval, clearNamedInterval, hasInterval } from '../../utils/interval-manager.js';
 import {
   getGlobalPerformanceSummary,
   PERFORMANCE_THRESHOLDS,
 } from './performance/turn-profiler.js';
 import { getReliabilityDashboard } from './performance/tool-execution-reliability.js';
-import { getCircuitBreaker } from '../utils/circuit-breaker.js';
+import { getCircuitBreaker } from '../../utils/circuit-breaker.js';
 
 const log = createLogger({ module: 'PerformanceAlerts' });
 

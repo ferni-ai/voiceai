@@ -10,7 +10,7 @@
  * This allows Alex to book tables instantly without calling when possible.
  */
 
-import { getLogger } from '../utils/safe-logger.js';
+import { getLogger } from '../../utils/safe-logger.js';
 
 // API Keys
 const OPENTABLE_API_KEY = process.env.OPENTABLE_API_KEY || '';

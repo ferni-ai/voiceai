@@ -58,7 +58,7 @@ import {
   broadcastCognitiveMode,
   broadcastConfidence,
   broadcastUserStyle,
-} from '../../../services/cognitive-broadcast.js';
+} from '../../../services/cognitive-intelligence/cognitive-broadcast.js';
 
 // Cognitive metrics for performance tracking
 import {

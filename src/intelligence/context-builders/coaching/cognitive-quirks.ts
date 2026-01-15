@@ -17,7 +17,7 @@ import {
   getTransitionPhrase,
   type PersonaCognitiveQuirks,
 } from '../../../personas/cognitive-quirks.js';
-import { broadcastQuirkActivated } from '../../../services/cognitive-broadcast.js';
+import { broadcastQuirkActivated } from '../../../services/cognitive-intelligence/cognitive-broadcast.js';
 import {
   getCognitiveState,
   markHabitUsed,

@@ -13,7 +13,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { callLLM } from '../llm-utils.js';
+import { callLLM } from '../llm/llm-utils.js';
 
 const log = createLogger({ module: 'ProactiveInsightGenerator' });
 

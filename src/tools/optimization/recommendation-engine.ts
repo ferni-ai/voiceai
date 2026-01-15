@@ -107,7 +107,7 @@ export class RecommendationEngine {
     // Persist recommendations to Firestore (async, non-blocking)
     if (this.recommendations.length > 0) {
       runBackground(
-        import('../../services/optimization-persistence.js').then(({ optimizationPersistence }) => {
+        import('../../services/performance/optimization-persistence.js').then(({ optimizationPersistence }) => {
           for (const rec of this.recommendations) {
             optimizationPersistence.bufferRecommendation(rec);
           }

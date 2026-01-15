@@ -12,9 +12,9 @@
  */
 
 import { EventEmitter } from 'events';
-import { getLogger } from '../utils/safe-logger.js';
-import { registerCognitiveMetricsBroadcast } from '../utils/cognitive-metrics.js';
-import type { ReasoningStyle } from '../personas/cognitive-types.js';
+import { getLogger } from '../../utils/safe-logger.js';
+import { registerCognitiveMetricsBroadcast } from '../../utils/cognitive-metrics.js';
+import type { ReasoningStyle } from '../../personas/cognitive-types.js';
 
 // ============================================================================
 // TYPES

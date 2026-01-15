@@ -19,7 +19,7 @@ import {
   initializeActivityLog,
   recordActivity as recordActivityToStore,
   type ActivityEvent,
-} from '../../../services/admin-activity.js';
+} from '../../../services/admin/admin-activity.js';
 import { getBetterThanHumanTelemetry } from '../../../services/analytics/better-than-human-telemetry.js';
 import { calculatePeriodAnalytics } from '../../../services/outreach/index.js';
 import { createLogger } from '../../../utils/safe-logger.js';

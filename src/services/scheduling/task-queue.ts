@@ -424,13 +424,13 @@ export class TaskQueueService extends EventEmitter {
 
 // Register some basic handlers
 registerTaskHandler('send_sms', async (task) => {
-  const { sendSMS } = await import('../communication-service.js');
+  const { sendSMS } = await import('../communication/communication-service.js');
   const { to, message } = task.parameters as { to: string; message: string };
   return sendSMS(to, message);
 });
 
 registerTaskHandler('send_email', async (task) => {
-  const { sendEmail } = await import('../communication-service.js');
+  const { sendEmail } = await import('../communication/communication-service.js');
   const { to, subject, body } = task.parameters as { to: string; subject: string; body: string };
   return sendEmail(to, subject, body);
 });

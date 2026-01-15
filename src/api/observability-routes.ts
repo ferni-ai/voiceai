@@ -288,7 +288,7 @@ async function getRedisMetrics() {
 
     // Get Pub/Sub status
     try {
-      const { getRedisPubSub, CHANNELS } = await import('../services/redis-pubsub.js');
+      const { getRedisPubSub, CHANNELS } = await import('../services/pubsub/redis-pubsub.js');
       const pubsub = getRedisPubSub();
       metrics.pubsub = {
         enabled: pubsub.isAvailable(),
@@ -346,7 +346,7 @@ async function getRedisMetrics() {
 
     // Get day awareness cache stats
     try {
-      const { getDayAwarenessCacheStats } = await import('../services/day-awareness-cache.js');
+      const { getDayAwarenessCacheStats } = await import('../services/context-awareness/day-awareness-cache.js');
       const dayStats = getDayAwarenessCacheStats();
       metrics.caches.push({
         name: 'day-awareness',

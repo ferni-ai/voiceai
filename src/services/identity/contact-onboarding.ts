@@ -14,7 +14,7 @@ import {
   setUserContactInfo,
   type UserContactInfo,
 } from './outreach/user-contact.js';
-import { getLogger } from '../utils/safe-logger.js';
+import { getLogger } from '../../utils/safe-logger.js';
 import { setPreferences } from './outreach-intelligence.js';
 
 // ============================================================================

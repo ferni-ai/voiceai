@@ -8,7 +8,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { callLLM } from '../llm-utils.js';
+import { callLLM } from '../llm/llm-utils.js';
 import type { ContactRelationship } from './contact-relationship-service.js';
 
 const log = createLogger({ module: 'VoiceMessageService' });

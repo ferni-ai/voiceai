@@ -11,9 +11,9 @@
  * - Learns from historical patterns
  */
 
-import { createLogger } from '../utils/safe-logger.js';
-import { registerInterval, clearNamedInterval } from '../utils/interval-manager.js';
-import { SlackNotificationService } from './slack-notifications.js';
+import { createLogger } from '../../utils/safe-logger.js';
+import { registerInterval, clearNamedInterval } from '../../utils/interval-manager.js';
+import { SlackNotificationService } from './integrations/slack-notifications.js';
 
 const log = createLogger({ module: 'PredictiveAlerting' });
 

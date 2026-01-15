@@ -34,7 +34,7 @@ type SessionEventType = 'handoff' | 'end' | 'presence' | 'session_start' | 'sess
 // Initialize Pub/Sub (non-blocking)
 void (async () => {
   try {
-    const { publishSessionEvent } = await import('../redis-pubsub.js');
+    const { publishSessionEvent } = await import('../pubsub/redis-pubsub.js');
     publishSession = (type: string, data: Record<string, unknown>) => {
       // Only publish if type is a valid session event type
       const validTypes: SessionEventType[] = [

@@ -530,7 +530,7 @@ export async function recordDailyCheckIn(
 ): Promise<{ success: boolean; streak?: number; error?: string }> {
   try {
     // Import the services
-    const { getDailyRitualsService } = await import('../../services/daily-rituals.js');
+    const { getDailyRitualsService } = await import('../../services/scheduling/daily-rituals.js');
     const { getEngagementStore } = await import('../../services/engagement/engagement-store.js');
 
     const service = getDailyRitualsService();

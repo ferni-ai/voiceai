@@ -536,7 +536,7 @@ async function signalConversationEnd(sessionId: string | undefined): Promise<voi
   }
 
   try {
-    const { sendFrontendSignal } = await import('../../services/frontend-signal.js');
+    const { sendFrontendSignal } = await import('../../services/pubsub/frontend-signal.js');
     await sendFrontendSignal('conversation_end', {
       reason: 'goodbye_complete',
       disconnectDelay: 2500, // Give time for farewell to be spoken

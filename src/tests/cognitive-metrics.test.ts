@@ -20,7 +20,7 @@ vi.mock('../utils/safe-logger.js', () => ({
 }));
 
 // Mock cognitive-broadcast to prevent import
-vi.mock('../services/cognitive-broadcast.js', () => ({
+vi.mock('../services/cognitive-intelligence/cognitive-broadcast.js', () => ({
   broadcastMetrics: vi.fn(),
 }));
 

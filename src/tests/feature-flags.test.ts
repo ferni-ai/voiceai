@@ -50,7 +50,7 @@ import {
   withFlag,
   withFlagAsync,
   type TrustFlagId,
-} from '../services/feature-flags.js';
+} from '../services/deployment/feature-flags.js';
 
 describe('Feature Flags Service', () => {
   beforeEach(() => {

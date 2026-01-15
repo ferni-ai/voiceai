@@ -8,10 +8,10 @@
  * via the unified persistence layer to survive server restarts.
  */
 
-import { getLogger } from '../utils/safe-logger.js';
-import { AgentRole } from '../personas/index.js';
+import { getLogger } from '../../utils/safe-logger.js';
+import { AgentRole } from '../../personas/index.js';
 import { createPersistenceStore, type PersistenceStore } from './persistence/index.js';
-import { cleanForFirestore } from '../utils/firestore-utils.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 // Web-push module interface (optional dependency)
 interface WebPushModule {

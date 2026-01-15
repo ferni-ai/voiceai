@@ -35,7 +35,7 @@ import {
 import { getCoachingQuestion } from '../intelligence/coaching/questions.js';
 import { getLogger } from '../utils/safe-logger.js';
 // Dynamic persona content loading
-import { loadSilenceResponses, type SilenceResponses } from '../services/persona-content-loader.js';
+import { loadSilenceResponses, type SilenceResponses } from '../services/persona-service/persona-content-loader.js';
 // Trait-based dynamic responses (usage-tracked, avoids repetition)
 import { getDynamicSilenceResponseByPersonaId } from './dynamic-responses.js';
 // Dynamic presence expressions (replaces static "sitting with" phrases)

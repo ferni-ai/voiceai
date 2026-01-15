@@ -16,7 +16,7 @@ import {
   recordAppInteraction,
   formatContextForApp,
   type AppBrowsingContext,
-} from '../../services/session-context/session-summary.js';
+} from '../../services/session-manager/session-summary.js';
 
 const log = createLogger({ module: 'SessionContextRoutes' });
 

@@ -33,7 +33,7 @@ describe('LLM Dynamic Content System', () => {
   describe('Content Type Registration', () => {
     it('should have all expected content types working', async () => {
       // Dynamic import to get fresh module
-      const { getContentWithFallback } = await import('../llm-dynamic-content.js');
+      const { getContentWithFallback } = await import('../llm/llm-dynamic-content.js');
 
       const expectedTypes = [
         'thinking_phrase',
@@ -65,7 +65,7 @@ describe('LLM Dynamic Content System', () => {
 
   describe('getContentWithFallback', () => {
     it('should return template content when cache is empty', async () => {
-      const { getContentWithFallback } = await import('../llm-dynamic-content.js');
+      const { getContentWithFallback } = await import('../llm/llm-dynamic-content.js');
 
       const result = getContentWithFallback({
         contentType: 'thinking_phrase',
@@ -81,7 +81,7 @@ describe('LLM Dynamic Content System', () => {
     });
 
     it('should include SSML for thinking phrases', async () => {
-      const { getContentWithFallback } = await import('../llm-dynamic-content.js');
+      const { getContentWithFallback } = await import('../llm/llm-dynamic-content.js');
 
       const result = getContentWithFallback({
         contentType: 'thinking_phrase',
@@ -94,7 +94,7 @@ describe('LLM Dynamic Content System', () => {
     });
 
     it('should handle different content types', async () => {
-      const { getContentWithFallback } = await import('../llm-dynamic-content.js');
+      const { getContentWithFallback } = await import('../llm/llm-dynamic-content.js');
 
       const contentTypes = [
         'empathetic_reflection',
@@ -119,7 +119,7 @@ describe('LLM Dynamic Content System', () => {
 
   describe('Cache Stats and Metrics', () => {
     it('should track metrics structure', async () => {
-      const { getContentMetrics } = await import('../llm-dynamic-content.js');
+      const { getContentMetrics } = await import('../llm/llm-dynamic-content.js');
 
       const metrics = getContentMetrics();
 
@@ -135,7 +135,7 @@ describe('LLM Dynamic Content System', () => {
     });
 
     it('should track cache stats', async () => {
-      const { getContentCacheStats } = await import('../llm-dynamic-content.js');
+      const { getContentCacheStats } = await import('../llm/llm-dynamic-content.js');
 
       const stats = getContentCacheStats();
 
@@ -146,7 +146,7 @@ describe('LLM Dynamic Content System', () => {
     });
 
     it('should provide metrics summary string', async () => {
-      const { getMetricsSummary } = await import('../llm-dynamic-content.js');
+      const { getMetricsSummary } = await import('../llm/llm-dynamic-content.js');
 
       const summary = getMetricsSummary();
 
@@ -158,7 +158,7 @@ describe('LLM Dynamic Content System', () => {
 
   describe('Content Context', () => {
     it('should accept optional context parameters', async () => {
-      const { getContentWithFallback } = await import('../llm-dynamic-content.js');
+      const { getContentWithFallback } = await import('../llm/llm-dynamic-content.js');
 
       const result = getContentWithFallback({
         contentType: 'empathetic_reflection',
@@ -177,7 +177,7 @@ describe('LLM Dynamic Content System', () => {
     });
 
     it('should generate different content for different emotions', async () => {
-      const { getContentWithFallback } = await import('../llm-dynamic-content.js');
+      const { getContentWithFallback } = await import('../llm/llm-dynamic-content.js');
 
       const sadResult = getContentWithFallback({
         contentType: 'empathetic_reflection',
@@ -197,7 +197,7 @@ describe('LLM Dynamic Content System', () => {
 
   describe('Template Fallbacks', () => {
     it('should have diverse templates for thinking phrases', async () => {
-      const { getContentWithFallback } = await import('../llm-dynamic-content.js');
+      const { getContentWithFallback } = await import('../llm/llm-dynamic-content.js');
 
       const results = new Set<string>();
 
@@ -221,7 +221,7 @@ describe('LLM Dynamic Content System', () => {
     });
 
     it('should return valid SSML for all content types', async () => {
-      const { getContentWithFallback } = await import('../llm-dynamic-content.js');
+      const { getContentWithFallback } = await import('../llm/llm-dynamic-content.js');
 
       const contentTypes = [
         'thinking_phrase',
@@ -245,7 +245,7 @@ describe('LLM Dynamic Content System', () => {
 
   describe('Ferni Voice DNA', () => {
     it('should avoid AI clichés in templates', async () => {
-      const { getContentWithFallback } = await import('../llm-dynamic-content.js');
+      const { getContentWithFallback } = await import('../llm/llm-dynamic-content.js');
 
       const banned = [
         'I understand',

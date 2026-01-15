@@ -50,7 +50,7 @@ vi.mock('../services/emotion-detection.js', () => ({
 }));
 
 // Mock cross-persona insights
-vi.mock('../services/cross-persona-insights.js', () => ({
+vi.mock('../services/cross-persona/cross-persona-insights.js', () => ({
   recordInsight: vi.fn(),
 }));
 

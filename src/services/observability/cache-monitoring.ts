@@ -15,16 +15,16 @@
  * @module services/cache-monitoring
  */
 
-import { createLogger } from '../utils/safe-logger.js';
-import { registerInterval, clearNamedInterval, hasInterval } from '../utils/interval-manager.js';
+import { createLogger } from '../../utils/safe-logger.js';
+import { registerInterval, clearNamedInterval, hasInterval } from '../../utils/interval-manager.js';
 import { getContentCacheStats, pruneExpiredContent } from './persona-content-loader.js';
 import {
   getContextOutputCacheStats,
   getRegistryStats,
-} from '../intelligence/context-builders/index.js';
-import { getCognitiveStyleCacheStats } from '../personas/cognitive-advanced.js';
-import { getEmbeddingCache } from '../memory/embedding-cache.js';
-import { getRedisCache } from '../memory/redis-cache.js';
+} from '../../intelligence/context-builders/index.js';
+import { getCognitiveStyleCacheStats } from '../../personas/cognitive-advanced.js';
+import { getEmbeddingCache } from '../../memory/embedding-cache.js';
+import { getRedisCache } from '../../memory/redis-cache.js';
 
 const log = createLogger({ module: 'cache-monitoring' });
 

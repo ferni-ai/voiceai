@@ -111,7 +111,7 @@ export class PatternAnalyzer {
       this.sessions.delete(sessionId);
 
       // Persist session to Firestore (async, fire-and-forget)
-      import('../../services/optimization-persistence.js')
+      import('../../services/performance/optimization-persistence.js')
         .then(({ optimizationPersistence }) => {
           optimizationPersistence.bufferSession(session);
         })

@@ -9,10 +9,10 @@
  * - Building genuine connection over time
  */
 
-import { getLogger } from '../utils/safe-logger.js';
-import type { UserProfile } from '../types/user-profile.js';
+import { getLogger } from '../../utils/safe-logger.js';
+import type { UserProfile } from '../../types/user-profile.js';
 // Import from shared types to avoid circular dependency through humanizing.ts
-import type { MoodState, RelationshipStage } from '../types/humanizing-types.js';
+import type { MoodState, RelationshipStage } from '../../types/humanizing-types.js';
 
 // ============================================================================
 // TYPES

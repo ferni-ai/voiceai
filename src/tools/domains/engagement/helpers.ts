@@ -6,7 +6,7 @@
  * @module engagement/helpers
  */
 
-import type { EmotionalWeather } from '../../../services/daily-rituals.js';
+import type { EmotionalWeather } from '../../../services/scheduling/daily-rituals.js';
 
 // ============================================================================
 // WEATHER INSIGHT GENERATION

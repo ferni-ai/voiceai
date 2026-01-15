@@ -9,7 +9,7 @@
 
 import { seededChance, seededPick, seededIndex } from '../utils/rng.js';
 import { getTopicTracker } from '../../intelligence/detectors/topic.js';
-import { getContentWithFallback, type ContentContext } from '../../services/llm-dynamic-content.js';
+import { getContentWithFallback, type ContentContext } from '../../services/llm/llm-dynamic-content.js';
 
 import type { TopicChange } from './types.js';
 

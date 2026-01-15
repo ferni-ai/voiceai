@@ -31,7 +31,7 @@ import {
   type PersonaId,
   type CrossPersonaInsight,
   type TeamStatusSummary,
-} from '../../../services/cross-persona-insights.js';
+} from '../../../services/cross-persona/cross-persona-insights.js';
 // Better Than Human: Calendar awareness for smart handoffs
 import {
   getCalendarLoadFactors,

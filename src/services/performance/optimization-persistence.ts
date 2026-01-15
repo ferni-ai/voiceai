@@ -10,7 +10,7 @@
  * Data is buffered in memory and flushed periodically to reduce writes.
  */
 
-import { getGCPProjectId } from '../config/environment.js';
+import { getGCPProjectId } from '../../config/environment.js';
 import type {
   FeedbackRecord,
   FeedbackSummary,
@@ -21,10 +21,10 @@ import type {
   GapAnalysis,
   ConsolidationOpportunity,
   SessionData,
-} from '../types/optimization-types.js';
-import { removeUndefined, cleanForFirestore } from '../utils/firestore-utils.js';
-import { getLogger } from '../utils/safe-logger.js';
-import { registerInterval, clearNamedInterval } from '../utils/interval-manager.js';
+} from '../../types/optimization-types.js';
+import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
+import { getLogger } from '../../utils/safe-logger.js';
+import { registerInterval, clearNamedInterval } from '../../utils/interval-manager.js';
 
 const log = getLogger();
 

@@ -12,7 +12,7 @@
  * @module services/lazy-registry
  */
 
-import { lazyService } from '../utils/lazy-service.js';
+import { lazyService } from '../../utils/lazy-service.js';
 
 /**
  * Lazy services registry for heavy/rarely-used services.

@@ -24,7 +24,7 @@ import {
   sendEmail,
   isEmailDeliveryAvailable,
 } from '../services/outreach/delivery/email-delivery.js';
-import { getPushNotificationsService } from '../services/push-notifications.js';
+import { getPushNotificationsService } from '../services/outreach/push-notifications.js';
 
 const log = getLogger().child({ module: 'review-queue' });
 

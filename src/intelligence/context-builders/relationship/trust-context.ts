@@ -584,7 +584,7 @@ import {
   getRandomPhraseClean,
   loadTrustPhrases,
   type TrustPhrases,
-} from '../../../services/persona-content-loader.js';
+} from '../../../services/persona-service/persona-content-loader.js';
 
 /**
  * Cached trust phrases per persona

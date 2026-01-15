@@ -73,7 +73,7 @@ export {
   type MessageHandler,
   type PubSubConfig,
   type Channel,
-} from '../redis-pubsub.js';
+} from '../pubsub/redis-pubsub.js';
 
 // ============================================================================
 // REDIS CIRCUIT BREAKER
@@ -153,7 +153,7 @@ export async function initializeAllRedisServices(): Promise<{
     })(),
     // Pub/Sub
     (async () => {
-      const { initializeRedisPubSub } = await import('../redis-pubsub.js');
+      const { initializeRedisPubSub } = await import('../pubsub/redis-pubsub.js');
       return initializeRedisPubSub();
     })(),
     // Semantic Router Cache
@@ -180,7 +180,7 @@ export async function shutdownAllRedisServices(): Promise<void> {
   await Promise.allSettled([
     // Pub/Sub
     (async () => {
-      const { shutdownRedisPubSub } = await import('../redis-pubsub.js');
+      const { shutdownRedisPubSub } = await import('../pubsub/redis-pubsub.js');
       await shutdownRedisPubSub();
     })(),
     // Circuit breakers

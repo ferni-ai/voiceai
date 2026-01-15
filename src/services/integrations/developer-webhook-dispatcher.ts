@@ -18,7 +18,7 @@
  */
 
 import crypto from 'crypto';
-import { getLogger } from '../utils/safe-logger.js';
+import { getLogger } from '../../utils/safe-logger.js';
 import {
   COLLECTIONS,
   type WebhookPayload,
@@ -26,7 +26,7 @@ import {
   type DeveloperWebhook,
   type WebhookDeliveryLog,
   type WebhookDeliveryStatus,
-} from '../types/developer-platform.js';
+} from '../../types/developer-platform.js';
 
 const log = getLogger().child({ module: 'webhook-dispatcher' });
 

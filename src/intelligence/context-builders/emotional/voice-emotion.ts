@@ -13,7 +13,7 @@
  * - VoiceEmotionOrchestrator for unified analysis
  */
 
-import { broadcastVoiceEmotion } from '../../../services/cognitive-broadcast.js';
+import { broadcastVoiceEmotion } from '../../../services/cognitive-intelligence/cognitive-broadcast.js';
 import { getSessionState, updateVoiceEmotion } from '../../state/session.js';
 import {
   generateVoiceAwareGuidance,

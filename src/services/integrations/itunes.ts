@@ -7,11 +7,11 @@
  * API Documentation: https://developer.apple.com/library/archive/documentation/AudioVideo/Conceptual/iTuneSearchAPI/
  */
 
-import { CircuitOpenError, getCircuitBreaker } from '../utils/circuit-breaker.js';
-import { createLogger, getLogger } from '../utils/safe-logger.js';
+import { CircuitOpenError, getCircuitBreaker } from '../../utils/circuit-breaker.js';
+import { createLogger, getLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'iTunes' });
-import { isDebugEnabled } from '../config/feature-flags.js';
+import { isDebugEnabled } from '../../config/feature-flags.js';
 
 // Use centralized feature flag system for debug toggle
 const DEBUG_ITUNES = isDebugEnabled('itunes');

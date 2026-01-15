@@ -28,7 +28,7 @@ import {
   importFromVCard,
   importFromCSV,
   type Contact,
-} from '../../services/contacts.js';
+} from '../../services/identity/contacts.js';
 
 export function createContactsTools() {
   return {

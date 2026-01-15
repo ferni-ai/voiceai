@@ -21,7 +21,7 @@ const { mockExportService, mockValidateBody } = vi.hoisted(() => ({
 }));
 
 // Mock data export service
-vi.mock('../services/data-export.js', () => ({
+vi.mock('../services/data-layer/data-export.js', () => ({
   getDataExportService: vi.fn(() => mockExportService),
 }));
 

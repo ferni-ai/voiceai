@@ -118,7 +118,7 @@ async function checkAndSendAlert(): Promise<void> {
     lastAlertSent = Date.now();
 
     try {
-      const { notifySlack } = await import('../slack-notifications.js');
+      const { notifySlack } = await import('../integrations/slack-notifications.js');
 
       // Get recent error summary
       const recentErrorTypes = new Map<string, number>();

@@ -11,8 +11,8 @@
  * "The best incident postmortem is one written during the incident."
  */
 
-import { createLogger } from '../utils/safe-logger.js';
-import { SlackNotificationService } from './slack-notifications.js';
+import { createLogger } from '../../utils/safe-logger.js';
+import { SlackNotificationService } from './integrations/slack-notifications.js';
 import { generateRunbook, type Runbook } from './smart-runbooks.js';
 
 const log = createLogger({ module: 'IncidentTimeline' });

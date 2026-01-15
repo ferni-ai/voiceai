@@ -15,7 +15,7 @@
  * - This is a hint, not a command - Ferni chooses whether to use it
  */
 
-import { TEAM_MEMBERS, type TeamMemberId } from '../../../services/team-unlocks.js';
+import { TEAM_MEMBERS, type TeamMemberId } from '../../../services/monetization/team-unlocks.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import {
   createHintInjection,

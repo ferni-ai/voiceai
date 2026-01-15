@@ -25,13 +25,13 @@
  * - Development: Local JSON file fallback at .ferni/contacts.json
  */
 
-import { getLogger } from '../utils/safe-logger.js';
-import { runBackground } from '../utils/background-task.js';
-import { getConfig } from '../config/environment.js';
+import { getLogger } from '../../utils/safe-logger.js';
+import { runBackground } from '../../utils/background-task.js';
+import { getConfig } from '../../config/environment.js';
 import type { Firestore as FirestoreType } from '@google-cloud/firestore';
 import * as fs from 'fs';
 import * as path from 'path';
-import { cleanForFirestore } from '../utils/firestore-utils.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import { onContactChange } from './data-layer/hooks/contacts-hooks.js';
 
 // ============================================================================

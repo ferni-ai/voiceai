@@ -15,8 +15,8 @@
  * @module services/performance-metrics
  */
 
-import { createLogger } from '../utils/safe-logger.js';
-import { registerInterval, clearNamedInterval } from '../utils/interval-manager.js';
+import { createLogger } from '../../utils/safe-logger.js';
+import { registerInterval, clearNamedInterval } from '../../utils/interval-manager.js';
 
 const log = createLogger({ module: 'PerformanceMetrics' });
 

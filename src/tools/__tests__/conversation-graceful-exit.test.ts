@@ -21,7 +21,7 @@ vi.mock('@livekit/agents', () => ({
   },
 }));
 
-vi.mock('../../services/frontend-signal.js', () => ({
+vi.mock('../../services/pubsub/frontend-signal.js', () => ({
   sendFrontendSignal: mockSendFrontendSignal,
 }));
 

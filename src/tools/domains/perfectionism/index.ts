@@ -32,7 +32,7 @@ import {
 } from '../life-coaching-shared/user-profile.js';
 
 // Cross-persona intelligence for team coordination
-import { addCrossPersonaInsight } from '../../../services/cross-persona-insights.js';
+import { addCrossPersonaInsight } from '../../../services/cross-persona/cross-persona-insights.js';
 
 // PhD-level research and persona methodology integration
 import {

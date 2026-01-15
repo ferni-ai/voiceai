@@ -12,8 +12,8 @@
  * This is the brain behind the DJ experience.
  */
 
-import { getMusicPlayer, type MusicTrack, type SessionMusicEntry } from '../audio/index.js';
-import { getLogger } from '../utils/safe-logger.js';
+import { getMusicPlayer, type MusicTrack, type SessionMusicEntry } from '../../audio/index.js';
+import { getLogger } from '../../utils/safe-logger.js';
 
 const log = getLogger();
 

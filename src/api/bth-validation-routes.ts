@@ -282,7 +282,7 @@ async function checkEmotionalIntelligenceHealth(): Promise<ServiceHealth> {
 async function checkCrossPersonaHealth(): Promise<ServiceHealth> {
   const startTime = Date.now();
   try {
-    const { addCrossPersonaInsight } = await import('../services/cross-persona-insights.js');
+    const { addCrossPersonaInsight } = await import('../services/cross-persona/cross-persona-insights.js');
     return {
       id: 'cross-persona',
       name: 'Cross-Persona Intelligence',

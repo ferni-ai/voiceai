@@ -409,7 +409,7 @@ async function fetchMoodCalendar(userId: string): Promise<MoodCalendarData> {
 
 async function fetchGrowthData(userId: string): Promise<GrowthData> {
   try {
-    const { getGrowthVisibilityEngine } = await import('../services/growth-visibility-engine.js');
+    const { getGrowthVisibilityEngine } = await import('../services/engagement/growth-visibility-engine.js');
 
     const engine = getGrowthVisibilityEngine(userId);
     engine.detectGrowth();

@@ -17,7 +17,7 @@ import {
   RITUAL_PROMPTS,
   type EmotionalWeather,
   type DailyRitualsService,
-} from '../services/daily-rituals.js';
+} from '../services/scheduling/daily-rituals.js';
 import {
   getMemoryEngagementEngine,
   resetMemoryEngagementEngine,

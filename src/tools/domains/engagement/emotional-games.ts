@@ -11,7 +11,7 @@
 
 import { llm } from '@livekit/agents';
 import { z } from 'zod';
-import { getDailyRitualsService, type EmotionalWeather } from '../../../services/daily-rituals.js';
+import { getDailyRitualsService, type EmotionalWeather } from '../../../services/scheduling/daily-rituals.js';
 import { getLogger } from '../../../utils/safe-logger.js';
 import type { Tool, ToolContext, ToolDefinition } from '../../registry/types.js';
 import { generateWeatherInsight } from './helpers.js';

@@ -30,7 +30,7 @@ import type { IncomingMessage, ServerResponse } from 'http';
 import crypto from 'crypto';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { sendError } from '../../helpers.js';
-import { encryptSensitive, decryptSensitive } from '../../../services/privacy-crypto.js';
+import { encryptSensitive, decryptSensitive } from '../../../services/identity/privacy-crypto.js';
 import {
   requireApiKeyAuth,
   extractIdFromPath,

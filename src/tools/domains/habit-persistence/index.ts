@@ -24,7 +24,7 @@ import {
   addCrossPersonaInsight,
   getInsightsForPersona,
   type InsightPriority,
-} from '../../../services/cross-persona-insights.js';
+} from '../../../services/cross-persona/cross-persona-insights.js';
 
 // Pattern recognition imports
 import { getPatternToSurface } from '../../../services/superhuman/pattern-mirror.js';

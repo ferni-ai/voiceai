@@ -25,14 +25,14 @@
  * @module services/cross-persona-insights
  */
 
-import { createLogger } from '../utils/safe-logger.js';
-import { getFinancialStore } from './stores/financial-store.js';
-import { getProductivityStore } from './stores/productivity-store.js';
+import { createLogger } from '../../utils/safe-logger.js';
+import { getFinancialStore } from '../stores/financial-store.js';
+import { getProductivityStore } from '../stores/productivity-store.js';
 import { insightsBroadcast } from './insights-broadcast.js';
 import { createPersistenceStore, type PersistenceStore } from './persistence/index.js';
 
 // Superhuman service imports for "Better than Human" insights
-import { cleanForFirestore } from '../utils/firestore-utils.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import {
   loadUserCommitments,
   assessBurnoutRisk,

@@ -11,10 +11,10 @@
  * @module services/chronicle-narrative-bridge
  */
 
-import { embed } from '../memory/embeddings.js';
-import { getFirestoreVectorStore } from '../memory/firestore-vector-store/index.js';
-import type { MemoryItem } from '../memory/interfaces/index.js';
-import { createLogger } from '../utils/safe-logger.js';
+import { embed } from '../../memory/embeddings.js';
+import { getFirestoreVectorStore } from '../../memory/firestore-vector-store/index.js';
+import type { MemoryItem } from '../../memory/interfaces/index.js';
+import { createLogger } from '../../utils/safe-logger.js';
 import { getChronicleService, type ChronicleEntry } from './chronicle/index.js';
 import {
   createOrUpdateChapter,

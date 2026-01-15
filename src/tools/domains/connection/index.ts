@@ -44,7 +44,7 @@ import { getToolDescription } from '../../utils/tool-descriptions.js';
 import {
   addCrossPersonaInsight,
   getInsightsForPersona,
-} from '../../../services/cross-persona-insights.js';
+} from '../../../services/cross-persona/cross-persona-insights.js';
 
 // Superhuman services for relationship network
 import { buildNetworkContext } from '../../../services/superhuman/relationship-network.js';

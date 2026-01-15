@@ -21,7 +21,7 @@ import {
   scanForCrossPersonaInsights,
   type PersonaId,
   type CrossPersonaInsight,
-} from '../../services/cross-persona-insights.js';
+} from '../../services/cross-persona/cross-persona-insights.js';
 import {
   getPerformanceStats,
   clearPerformanceLog,

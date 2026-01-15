@@ -435,7 +435,7 @@ export async function migrateUserData(userId: string): Promise<{
 
   try {
     // 1. Migrate from user_contacts collection
-    const { searchContacts } = await import('../../services/contacts.js');
+    const { searchContacts } = await import('../../services/identity/contacts.js');
     const contacts = await searchContacts(userId, ''); // Get all
     for (const result of contacts) {
       await integrateContact(userId, {

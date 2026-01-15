@@ -19,7 +19,7 @@ import {
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'ConversationTriggers' });
-import { PERSONA_RITUALS } from '../daily-rituals.js';
+import { PERSONA_RITUALS } from '../scheduling/daily-rituals.js';
 
 // Use string type for persona IDs since they can be various formats
 type PersonaIdString = string;

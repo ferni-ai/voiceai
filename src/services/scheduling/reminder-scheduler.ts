@@ -21,7 +21,7 @@ import {
 // Firestore access via superhuman firestore-utils for proper db instance
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import { onReminderChange } from '../data-layer/hooks/index.js';
-import { sendEmail, sendReminder as sendReminderSMS, sendSMS } from '../communication-service.js';
+import { sendEmail, sendReminder as sendReminderSMS, sendSMS } from '../communication/communication-service.js';
 import { recordOutcome } from '../contacts/optimal-timing.js';
 
 // Logger instance for use throughout this module

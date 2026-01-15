@@ -9,7 +9,7 @@
  * - NODE_ENV: Environment name (production, staging, development)
  */
 
-import { getLogger } from '../utils/safe-logger.js';
+import { getLogger } from '../../utils/safe-logger.js';
 
 // ============================================================================
 // TYPES

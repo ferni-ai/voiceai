@@ -5,8 +5,8 @@
  * appointment reminders, and other outreach.
  */
 
-import { getLogger } from '../utils/safe-logger.js';
-import { getCircuitBreaker } from '../utils/circuit-breaker.js';
+import { getLogger } from '../../utils/safe-logger.js';
+import { getCircuitBreaker } from '../../utils/circuit-breaker.js';
 
 const log = getLogger().child({ module: 'TwilioSMS' });
 

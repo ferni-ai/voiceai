@@ -15,7 +15,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import type { ThemeCategory } from '../../services/session-variety-tracker.js';
+import type { ThemeCategory } from '../../services/session-manager/session-variety-tracker.js';
 
 const log = createLogger({ module: 'cross-persona-learning' });
 

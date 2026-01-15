@@ -24,7 +24,7 @@ import { seededChance, seededFloat, seededIndex, seededPick } from './utils/rng.
 import {
   getSessionVarietyTracker,
   type ThemeCategory,
-} from '../services/session-variety-tracker.js';
+} from '../services/session-manager/session-variety-tracker.js';
 import { createLogger } from '../utils/safe-logger.js';
 import { recordTangentDecision } from './awareness-metrics.js';
 import { getMomentumTracker } from './momentum-tracker.js';

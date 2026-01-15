@@ -28,7 +28,7 @@ import { getToolDescription } from '../utils/tool-descriptions.js';
 import { normalizeAgentIdSync } from '../../personas/agent-directory.js';
 import { isCoach } from '../../personas/persona-ids.js';
 import { AgentRegistry, type Agent } from '../../personas/registry/unified-registry.js';
-import { TEAM_MEMBERS } from '../../services/team-unlocks.js';
+import { TEAM_MEMBERS } from '../../services/monetization/team-unlocks.js';
 import type { UserProfile } from '../../types/user-profile.js';
 import { executeHandoff } from './executor.js';
 import { cameoUnlockEvents } from './state.js';
@@ -382,7 +382,7 @@ export async function buildHandoffTools(
   const filteredTools: string[] = [];
 
   // Log the unlock state for debugging
-  const { getTeamUnlockState } = await import('../../services/team-unlocks.js');
+  const { getTeamUnlockState } = await import('../../services/monetization/team-unlocks.js');
   const unlockState = getTeamUnlockState(userProfile ?? null, subscriptionTier);
   getLogger().info(
     {

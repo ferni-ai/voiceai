@@ -14,13 +14,13 @@
  *   diag.tool('Tool executed', { name: 'getWeather', elapsed: 150 });
  */
 
-import { getLogger } from '../utils/safe-logger.js';
+import { getLogger } from '../../utils/safe-logger.js';
 
 // ============================================================================
 // CONFIGURATION
 // ============================================================================
 
-import { isDebugEnabled } from '../config/feature-flags.js';
+import { isDebugEnabled } from '../../config/feature-flags.js';
 
 const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 // Use centralized feature flag system for debug toggle

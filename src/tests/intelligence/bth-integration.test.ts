@@ -62,7 +62,7 @@ vi.mock('firebase-admin', () => {
 });
 
 // Mock contacts service (both paths used in codebase)
-vi.mock('../../services/contacts.js', () => ({
+vi.mock('../../services/identity/contacts.js', () => ({
   getContacts: vi.fn().mockResolvedValue([
     {
       displayName: 'Mom',

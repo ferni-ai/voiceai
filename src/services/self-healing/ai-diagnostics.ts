@@ -6,7 +6,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { getDefaultModel } from '../model-config.js';
+import { getDefaultModel } from '../llm/model-config.js';
 
 const log = createLogger({ module: 'ai-diagnostics' });
 

@@ -5,7 +5,7 @@
  * Fails fast if critical variables are missing.
  */
 
-import { getLogger } from '../utils/safe-logger.js';
+import { getLogger } from '../../utils/safe-logger.js';
 
 // ============================================================================
 // ENVIRONMENT VARIABLE DEFINITIONS

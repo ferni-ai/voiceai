@@ -7,8 +7,8 @@
  * @module services/workflow-engine
  */
 
-import { getLogger } from '../utils/safe-logger.js';
-import { COLLECTIONS, ID_PREFIXES, type WebhookEventType } from '../types/developer-platform.js';
+import { getLogger } from '../../utils/safe-logger.js';
+import { COLLECTIONS, ID_PREFIXES, type WebhookEventType } from '../../types/developer-platform.js';
 import { dispatchWebhookEvent } from './developer-webhook-dispatcher.js';
 import {
   callMCPTool,
@@ -16,8 +16,8 @@ import {
   connectToMCPServer,
   findServer,
   getMCPConfig,
-} from '../personas/bundles/mcp-loader.js';
-import { getFirestoreDb } from '../utils/firestore-utils.js';
+} from '../../personas/bundles/mcp-loader.js';
+import { getFirestoreDb } from '../../utils/firestore-utils.js';
 
 const log = getLogger().child({ module: 'workflow-engine' });
 

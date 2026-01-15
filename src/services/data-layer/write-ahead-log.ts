@@ -14,8 +14,8 @@
  * @module services/write-ahead-log
  */
 
-import { createLogger } from '../utils/safe-logger.js';
-import { registerInterval, clearNamedInterval, hasInterval } from '../utils/interval-manager.js';
+import { createLogger } from '../../utils/safe-logger.js';
+import { registerInterval, clearNamedInterval, hasInterval } from '../../utils/interval-manager.js';
 
 const log = createLogger({ module: 'WriteAheadLog' });
 

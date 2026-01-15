@@ -12,9 +12,9 @@ import type {
   SuperhumanLearningData,
   SuperhumanMemoryData,
   SuperhumanPatternData,
-} from '../types/profile/conversation-memory.js';
-import { createLogger } from '../utils/safe-logger.js';
-import { cleanForFirestore } from '../utils/firestore-utils.js';
+} from '../../types/profile/conversation-memory.js';
+import { createLogger } from '../../utils/safe-logger.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 const logger = createLogger({ module: 'SuperhumanPersistence' });
 

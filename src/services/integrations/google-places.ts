@@ -13,7 +13,7 @@
  * Enable "Places API (New)" in Google Cloud Console
  */
 
-import { getLogger } from '../utils/safe-logger.js';
+import { getLogger } from '../../utils/safe-logger.js';
 
 // ============================================================================
 // CONFIGURATION

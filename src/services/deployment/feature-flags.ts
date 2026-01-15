@@ -12,8 +12,8 @@
  */
 
 import { FieldValue, getFirestore } from 'firebase-admin/firestore';
-import { createLogger } from '../utils/safe-logger.js';
-import { cleanForFirestore } from '../utils/firestore-utils.js';
+import { createLogger } from '../../utils/safe-logger.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'FeatureFlags' });
 

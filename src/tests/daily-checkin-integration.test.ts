@@ -21,7 +21,7 @@ import {
   PERSONA_RITUALS,
   RITUAL_PROMPTS,
   type EmotionalWeather,
-} from '../services/daily-rituals.js';
+} from '../services/scheduling/daily-rituals.js';
 
 // Voice agent handler
 import {

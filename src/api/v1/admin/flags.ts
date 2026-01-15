@@ -27,7 +27,7 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import type { URL } from 'url';
-import { getFeatureFlags } from '../../../services/feature-flags.js';
+import { getFeatureFlags } from '../../../services/deployment/feature-flags.js';
 import {
   isEnabled,
   getFlag as getTrustFlag,
@@ -44,7 +44,7 @@ import {
   refreshFlags,
   TRUST_FLAGS,
   type TrustFlagId,
-} from '../../../services/feature-flags.js';
+} from '../../../services/deployment/feature-flags.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { parseBody, sendJSON, sendError, handleCorsPreflightIfNeeded } from '../../helpers.js';
 import { requireAuth, requireAdmin, rateLimit } from '../../auth-middleware.js';

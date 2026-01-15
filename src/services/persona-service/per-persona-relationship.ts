@@ -9,12 +9,12 @@
  * - Persona-specific memory and vulnerability sharing
  */
 
-import { getLogger } from '../utils/safe-logger.js';
+import { getLogger } from '../../utils/safe-logger.js';
 import type {
   UserProfile,
   PersonaRelationshipStage,
   PerPersonaRelationshipData,
-} from '../types/user-profile.js';
+} from '../../types/user-profile.js';
 
 // ============================================================================
 // RELATIONSHIP STAGE THRESHOLDS

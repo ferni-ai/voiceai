@@ -945,7 +945,7 @@ async function runHealthCheck(): Promise<void> {
   console.log(color('═'.repeat(60), 'dim'));
 
   try {
-    const { alertingService } = await import('../services/optimization-alerting.js');
+    const { alertingService } = await import('../services/performance/optimization-alerting.js');
 
     console.log(color('\n📊 Running health checks...', 'cyan'));
     const result = await alertingService.runHealthCheck();
@@ -980,7 +980,7 @@ async function showAlerts(): Promise<void> {
   console.log(color('═'.repeat(60), 'dim'));
 
   try {
-    const { alertingService } = await import('../services/optimization-alerting.js');
+    const { alertingService } = await import('../services/performance/optimization-alerting.js');
 
     const activeAlerts = alertingService.getActiveAlerts();
     const config = alertingService.getConfig();

@@ -20,7 +20,7 @@ import {
   loadLifeTransitionsVoice,
   loadQuietGrowthVoice,
   clearContentCache,
-} from '../services/persona-content-loader.js';
+} from '../services/persona-service/persona-content-loader.js';
 import type { ContextBuilderInput } from '../intelligence/context-builders/index.js';
 
 // ============================================================================

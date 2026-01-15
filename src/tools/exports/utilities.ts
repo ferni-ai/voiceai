@@ -50,7 +50,7 @@ export {
   type ToolChain,
 } from '../orchestrator/tool-composer.js';
 
-// From services/conversation-state.js (canonical location)
+// From services/conversation-thread/conversation-state.js (canonical location)
 export {
   ConversationStateManager,
   cleanupStaleConversations,
@@ -63,14 +63,14 @@ export {
   type FlowContext,
   type TopicContext,
   type UserContext,
-} from '../../services/conversation-state.js';
+} from '../../services/conversation-thread/conversation-state.js';
 
 // Convenience functions (inlined from deprecated orchestration/)
 import {
   createToolComposer as _createToolComposer,
   type ComposedResult as _ComposedResult,
 } from '../orchestrator/tool-composer.js';
-import { getConversationState as _getConversationState } from '../../services/conversation-state.js';
+import { getConversationState as _getConversationState } from '../../services/conversation-thread/conversation-state.js';
 
 /** Quick helper to get suggested next tools for a session */
 export function getNextToolSuggestions(sessionId: string): string[] {

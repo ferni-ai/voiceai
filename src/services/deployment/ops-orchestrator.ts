@@ -16,10 +16,10 @@
  * This runs inside the container alongside the watchdog.
  */
 
-import { createLogger } from '../utils/safe-logger.js';
-import { registerInterval, clearNamedInterval } from '../utils/interval-manager.js';
-import { SlackNotificationService } from './slack-notifications.js';
-import { cleanForFirestore } from '../utils/firestore-utils.js';
+import { createLogger } from '../../utils/safe-logger.js';
+import { registerInterval, clearNamedInterval } from '../../utils/interval-manager.js';
+import { SlackNotificationService } from './integrations/slack-notifications.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 // AbortController is a built-in global in Node.js 16+
 declare const AbortController: typeof globalThis.AbortController;

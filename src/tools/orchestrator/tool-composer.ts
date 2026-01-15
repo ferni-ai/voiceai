@@ -24,7 +24,7 @@ import {
   getConversationState,
   type ConversationStateManager,
   type EmotionalContext,
-} from '../../services/conversation-state.js';
+} from '../../services/conversation-thread/conversation-state.js';
 
 // ============================================================================
 // TYPES

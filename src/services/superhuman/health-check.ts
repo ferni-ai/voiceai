@@ -155,7 +155,7 @@ async function checkService(serviceId: string): Promise<ServiceHealth> {
       }
 
       case 'cross-persona': {
-        const { addCrossPersonaInsight } = await import('../cross-persona-insights.js');
+        const { addCrossPersonaInsight } = await import('../cross-persona/cross-persona-insights.js');
         return {
           id: serviceId,
           name: service.name,

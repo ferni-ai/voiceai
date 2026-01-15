@@ -600,7 +600,7 @@ async function testMCPTool(
 
   try {
     // Get the MCP server
-    const { getDeveloperMCPServer } = await import('../../../services/developer-mcp-registry.js');
+    const { getDeveloperMCPServer } = await import('../../../services/integrations/developer-mcp-registry.js');
     const server = await getDeveloperMCPServer(tool.config.serverId, publisherId);
 
     if (!server) {

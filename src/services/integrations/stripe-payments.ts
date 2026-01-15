@@ -10,11 +10,11 @@
  * and community support. Handle them with care.
  */
 
-import { getConfig } from '../config/environment.js';
-import { getStore } from '../memory/store-factory.js';
-import { createDefaultMonetizationData, type UserMonetizationData } from '../types/monetization.js';
-import { createLogger } from '../utils/safe-logger.js';
-import { getCircuitBreaker } from '../utils/circuit-breaker.js';
+import { getConfig } from '../../config/environment.js';
+import { getStore } from '../../memory/store-factory.js';
+import { createDefaultMonetizationData, type UserMonetizationData } from '../../types/monetization.js';
+import { createLogger } from '../../utils/safe-logger.js';
+import { getCircuitBreaker } from '../../utils/circuit-breaker.js';
 
 const log = createLogger({ module: 'StripePayments' });
 

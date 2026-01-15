@@ -12,11 +12,11 @@
 import type { AudioFrame } from '@livekit/rtc-node';
 import { getInterruptionHandler } from '../conversation/interruption-handler.js';
 import { getTurnTakingMonitor } from '../conversation/turn-taking.js';
-import type { EmotionResult } from '../intelligence/detectors/emotion.js';
-import { getTopicTracker } from '../intelligence/detectors/topic.js';
+import type { EmotionResult } from '../../intelligence/detectors/emotion.js';
+import { getTopicTracker } from '../../intelligence/detectors/topic.js';
 import { getBackchannelManager } from '../speech/backchanneling/index.js';
 import type { TopicWeight } from '../speech/speech-context.js';
-import { getLogger } from '../utils/safe-logger.js';
+import { getLogger } from '../../utils/safe-logger.js';
 
 // ============================================================================
 // TYPES

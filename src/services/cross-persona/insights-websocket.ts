@@ -15,8 +15,8 @@
 
 import { WebSocketServer, WebSocket } from 'ws';
 import type { Server } from 'node:http';
-import { getLogger } from '../utils/safe-logger.js';
-import { registerInterval, clearNamedInterval } from '../utils/interval-manager.js';
+import { getLogger } from '../../utils/safe-logger.js';
+import { registerInterval, clearNamedInterval } from '../../utils/interval-manager.js';
 import {
   insightsBroadcast,
   type InsightBroadcastEvent,

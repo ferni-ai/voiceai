@@ -588,7 +588,7 @@ describe('BTH: Cross-Persona Intelligence', () => {
   describe('Insight Sharing', () => {
     it('should generate cross-team insights', async () => {
       const { generateCrossPersonaInsights } = await import(
-        '../../services/cross-persona-insights.js'
+        '../../services/cross-persona/cross-persona-insights.js'
       );
 
       const insights = await generateCrossPersonaInsights(TEST_USER_ID, {

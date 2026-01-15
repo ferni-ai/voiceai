@@ -7,10 +7,10 @@
  * Persists to user profile for cross-session narrative continuity.
  */
 
-import { getLogger } from '../utils/safe-logger.js';
-import { getDefaultStore } from '../memory/index.js';
-import type { PersonaRelationshipStage } from '../types/user-profile.js';
-import { cleanForFirestore } from '../utils/firestore-utils.js';
+import { getLogger } from '../../utils/safe-logger.js';
+import { getDefaultStore } from '../../memory/index.js';
+import type { PersonaRelationshipStage } from '../../types/user-profile.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 const logger = getLogger().child({ service: 'StoryTracking' });
 

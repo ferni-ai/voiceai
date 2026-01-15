@@ -35,8 +35,8 @@ import {
   type StartMonthlyRequest,
   type SubscriptionResponse,
 } from '../types/seed-fund.types.js';
-import { createPaymentIntent, isStripeConfigured } from '../services/stripe-payments.js';
-import { createCheckoutSession, createPortalSession } from '../services/stripe-subscription.js';
+import { createPaymentIntent, isStripeConfigured } from '../services/integrations/stripe-payments.js';
+import { createCheckoutSession, createPortalSession } from '../services/integrations/stripe-subscription.js';
 
 const log = createLogger({ module: 'GardenAPI' });
 

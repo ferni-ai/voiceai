@@ -5,7 +5,7 @@
  * This allows the frontend to update the engagement UI in real-time.
  */
 
-import { getLogger } from '../utils/safe-logger.js';
+import { getLogger } from '../../utils/safe-logger.js';
 import { PERSONA_RITUALS } from './daily-rituals.js';
 import {
   EngagementStore,

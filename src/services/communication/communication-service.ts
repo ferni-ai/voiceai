@@ -7,14 +7,14 @@
  * For LLM tools, use `tools/domains/communication/` instead.
  */
 
-import { getLogger } from '../utils/safe-logger.js';
+import { getLogger } from '../../utils/safe-logger.js';
 import {
   validateEmail,
   validatePhone,
   sanitizePlainText,
   sanitizeEmailForLog,
   sanitizePhoneForLog,
-} from '../utils/validation.js';
+} from '../../utils/validation.js';
 
 // API Keys from environment
 const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY || '';

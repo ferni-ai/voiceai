@@ -11,7 +11,7 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 
-import { appleIAP, isAppleConfigured } from '../services/apple-iap.js';
+import { appleIAP, isAppleConfigured } from '../services/integrations/apple-iap.js';
 import { createLogger } from '../utils/safe-logger.js';
 import { parseBody } from './helpers.js';
 

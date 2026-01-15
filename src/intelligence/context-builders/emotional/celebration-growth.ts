@@ -21,11 +21,11 @@ import {
   getCelebrationEngine,
   type CelebrationResponse,
   type CelebrationTrigger,
-} from '../../../services/celebration-engine.js';
+} from '../../../services/engagement/celebration-engine.js';
 import {
   getGrowthVisibilityEngine,
   type GrowthReflection,
-} from '../../../services/growth-visibility-engine.js';
+} from '../../../services/engagement/growth-visibility-engine.js';
 import { getLogger } from '../../../utils/safe-logger.js';
 import {
   createHintInjection,

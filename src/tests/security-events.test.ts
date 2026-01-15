@@ -25,7 +25,7 @@ import {
   cleanupSecurityData,
   type SecurityEventType,
   type SecuritySeverity,
-} from '../services/security-events.js';
+} from '../services/identity/security-events.js';
 
 // Mock the logger
 vi.mock('../utils/safe-logger.js', () => ({

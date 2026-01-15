@@ -714,7 +714,7 @@ export class IntelligentDataLoader {
 
   private async loadCrossPersonaInsights() {
     try {
-      const { loadInsights } = await import('../cross-persona-insights.js');
+      const { loadInsights } = await import('../cross-persona/cross-persona-insights.js');
       await loadInsights(this.userId);
       return { loaded: true };
     } catch {

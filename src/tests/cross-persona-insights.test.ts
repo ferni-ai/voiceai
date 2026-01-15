@@ -91,24 +91,24 @@ describe('Cross-Persona Insights Service', () => {
 
   describe('addCrossPersonaInsight', () => {
     it('should have addCrossPersonaInsight function available', async () => {
-      const service = await import('../services/cross-persona-insights.js');
+      const service = await import('../services/cross-persona/cross-persona-insights.js');
       expect(typeof service.addCrossPersonaInsight).toBe('function');
     });
 
     it('should have getInsightsForPersona function available', async () => {
-      const service = await import('../services/cross-persona-insights.js');
+      const service = await import('../services/cross-persona/cross-persona-insights.js');
       expect(typeof service.getInsightsForPersona).toBe('function');
     });
 
     it('should have generateTeamStatus function available', async () => {
-      const service = await import('../services/cross-persona-insights.js');
+      const service = await import('../services/cross-persona/cross-persona-insights.js');
       expect(typeof service.generateTeamStatus).toBe('function');
     });
   });
 
   describe('generateTeamStatus', () => {
     it('should return team status structure when called', async () => {
-      const { generateTeamStatus } = await import('../services/cross-persona-insights.js');
+      const { generateTeamStatus } = await import('../services/cross-persona/cross-persona-insights.js');
 
       const userId = `test-user-${Date.now()}-5`;
       const status = await generateTeamStatus(userId);
@@ -123,7 +123,7 @@ describe('Cross-Persona Insights Service', () => {
   describe('buildInsightBriefingForHandoff', () => {
     it('should return briefing structure', async () => {
       const { buildInsightBriefingForHandoff } =
-        await import('../services/cross-persona-insights.js');
+        await import('../services/cross-persona/cross-persona-insights.js');
 
       const userId = `test-user-${Date.now()}-6`;
       const briefing = await buildInsightBriefingForHandoff(userId, 'ferni');

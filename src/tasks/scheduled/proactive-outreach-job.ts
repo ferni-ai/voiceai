@@ -382,7 +382,7 @@ async function sendPushNotification(
   personaId?: string
 ): Promise<boolean> {
   try {
-    const { getPushNotificationsService } = await import('../../services/push-notifications.js');
+    const { getPushNotificationsService } = await import('../../services/outreach/push-notifications.js');
 
     const service = getPushNotificationsService();
     const success = await service.sendNotification(userId, {

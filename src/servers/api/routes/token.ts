@@ -9,7 +9,7 @@ import type { IncomingMessage, ServerResponse } from 'http';
 import { AccessToken, AgentDispatchClient } from 'livekit-server-sdk';
 import { rateLimit } from '../../../api/auth-middleware.js';
 import * as demoSessions from '../services/demo-sessions.js';
-import { prewarmContent, type ContentType } from '../../../services/llm-dynamic-content.js';
+import { prewarmContent, type ContentType } from '../../../services/llm/llm-dynamic-content.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 
 // Import shared rate limiting from token server module (single source of truth)
@@ -132,7 +132,7 @@ function prefetchUserData(userId: string, personaId: string): void {
     // 3. Pre-warm cross-persona insights
     (async () => {
       try {
-        const { loadInsights } = await import('../../../services/cross-persona-insights.js');
+        const { loadInsights } = await import('../../../services/cross-persona/cross-persona-insights.js');
         await loadInsights(userId);
         log.debug({ userId: userId.slice(0, 8) }, '⚡ Cross-persona insights pre-fetched');
       } catch (e) {

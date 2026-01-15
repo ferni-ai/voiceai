@@ -15,8 +15,8 @@
 
 import { WebSocketServer, WebSocket } from 'ws';
 import type { Server } from 'node:http';
-import { createLogger } from '../utils/safe-logger.js';
-import { registerInterval, clearNamedInterval } from '../utils/interval-manager.js';
+import { createLogger } from '../../utils/safe-logger.js';
+import { registerInterval, clearNamedInterval } from '../../utils/interval-manager.js';
 import {
   lifeContextBroadcast,
   type LifeContextBroadcastEvent,
@@ -24,7 +24,7 @@ import {
   stopLifeContextMonitoring,
   getLifeContextSnapshot,
 } from './life-context-broadcast.js';
-import { generateSynthesisTriggers } from '../intelligence/triggers/index.js';
+import { generateSynthesisTriggers } from '../../intelligence/triggers/index.js';
 
 const log = createLogger({ module: 'LifeContextWebSocket' });
 

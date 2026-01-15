@@ -13,7 +13,7 @@ import {
   getContentCacheStats,
   getMetricsSummary,
   resetContentMetrics,
-} from '../services/llm-dynamic-content.js';
+} from '../services/llm/llm-dynamic-content.js';
 import { getLogger } from '../utils/safe-logger.js';
 
 const log = getLogger();
@@ -114,7 +114,7 @@ export async function handleLLMContentRoutes(
     // POST /api/llm-content/prewarm - Background cache warming (Cloud Scheduler)
     if (pathname === '/api/llm-content/prewarm' && req.method === 'POST') {
       try {
-        const { prewarmContent } = await import('../services/llm-dynamic-content.js');
+        const { prewarmContent } = await import('../services/llm/llm-dynamic-content.js');
 
         // All personas to pre-warm
         const personas = ['ferni', 'peter', 'maya', 'alex', 'jordan', 'nayan'];

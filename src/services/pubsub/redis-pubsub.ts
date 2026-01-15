@@ -20,7 +20,7 @@
  * @module services/redis-pubsub
  */
 
-import { createLogger } from '../utils/safe-logger.js';
+import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'RedisPubSub' });
 

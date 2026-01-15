@@ -5,7 +5,7 @@
  * Enables purchasing and deploying persona teams together.
  */
 
-import { getLogger } from '../utils/safe-logger.js';
+import { getLogger } from '../../utils/safe-logger.js';
 import type {
   TeamPackageManifest,
   TeamInstance,
@@ -16,7 +16,7 @@ import type {
   TeamSharedContext,
   TeamRouting,
   TeamRole,
-} from '../personas/team/package-types.js';
+} from '../../personas/team/package-types.js';
 
 // ============================================================================
 // TEAM MANAGER

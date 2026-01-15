@@ -32,7 +32,7 @@ import {
   recordSecurityEvent,
   recordSuccessfulAuth,
   trackFailedAuth,
-} from '../services/security-events.js';
+} from '../services/identity/security-events.js';
 import { createLogger } from '../utils/safe-logger.js';
 import { API_ERRORS } from './error-messages.js';
 import { sendError } from './helpers.js';

@@ -14,9 +14,9 @@
  * - Autocomplete for suggestions
  */
 
-import { getLogger } from '../utils/safe-logger.js';
-import { getConfig } from '../config/environment.js';
-import { getCircuitBreaker, CircuitOpenError } from '../utils/circuit-breaker.js';
+import { getLogger } from '../../utils/safe-logger.js';
+import { getConfig } from '../../config/environment.js';
+import { getCircuitBreaker, CircuitOpenError } from '../../utils/circuit-breaker.js';
 
 const YELP_API_BASE = 'https://api.yelp.com/v3';
 

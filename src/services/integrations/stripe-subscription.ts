@@ -14,7 +14,7 @@
  * will throw when called but the module will still compile.
  */
 
-import { getStore } from '../memory/store-factory.js';
+import { getStore } from '../../memory/store-factory.js';
 import {
   type SubscriptionData,
   type SubscriptionStatus,
@@ -26,8 +26,8 @@ import {
   createFreshUsage,
   getLimitMessage, // Reserved for billing period display
   needsUsageReset,
-} from '../types/subscription.js';
-import { createLogger } from '../utils/safe-logger.js';
+} from '../../types/subscription.js';
+import { createLogger } from '../../utils/safe-logger.js';
 import { finops } from './observability/finops.js';
 
 const log = createLogger({ module: 'StripeSubscription' });

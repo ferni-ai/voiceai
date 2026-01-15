@@ -1131,7 +1131,7 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
   // PersonaMemories, OutreachIntelligence, TopicTracking, etc.)
   if (userId) {
     try {
-      const { getSessionDataManager } = await import('../../services/session-data-manager.js');
+      const { getSessionDataManager } = await import('../../services/session-manager/session-data-manager.js');
       const cleanupResult = await getSessionDataManager().sessionEnded(userId);
       diag.session('🧹 SessionDataManager cleanup', {
         cleaned: cleanupResult.cleaned.length,

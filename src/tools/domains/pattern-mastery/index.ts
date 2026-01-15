@@ -22,7 +22,7 @@ import { getToolDescription } from '../../utils/tool-descriptions.js';
 import {
   addCrossPersonaInsight,
   getInsightsForPersona,
-} from '../../../services/cross-persona-insights.js';
+} from '../../../services/cross-persona/cross-persona-insights.js';
 
 // Pattern recognition superhuman services
 import { getPatternToSurface } from '../../../services/superhuman/pattern-mirror.js';

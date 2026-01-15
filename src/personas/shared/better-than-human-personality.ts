@@ -14,7 +14,7 @@
  * @module personas/shared/better-than-human-personality
  */
 
-import type { ThemeCategory } from '../../services/session-variety-tracker.js';
+import type { ThemeCategory } from '../../services/session-manager/session-variety-tracker.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import {
   PERSONA_BUILDING_BLOCKS,

@@ -27,36 +27,36 @@ import {
   type MemoryOrchestrator,
   type OrchestratedMemory,
   type RecallContext,
-} from '../memory/index.js';
+} from '../../memory/index.js';
 import {
   getLearningEngine,
   type LearningEngine,
   type SurfacingEvent,
-} from '../memory/learning-engine.js';
+} from '../../memory/learning-engine.js';
 import {
   createLinksForNewMemory,
   getUserMemories,
   reinforceMemory as reinforceMemoryInStorage,
   runLifecycleMaintenance,
   saveMemory,
-} from '../memory/lifecycle-integration.js';
+} from '../../memory/lifecycle-integration.js';
 import {
   getMemoryConsolidator,
   type ConsolidationResult,
   type MemoryConsolidator,
-} from '../memory/memory-consolidator.js';
-import { getMemoryDecayManager, type MemoryDecayManager } from '../memory/memory-decay.js';
+} from '../../memory/memory-consolidator.js';
+import { getMemoryDecayManager, type MemoryDecayManager } from '../../memory/memory-decay.js';
 import {
   getMemoryGraph,
   type MemoryGraph,
   type MemoryLink,
   type SpreadingActivationResult,
-} from '../memory/memory-graph.js';
-import { getProtectionEngine } from '../memory/protection-engine.js';
-import { ragLookup, semanticSearch } from '../memory/semantic-rag.js';
+} from '../../memory/memory-graph.js';
+import { getProtectionEngine } from '../../memory/protection-engine.js';
+import { ragLookup, semanticSearch } from '../../memory/semantic-rag.js';
 // Spreading activation for associative memory recall
-import { getSpreadingActivation } from '../memory/spreading-activation.js';
-import { createLogger } from '../utils/safe-logger.js';
+import { getSpreadingActivation } from '../../memory/spreading-activation.js';
+import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'unified-memory-service' });
 
@@ -146,7 +146,7 @@ export interface SimpleRecallContext {
 }
 
 // Re-export RecallContext type for convenience
-export type { RecallContext } from '../memory/index.js';
+export type { RecallContext } from '../../memory/index.js';
 
 /**
  * Simple memory write for tools

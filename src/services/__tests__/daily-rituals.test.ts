@@ -50,7 +50,7 @@ import {
   DailyRitualsService,
   getDailyRitualsService,
   resetDailyRitualsService,
-} from '../daily-rituals.js';
+} from '../scheduling/daily-rituals.js';
 
 describe('DailyRituals', () => {
   beforeEach(() => {

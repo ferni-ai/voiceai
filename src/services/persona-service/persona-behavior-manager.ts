@@ -5,8 +5,8 @@
  * for dynamic humanization during conversations.
  */
 
-import { getLogger } from '../utils/safe-logger.js';
-import type { PersonaRelationshipStage } from '../types/user-profile.js';
+import { getLogger } from '../../utils/safe-logger.js';
+import type { PersonaRelationshipStage } from '../../types/user-profile.js';
 import { join } from 'path';
 import { promises as fs } from 'fs';
 

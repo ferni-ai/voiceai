@@ -14,7 +14,7 @@
 import { execSync } from 'child_process';
 import { createLogger } from '../../utils/safe-logger.js';
 import { registerInterval, clearNamedInterval, hasInterval } from '../../utils/interval-manager.js';
-import { SlackNotificationService } from '../slack-notifications.js';
+import { SlackNotificationService } from '../integrations/slack-notifications.js';
 
 const log = createLogger({ module: 'ScheduledBackups' });
 

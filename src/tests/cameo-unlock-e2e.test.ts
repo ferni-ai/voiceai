@@ -469,7 +469,7 @@ describe.skip('Cameo Unlock - Event Integration', () => {
 
 describe.skip('Cameo Unlock - Threshold Validation', () => {
   it('should have correct stage thresholds', async () => {
-    const { TEAM_MEMBERS } = await import('../services/team-unlocks.js');
+    const { TEAM_MEMBERS } = await import('../services/monetization/team-unlocks.js');
 
     // Verify member unlock stages match expected thresholds
     const maya = TEAM_MEMBERS.find((m) => m.memberId === 'maya-santos');
@@ -489,7 +489,7 @@ describe.skip('Cameo Unlock - Threshold Validation', () => {
   });
 
   it('should have introduction messages for all team members', async () => {
-    const { TEAM_MEMBERS } = await import('../services/team-unlocks.js');
+    const { TEAM_MEMBERS } = await import('../services/monetization/team-unlocks.js');
 
     for (const member of TEAM_MEMBERS) {
       if (member.memberId === 'ferni') continue;

@@ -226,7 +226,9 @@ describe('Recall Attribution Parser', () => {
 
     expect(summary.explicitlyReferenced).toBe(2);
     expect(summary.totalInjected).toBe(3);
-    expect(summary.attributionRate).toBeCloseTo(0.67, 1);
+    // Note: The 3rd memory "Previous career discussion" fuzzy matches "career"
+    // in the response, so all 3 are attributed (2 explicit + 1 implicit)
+    expect(summary.attributionRate).toBeCloseTo(1.0, 1);
   });
 
   it('should detect implicit references via fuzzy matching', () => {

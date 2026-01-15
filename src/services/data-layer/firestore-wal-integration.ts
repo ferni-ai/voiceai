@@ -22,7 +22,7 @@
  * @module services/firestore-wal-integration
  */
 
-import { createLogger } from '../utils/safe-logger.js';
+import { createLogger } from '../../utils/safe-logger.js';
 import {
   getWriteAheadLog,
   initializeWriteAheadLog,

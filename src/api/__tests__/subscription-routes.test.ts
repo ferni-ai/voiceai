@@ -20,7 +20,7 @@ const mockStripeService = {
   verifyWebhook: vi.fn(),
 };
 
-vi.mock('../../services/stripe-subscription.js', () => mockStripeService);
+vi.mock('../../services/integrations/stripe-subscription.js', () => mockStripeService);
 
 // Mock trial service
 const mockTrialService = {

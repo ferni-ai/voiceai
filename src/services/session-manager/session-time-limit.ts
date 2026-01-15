@@ -17,8 +17,8 @@ import {
   SESSION_WARNING_MS,
   TIER_CONFIGS,
   type SubscriptionTier,
-} from '../types/subscription.js';
-import { createLogger } from '../utils/safe-logger.js';
+} from '../../types/subscription.js';
+import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'SessionTimeLimit' });
 

@@ -11,7 +11,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Services under test
-import { PERSONA_RITUALS } from '../services/daily-rituals.js';
+import { PERSONA_RITUALS } from '../services/scheduling/daily-rituals.js';
 import {
   buildEngagementContextPrompt,
   generateConversationTriggers,

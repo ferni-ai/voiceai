@@ -21,10 +21,10 @@
  *   // and can be recovered on server restart
  */
 
-import { createSessionId, createUserId, type SessionId, type UserId } from '../types/branded.js';
-import { getLogger } from '../utils/safe-logger.js';
-import { cleanForFirestore, removeUndefined } from '../utils/firestore-utils.js';
-import { getDb } from '../utils/safe-firestore.js';
+import { createSessionId, createUserId, type SessionId, type UserId } from '../../types/branded.js';
+import { getLogger } from '../../utils/safe-logger.js';
+import { cleanForFirestore, removeUndefined } from '../../utils/firestore-utils.js';
+import { getDb } from '../../utils/safe-firestore.js';
 
 // ============================================================================
 // FIRESTORE PERSISTENCE

@@ -17,7 +17,7 @@
  *   5. Copy webhook URL to SLACK_WEBHOOK_URL env var
  */
 
-import { createLogger } from '../utils/safe-logger.js';
+import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'SlackNotifications' });
 

@@ -9,9 +9,9 @@
  * @module services/intelligence-publisher
  */
 
-import { createLogger } from '../utils/safe-logger.js';
-import { safeFireAndForget } from '../utils/safe-fire-and-forget.js';
-import { cleanForFirestore } from '../utils/firestore-utils.js';
+import { createLogger } from '../../utils/safe-logger.js';
+import { safeFireAndForget } from '../../utils/safe-fire-and-forget.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 // ============================================================================
 // TYPES (Duplicated from intelligence-worker to avoid cross-package imports)

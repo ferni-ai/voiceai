@@ -35,7 +35,7 @@ import {
 } from './shared/validation.js';
 import type { DeveloperWorkflow, WorkflowExecution, WorkflowTestResult } from './shared/types.js';
 import { COLLECTIONS, ID_PREFIXES } from './shared/types.js';
-import type { WorkflowNode, WorkflowEdge } from '../../../services/workflow-engine.js';
+import type { WorkflowNode, WorkflowEdge } from '../../../services/workflows/workflow-engine.js';
 
 const log = getLogger().child({ module: 'workflows-routes' });
 

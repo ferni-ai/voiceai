@@ -13,9 +13,9 @@
  *   Peter: Pattern Pulse - One insight about recent patterns
  */
 
-import { getLogger } from '../utils/safe-logger.js';
-import { runBackground } from '../utils/background-task.js';
-import { cleanForFirestore } from '../utils/firestore-utils.js';
+import { getLogger } from '../../utils/safe-logger.js';
+import { runBackground } from '../../utils/background-task.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import {
   getEngagementStore,
   type StoredRitualStreak,

@@ -134,7 +134,7 @@ vi.mock('../../../intelligence/context-builders/team/team-availability.js', () =
 }));
 
 // Mock team unlocks for marketplace agent checks
-vi.mock('../../../services/team-unlocks.js', () => ({
+vi.mock('../../../services/monetization/team-unlocks.js', () => ({
   isFullTeamUnlocked: () => true,
   TEAM_MEMBERS: [
     { memberId: 'ferni' },

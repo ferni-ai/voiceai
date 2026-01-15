@@ -13,7 +13,7 @@
  * This service reads from user session data passed via data channel.
  */
 
-import { createLogger } from '../utils/safe-logger.js';
+import { createLogger } from '../../utils/safe-logger.js';
 import type { VoiceParameters } from './voice/dynamic-voice-parameters.js';
 
 const log = createLogger({ module: 'VoicePackService' });

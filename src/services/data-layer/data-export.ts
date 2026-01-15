@@ -19,9 +19,9 @@
  */
 
 import { getEngagementStore } from './engagement/engagement-store.js';
-import { getConversationHistoryService } from './stores/conversation-history.js';
+import { getConversationHistoryService } from '../stores/conversation-history.js';
 import { getCognitiveMemoryService } from './memory/cognitive-memory.js';
-import { getLogger } from '../utils/safe-logger.js';
+import { getLogger } from '../../utils/safe-logger.js';
 
 const log = getLogger();
 

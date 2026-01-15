@@ -12,9 +12,9 @@
  * @module PersonaContentLoader
  */
 
-import { createLogger } from '../utils/safe-logger.js';
-import { loadBundleById } from '../personas/bundles/index.js';
-import type { BundleBehaviors } from '../personas/bundles/types.js';
+import { createLogger } from '../../utils/safe-logger.js';
+import { loadBundleById } from '../../personas/bundles/index.js';
+import type { BundleBehaviors } from '../../personas/bundles/types.js';
 
 const log = createLogger({ module: 'PersonaContentLoader' });
 

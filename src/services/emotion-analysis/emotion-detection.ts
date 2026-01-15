@@ -4,9 +4,9 @@
  * Detects user emotions from text to enable emotional mirroring and adaptive responses.
  */
 
-import { getLogger } from '../utils/safe-logger.js';
+import { getLogger } from '../../utils/safe-logger.js';
 // 🦀 Rust-accelerated word counting
-import { countWordsRust, isTokenCountingAvailable } from '../memory/rust-accelerator.js';
+import { countWordsRust, isTokenCountingAvailable } from '../../memory/rust-accelerator.js';
 
 const logger = getLogger().child({ service: 'EmotionDetection' });
 const RUST_COUNTING_AVAILABLE = isTokenCountingAvailable();

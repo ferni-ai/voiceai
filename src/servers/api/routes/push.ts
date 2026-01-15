@@ -196,7 +196,7 @@ export async function handlePushRoutes(
 
           // Try to use backend service if available
           try {
-            const pushModule = await import('../../../services/push-notifications.js');
+            const pushModule = await import('../../../services/outreach/push-notifications.js');
             const service = pushModule.getPushNotificationsService();
             // Valid notification types from the service
             const validTypes = [

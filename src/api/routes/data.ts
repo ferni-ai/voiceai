@@ -26,7 +26,7 @@ export async function handleGetExportCategories(
   if (!userId) return;
 
   try {
-    const { getDataExportService } = await import('../../services/data-export.js');
+    const { getDataExportService } = await import('../../services/data-layer/data-export.js');
     const exportService = getDataExportService();
     const categories = await exportService.getExportableCategories(userId);
 
@@ -52,7 +52,7 @@ export async function handleExportData(
     const userId = body.userId || requireUserId(req, res, parsedUrl);
     if (!userId) return;
 
-    const { getDataExportService } = await import('../../services/data-export.js');
+    const { getDataExportService } = await import('../../services/data-layer/data-export.js');
     const exportService = getDataExportService();
     const data = await exportService.exportData(userId, body.format, body.categories || []);
 
@@ -90,7 +90,7 @@ export async function handleDeleteAllData(
       return;
     }
 
-    const { getDataExportService } = await import('../../services/data-export.js');
+    const { getDataExportService } = await import('../../services/data-layer/data-export.js');
     const exportService = getDataExportService();
     await exportService.deleteAllData(userId);
 

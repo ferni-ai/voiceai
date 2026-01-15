@@ -10,7 +10,7 @@ import {
   generateContent,
   getContentWithFallback,
   type ContentContext,
-} from '../../services/llm-dynamic-content.js';
+} from '../../services/llm/llm-dynamic-content.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { seededChance, seededPick } from '../utils/rng.js';
 

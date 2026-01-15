@@ -10,8 +10,8 @@
  * PERSISTENCE: Uses Firestore for cross-session awareness with in-memory caching.
  */
 
-import { removeUndefined, cleanForFirestore } from '../utils/firestore-utils.js';
-import { getLogger } from '../utils/safe-logger.js';
+import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
+import { getLogger } from '../../utils/safe-logger.js';
 import type { AgentId } from './agent-bus.js';
 import type { Firestore as FirestoreType } from '@google-cloud/firestore';
 

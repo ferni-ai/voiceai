@@ -8,14 +8,14 @@
  */
 
 import { EventEmitter } from 'events';
-import { createLogger } from '../utils/safe-logger.js';
-import { registerInterval, clearNamedInterval } from '../utils/interval-manager.js';
+import { createLogger } from '../../utils/safe-logger.js';
+import { registerInterval, clearNamedInterval } from '../../utils/interval-manager.js';
 import {
   aggregateLifeContext,
   generateSynthesisTriggers,
   type LifeContextSnapshot,
   type SynthesisTrigger,
-} from '../intelligence/triggers/index.js';
+} from '../../intelligence/triggers/index.js';
 
 const log = createLogger({ module: 'LifeContextBroadcast' });
 

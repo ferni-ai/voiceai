@@ -16,13 +16,13 @@
  * @module @ferni/relationship-dashboard
  */
 
-import { createLogger } from '../utils/safe-logger.js';
+import { createLogger } from '../../utils/safe-logger.js';
 import type {
   UserProfile,
   KeyMoment,
   EmotionalPattern,
   FamilyMember,
-} from '../types/user-profile.js';
+} from '../../types/user-profile.js';
 
 const log = createLogger({ module: 'RelationshipDashboard' });
 

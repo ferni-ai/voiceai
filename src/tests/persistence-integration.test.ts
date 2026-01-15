@@ -205,7 +205,7 @@ describe('Service Persistence Integration', () => {
   describe('Push Notifications', () => {
     it('should persist subscriptions', async () => {
       const { getPushNotificationsService, resetPushNotificationsService } =
-        await import('../services/push-notifications.js');
+        await import('../services/outreach/push-notifications.js');
 
       const service = getPushNotificationsService();
       await service.registerSubscription({

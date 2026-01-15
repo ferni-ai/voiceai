@@ -10,7 +10,7 @@
  * @module @ferni/superhuman-analytics
  */
 
-import { createLogger } from '../utils/safe-logger.js';
+import { createLogger } from '../../utils/safe-logger.js';
 
 const logger = createLogger({ module: 'SuperhumanAnalytics' });
 

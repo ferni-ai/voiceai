@@ -25,8 +25,8 @@ import {
 } from 'crypto';
 import admin from 'firebase-admin';
 import { promisify } from 'util';
-import { removeUndefined, cleanForFirestore } from '../utils/firestore-utils.js';
-import { getLogger } from '../utils/safe-logger.js';
+import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
+import { getLogger } from '../../utils/safe-logger.js';
 
 const log = getLogger();
 const scryptAsync = promisify(scrypt);

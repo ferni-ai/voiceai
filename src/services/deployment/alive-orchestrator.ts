@@ -16,8 +16,8 @@
  */
 
 import type { VoiceEmotionResult } from '../speech/audio-prosody.js';
-import type { GameMemory } from '../types/user-profile.js';
-import { getLogger } from '../utils/safe-logger.js';
+import type { GameMemory } from '../../types/user-profile.js';
+import { getLogger } from '../../utils/safe-logger.js';
 import {
   checkMilestones,
   getPersonalityComment,

@@ -21,7 +21,7 @@
  * persistence layer to survive server restarts.
  */
 
-import { getLogger } from '../utils/safe-logger.js';
+import { getLogger } from '../../utils/safe-logger.js';
 import { createPersistenceStore, type PersistenceStore } from './persistence/index.js';
 import {
   scheduleText,
@@ -30,8 +30,8 @@ import {
   getUserContactInfo,
   setUserContactInfo,
 } from './outreach/user-contact.js';
-import { AgentRole } from '../personas/index.js';
-import { cleanForFirestore } from '../utils/firestore-utils.js';
+import { AgentRole } from '../../personas/index.js';
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 // ============================================================================
 // TYPES

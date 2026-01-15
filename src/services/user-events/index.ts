@@ -15,7 +15,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb } from '../superhuman/firestore-utils.js';
-import { getRedisPubSub, CHANNELS, type PubSubMessage } from '../redis-pubsub.js';
+import { getRedisPubSub, CHANNELS, type PubSubMessage } from '../pubsub/redis-pubsub.js';
 
 const log = createLogger({ module: 'UserEvents' });
 

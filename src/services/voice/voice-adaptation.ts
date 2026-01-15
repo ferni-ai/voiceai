@@ -6,8 +6,8 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
-import { loadPersonaBehaviors } from '../persona-behavior-manager.js';
-import type { EmotionResult } from '../emotion-detection.js';
+import { loadPersonaBehaviors } from '../persona-service/persona-behavior-manager.js';
+import type { EmotionResult } from '../emotion-analysis/emotion-detection.js';
 
 const logger = getLogger().child({ service: 'VoiceAdaptation' });
 

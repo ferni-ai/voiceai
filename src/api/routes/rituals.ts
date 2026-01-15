@@ -16,7 +16,7 @@ import { requireUserId, sendJSON, sendJSONCached, sendError } from '../helpers.j
 import { validateBody, CreateRitualSchema, CompleteRitualSchema } from '../validators.js';
 import { API_ERRORS } from '../error-messages.js';
 import { type AnyRecord, MILESTONES, getMilestoneMessage } from './types.js';
-import { getDailyRitualsService, PERSONA_RITUALS } from '../../services/daily-rituals.js';
+import { getDailyRitualsService, PERSONA_RITUALS } from '../../services/scheduling/daily-rituals.js';
 
 const log = createLogger({ module: 'RitualsAPI' });
 

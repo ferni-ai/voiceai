@@ -17,11 +17,11 @@
  * - Send order link to user's phone to complete payment
  */
 
-import { getFirestoreDatabase, getGCPProjectId, getConfig } from '../config/environment.js';
-import { getCircuitBreaker } from '../utils/circuit-breaker.js';
-import { removeUndefined, cleanForFirestore } from '../utils/firestore-utils.js';
-import { getLogger } from '../utils/safe-logger.js';
-import { runBackground, runBackgroundBatch } from '../utils/background-task.js';
+import { getFirestoreDatabase, getGCPProjectId, getConfig } from '../../config/environment.js';
+import { getCircuitBreaker } from '../../utils/circuit-breaker.js';
+import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
+import { getLogger } from '../../utils/safe-logger.js';
+import { runBackground, runBackgroundBatch } from '../../utils/background-task.js';
 import type { Firestore as FirestoreType } from '@google-cloud/firestore';
 
 // Circuit breakers for food delivery APIs

@@ -12,7 +12,7 @@
  * - TTS latency
  */
 
-import { getLogger } from '../utils/safe-logger.js';
+import { getLogger } from '../../utils/safe-logger.js';
 
 // ============================================================================
 // TYPES

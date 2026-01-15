@@ -34,7 +34,7 @@ import { createSessionServices, type SessionServices } from '../../services/inde
 import {
   createFirestoreSuperhumanStore,
   loadSuperhumanData,
-} from '../../services/superhuman-persistence.js';
+} from '../../services/analytics/superhuman-persistence.js';
 import { onSessionStart as loadTrustProfiles } from '../../services/trust-systems/index.js';
 import { resetCatchphraseTracking } from '../../speech/response-naturalness.js';
 import { abTestingService } from '../../tools/ab-testing.js';

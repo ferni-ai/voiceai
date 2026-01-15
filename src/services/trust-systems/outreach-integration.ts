@@ -483,7 +483,7 @@ async function sendMessage(item: OutreachItem, method: 'voice' | 'sms' | 'push')
         const formatted = formatSmsMessage(personaId, item.message, formatContext);
 
         // Use the communication service for SMS
-        const { sendSMS } = await import('../communication-service.js');
+        const { sendSMS } = await import('../communication/communication-service.js');
         const result = await sendSMS(phone, formatted.message);
         const success = !result.includes('trouble') && !result.includes('error');
         if (success) {

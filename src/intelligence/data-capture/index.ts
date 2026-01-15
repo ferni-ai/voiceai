@@ -349,7 +349,7 @@ async function routeToStorage(item: CapturedItem, context: DataCaptureContext): 
   // ═══════════════════════════════════════════════════════════════════════════
 
   // Import contacts service
-  const { createContact, findContact, updateContact } = await import('../../services/contacts.js');
+  const { createContact, findContact, updateContact } = await import('../../services/identity/contacts.js');
 
   // Check if contact already exists
   if (contact.name) {

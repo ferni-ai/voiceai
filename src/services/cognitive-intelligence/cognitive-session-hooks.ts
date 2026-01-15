@@ -9,9 +9,9 @@
  * - onCognitiveSessionEnd: Call in disconnect handler before other cleanup
  */
 
-import { getLogger } from '../utils/safe-logger.js';
-import type { UserProfile } from '../types/user-profile.js';
-import type { ReasoningStyle } from '../personas/cognitive-types.js';
+import { getLogger } from '../../utils/safe-logger.js';
+import type { UserProfile } from '../../types/user-profile.js';
+import type { ReasoningStyle } from '../../personas/cognitive-types.js';
 import {
   initializeCognitiveSession,
   endCognitiveSession,

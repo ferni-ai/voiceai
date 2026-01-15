@@ -39,17 +39,17 @@ const log = createLogger({ module: 'context:graph' });
 /** Patterns to detect entity mentions in user input */
 const ENTITY_MENTION_PATTERNS = [
   // "What do I know about X?"
-  /what (?:do (?:I|you|we) know|'s known) about (\w+(?:\s+\w+)?)/i,
+  /what (?:do (?:I|you|we) know|'s known) about ([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/i,
   // "Tell me about X"
-  /tell me (?:more )?about (\w+(?:\s+\w+)?)/i,
+  /tell me (?:more )?about ([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/i,
   // "Who is X?"
-  /who (?:is|was) (\w+(?:\s+\w+)?)/i,
-  // "X's situation/work/health/etc."
-  /(\w+(?:\s+\w+)?)'s\s+(work|health|family|relationship|finance|education)/i,
-  // "How is X doing?"
-  /how (?:is|are) (\w+(?:\s+\w+)?)(?:\s+doing)?/i,
+  /who (?:is|was) ([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/i,
+  // "X's situation/work/health/etc." - captures "Sarah" from "Sarah's"
+  /([A-Z][a-z]+)'s\s+(work|health|family|relationship|finance|education)/i,
+  // "How is X doing?" - captures name before "doing"
+  /how (?:is|are) ([A-Z][a-z]+) (?:doing|lately|today)?/i,
   // "What's happening with X?"
-  /what'?s (?:happening|going on) with (\w+(?:\s+\w+)?)/i,
+  /what'?s (?:happening|going on) with ([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/i,
 ];
 
 /** Patterns to detect relationship queries */

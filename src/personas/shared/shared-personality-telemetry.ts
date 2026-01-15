@@ -14,7 +14,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { diag } from '../../services/diagnostic-logger.js';
-import type { ThemeCategory } from '../../services/session-variety-tracker.js';
+import type { ThemeCategory } from '../../services/session-manager/session-variety-tracker.js';
 import type { NoticingType } from './realtime-noticing.js';
 
 const log = createLogger({ module: 'shared-personality-telemetry' });

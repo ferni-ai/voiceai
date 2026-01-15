@@ -35,7 +35,7 @@ vi.mock('@livekit/agents', () => ({
   },
 }));
 
-vi.mock('../../../../services/cross-persona-insights.js', () => ({
+vi.mock('../../../../services/cross-persona/cross-persona-insights.js', () => ({
   addCrossPersonaInsight: vi.fn(() => Promise.resolve()),
 }));
 

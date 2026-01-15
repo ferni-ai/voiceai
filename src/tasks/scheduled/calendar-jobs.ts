@@ -125,7 +125,7 @@ export class WeeklyCalendarDigestJob extends ScheduledJob<WeeklyDigestConfig, We
     try {
       const { generateWeeklyDigest, formatDigestForPush } =
         await import('../../services/calendar/weekly-calendar-digest.js');
-      const { getPushNotificationsService } = await import('../../services/push-notifications.js');
+      const { getPushNotificationsService } = await import('../../services/outreach/push-notifications.js');
 
       const digest = await generateWeeklyDigest(userId);
       if (!digest) return false;
@@ -221,7 +221,7 @@ export class PreMeetingNotificationsJob extends ScheduledJob<
     try {
       const { checkForPreMeetingNotification, toOutreachFormat } =
         await import('../../services/calendar/pre-meeting-notifications.js');
-      const { getPushNotificationsService } = await import('../../services/push-notifications.js');
+      const { getPushNotificationsService } = await import('../../services/outreach/push-notifications.js');
 
       // Check for meetings requiring notification
       const notification = await checkForPreMeetingNotification(userId);

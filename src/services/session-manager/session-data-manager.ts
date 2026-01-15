@@ -14,8 +14,8 @@
  */
 
 import * as v8 from 'v8';
-import { createLogger } from '../utils/safe-logger.js';
-import { registerInterval, clearNamedInterval, hasInterval } from '../utils/interval-manager.js';
+import { createLogger } from '../../utils/safe-logger.js';
+import { registerInterval, clearNamedInterval, hasInterval } from '../../utils/interval-manager.js';
 
 const log = createLogger({ module: 'SessionDataManager' });
 

@@ -30,7 +30,7 @@ import {
   applyHumanizingStateToProfile,
   getHumanizingState,
   recordGreetingUsage,
-} from '../../services/humanizing-state.js';
+} from '../../services/session-manager/humanizing-state.js';
 import type { SessionServices } from '../../services/index.js';
 import type { SpeechContext } from '../../speech/types/index.js';
 import { getDJController } from '../../audio/dj-controller.js';
@@ -830,7 +830,7 @@ async function appendMusicCallback(
   }
 
   try {
-    const { getCrossSessionMusicCallback } = await import('../../services/dj-service.js');
+    const { getCrossSessionMusicCallback } = await import('../../services/music/dj-service.js');
     const musicCallback = getCrossSessionMusicCallback(
       sessionPersona.id,
       services.userProfile.musicMemory

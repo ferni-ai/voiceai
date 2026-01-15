@@ -16,7 +16,7 @@ import {
   getDailyRitualsService,
   PERSONA_RITUALS,
   RITUAL_PROMPTS,
-} from '../../../services/daily-rituals.js';
+} from '../../../services/scheduling/daily-rituals.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import {
   BuilderCategory,

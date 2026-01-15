@@ -12,7 +12,7 @@
  * @module services/session-variety-tracker
  */
 
-import { createLogger } from '../utils/safe-logger.js';
+import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'session-variety-tracker' });
 

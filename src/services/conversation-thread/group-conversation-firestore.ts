@@ -28,14 +28,14 @@
  * @module services/group-conversation-firestore
  */
 
-import { getLogger } from '../utils/safe-logger.js';
+import { getLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb, cleanForFirestore } from './superhuman/firestore-utils.js';
 import type {
   GroupConversation,
   GroupParticipant,
   AttributedUtterance,
   GroupConversationSummary,
-} from '../types/group-conversation.js';
+} from '../../types/group-conversation.js';
 
 // ActionItem and KeyMoment types - defined locally to avoid circular import
 // These match the types in agents/group-conversation/transcript-service.ts

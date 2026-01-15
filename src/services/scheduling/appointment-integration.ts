@@ -21,7 +21,7 @@ import { EventEmitter } from 'events';
 import admin from 'firebase-admin';
 import { getLogger } from '../../utils/safe-logger.js';
 import { getAppointmentFollowUpService, type TrackedAppointment } from './appointment-followup.js';
-import { sendEmail, sendSMS } from '../communication-service.js';
+import { sendEmail, sendSMS } from '../communication/communication-service.js';
 import { createAppointmentEvent, isCalendarConfigured } from '../identity/google-calendar-oauth.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import {

@@ -22,7 +22,7 @@ import {
   getPushNotificationsService,
   type PushNotificationPayload,
   type NotificationType,
-} from '../../services/push-notifications.js';
+} from '../../services/outreach/push-notifications.js';
 import { getUserContactInfo } from '../../services/outreach/user-contact.js';
 
 const log = createLogger({ module: 'CalendarBriefingJob' });

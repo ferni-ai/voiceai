@@ -17,7 +17,7 @@ import {
   getGrowthVisibilityEngine,
   type GrowthInsight,
   type GrowthType,
-} from '../../services/growth-visibility-engine.js';
+} from '../../services/engagement/growth-visibility-engine.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { parseBody, requireUserId, sendJSON, sendJSONCached } from '../helpers.js';
 

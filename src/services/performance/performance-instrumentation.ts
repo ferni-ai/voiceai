@@ -19,8 +19,8 @@
  *   const report = perfInstrumentation.getReport();
  */
 
-import { getLogger } from '../utils/safe-logger.js';
-import { registerInterval, clearNamedInterval, hasInterval } from '../utils/interval-manager.js';
+import { getLogger } from '../../utils/safe-logger.js';
+import { registerInterval, clearNamedInterval, hasInterval } from '../../utils/interval-manager.js';
 
 const log = getLogger();
 

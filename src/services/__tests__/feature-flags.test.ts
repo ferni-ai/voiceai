@@ -56,7 +56,7 @@ import {
   withFlagAsync,
   getSimpleUtilitiesConfig,
   getFeatureFlags,
-} from '../feature-flags.js';
+} from '../deployment/feature-flags.js';
 
 describe('FeatureFlags', () => {
   beforeEach(async () => {

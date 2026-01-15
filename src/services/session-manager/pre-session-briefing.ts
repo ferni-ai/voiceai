@@ -17,7 +17,7 @@
  * @module PreSessionBriefing
  */
 
-import { createLogger } from '../utils/safe-logger.js';
+import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'PreSessionBriefing' });
 

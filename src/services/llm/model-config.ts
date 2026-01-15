@@ -15,7 +15,7 @@
 
 import fs from 'fs';
 import path from 'path';
-import { createLogger } from '../utils/safe-logger.js';
+import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'ModelConfig' });
 
@@ -140,7 +140,7 @@ import {
   getDefaultModel as getDefaultModelFromConfig,
   getLLMTimeout,
   getShortLLMTimeout,
-} from '../config/gemini-config.js';
+} from '../../config/gemini-config.js';
 
 // Re-export for external use
 export {

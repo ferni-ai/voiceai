@@ -547,7 +547,7 @@ async function loadPersonaBundleAcknowledgments(
   }
 
   try {
-    const { loadPersonaBehaviors } = await import('../../services/persona-content-loader.js');
+    const { loadPersonaBehaviors } = await import('../../services/persona-service/persona-content-loader.js');
     const behaviors = await loadPersonaBehaviors(personaId);
 
     if (!behaviors) {

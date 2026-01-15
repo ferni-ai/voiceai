@@ -17,7 +17,7 @@ import {
   getRandomPhraseClean,
   loadLateNightPresence,
   loadPersonaContent,
-} from '../../../services/persona-content-loader.js';
+} from '../../../services/persona-service/persona-content-loader.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import {
   createHintInjection,

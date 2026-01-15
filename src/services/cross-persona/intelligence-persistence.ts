@@ -9,9 +9,9 @@
  * collect valuable data but don't persist it reliably.
  */
 
-import type { UserProfile } from '../types/user-profile.js';
-import { getLogger } from '../utils/safe-logger.js';
-import { registerInterval, clearNamedInterval } from '../utils/interval-manager.js';
+import type { UserProfile } from '../../types/user-profile.js';
+import { getLogger } from '../../utils/safe-logger.js';
+import { registerInterval, clearNamedInterval } from '../../utils/interval-manager.js';
 
 // Import metrics for observability
 import { persistenceMetrics } from './analytics/persistence-metrics.js';
@@ -21,51 +21,51 @@ import {
   getHumorCalibration,
   removeHumorCalibration,
   type HumorPreferences,
-} from '../intelligence/tracking/humor.js';
+} from '../../intelligence/tracking/humor.js';
 
 import {
   getStoryPreference,
   removeStoryPreference,
   type StoryPreferences,
-} from '../intelligence/tracking/story-preference.js';
+} from '../../intelligence/tracking/story-preference.js';
 
 import {
   getCommunicationMirroring,
   removeCommunicationMirroring,
-} from '../intelligence/tracking/communication-style.js';
+} from '../../intelligence/tracking/communication-style.js';
 
 import {
   getEmotionalMemory,
   removeEmotionalMemory,
   type EmotionalMoment,
-} from '../intelligence/tracking/emotional-memory.js';
+} from '../../intelligence/tracking/emotional-memory.js';
 
 import {
   getVoicePaceAdapter,
   removeVoicePaceAdapter,
   type LearnedPacePreferences,
-} from '../intelligence/tracking/voice-pace.js';
+} from '../../intelligence/tracking/voice-pace.js';
 
 import {
   getResponseQualityTracker,
   removeResponseQualityTracker,
   type LearnedResponsePreferences,
   type ResponseSignal,
-} from '../intelligence/tracking/response-quality.js';
+} from '../../intelligence/tracking/response-quality.js';
 
 import {
   getConversationPatternAnalyzer,
   removeConversationPatternAnalyzer,
   type ConversationSession,
   type LearnedConversationPatterns,
-} from '../intelligence/tracking/conversation-patterns.js';
+} from '../../intelligence/tracking/conversation-patterns.js';
 
 import {
   getCrossSessionThreader,
   removeCrossSessionThreader,
   type OpenThread,
   type PromisedFollowUp,
-} from '../intelligence/tracking/cross-session.js';
+} from '../../intelligence/tracking/cross-session.js';
 
 // 🌟 Better Than Human capabilities
 import {

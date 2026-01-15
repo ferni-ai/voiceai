@@ -32,7 +32,7 @@ import {
   isUserExcited,
   getResponseStyle,
   analyzeConversationEmotion,
-} from '../emotion-detection.js';
+} from '../emotion-analysis/emotion-detection.js';
 
 describe('EmotionDetection', () => {
   describe('EmotionCategory type', () => {

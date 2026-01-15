@@ -11,7 +11,7 @@ import {
   getSessionVarietyTracker,
   type PersonalityExpression,
   type ThemeCategory,
-} from '../../services/session-variety-tracker.js';
+} from '../../services/session-manager/session-variety-tracker.js';
 import type { PersonaConfig } from '../types.js';
 import type {
   BundleConflictHandling,

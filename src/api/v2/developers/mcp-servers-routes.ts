@@ -43,7 +43,7 @@ import {
 } from './shared/types.js';
 import { getFirestore } from '../../v1/developers/shared/developer-auth.js';
 import { getLogger } from '../../../utils/safe-logger.js';
-import { encryptSensitive, decryptSensitive } from '../../../services/privacy-crypto.js';
+import { encryptSensitive, decryptSensitive } from '../../../services/identity/privacy-crypto.js';
 
 const log = getLogger().child({ module: 'mcp-servers-routes' });
 

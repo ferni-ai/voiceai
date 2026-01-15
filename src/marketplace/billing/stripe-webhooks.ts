@@ -17,7 +17,7 @@ import Stripe from 'stripe';
 import { getLogger } from '../../utils/safe-logger.js';
 import type { MarketplaceId, UserId } from '../schema/types.js';
 import { calculateRevenueShare, markPayoutComplete, recordUsage } from './index.js';
-import { getPushNotificationsService } from '../../services/push-notifications.js';
+import { getPushNotificationsService } from '../../services/outreach/push-notifications.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 // Firestore helpers for marketplace data

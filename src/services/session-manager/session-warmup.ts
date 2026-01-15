@@ -20,7 +20,7 @@
  * @module services/session-warmup
  */
 
-import { createLogger } from '../utils/safe-logger.js';
+import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'SessionWarmup' });
 

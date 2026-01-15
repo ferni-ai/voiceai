@@ -14,7 +14,7 @@
  */
 
 import { createServer, type IncomingMessage, type ServerResponse } from 'http';
-import { createLogger } from '../utils/safe-logger.js';
+import { createLogger } from '../../utils/safe-logger.js';
 import { execSync } from 'child_process';
 
 const log = createLogger({ module: 'SlackChatOps' });

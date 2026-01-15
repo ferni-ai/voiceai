@@ -30,7 +30,7 @@ vi.mock('../../services/privacy-crypto.js', () => ({
   stripPII: vi.fn((text) => text),
 }));
 
-vi.mock('../../services/security-events.js', () => ({
+vi.mock('../../services/identity/security-events.js', () => ({
   recordDataAccess: vi.fn().mockResolvedValue(undefined),
   recordSecurityEvent: vi.fn().mockResolvedValue(undefined),
 }));
@@ -355,7 +355,7 @@ describe('GDPR Routes API', () => {
   describe('Security & Audit', () => {
     it('should record data access events', async () => {
       const { handleGDPRRoutes } = await import('../gdpr-routes.js');
-      const { recordDataAccess } = await import('../../services/security-events.js');
+      const { recordDataAccess } = await import('../../services/identity/security-events.js');
 
       const req = createMockRequest({
         method: 'POST',
@@ -371,7 +371,7 @@ describe('GDPR Routes API', () => {
     });
 
     it('should mask PII in exports', async () => {
-      const { maskEmail, maskPhoneNumber } = await import('../../services/privacy-crypto.js');
+      const { maskEmail, maskPhoneNumber } = await import('../../services/identity/privacy-crypto.js');
 
       // Verify masking functions work
       expect(maskEmail('test@example.com')).toContain('***');

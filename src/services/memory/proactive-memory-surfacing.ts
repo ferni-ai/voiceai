@@ -13,11 +13,11 @@
  * @module services/proactive-memory-surfacing
  */
 
-import type { ExplainedMemory, MemoryItem, ReferenceStyle } from '../memory/interfaces/index.js';
-import { getLearningEngine } from '../memory/learning-engine.js';
-import { getMemoryGraph } from '../memory/memory-graph.js';
-import { getNaturalReferenceGenerator } from '../memory/natural-reference-generator.js';
-import { createLogger } from '../utils/safe-logger.js';
+import type { ExplainedMemory, MemoryItem, ReferenceStyle } from '../../memory/interfaces/index.js';
+import { getLearningEngine } from '../../memory/learning-engine.js';
+import { getMemoryGraph } from '../../memory/memory-graph.js';
+import { getNaturalReferenceGenerator } from '../../memory/natural-reference-generator.js';
+import { createLogger } from '../../utils/safe-logger.js';
 import {
   getUnifiedMemoryService,
   type EnhancedRecallResult,

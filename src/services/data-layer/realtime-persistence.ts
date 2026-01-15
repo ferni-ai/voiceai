@@ -16,8 +16,8 @@
  * @module services/realtime-persistence
  */
 
-import { createLogger } from '../utils/safe-logger.js';
-import { runBackground } from '../utils/background-task.js';
+import { createLogger } from '../../utils/safe-logger.js';
+import { runBackground } from '../../utils/background-task.js';
 
 const log = createLogger({ module: 'RealtimePersistence' });
 

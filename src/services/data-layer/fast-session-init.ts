@@ -164,7 +164,7 @@ export async function fastSessionStart(
     // Load cross-persona insights
     scheduleBackgroundTask('cross_persona_insights', async () => {
       try {
-        const { loadInsights } = await import('../cross-persona-insights.js');
+        const { loadInsights } = await import('../cross-persona/cross-persona-insights.js');
         await loadInsights(userId);
       } catch {
         // Non-critical

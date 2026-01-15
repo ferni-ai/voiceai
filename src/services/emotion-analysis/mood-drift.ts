@@ -12,7 +12,7 @@
  * dispensing advice, they're FEELING the conversation with you.
  */
 
-import { getLogger } from '../utils/safe-logger.js';
+import { getLogger } from '../../utils/safe-logger.js';
 
 // ============================================================================
 // TYPES

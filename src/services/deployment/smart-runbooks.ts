@@ -10,7 +10,7 @@
  * Goes beyond canned responses with intelligent, context-aware guidance.
  */
 
-import { createLogger } from '../utils/safe-logger.js';
+import { createLogger } from '../../utils/safe-logger.js';
 import type { GoogleGenerativeAI } from '@google/generative-ai';
 
 const log = createLogger({ module: 'SmartRunbooks' });

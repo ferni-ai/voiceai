@@ -10,7 +10,7 @@
  * Can be exposed via API endpoints for a dashboard UI.
  */
 
-import { getLogger } from '../utils/safe-logger.js';
+import { getLogger } from '../../utils/safe-logger.js';
 import { getUserContactInfo } from './outreach/user-contact.js';
 import {
   getPreferences,

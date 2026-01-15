@@ -19,7 +19,7 @@ import {
   parseBypassConfig,
   TEAM_MEMBERS,
   type TeamMemberId,
-} from '../../services/team-unlocks.js';
+} from '../../services/monetization/team-unlocks.js';
 
 const log = createLogger({ module: 'RelationshipAPI' });
 

@@ -157,7 +157,7 @@ async function sendEmailAlert(message: Record<string, unknown>): Promise<void> {
   if (!alertConfig.emailRecipients?.length) return;
 
   try {
-    const { sendEmail } = await import('../communication-service.js');
+    const { sendEmail } = await import('../communication/communication-service.js');
 
     const subject = `🧪 ${message.title}`;
     const body = `

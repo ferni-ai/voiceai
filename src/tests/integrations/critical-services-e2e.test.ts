@@ -98,7 +98,7 @@ describe('Stripe Subscription Service', () => {
 
   describe('Service Functions', () => {
     it('should check if Stripe is configured', async () => {
-      const { isStripeConfigured } = await import('../../services/stripe-subscription.js');
+      const { isStripeConfigured } = await import('../../services/integrations/stripe-subscription.js');
 
       const configured = isStripeConfigured();
       console.log(`isStripeConfigured(): ${configured}`);
@@ -107,7 +107,7 @@ describe('Stripe Subscription Service', () => {
     });
 
     it('should get usage status for a user', async () => {
-      const { getUsageStatus } = await import('../../services/stripe-subscription.js');
+      const { getUsageStatus } = await import('../../services/integrations/stripe-subscription.js');
 
       const status = await getUsageStatus('test-user-stripe');
 
@@ -121,7 +121,7 @@ describe('Stripe Subscription Service', () => {
     });
 
     it('should check if user can start conversation', async () => {
-      const { canStartConversation } = await import('../../services/stripe-subscription.js');
+      const { canStartConversation } = await import('../../services/integrations/stripe-subscription.js');
 
       const result = await canStartConversation('test-user-stripe');
 
@@ -133,7 +133,7 @@ describe('Stripe Subscription Service', () => {
 
     it('should record conversation and update usage', async () => {
       const { recordConversation, getUsageStatus } =
-        await import('../../services/stripe-subscription.js');
+        await import('../../services/integrations/stripe-subscription.js');
 
       // Get initial status
       const initialStatus = await getUsageStatus('test-user-stripe-record');
@@ -153,7 +153,7 @@ describe('Stripe Subscription Service', () => {
     });
 
     it('should get subscription info for API response', async () => {
-      const { getSubscriptionInfo } = await import('../../services/stripe-subscription.js');
+      const { getSubscriptionInfo } = await import('../../services/integrations/stripe-subscription.js');
 
       const info = await getSubscriptionInfo('test-user-stripe-info');
 
@@ -171,7 +171,7 @@ describe('Stripe Subscription Service', () => {
     it.skipIf(!config.stripe.configured)(
       'should create checkout session (requires Stripe)',
       async () => {
-        const { createCheckoutSession } = await import('../../services/stripe-subscription.js');
+        const { createCheckoutSession } = await import('../../services/integrations/stripe-subscription.js');
 
         const session = await createCheckoutSession({
           userId: `test-checkout-${Date.now()}`,
@@ -192,7 +192,7 @@ describe('Stripe Subscription Service', () => {
 
   describe('Webhook Event Handling', () => {
     it('should handle checkout.session.completed event', async () => {
-      const { handleWebhookEvent } = await import('../../services/stripe-subscription.js');
+      const { handleWebhookEvent } = await import('../../services/integrations/stripe-subscription.js');
 
       // Mock Stripe event
       const mockEvent = {
@@ -227,7 +227,7 @@ describe('Stripe Subscription Service', () => {
     });
 
     it('should handle customer.subscription.updated event', async () => {
-      const { handleWebhookEvent } = await import('../../services/stripe-subscription.js');
+      const { handleWebhookEvent } = await import('../../services/integrations/stripe-subscription.js');
 
       const mockEvent = {
         id: 'evt_test_124',
@@ -260,7 +260,7 @@ describe('Stripe Subscription Service', () => {
 
     it('should handle customer.subscription.deleted event', async () => {
       const { handleWebhookEvent, downgradeToFree } =
-        await import('../../services/stripe-subscription.js');
+        await import('../../services/integrations/stripe-subscription.js');
 
       const mockEvent = {
         id: 'evt_test_125',
@@ -288,7 +288,7 @@ describe('Stripe Subscription Service', () => {
     });
 
     it('should handle invoice.payment_failed event', async () => {
-      const { handleWebhookEvent } = await import('../../services/stripe-subscription.js');
+      const { handleWebhookEvent } = await import('../../services/integrations/stripe-subscription.js');
 
       const mockEvent = {
         id: 'evt_test_126',
@@ -308,7 +308,7 @@ describe('Stripe Subscription Service', () => {
     });
 
     it('should handle invoice.paid event', async () => {
-      const { handleWebhookEvent } = await import('../../services/stripe-subscription.js');
+      const { handleWebhookEvent } = await import('../../services/integrations/stripe-subscription.js');
 
       const mockEvent = {
         id: 'evt_test_127',
@@ -349,7 +349,7 @@ describe('Push Notifications Service', () => {
 
   describe('Service Functions', () => {
     it('should get push notifications service instance', async () => {
-      const { getPushNotificationsService } = await import('../../services/push-notifications.js');
+      const { getPushNotificationsService } = await import('../../services/outreach/push-notifications.js');
 
       const service = getPushNotificationsService();
       expect(service).toBeDefined();
@@ -358,7 +358,7 @@ describe('Push Notifications Service', () => {
     });
 
     it('should get service stats', async () => {
-      const { getPushNotificationsService } = await import('../../services/push-notifications.js');
+      const { getPushNotificationsService } = await import('../../services/outreach/push-notifications.js');
 
       const service = getPushNotificationsService();
       const stats = service.getStats();
@@ -372,7 +372,7 @@ describe('Push Notifications Service', () => {
     });
 
     it('should register a push subscription', async () => {
-      const { getPushNotificationsService } = await import('../../services/push-notifications.js');
+      const { getPushNotificationsService } = await import('../../services/outreach/push-notifications.js');
 
       const service = getPushNotificationsService();
 
@@ -394,7 +394,7 @@ describe('Push Notifications Service', () => {
     });
 
     it('should schedule a notification', async () => {
-      const { getPushNotificationsService } = await import('../../services/push-notifications.js');
+      const { getPushNotificationsService } = await import('../../services/outreach/push-notifications.js');
 
       const service = getPushNotificationsService();
 
@@ -416,7 +416,7 @@ describe('Push Notifications Service', () => {
     });
 
     it('should cancel a scheduled notification', async () => {
-      const { getPushNotificationsService } = await import('../../services/push-notifications.js');
+      const { getPushNotificationsService } = await import('../../services/outreach/push-notifications.js');
 
       const service = getPushNotificationsService();
 
@@ -440,7 +440,7 @@ describe('Push Notifications Service', () => {
     });
 
     it('should send ritual reminder notification', async () => {
-      const { getPushNotificationsService } = await import('../../services/push-notifications.js');
+      const { getPushNotificationsService } = await import('../../services/outreach/push-notifications.js');
 
       const service = getPushNotificationsService();
 
@@ -456,7 +456,7 @@ describe('Push Notifications Service', () => {
     });
 
     it('should send streak milestone notification', async () => {
-      const { getPushNotificationsService } = await import('../../services/push-notifications.js');
+      const { getPushNotificationsService } = await import('../../services/outreach/push-notifications.js');
 
       const service = getPushNotificationsService();
 
@@ -467,7 +467,7 @@ describe('Push Notifications Service', () => {
     });
 
     it('should process scheduled notifications', async () => {
-      const { getPushNotificationsService } = await import('../../services/push-notifications.js');
+      const { getPushNotificationsService } = await import('../../services/outreach/push-notifications.js');
 
       const service = getPushNotificationsService();
 
@@ -479,7 +479,7 @@ describe('Push Notifications Service', () => {
     });
 
     it('should clear user data', async () => {
-      const { getPushNotificationsService } = await import('../../services/push-notifications.js');
+      const { getPushNotificationsService } = await import('../../services/outreach/push-notifications.js');
 
       const service = getPushNotificationsService();
 

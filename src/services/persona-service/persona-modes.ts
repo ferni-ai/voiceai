@@ -5,7 +5,7 @@
  * with mode-specific behavior modifiers and transition phrases.
  */
 
-import { getLogger } from '../utils/safe-logger.js';
+import { getLogger } from '../../utils/safe-logger.js';
 import { loadPersonaBehaviors } from './persona-behavior-manager.js';
 
 const logger = getLogger().child({ service: 'PersonaModes' });
