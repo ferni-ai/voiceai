@@ -116,15 +116,20 @@ describe('Request Coalescer Edge Cases', () => {
     });
   });
 
-  describe('Registry Options Ignored', () => {
-    it('BUG: Second call with different options is silently ignored', () => {
+  describe('Registry Options Handling', () => {
+    it('FIXED: Second call with different options logs warning and uses existing config', () => {
       // First call sets TTL to 1000ms
       const coalescer1 = getRequestCoalescer<string>('options-test', {
         pendingTtlMs: 1000,
         maxPending: 5,
       });
 
-      // Second call tries to set TTL to 999999ms - but gets same instance
+      // Verify initial config
+      expect(coalescer1.getPendingTtlMs()).toBe(1000);
+      expect(coalescer1.getMaxPending()).toBe(5);
+
+      // Second call tries to set different options - should warn but use existing
+      // (In a real scenario, a warning would be logged)
       const coalescer2 = getRequestCoalescer<string>('options-test', {
         pendingTtlMs: 999999,
         maxPending: 999,
@@ -133,9 +138,17 @@ describe('Request Coalescer Edge Cases', () => {
       // Same instance returned
       expect(coalescer1).toBe(coalescer2);
 
-      // The second options were silently ignored!
-      // This could cause subtle bugs if different parts of the codebase
-      // expect different configurations.
+      // Config is from first call, not second
+      expect(coalescer2.getPendingTtlMs()).toBe(1000);
+      expect(coalescer2.getMaxPending()).toBe(5);
+    });
+
+    it('should use default options when none provided', () => {
+      const coalescer = getRequestCoalescer<string>('defaults-test');
+
+      // Should have default values
+      expect(coalescer.getPendingTtlMs()).toBe(60000);
+      expect(coalescer.getMaxPending()).toBe(10000);
     });
   });
 

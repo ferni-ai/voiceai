@@ -166,6 +166,20 @@ export class RequestCoalescer<T> {
   }
 
   /**
+   * Get the configured TTL in milliseconds
+   */
+  getPendingTtlMs(): number {
+    return this.pendingTtlMs;
+  }
+
+  /**
+   * Get the configured max pending limit
+   */
+  getMaxPending(): number {
+    return this.maxPending;
+  }
+
+  /**
    * Get current stats
    */
   getStats(): CoalescerStats {
@@ -218,13 +232,37 @@ const coalescers = new Map<string, RequestCoalescer<unknown>>();
 /**
  * Get or create a request coalescer by name.
  * Uses registry pattern for singleton access.
+ *
+ * Note: Options are only used when creating a new coalescer. If a coalescer
+ * with the given name already exists, the provided options are ignored and
+ * a warning is logged if they differ from the existing configuration.
  */
 export function getRequestCoalescer<T>(name: string, options?: CoalescerOptions): RequestCoalescer<T> {
-  let coalescer = coalescers.get(name);
-  if (!coalescer) {
-    coalescer = new RequestCoalescer<unknown>(name, options);
-    coalescers.set(name, coalescer);
+  const existing = coalescers.get(name);
+  if (existing) {
+    // Warn if different options were requested (they'll be ignored)
+    if (options) {
+      const existingTtl = existing.getPendingTtlMs();
+      const existingMax = existing.getMaxPending();
+      const requestedTtl = options.pendingTtlMs ?? 60000;
+      const requestedMax = options.maxPending ?? 10000;
+
+      if (requestedTtl !== existingTtl || requestedMax !== existingMax) {
+        log.warn(
+          {
+            name,
+            existing: { pendingTtlMs: existingTtl, maxPending: existingMax },
+            requested: { pendingTtlMs: requestedTtl, maxPending: requestedMax },
+          },
+          'Request coalescer already exists with different options - using existing configuration'
+        );
+      }
+    }
+    return existing as RequestCoalescer<T>;
   }
+
+  const coalescer = new RequestCoalescer<unknown>(name, options);
+  coalescers.set(name, coalescer);
   return coalescer as RequestCoalescer<T>;
 }
 
