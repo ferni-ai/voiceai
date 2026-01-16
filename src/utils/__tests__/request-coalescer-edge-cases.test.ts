@@ -229,3 +229,46 @@ describe('Concurrent embedBatch calls', () => {
     // This is a limitation - embedBatch doesn't use the coalescer
   });
 });
+
+describe('Coalesced Request Mutation Safety', () => {
+  it('RAW COALESCER: Coalesced requests share same array reference (expected behavior)', async () => {
+    // This documents the raw coalescer behavior: all callers get the
+    // SAME reference. The caller (e.g., embed()) is responsible for cloning
+    // if mutation safety is needed.
+
+    const coalescer = new RequestCoalescer<number[]>('mutation-test', {
+      pendingTtlMs: 60000,
+      maxPending: 100,
+    });
+
+    // Executor returns a new array each time it's called
+    const executor = async () => {
+      return [1, 2, 3];
+    };
+
+    // Simulate concurrent requests - they will coalesce
+    const [result1, result2, result3] = await Promise.all([
+      coalescer.execute('key', executor),
+      coalescer.execute('key', executor),
+      coalescer.execute('key', executor),
+    ]);
+
+    // Verify coalescing happened (only 1 execution)
+    expect(coalescer.getStats().actualExecutions).toBe(1);
+    expect(coalescer.getStats().coalescedRequests).toBe(2);
+
+    // Raw coalescer returns same reference (expected - it's generic, doesn't clone)
+    expect(result1).toBe(result2);
+    expect(result2).toBe(result3);
+
+    // If first caller mutates their result...
+    result1[0] = 999;
+
+    // ...other callers see the mutation (expected for raw coalescer)
+    expect(result2[0]).toBe(999);
+    expect(result3[0]).toBe(999);
+
+    // NOTE: The embed() function clones results to prevent this.
+    // See embedding-coalescing.test.ts for the FIXED integration test.
+  });
+});

@@ -547,7 +547,10 @@ function getEmbeddingCoalescer() {
  */
 export async function embed(text: string): Promise<number[]> {
   const hash = hashContent(text);
-  return getEmbeddingCoalescer().execute(hash, () => getEmbeddingProvider().embed(text));
+  // Clone the result to prevent mutation bugs when requests coalesce.
+  // Without cloning, all coalesced callers share the same array reference.
+  const result = await getEmbeddingCoalescer().execute(hash, () => getEmbeddingProvider().embed(text));
+  return [...result];
 }
 
 /**

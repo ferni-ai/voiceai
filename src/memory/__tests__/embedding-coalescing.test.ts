@@ -139,6 +139,42 @@ describe('Embedding Coalescing Integration', () => {
         expect(embeddingStats.actualExecutions).toBe(2);
       }
     });
+
+    it('FIXED: Concurrent embed() calls return independent arrays - mutation safe', async () => {
+      const text = 'Text for mutation safety test';
+
+      // Start concurrent requests - they will coalesce
+      const [result1, result2, result3] = await Promise.all([
+        embed(text),
+        embed(text),
+        embed(text),
+      ]);
+
+      // Check coalescing happened
+      const stats = getAllCoalescerStats();
+      const embeddingStats = stats.find((s) => s.name === 'embeddings');
+
+      expect(embeddingStats).toBeDefined();
+      if (embeddingStats) {
+        // All requests used the same execution (coalesced)
+        expect(embeddingStats.actualExecutions).toBeGreaterThanOrEqual(1);
+      }
+
+      // All results should have equal values
+      expect(result1).toEqual(result2);
+      expect(result2).toEqual(result3);
+
+      // FIXED: Results should be different array instances (cloned)
+      expect(result1).not.toBe(result2);
+      expect(result2).not.toBe(result3);
+
+      // Mutating one should not affect others
+      const originalValue = result1[0];
+      result1[0] = 999999;
+
+      expect(result2[0]).toBe(originalValue); // FIXED: Not affected
+      expect(result3[0]).toBe(originalValue); // FIXED: Not affected
+    });
   });
 
   describe('embedBatch() deduplication', () => {
