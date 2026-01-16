@@ -38,6 +38,38 @@ import type {
 const log = createLogger({ module: 'ceo-coaching-storage' });
 
 // ============================================================================
+// TTL CONFIGURATION (days until automatic expiration)
+// ============================================================================
+
+/**
+ * TTL values for CEO coaching data.
+ * High-value reflective data: 2 years
+ * Operational/transient data: 1 year
+ */
+export const CEO_TTL_DAYS = {
+  WIN: 730,           // 2 years - achievements worth keeping
+  ENERGY: 365,        // 1 year - transient health data
+  GRATITUDE: 730,     // 2 years - emotional content
+  JOURNAL: 730,       // 2 years - personal reflections
+  DECISION: 730,      // 2 years - important decisions
+  PRIORITY: 365,      // 1 year - operational
+  BLOCKER: 365,       // 1 year - operational
+  IDEA: 730,          // 2 years - worth keeping
+  FOCUS_SESSION: 365, // 1 year - operational
+  REFLECTION: 730,    // 2 years - valuable insights
+  WEEKLY_REVIEW: 730, // 2 years - valuable summaries
+} as const;
+
+/**
+ * Calculate expiration date for TTL-enabled documents
+ */
+function calculateExpiresAt(ttlDays: number): string {
+  const expiresAt = new Date();
+  expiresAt.setDate(expiresAt.getDate() + ttlDays);
+  return expiresAt.toISOString();
+}
+
+// ============================================================================
 // FIRESTORE ACCESS
 // ============================================================================
 
@@ -93,11 +125,17 @@ export async function saveWin(userId: string, win: Omit<CEOWin, 'id' | 'createdA
     createdAt: now,
   };
 
+  // TTL-enabled document for automatic cleanup
+  const docWithTTL = {
+    ...fullWin,
+    expiresAt: calculateExpiresAt(CEO_TTL_DAYS.WIN),
+  };
+
   if (db) {
     try {
       await getUserCollection(db, userId, 'ceo_wins')
         .doc(id)
-        .set(cleanForFirestore(fullWin));
+        .set(cleanForFirestore(docWithTTL));
       log.debug({ userId, winId: id }, 'Saved CEO win');
     } catch (error) {
       log.error({ error: String(error), userId }, 'Failed to save CEO win');
@@ -150,11 +188,17 @@ export async function logEnergy(
     note,
   };
 
+  // TTL-enabled document for automatic cleanup
+  const docWithTTL = {
+    ...entry,
+    expiresAt: calculateExpiresAt(CEO_TTL_DAYS.ENERGY),
+  };
+
   if (db) {
     try {
       await getUserCollection(db, userId, 'ceo_energy')
         .doc(id)
-        .set(cleanForFirestore(entry));
+        .set(cleanForFirestore(docWithTTL));
       log.debug({ userId, level }, 'Logged CEO energy');
     } catch (error) {
       log.error({ error: String(error), userId }, 'Failed to log energy');
@@ -253,11 +297,17 @@ export async function logGratitude(
     createdAt: now.toISOString(),
   };
 
+  // TTL-enabled document for automatic cleanup
+  const docWithTTL = {
+    ...entry,
+    expiresAt: calculateExpiresAt(CEO_TTL_DAYS.GRATITUDE),
+  };
+
   if (db) {
     try {
       await getUserCollection(db, userId, 'ceo_gratitude')
         .doc(id)
-        .set(cleanForFirestore(entry));
+        .set(cleanForFirestore(docWithTTL));
       log.debug({ userId }, 'Logged gratitude');
     } catch (error) {
       log.error({ error: String(error), userId }, 'Failed to log gratitude');
@@ -305,11 +355,17 @@ export async function saveJournalEntry(
     mood,
   };
 
+  // TTL-enabled document for automatic cleanup
+  const docWithTTL = {
+    ...entry,
+    expiresAt: calculateExpiresAt(CEO_TTL_DAYS.JOURNAL),
+  };
+
   if (db) {
     try {
       await getUserCollection(db, userId, 'ceo_journal')
         .doc(id)
-        .set(cleanForFirestore(entry));
+        .set(cleanForFirestore(docWithTTL));
       log.debug({ userId }, 'Saved journal entry');
     } catch (error) {
       log.error({ error: String(error), userId }, 'Failed to save journal entry');
@@ -341,11 +397,17 @@ export async function trackDecision(
     createdAt: now,
   };
 
+  // TTL-enabled document for automatic cleanup
+  const docWithTTL = {
+    ...decision,
+    expiresAt: calculateExpiresAt(CEO_TTL_DAYS.DECISION),
+  };
+
   if (db) {
     try {
       await getUserCollection(db, userId, 'ceo_decisions')
         .doc(id)
-        .set(cleanForFirestore(decision));
+        .set(cleanForFirestore(docWithTTL));
       log.debug({ userId, decisionId: id }, 'Tracked decision');
     } catch (error) {
       log.error({ error: String(error), userId }, 'Failed to track decision');
@@ -420,11 +482,17 @@ export async function addPriority(userId: string, text: string): Promise<CEOPrio
     createdAt: now,
   };
 
+  // TTL-enabled document for automatic cleanup
+  const docWithTTL = {
+    ...priority,
+    expiresAt: calculateExpiresAt(CEO_TTL_DAYS.PRIORITY),
+  };
+
   if (db) {
     try {
       await getUserCollection(db, userId, 'ceo_priorities')
         .doc(id)
-        .set(cleanForFirestore(priority));
+        .set(cleanForFirestore(docWithTTL));
       log.debug({ userId, priorityId: id }, 'Added priority');
     } catch (error) {
       log.error({ error: String(error), userId }, 'Failed to add priority');
@@ -507,11 +575,17 @@ export async function addBlocker(userId: string, text: string): Promise<CEOBlock
     createdAt: now,
   };
 
+  // TTL-enabled document for automatic cleanup
+  const docWithTTL = {
+    ...blocker,
+    expiresAt: calculateExpiresAt(CEO_TTL_DAYS.BLOCKER),
+  };
+
   if (db) {
     try {
       await getUserCollection(db, userId, 'ceo_blockers')
         .doc(id)
-        .set(cleanForFirestore(blocker));
+        .set(cleanForFirestore(docWithTTL));
       log.debug({ userId, blockerId: id }, 'Added blocker');
     } catch (error) {
       log.error({ error: String(error), userId }, 'Failed to add blocker');
@@ -584,11 +658,17 @@ export async function captureIdea(
     createdAt: now,
   };
 
+  // TTL-enabled document for automatic cleanup
+  const docWithTTL = {
+    ...idea,
+    expiresAt: calculateExpiresAt(CEO_TTL_DAYS.IDEA),
+  };
+
   if (db) {
     try {
       await getUserCollection(db, userId, 'ceo_ideas')
         .doc(id)
-        .set(cleanForFirestore(idea));
+        .set(cleanForFirestore(docWithTTL));
       log.debug({ userId, ideaId: id }, 'Captured idea');
     } catch (error) {
       log.error({ error: String(error), userId }, 'Failed to capture idea');
@@ -637,11 +717,17 @@ export async function startFocusSession(
     status: 'active',
   };
 
+  // TTL-enabled document for automatic cleanup
+  const docWithTTL = {
+    ...session,
+    expiresAt: calculateExpiresAt(CEO_TTL_DAYS.FOCUS_SESSION),
+  };
+
   if (db) {
     try {
       await getUserCollection(db, userId, 'ceo_focus_sessions')
         .doc(id)
-        .set(cleanForFirestore(session));
+        .set(cleanForFirestore(docWithTTL));
       log.debug({ userId, sessionId: id, durationMinutes }, 'Started focus session');
     } catch (error) {
       log.error({ error: String(error), userId }, 'Failed to start focus session');
@@ -711,11 +797,17 @@ export async function saveDailyReflection(
     createdAt: now,
   };
 
+  // TTL-enabled document for automatic cleanup
+  const docWithTTL = {
+    ...fullReflection,
+    expiresAt: calculateExpiresAt(CEO_TTL_DAYS.REFLECTION),
+  };
+
   if (db) {
     try {
       await getUserCollection(db, userId, 'ceo_reflections')
         .doc(id)
-        .set(cleanForFirestore(fullReflection));
+        .set(cleanForFirestore(docWithTTL));
       log.debug({ userId, date: reflection.date }, 'Saved daily reflection');
     } catch (error) {
       log.error({ error: String(error), userId }, 'Failed to save reflection');
@@ -744,11 +836,17 @@ export async function saveWeeklyReview(
     createdAt: now,
   };
 
+  // TTL-enabled document for automatic cleanup
+  const docWithTTL = {
+    ...fullReview,
+    expiresAt: calculateExpiresAt(CEO_TTL_DAYS.WEEKLY_REVIEW),
+  };
+
   if (db) {
     try {
       await getUserCollection(db, userId, 'ceo_weekly_reviews')
         .doc(id)
-        .set(cleanForFirestore(fullReview));
+        .set(cleanForFirestore(docWithTTL));
       log.debug({ userId, weekStart: review.weekStart }, 'Saved weekly review');
     } catch (error) {
       log.error({ error: String(error), userId }, 'Failed to save weekly review');

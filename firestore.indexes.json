@@ -1,472 +1,173 @@
 {
   "indexes": [
     {
-      "_comment": "=== CONVERSATION THREADS ===",
-      "collectionGroup": "conversation_threads",
+      "collectionGroup": "bogle_users",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "userId", "order": "ASCENDING" },
         { "fieldPath": "updatedAt", "order": "DESCENDING" }
       ]
     },
     {
-      "collectionGroup": "conversation_threads",
+      "collectionGroup": "bogle_users",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "userId", "order": "ASCENDING" },
-        { "fieldPath": "status", "order": "ASCENDING" },
-        { "fieldPath": "updatedAt", "order": "DESCENDING" }
-      ]
-    },
-
-    {
-      "_comment": "=== SHARE INVITES ===",
-      "collectionGroup": "share_invites",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "ownerId", "order": "ASCENDING" },
-        { "fieldPath": "createdAt", "order": "DESCENDING" }
+        { "fieldPath": "nameLower", "order": "ASCENDING" }
       ]
     },
     {
-      "collectionGroup": "share_invites",
+      "collectionGroup": "bogle_users",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "agentId", "order": "ASCENDING" },
-        { "fieldPath": "status", "order": "ASCENDING" }
-      ]
-    },
-
-    {
-      "_comment": "=== CUSTOM AGENTS ===",
-      "collectionGroup": "custom_agents",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "ownerId", "order": "ASCENDING" },
-        { "fieldPath": "createdAt", "order": "DESCENDING" }
-      ]
-    },
-
-    {
-      "_comment": "=== VOICE UPLOADS ===",
-      "collectionGroup": "voice_uploads",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "userId", "order": "ASCENDING" },
-        { "fieldPath": "createdAt", "order": "DESCENDING" }
+        { "fieldPath": "ceoCoachingActive", "order": "ASCENDING" }
       ]
     },
     {
-      "collectionGroup": "voice_uploads",
+      "collectionGroup": "summaries",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "status", "order": "ASCENDING" },
-        { "fieldPath": "createdAt", "order": "ASCENDING" }
-      ]
-    },
-
-    {
-      "_comment": "=== GDPR EXPORTS ===",
-      "collectionGroup": "gdpr_exports",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "userId", "order": "ASCENDING" },
-        { "fieldPath": "requestedAt", "order": "DESCENDING" }
+        { "fieldPath": "timestamp", "order": "DESCENDING" }
       ]
     },
     {
-      "collectionGroup": "gdpr_exports",
-      "queryScope": "COLLECTION",
+      "collectionGroup": "superhuman_cache",
+      "queryScope": "COLLECTION_GROUP",
       "fields": [
-        { "fieldPath": "status", "order": "ASCENDING" },
         { "fieldPath": "expiresAt", "order": "ASCENDING" }
       ]
     },
-
     {
-      "_comment": "=== MARKETPLACE ===",
-      "collectionGroup": "approved_experiments",
-      "queryScope": "COLLECTION",
+      "collectionGroup": "sessions",
+      "queryScope": "COLLECTION_GROUP",
       "fields": [
-        { "fieldPath": "status", "order": "ASCENDING" },
-        { "fieldPath": "approvedAt", "order": "DESCENDING" }
+        { "fieldPath": "expiresAt", "order": "ASCENDING" }
       ]
     },
     {
-      "collectionGroup": "marketplace_submissions",
-      "queryScope": "COLLECTION",
+      "collectionGroup": "tool_executions",
+      "queryScope": "COLLECTION_GROUP",
       "fields": [
-        { "fieldPath": "status", "order": "ASCENDING" },
-        { "fieldPath": "submittedAt", "order": "ASCENDING" }
+        { "fieldPath": "expiresAt", "order": "ASCENDING" }
       ]
     },
     {
-      "collectionGroup": "marketplace_submissions",
-      "queryScope": "COLLECTION",
+      "collectionGroup": "intents",
+      "queryScope": "COLLECTION_GROUP",
       "fields": [
-        { "fieldPath": "assignedTo", "order": "ASCENDING" },
-        { "fieldPath": "submittedAt", "order": "ASCENDING" }
-      ]
-    },
-
-    {
-      "_comment": "=== COMMUNITY ===",
-      "collectionGroup": "founder_stories",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "status", "order": "ASCENDING" },
-        { "fieldPath": "publishedAt", "order": "DESCENDING" }
+        { "fieldPath": "expiresAt", "order": "ASCENDING" }
       ]
     },
     {
-      "collectionGroup": "community_milestones",
+      "collectionGroup": "associative_memory",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "reached", "order": "ASCENDING" },
-        { "fieldPath": "target", "order": "ASCENDING" }
+        { "fieldPath": "updatedAt", "order": "DESCENDING" }
       ]
     },
-
     {
-      "_comment": "=== MEMORY SYSTEM ===",
-      "collectionGroup": "user_memories",
+      "collectionGroup": "behavioral_patterns",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "type", "order": "ASCENDING" },
+        { "fieldPath": "lastObserved", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "ceo_energy",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "timestamp", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "ceo_wins",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "date", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "ceo_gratitude",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "date", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "ceo_priorities",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "order", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "ceo_blockers",
+      "queryScope": "COLLECTION",
+      "fields": [
         { "fieldPath": "createdAt", "order": "DESCENDING" }
       ]
     },
     {
-      "collectionGroup": "commitments",
+      "collectionGroup": "ceo_decisions",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "status", "order": "ASCENDING" },
-        { "fieldPath": "dueDate", "order": "ASCENDING" }
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
       ]
     },
     {
-      "collectionGroup": "calendar_events",
+      "collectionGroup": "ceo_ideas",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "status", "order": "ASCENDING" },
-        { "fieldPath": "processedAt", "order": "ASCENDING" },
-        { "fieldPath": "endTime", "order": "DESCENDING" }
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
       ]
     },
     {
-      "collectionGroup": "extracted_facts",
+      "collectionGroup": "ceo_journal",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "category", "order": "ASCENDING" },
-        { "fieldPath": "extractedAt", "order": "DESCENDING" }
+        { "fieldPath": "timestamp", "order": "DESCENDING" }
       ]
     },
     {
-      "collectionGroup": "values",
+      "collectionGroup": "communication_preferences",
       "queryScope": "COLLECTION",
       "fields": [
         { "fieldPath": "type", "order": "ASCENDING" },
         { "fieldPath": "confidence", "order": "DESCENDING" }
       ]
     },
-
     {
-      "_comment": "=== MEMORY LINKS (Superhuman Memory) ===",
-      "collectionGroup": "memory_links",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "sourceId", "order": "ASCENDING" },
-        { "fieldPath": "type", "order": "ASCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "memory_links",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "targetId", "order": "ASCENDING" },
-        { "fieldPath": "type", "order": "ASCENDING" }
-      ]
-    },
-
-    {
-      "_comment": "=== FAMILY SYSTEM ===",
-      "collectionGroup": "family_context_shares",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "expiresAt", "order": "ASCENDING" },
-        { "fieldPath": "createdAt", "order": "DESCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "family_messages",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "status", "order": "ASCENDING" },
-        { "fieldPath": "createdAt", "order": "DESCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "family_messages",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "toUserId", "order": "ASCENDING" },
-        { "fieldPath": "createdAt", "order": "DESCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "family_messages",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "fromIdentityId", "order": "ASCENDING" },
-        { "fieldPath": "createdAt", "order": "DESCENDING" }
-      ]
-    },
-
-    {
-      "_comment": "=== SPONSORED IDENTITIES ===",
-      "collectionGroup": "sponsored_identities",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "sponsorUserId", "order": "ASCENDING" },
-        { "fieldPath": "createdAt", "order": "DESCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "sponsored_identities",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "selfRegistered", "order": "ASCENDING" },
-        { "fieldPath": "createdAt", "order": "DESCENDING" }
-      ]
-    },
-
-    {
-      "_comment": "=== OPTIMIZATION PATTERNS ===",
-      "collectionGroup": "optimization_patterns",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "status", "order": "ASCENDING" },
-        { "fieldPath": "priority", "order": "DESCENDING" }
-      ]
-    },
-
-    {
-      "_comment": "=== OUTREACH ===",
-      "collectionGroup": "outreach_emails",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "userId", "order": "ASCENDING" },
-        { "fieldPath": "sentAt", "order": "DESCENDING" }
-      ]
-    },
-
-    {
-      "_comment": "=== USER ACTIVITIES ===",
-      "collectionGroup": "user_activities",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "userId", "order": "ASCENDING" },
-        { "fieldPath": "startedAt", "order": "DESCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "user_activities",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "userId", "order": "ASCENDING" },
-        { "fieldPath": "createdAt", "order": "DESCENDING" }
-      ]
-    },
-
-    {
-      "_comment": "=== DEVELOPER PLATFORM: MCP SERVERS ===",
-      "collectionGroup": "developer_mcp_servers",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "publisherId", "order": "ASCENDING" },
-        { "fieldPath": "enabled", "order": "ASCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "developer_mcp_servers",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "publisherId", "order": "ASCENDING" },
-        { "fieldPath": "createdAt", "order": "DESCENDING" }
-      ]
-    },
-
-    {
-      "_comment": "=== DEVELOPER PLATFORM: CUSTOM TOOLS ===",
-      "collectionGroup": "developer_tools",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "publisherId", "order": "ASCENDING" },
-        { "fieldPath": "enabled", "order": "ASCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "developer_tools",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "publisherId", "order": "ASCENDING" },
-        { "fieldPath": "createdAt", "order": "DESCENDING" }
-      ]
-    },
-
-    {
-      "_comment": "=== DEVELOPER PLATFORM: WEBHOOKS ===",
-      "collectionGroup": "developer_webhooks",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "publisherId", "order": "ASCENDING" },
-        { "fieldPath": "enabled", "order": "ASCENDING" },
-        { "fieldPath": "events", "arrayConfig": "CONTAINS" }
-      ]
-    },
-    {
-      "collectionGroup": "developer_webhooks",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "publisherId", "order": "ASCENDING" },
-        { "fieldPath": "createdAt", "order": "DESCENDING" }
-      ]
-    },
-
-    {
-      "_comment": "=== DEVELOPER PLATFORM: WEBHOOK LOGS ===",
-      "collectionGroup": "developer_webhook_logs",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "webhookId", "order": "ASCENDING" },
-        { "fieldPath": "createdAt", "order": "DESCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "developer_webhook_logs",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "status", "order": "ASCENDING" },
-        { "fieldPath": "createdAt", "order": "ASCENDING" }
-      ]
-    },
-
-    {
-      "_comment": "=== DEVELOPER PLATFORM: ACTIVITIES ===",
-      "collectionGroup": "developer_activities",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "publisherId", "order": "ASCENDING" },
-        { "fieldPath": "createdAt", "order": "DESCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "developer_activities",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "publisherId", "order": "ASCENDING" },
-        { "fieldPath": "type", "order": "ASCENDING" },
-        { "fieldPath": "createdAt", "order": "DESCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "developer_activities",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "publisherId", "order": "ASCENDING" },
-        { "fieldPath": "status", "order": "ASCENDING" },
-        { "fieldPath": "createdAt", "order": "DESCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "developer_activities",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "sessionId", "order": "ASCENDING" },
-        { "fieldPath": "createdAt", "order": "DESCENDING" }
-      ]
-    },
-
-    {
-      "_comment": "=== DEVELOPER PLATFORM: WORKFLOWS ===",
-      "collectionGroup": "developer_workflows",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "publisherId", "order": "ASCENDING" },
-        { "fieldPath": "enabled", "order": "ASCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "developer_workflows",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "publisherId", "order": "ASCENDING" },
-        { "fieldPath": "createdAt", "order": "DESCENDING" }
-      ]
-    },
-
-    {
-      "_comment": "=== DEVELOPER PLATFORM: WORKFLOW EXECUTIONS ===",
-      "collectionGroup": "workflow_executions",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "workflowId", "order": "ASCENDING" },
-        { "fieldPath": "startedAt", "order": "DESCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "workflow_executions",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "publisherId", "order": "ASCENDING" },
-        { "fieldPath": "status", "order": "ASCENDING" },
-        { "fieldPath": "startedAt", "order": "DESCENDING" }
-      ]
-    },
-
-    {
-      "_comment": "=== DEVELOPER PLATFORM: OAUTH PROVIDERS ===",
-      "collectionGroup": "developer_oauth_providers",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "publisherId", "order": "ASCENDING" },
-        { "fieldPath": "enabled", "order": "ASCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "developer_oauth_providers",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "publisherId", "order": "ASCENDING" },
-        { "fieldPath": "createdAt", "order": "DESCENDING" }
-      ]
-    },
-
-    {
-      "_comment": "=== DEVELOPER PLATFORM: OAUTH TOKENS ===",
-      "collectionGroup": "developer_oauth_tokens",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "providerId", "order": "ASCENDING" },
-        { "fieldPath": "userId", "order": "ASCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "developer_oauth_tokens",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "publisherId", "order": "ASCENDING" },
-        { "fieldPath": "createdAt", "order": "DESCENDING" }
-      ]
-    },
-
-    {
-      "_comment": "=== WORKFLOWS (Calendar Trigger Worker) ===",
-      "collectionGroup": "workflows",
+      "collectionGroup": "communication_preferences",
       "queryScope": "COLLECTION_GROUP",
       "fields": [
-        { "fieldPath": "status", "order": "ASCENDING" },
-        { "fieldPath": "trigger.type", "order": "ASCENDING" }
+        { "fieldPath": "expiresAt", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "communication_preferences",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "dimension", "order": "ASCENDING" },
+        { "fieldPath": "confidence", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "embeddings",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "expiresAt", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "moments",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "timestamp", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "persona_bonds",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "lastInteraction", "order": "DESCENDING" }
       ]
     }
   ],
