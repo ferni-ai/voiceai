@@ -510,8 +510,19 @@ export class NativeRustAcceleratorUnavailableError extends Error {
 /**
  * Load the native Rust performance library.
  * Throws NativeRustAcceleratorUnavailableError if not available.
+ * Set DISABLE_RUST_ACCELERATOR=true to force JavaScript fallbacks.
  */
 function loadRustPerf(): RustPerf {
+  // Check for disable flag first
+  if (process.env.DISABLE_RUST_ACCELERATOR === 'true') {
+    if (!loadAttempted) {
+      loadAttempted = true;
+      loadError = 'Rust accelerator disabled via DISABLE_RUST_ACCELERATOR=true';
+      log.info('🦀 Rust accelerator DISABLED (DISABLE_RUST_ACCELERATOR=true)');
+    }
+    throw new NativeRustAcceleratorUnavailableError(loadError ?? 'Disabled by environment');
+  }
+
   if (loadAttempted && rustPerf) {
     return rustPerf;
   }
