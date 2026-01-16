@@ -636,5 +636,112 @@ export async function handleHealthRoutes(
     return true;
   }
 
+  // OpenAI Realtime health (voice agent)
+  if (pathname === '/health/openai' || pathname === '/api/diagnostics/openai') {
+    try {
+      const { getObservabilityMetrics, getCircuitState, getHealthSummary } =
+        await import('../../../agents/shared/openai-health-monitor.js');
+
+      const metrics = getObservabilityMetrics();
+      const circuit = getCircuitState();
+      const summary = getHealthSummary();
+
+      interface HealthAlert {
+        level: 'warn' | 'error';
+        message: string;
+      }
+
+      const openaiHealth: {
+        status: 'healthy' | 'degraded' | 'unhealthy';
+        timestamp: string;
+        summary: typeof summary;
+        circuitBreaker: {
+          state: string;
+          failureCount: number;
+          halfOpenAttempts: number;
+        };
+        connections: typeof metrics.openai.connections;
+        latency: typeof metrics.openai.latency;
+        pings: typeof metrics.openai.pings;
+        alerts: HealthAlert[];
+      } = {
+        status: 'healthy',
+        timestamp: new Date().toISOString(),
+        summary,
+        circuitBreaker: {
+          state: circuit.state,
+          failureCount: circuit.failureCount,
+          halfOpenAttempts: circuit.halfOpenAttempts,
+        },
+        connections: metrics.openai.connections,
+        latency: metrics.openai.latency,
+        pings: metrics.openai.pings,
+        alerts: [],
+      };
+
+      // Determine status based on circuit state and health metrics
+      if (circuit.state === 'open') {
+        openaiHealth.status = 'unhealthy';
+        openaiHealth.alerts.push({
+          level: 'error',
+          message: 'OpenAI circuit breaker is OPEN - requests blocked',
+        });
+      } else if (circuit.state === 'half-open') {
+        openaiHealth.status = 'degraded';
+        openaiHealth.alerts.push({
+          level: 'warn',
+          message: 'OpenAI circuit breaker is HALF-OPEN - testing recovery',
+        });
+      }
+
+      if (summary.unhealthySessions > 0) {
+        openaiHealth.status = openaiHealth.status === 'healthy' ? 'degraded' : openaiHealth.status;
+        openaiHealth.alerts.push({
+          level: 'warn',
+          message: `${summary.unhealthySessions} unhealthy sessions detected`,
+        });
+      }
+
+      if (summary.staleSessions > 0) {
+        openaiHealth.alerts.push({
+          level: 'warn',
+          message: `${summary.staleSessions} stale connections (no activity)`,
+        });
+      }
+
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(openaiHealth, null, 2));
+    } catch (err) {
+      log.error({ error: (err as Error).message }, 'OpenAI health check error');
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(
+        JSON.stringify({
+          status: 'error',
+          timestamp: new Date().toISOString(),
+          error: (err as Error).message,
+          alerts: [{ level: 'error', message: `OpenAI health check failed: ${(err as Error).message}` }],
+        })
+      );
+    }
+    return true;
+  }
+
+  // OpenAI Realtime Prometheus metrics
+  if (pathname === '/api/openai/metrics' || pathname === '/health/openai/metrics') {
+    try {
+      const { exportPrometheusMetrics } =
+        await import('../../../agents/shared/openai-health-monitor.js');
+      const prometheusMetrics = exportPrometheusMetrics();
+
+      res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
+      res.end(prometheusMetrics);
+    } catch (err) {
+      log.error({ error: (err as Error).message }, 'OpenAI Prometheus metrics export error');
+      res.writeHead(500, { 'Content-Type': 'text/plain' });
+      res.end(`# Error exporting OpenAI metrics: ${(err as Error).message}`);
+    }
+    return true;
+  }
+
   return false;
 }
