@@ -58,6 +58,52 @@ import { handleCorsPreflightIfNeeded, parsePositiveInt, sendError, sendJSON } fr
 
 const log = createLogger({ module: 'ObservabilityAPI' });
 
+// ============================================================================
+// TOOL INTELLIGENCE OBSERVABILITY
+// Buffer for tool selection events (for dashboard and debugging)
+// ============================================================================
+
+interface ToolIntelligenceEvent {
+  type: string;
+  data: Record<string, unknown>;
+  timestamp: string;
+}
+
+const toolIntelligenceEvents: ToolIntelligenceEvent[] = [];
+const MAX_TOOL_INTELLIGENCE_EVENTS = 100;
+
+/**
+ * Emit a tool intelligence event for monitoring/debugging
+ * Used by unified-tool-orchestrator.ts and other tool intelligence components
+ *
+ * @param type Event type (e.g., 'tool_selection', 'ftis_routing', 'outcome_tracked')
+ * @param data Event payload
+ */
+export function emitToolIntelligenceEvent(type: string, data: Record<string, unknown>): void {
+  const event: ToolIntelligenceEvent = {
+    type,
+    data,
+    timestamp: new Date().toISOString(),
+  };
+
+  // Add to buffer (ring buffer behavior - oldest removed when full)
+  toolIntelligenceEvents.push(event);
+  if (toolIntelligenceEvents.length > MAX_TOOL_INTELLIGENCE_EVENTS) {
+    toolIntelligenceEvents.shift();
+  }
+
+  // Log at debug level for immediate observability
+  log.debug({ type, ...data }, `🧠 Tool intelligence: ${type}`);
+}
+
+/**
+ * Get recent tool intelligence events
+ * @param limit Max number of events to return (default: 50)
+ */
+export function getToolIntelligenceEvents(limit = 50): ToolIntelligenceEvent[] {
+  return toolIntelligenceEvents.slice(-limit);
+}
+
 /**
  * Parse window minutes from query string
  */

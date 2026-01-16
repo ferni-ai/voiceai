@@ -93,6 +93,49 @@ function recordSemanticExecution(params: {
 }
 
 /**
+ * Fire-and-forget recording for tool intelligence outcome tracking.
+ * Feeds into the learning pipeline for improving tool selection.
+ * Does not block tool execution.
+ */
+function recordToolOutcome(params: {
+  sessionId: string;
+  turnId?: string;
+  toolId: string;
+  query: string;
+  success: boolean;
+  executionTimeMs: number;
+  personaId?: string;
+  selectionMethod?: 'router' | 'semantic' | 'hybrid' | 'mcts' | 'direct';
+  confidence?: number;
+  emotion?: string;
+}): void {
+  // Fire and forget - don't await, don't block tool execution
+  import('../../tools/intelligence/learning/index.js')
+    .then(({ getOutcomeTracker }) => {
+      const tracker = getOutcomeTracker();
+      tracker.track({
+        sessionId: params.sessionId,
+        turnId: params.turnId || `turn_${Date.now()}`,
+        toolId: params.toolId,
+        query: params.query,
+        selectedBy: params.selectionMethod || 'direct',
+        confidence: params.confidence || 0.5,
+        wasExecuted: true,
+        executionSuccess: params.success,
+        executionLatencyMs: params.executionTimeMs,
+        userContinued: true, // Default, may be updated later
+        followUpTools: [],
+        personaId: params.personaId || 'ferni',
+        emotion: params.emotion,
+      });
+    })
+    .catch((err) => {
+      // Silent failure - outcome tracking is non-critical
+      log.debug({ error: String(err) }, 'Outcome tracking failed (non-critical)');
+    });
+}
+
+/**
  * Extract target name from tool arguments.
  * Looks for common patterns in tool args for contact/recipient info.
  */
@@ -532,6 +575,20 @@ export async function executeJsonFunction(
       });
     }
 
+    // Tool Intelligence: Record for outcome tracking and learning pipeline
+    if (sessionId !== 'unknown' && ctx.inputText) {
+      recordToolOutcome({
+        sessionId,
+        toolId: fn,
+        query: ctx.inputText,
+        success: true,
+        executionTimeMs: executionResult.durationMs,
+        personaId: ctx.personaId,
+        selectionMethod: ctx.semanticPrediction ? 'semantic' : 'direct',
+        confidence: ctx.semanticPrediction?.confidence,
+      });
+    }
+
     ctx.onToolComplete?.(executionResult);
     return executionResult;
   } catch (err) {
@@ -591,6 +648,20 @@ export async function executeJsonFunction(
         success: false,
         executionTimeMs: durationMs,
         semanticPrediction: ctx.semanticPrediction,
+      });
+    }
+
+    // Tool Intelligence: Record failures for outcome tracking and learning pipeline
+    if (sessionId !== 'unknown' && ctx.inputText) {
+      recordToolOutcome({
+        sessionId,
+        toolId: fn,
+        query: ctx.inputText,
+        success: false,
+        executionTimeMs: durationMs,
+        personaId: ctx.personaId,
+        selectionMethod: ctx.semanticPrediction ? 'semantic' : 'direct',
+        confidence: ctx.semanticPrediction?.confidence,
       });
     }
 

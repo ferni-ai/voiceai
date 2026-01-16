@@ -809,17 +809,61 @@ export class UnifiedToolOrchestrator {
       );
     }
     
-    log.info(
-      {
-        transcript: request.transcript.slice(0, 50),
-        selected: result.meta.selected,
-        toolTokens: toolSchemaTokens,
-        toolUsagePercent,
-        sources,
-        elapsedMs: result.meta.selectionTimeMs,
+    // ======== OBSERVABILITY: Structured logging for monitoring ========
+    // This block provides rich telemetry for debugging and dashboards
+    const observabilityData = {
+      // Request context
+      transcript: request.transcript.slice(0, 50),
+      userId: request.userId.slice(0, 8), // Truncate for privacy
+      personaId: request.agentId,
+      sessionId: request.context?.sessionId?.slice(0, 12),
+
+      // Selection metrics
+      selected: result.meta.selected,
+      totalAvailable: result.meta.totalAvailable,
+      selectionTimeMs: result.meta.selectionTimeMs,
+
+      // Token budget
+      toolTokens: toolSchemaTokens,
+      toolUsagePercent,
+      maxTools: this.config.maxTools,
+
+      // Intelligence layers active
+      layers: {
+        semantic: matches.length > 0,
+        intent: intent.domains.length > 0,
+        intelligence: !!intelligenceEnhancement,
+        ftis: !!ftisRouting,
+        memoryAware: memoryBoosts.filter((b) => b.memoryBoost !== 1.0).length > 0,
       },
-      '🔧 Tools selected for intent'
-    );
+
+      // FTIS complexity (if active)
+      ...(ftisRouting && {
+        ftisComplexity: ftisRouting.complexity.complexity,
+        ftisConfidence: Math.round(ftisRouting.complexity.confidence * 100),
+        ftisSuggestedApproach: ftisRouting.complexity.suggestedApproach,
+      }),
+
+      // Intent detection
+      ...(intent.domains.length > 0 && {
+        detectedDomains: intent.domains.slice(0, 3),
+        intentConfidence: Math.round(intent.confidence * 100),
+      }),
+
+      // Top matches (for debugging semantic router)
+      topMatches: matches.slice(0, 3).map((m) => ({
+        tool: m.toolId,
+        score: Math.round(m.similarity * 100),
+      })),
+
+      // Source breakdown
+      sources,
+    };
+
+    log.info(observabilityData, '🔧 Tool selection complete');
+
+    // Emit observability event for external monitoring (fire-and-forget)
+    this.emitToolSelectionEvent(observabilityData).catch(() => {});
 
     return result;
   }
@@ -1292,6 +1336,25 @@ export class UnifiedToolOrchestrator {
       .slice(0, 100);
 
     return `${request.agentId}:${request.userId}:${normalizedTranscript}`;
+  }
+
+  // ==========================================================================
+  // OBSERVABILITY
+  // ==========================================================================
+
+  /**
+   * Emit tool selection event for external monitoring systems
+   * Fire-and-forget - errors are logged but don't affect tool selection
+   */
+  private async emitToolSelectionEvent(data: Record<string, unknown>): Promise<void> {
+    try {
+      // Import the observability emitter lazily to avoid circular deps
+      const { emitToolIntelligenceEvent } = await import('../../api/observability-routes.js');
+      emitToolIntelligenceEvent('tool_selection', data);
+    } catch (err) {
+      // Silently ignore - observability should never break tool selection
+      log.debug({ error: String(err) }, 'Tool selection event emission failed (non-critical)');
+    }
   }
 
   // ==========================================================================

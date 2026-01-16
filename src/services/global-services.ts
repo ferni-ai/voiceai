@@ -143,6 +143,21 @@ export async function initializeServices(indexPersona = true): Promise<GlobalSer
       getLogger().warn({ error }, 'Optimization persistence init skipped (non-critical)');
     }
 
+    // Initialize tool intelligence outcome tracker (learning loop)
+    try {
+      const { initializeOutcomeTracker } = await import('../tools/intelligence/learning/index.js');
+      const { getFirestoreDb } = await import('./superhuman/firestore-utils.js');
+      const db = getFirestoreDb();
+      if (db) {
+        await initializeOutcomeTracker(db);
+        getLogger().info('🧠 Tool intelligence outcome tracker initialized');
+      } else {
+        getLogger().debug('Outcome tracker skipped (no Firestore)');
+      }
+    } catch (error) {
+      getLogger().warn({ error }, 'Outcome tracker init skipped (non-critical)');
+    }
+
     globalServices = {
       store,
       vectorStore,

@@ -91,11 +91,19 @@ export class ToolMerger {
   private embeddings = new Map<string, number[]>();
 
   constructor(config: Partial<ToolMergerConfig> = {}) {
+    // Auto-disable LLM classifier if GOOGLE_API_KEY is not available
+    const hasGoogleApiKey = !!process.env.GOOGLE_API_KEY;
+    if (!hasGoogleApiKey && config.useLLMClassifier !== false) {
+      log.info(
+        'GOOGLE_API_KEY not set - tool merger will use embedding similarity only (LLM classifier disabled)'
+      );
+    }
+
     this.config = {
       similarityThreshold: 0.82,
       confidenceThreshold: 0.75,
       maxClusterSize: 10,
-      useLLMClassifier: true,
+      useLLMClassifier: hasGoogleApiKey, // Only enable if API key available
       embeddingBatchSize: 50,
       ...config,
     };
