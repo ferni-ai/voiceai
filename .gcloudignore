@@ -286,3 +286,6 @@ KMS/
 # Rust build artifacts
 apps/rust-audio/target/
 apps/rust-perf/target/
+
+# ML Training (large model files)
+apps/ml-training/
