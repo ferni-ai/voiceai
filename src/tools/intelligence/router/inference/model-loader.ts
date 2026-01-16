@@ -91,10 +91,9 @@ export class ModelLoader {
     }
 
     // Create session options
+    // Note: onnxruntime-node uses lowercase backend names ('cpu', 'cuda') not 'CPUExecutionProvider'
     const sessionOptions = {
-      executionProviders: this.config.useGPU
-        ? ['CUDAExecutionProvider', 'CPUExecutionProvider']
-        : ['CPUExecutionProvider'],
+      executionProviders: this.config.useGPU ? ['cuda', 'cpu'] : ['cpu'],
       graphOptimizationLevel: 'all',
     };
 

@@ -480,3 +480,11 @@ export function looksLikeJsonFunctionCall(text: string): boolean {
     (trimmed.startsWith('{') && trimmed.includes("'fn'"))
   );
 }
+
+/**
+ * Quick check for function call leakage in a complete string.
+ * Use this for non-streaming contexts.
+ */
+export function containsToolCallLeakage(text: string): boolean {
+  return detectsFunctionCallLeakage(text).detected;
+}

@@ -110,6 +110,10 @@ export async function handleScheduledJobsRoutes(
       await handleTTLCleanup(res);
       return true;
 
+    case '/api/jobs/ttl-backfill':
+      await handleTTLBackfill(res);
+      return true;
+
     // ========================================================================
     // ADMIN REPORTING JOBS
     // ========================================================================
@@ -818,40 +822,80 @@ async function handleTTLCleanup(res: ServerResponse): Promise<void> {
   try {
     log.info('Running TTL cleanup job (Cloud Scheduler)');
 
-    const { runTTLCleanup, getTTLStatistics } =
-      await import('../services/data-layer/ttl-cleanup.js');
-
-    // Get pre-cleanup stats
-    const statsBefore = getTTLStatistics();
-    const entitiesWithTTL = Object.entries(statsBefore).filter(
-      ([, v]) => v.ttlDays !== null
-    ).length;
+    const { runTTLCleanup } =
+      await import('../services/data-hygiene/ttl-cleanup.js');
 
     // Run the cleanup
-    const result = await runTTLCleanup({ dryRun: false });
+    const result = await runTTLCleanup();
 
     log.info(
       {
-        entitiesWithTTL,
-        deletedCount: result.totalDeleted,
-        entityTypesAffected: result.results?.length || 0,
+        totalDeleted: result.totalDeleted,
+        totalErrors: result.totalErrors,
+        collectionsProcessed: result.stats.length,
       },
       'TTL cleanup completed'
     );
 
     sendJson(res, 200, {
-      success: true,
+      success: result.success,
       job: 'ttl-cleanup',
       stats: {
-        entitiesWithTTL,
-        deletedCount: result.totalDeleted,
-        entityTypesAffected: result.results?.length || 0,
-        details: result.results,
+        totalDeleted: result.totalDeleted,
+        totalErrors: result.totalErrors,
+        collectionsProcessed: result.stats.length,
+        durationMs: result.durationMs,
+        details: result.stats,
       },
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
     log.error({ error: String(error) }, 'TTL cleanup job failed');
+    sendJson(res, 500, {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+}
+
+/**
+ * Run TTL backfill migration to add expiresAt to existing documents
+ * This is a one-time migration, run manually or via admin endpoint
+ */
+async function handleTTLBackfill(res: ServerResponse): Promise<void> {
+  try {
+    log.info('Running TTL backfill migration (Cloud Scheduler)');
+
+    const { runTTLBackfill } =
+      await import('../services/data-hygiene/ttl-backfill.js');
+
+    // Run in non-dry-run mode
+    const result = await runTTLBackfill({ dryRun: false });
+
+    log.info(
+      {
+        totalUpdated: result.totalUpdated,
+        totalSkipped: result.totalSkipped,
+        totalErrors: result.totalErrors,
+        collectionsProcessed: result.stats.length,
+      },
+      'TTL backfill completed'
+    );
+
+    sendJson(res, 200, {
+      success: result.success,
+      job: 'ttl-backfill',
+      stats: {
+        totalUpdated: result.totalUpdated,
+        totalSkipped: result.totalSkipped,
+        totalErrors: result.totalErrors,
+        durationMs: result.durationMs,
+        details: result.stats,
+      },
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    log.error({ error: String(error) }, 'TTL backfill job failed');
     sendJson(res, 500, {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error',

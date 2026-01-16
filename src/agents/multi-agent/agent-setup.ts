@@ -41,6 +41,11 @@ import { cleanupSpeechSession } from '../../speech/session-cleanup.js';
 import { clearRetryCounter } from '../shared/sanitizer/index.js';
 // Speech coordination for centralized speech management
 import { coordinatedSay, cleanupSpeechCoordination } from '../../speech/coordination/index.js';
+// BETTER THAN HUMAN: Health monitoring for OpenAI connection
+import {
+  startHealthMonitoring,
+  stopHealthMonitoring,
+} from '../shared/openai-health-monitor.js';
 
 // ============================================================================
 // CRITICAL PATH IMPORTS - Hoisted to module level for faster startup
@@ -983,6 +988,15 @@ Reference past context when relevant, but don't force it. Let the conversation f
   mark('session_created');
 
   // =========================================================================
+  // BETTER THAN HUMAN: Start health monitoring for OpenAI connections
+  // This proactively tracks connection health and can trigger reconnection
+  // =========================================================================
+  if (isUsingOpenAI()) {
+    startHealthMonitoring(sessionId);
+    log.info({ sessionId, personaId: persona.id }, '🏥 [HEALTH] OpenAI health monitoring started');
+  }
+
+  // =========================================================================
   // 🔍 ENHANCED ERROR LOGGING: Capture underlying Gemini connection errors
   // =========================================================================
   // The "generateReply timed out waiting for generation_created event" error
@@ -1338,6 +1352,17 @@ Reference past context when relevant, but don't force it. Let the conversation f
         log.debug({ sessionId, personaId: persona.id }, '🧹 [CLEANUP] Speech coordination cleaned up');
       } catch (err) {
         log.warn({ error: String(err) }, '🧹 [CLEANUP] Error cleaning up speech coordination');
+      }
+
+      // BETTER THAN HUMAN: Stop health monitoring for OpenAI connections
+      if (isUsingOpenAI()) {
+        log.debug({ sessionId }, '🧹 [CLEANUP] Stopping OpenAI health monitoring...');
+        try {
+          stopHealthMonitoring(sessionId);
+          log.debug({ sessionId, personaId: persona.id }, '🧹 [CLEANUP] OpenAI health monitoring stopped');
+        } catch (err) {
+          log.warn({ error: String(err) }, '🧹 [CLEANUP] Error stopping health monitoring');
+        }
       }
 
       // FIX: Add timeout to session.close() to prevent indefinite hangs during handoff

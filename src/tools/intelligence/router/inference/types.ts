@@ -116,7 +116,7 @@ export const DEFAULT_ROUTER_CONFIG: RouterModelConfig = {
   modelPath: 'models/ferni-router.onnx',
   tokenizerPath: 'models/ferni-router-tokenizer',
   labelMapPath: 'models/label_map.json',
-  maxLength: 512,
+  maxLength: 256, // Trained with 256 token context
   confidenceThreshold: 0.7,
   topK: 10,
   useGPU: false,

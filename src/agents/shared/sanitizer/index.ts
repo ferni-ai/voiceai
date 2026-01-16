@@ -87,7 +87,41 @@ export {
 // LEGACY COMPATIBILITY
 // ============================================================================
 
+import { createLogger } from '../../../utils/safe-logger.js';
+import { detectsFunctionCallLeakage, getReplacementText, containsToolCallLeakage } from './detectors/index.js';
+
+const log = createLogger({ module: 'tool-call-sanitizer' });
+
 /**
- * @deprecated Use detectsFunctionCallLeakage instead
+ * Sanitize tool call leakage from text.
+ * Returns replacement text if leakage detected, otherwise original text.
+ *
+ * @param text - Raw text from LLM
+ * @returns Sanitized text safe for TTS
  */
-export { detectsFunctionCallLeakage as sanitizeToolCallLeakage } from './detectors/index.js';
+export function sanitizeToolCallLeakage(text: string): string {
+  const detection = detectsFunctionCallLeakage(text);
+
+  if (detection.detected) {
+    log.warn(
+      {
+        originalText: text,
+        toolName: detection.toolName,
+        parameter: detection.parameter,
+        value: detection.value,
+        pattern: detection.pattern,
+      },
+      '🚨 TOOL CALL LEAKAGE DETECTED - LLM output function call text instead of calling function'
+    );
+
+    return getReplacementText(detection);
+  }
+
+  return text;
+}
+
+/**
+ * Quick check for function call leakage in a complete string.
+ * Use this for non-streaming contexts.
+ */
+export { containsToolCallLeakage } from './detectors/index.js';

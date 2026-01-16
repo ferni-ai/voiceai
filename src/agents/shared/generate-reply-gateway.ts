@@ -27,6 +27,13 @@ import {
   markLLMComplete,
   markAudioStarted,
 } from './e2e-latency-tracker.js';
+// BETTER THAN HUMAN: Health monitoring for proactive connection management
+import {
+  recordSuccessfulRequest,
+  recordFailedRequest,
+  isConnectionHealthy,
+  shouldAttemptReconnection,
+} from './openai-health-monitor.js';
 
 const log = getLogger();
 
@@ -82,6 +89,19 @@ interface SessionState {
   lowPriorityResponseStartedAt?: number;
   /** Session reference for interrupting active responses */
   activeSession?: voice.AgentSession;
+
+  // =========================================================================
+  // BETTER THAN HUMAN: Latency tracking for adaptive timeouts
+  // =========================================================================
+  /** Recent TTFB values (last 10) for adaptive timeout calculation */
+  recentTTFBs: number[];
+  /** Average TTFB for this session (rolling) */
+  avgTTFB?: number;
+  /** Whether quick acknowledgment was sent for current turn */
+  quickAckSent: boolean;
+  /** Timestamp when current request started (for quick ack timing) */
+  currentRequestStartedAt?: number;
+
   // Statistics
   stats: {
     totalCalls: number;
@@ -114,29 +134,47 @@ const GRACEFUL_EXIT_THRESHOLD = 3;
 // ERROR ANALYSIS HELPERS
 // ============================================================================
 
-interface GeminiErrorDetails {
-  errorType: 'timeout' | 'rate_limit' | 'auth' | 'connection' | 'api' | 'session_draining' | 'unknown';
+interface LLMErrorDetails {
+  errorType:
+    | 'timeout'
+    | 'rate_limit'
+    | 'auth'
+    | 'connection'
+    | 'api'
+    | 'session_draining'
+    | 'active_response'
+    | 'audio_buffer'
+    | 'websocket_stale'
+    | 'unknown';
   errorCode?: number | string;
   isRetryable: boolean;
-  isGeminiDead: boolean;
+  isLLMDead: boolean;
   httpStatus?: number;
   rawErrorName?: string;
+  /** Provider that generated the error (openai or gemini) */
+  provider?: 'openai' | 'gemini' | 'unknown';
 }
 
+// LLMErrorDetails replaces the old GeminiErrorDetails type
+// Now supports both OpenAI and Gemini with provider-specific error detection
+
 /**
- * Extract detailed error information from Gemini API errors.
+ * Extract detailed error information from LLM API errors (OpenAI or Gemini).
  *
- * This helps diagnose WHY Gemini failed:
+ * This helps diagnose WHY the LLM failed:
  * - 429 = Rate limit (temporary)
  * - 401/403 = Auth issue (permanent)
  * - ETIMEDOUT = Connection timeout
- * - "generation_created" timeout = Gemini session dead
+ * - "generation_created" timeout = LLM session dead
+ * - "conversation_already_has_active_response" = OpenAI race condition
+ * - "input_audio_buffer" = OpenAI audio buffer error
  */
-function extractGeminiErrorDetails(error: unknown): GeminiErrorDetails {
-  const details: GeminiErrorDetails = {
+function extractLLMErrorDetails(error: unknown): LLMErrorDetails {
+  const details: LLMErrorDetails = {
     errorType: 'unknown',
     isRetryable: true,
-    isGeminiDead: false,
+    isLLMDead: false,
+    provider: 'unknown',
   };
 
   if (!error) return details;
@@ -160,39 +198,91 @@ function extractGeminiErrorDetails(error: unknown): GeminiErrorDetails {
     }
   }
 
-  // Classify error type based on message/code
+  // =========================================================================
+  // OPENAI-SPECIFIC ERRORS (check first - more specific patterns)
+  // =========================================================================
+
+  // OpenAI: "conversation_already_has_active_response" - race condition
+  // This happens when we try to generate while another response is in progress
+  if (errorStr.includes('conversation_already_has_active_response')) {
+    details.errorType = 'active_response';
+    details.provider = 'openai';
+    details.isRetryable = true; // Retry after interrupt + delay
+    details.isLLMDead = false;
+    return details;
+  }
+
+  // OpenAI: Audio buffer errors
+  if (
+    errorStr.includes('input_audio_buffer') ||
+    errorStr.includes('audio_buffer_append') ||
+    errorStr.includes('invalid_audio')
+  ) {
+    details.errorType = 'audio_buffer';
+    details.provider = 'openai';
+    details.isRetryable = true;
+    details.isLLMDead = false;
+    return details;
+  }
+
+  // OpenAI: WebSocket connection stale/closed
+  if (
+    errorStr.includes('WebSocket is not open') ||
+    errorStr.includes('WebSocket connection') ||
+    errorStr.includes('connection closed unexpectedly')
+  ) {
+    details.errorType = 'websocket_stale';
+    details.provider = 'openai';
+    details.isRetryable = false; // Need full reconnection
+    details.isLLMDead = true;
+    return details;
+  }
+
+  // OpenAI-specific rate limit format
+  if (errorStr.includes('rate_limit_exceeded') || errorStr.includes('RateLimitError')) {
+    details.errorType = 'rate_limit';
+    details.provider = 'openai';
+    details.errorCode = 429;
+    details.isRetryable = true;
+    details.isLLMDead = false;
+    return details;
+  }
+
+  // =========================================================================
+  // LIVEKIT SDK / SESSION ERRORS
+  // =========================================================================
 
   // FIX: Detect "circular wait" error from LiveKit SDK
   // This occurs when trying to call waitForPlayout() after a handoff tool has completed
-  // The old session is draining but the SDK still thinks we're in the tool context
-  // This is NOT a Gemini error - it's a session lifecycle issue that should be ignored
   if (
     errorStr.includes('waitForPlayout') &&
     (errorStr.includes('circular wait') || errorStr.includes('from inside the function tool'))
   ) {
-    details.errorType = 'session_draining' as GeminiErrorDetails['errorType'];
-    details.isRetryable = false; // Don't retry - session is closing
-    details.isGeminiDead = false; // Gemini is fine, it's the session that's draining
-    return details; // Return early - this is expected during handoffs
+    details.errorType = 'session_draining';
+    details.isRetryable = false;
+    details.isLLMDead = false;
+    return details;
   }
 
   // FIX: Detect "AgentSession is not running" error from LiveKit SDK
-  // This occurs when participant disconnects but music transitions or other async
-  // operations are still trying to generate replies. This is expected and should
-  // be handled gracefully without logging as an error.
   if (errorStr.includes('AgentSession is not running')) {
-    details.errorType = 'session_draining' as GeminiErrorDetails['errorType'];
-    details.isRetryable = false; // Don't retry - session is closed
-    details.isGeminiDead = false; // Gemini is fine, it's the session that's closed
-    return details; // Return early - this is expected after disconnect
+    details.errorType = 'session_draining';
+    details.isRetryable = false;
+    details.isLLMDead = false;
+    return details;
   }
+
+  // =========================================================================
+  // GENERIC LLM ERRORS (both OpenAI and Gemini)
+  // =========================================================================
 
   if (errorStr.includes('Gateway timeout') || errorStr.includes('Safe timeout')) {
     details.errorType = 'timeout';
-    details.isGeminiDead = true; // Our timeout fired, Gemini didn't respond
+    details.isLLMDead = true;
   } else if (errorStr.includes('generation_created') || errorStr.includes('timed out waiting')) {
     details.errorType = 'timeout';
-    details.isGeminiDead = true; // Gemini session is likely dead
+    details.isLLMDead = true;
+    details.provider = 'gemini'; // This is a Gemini-specific message
   } else if (
     errorStr.includes('429') ||
     errorStr.includes('rate limit') ||
@@ -208,7 +298,7 @@ function extractGeminiErrorDetails(error: unknown): GeminiErrorDetails {
     errorStr.includes('PERMISSION_DENIED')
   ) {
     details.errorType = 'auth';
-    details.isRetryable = false; // Auth errors won't self-heal
+    details.isRetryable = false;
   } else if (
     errorStr.includes('ETIMEDOUT') ||
     errorStr.includes('ECONNRESET') ||
@@ -216,7 +306,7 @@ function extractGeminiErrorDetails(error: unknown): GeminiErrorDetails {
     errorStr.includes('WebSocket')
   ) {
     details.errorType = 'connection';
-    details.isGeminiDead = true;
+    details.isLLMDead = true;
   } else if (
     errorStr.includes('500') ||
     errorStr.includes('503') ||
@@ -243,6 +333,9 @@ function extractGeminiErrorDetails(error: unknown): GeminiErrorDetails {
 
   return details;
 }
+
+// extractLLMErrorDetails replaces the old extractGeminiErrorDetails function
+// The new function handles both OpenAI and Gemini errors with provider detection
 
 // ============================================================================
 // GEMINI RECONNECTION LOGIC
@@ -278,7 +371,7 @@ export function unregisterSessionForReconnection(sessionId: string): void {
 /**
  * Handle Gemini death by attempting reconnection.
  *
- * CRITICAL FIX: This is called when isGeminiDead is detected.
+ * CRITICAL FIX: This is called when isLLMDead is detected.
  * Instead of just waiting for circuit breaker, we actively try to reconnect.
  */
 async function handleGeminiDeath(sessionId: string): Promise<boolean> {
@@ -438,6 +531,8 @@ function getSessionState(sessionId: string): SessionState {
       consecutiveFailures: 0,
       pendingCallCount: 0,
       hasActiveLowPriorityResponse: false,
+      recentTTFBs: [],
+      quickAckSent: false,
       stats: {
         totalCalls: 0,
         successfulCalls: 0,
@@ -449,6 +544,123 @@ function getSessionState(sessionId: string): SessionState {
     sessionStates.set(sessionId, state);
   }
   return state;
+}
+
+// ============================================================================
+// BETTER THAN HUMAN: Adaptive Timeout & Quick Acknowledgment
+// ============================================================================
+
+/** Base timeout - used when we have no latency data yet */
+const BASE_TIMEOUT_MS = 4000;
+/** Minimum timeout - never go below this */
+const MIN_TIMEOUT_MS = 2500;
+/** Maximum timeout - never exceed this */
+const MAX_TIMEOUT_MS = 8000;
+/** Time before sending quick acknowledgment (ms) */
+const QUICK_ACK_DELAY_MS = 1200;
+/** Number of recent TTFBs to track for averaging */
+const TTFB_HISTORY_SIZE = 10;
+
+/**
+ * Quick acknowledgment phrases for when LLM is slow.
+ * These are human-like filler phrases that buy time.
+ */
+const QUICK_ACK_PHRASES = [
+  'Mm-hmm...',
+  'Let me think...',
+  'One moment...',
+  'Hmm...',
+  "Let's see...",
+];
+
+/**
+ * Calculate adaptive timeout based on session's latency history.
+ * Uses rolling average of recent TTFBs plus a buffer.
+ */
+function getAdaptiveTimeout(state: SessionState): number {
+  if (state.recentTTFBs.length < 3) {
+    // Not enough data - use base timeout
+    return BASE_TIMEOUT_MS;
+  }
+
+  const avgTTFB = state.avgTTFB || BASE_TIMEOUT_MS / 2;
+
+  // Timeout = 2x average TTFB + 500ms buffer (for TTS + processing)
+  const adaptive = avgTTFB * 2 + 500;
+
+  // Clamp to min/max range
+  return Math.max(MIN_TIMEOUT_MS, Math.min(MAX_TIMEOUT_MS, adaptive));
+}
+
+/**
+ * Record a TTFB measurement and update rolling average.
+ */
+function recordTTFB(state: SessionState, ttfb: number): void {
+  state.recentTTFBs.push(ttfb);
+
+  // Keep only the most recent measurements
+  while (state.recentTTFBs.length > TTFB_HISTORY_SIZE) {
+    state.recentTTFBs.shift();
+  }
+
+  // Update rolling average
+  if (state.recentTTFBs.length > 0) {
+    state.avgTTFB = state.recentTTFBs.reduce((a, b) => a + b, 0) / state.recentTTFBs.length;
+  }
+}
+
+/**
+ * Start the quick acknowledgment timer.
+ * If LLM doesn't respond in QUICK_ACK_DELAY_MS, send a filler phrase.
+ */
+function startQuickAckTimer(sessionId: string, state: SessionState): ReturnType<typeof setTimeout> {
+  state.currentRequestStartedAt = Date.now();
+  state.quickAckSent = false;
+
+  return setTimeout(() => {
+    // Only send if we haven't gotten a response yet and haven't sent one already
+    if (!state.quickAckSent && state.currentRequestStartedAt) {
+      const elapsed = Date.now() - state.currentRequestStartedAt;
+      if (elapsed >= QUICK_ACK_DELAY_MS) {
+        state.quickAckSent = true;
+
+        // Pick a random acknowledgment phrase
+        const phrase = QUICK_ACK_PHRASES[Math.floor(Math.random() * QUICK_ACK_PHRASES.length)];
+
+        log.debug(
+          { sessionId, elapsed, phrase },
+          '⏳ [GATEWAY] LLM slow - sending quick acknowledgment'
+        );
+
+        // Fire-and-forget TTS (don't await)
+        coordinatedSay(sessionId, phrase, { allowInterruptions: true });
+      }
+    }
+  }, QUICK_ACK_DELAY_MS);
+}
+
+/**
+ * Get latency statistics for a session (for observability).
+ */
+export function getSessionLatencyStats(sessionId: string): {
+  avgTTFB: number | undefined;
+  recentTTFBs: number[];
+  adaptiveTimeout: number;
+} {
+  const state = sessionStates.get(sessionId);
+  if (!state) {
+    return {
+      avgTTFB: undefined,
+      recentTTFBs: [],
+      adaptiveTimeout: BASE_TIMEOUT_MS,
+    };
+  }
+
+  return {
+    avgTTFB: state.avgTTFB,
+    recentTTFBs: [...state.recentTTFBs],
+    adaptiveTimeout: getAdaptiveTimeout(state),
+  };
 }
 
 /**
@@ -715,6 +927,18 @@ export async function generateReply(
   }
 
   // -------------------------------------------------------------------------
+  // SAFEGUARD 1.5: Connection health check (Better Than Human)
+  // -------------------------------------------------------------------------
+  if (!isConnectionHealthy(sessionId) && priority === 'high') {
+    log.warn(
+      { sessionId, context },
+      '🏥 [GATEWAY] Connection unhealthy - will attempt request anyway for high priority'
+    );
+    // Continue anyway for high-priority requests - the user spoke and we should try
+    // The health monitor will track the outcome
+  }
+
+  // -------------------------------------------------------------------------
   // SAFEGUARD 2: Circuit breaker with half-open recovery
   // -------------------------------------------------------------------------
   if (state.consecutiveFailures >= 3) {
@@ -795,8 +1019,10 @@ export async function generateReply(
 
     try {
       session.interrupt();
-      // Small delay to let OpenAI process the interrupt
-      await new Promise((resolve) => setTimeout(resolve, 50));
+      // INCREASED: 150ms delay to let OpenAI fully process the interrupt
+      // OpenAI Realtime needs more time than Gemini to clear active response state
+      // 50ms was causing "conversation_already_has_active_response" errors
+      await new Promise((resolve) => setTimeout(resolve, 150));
     } catch (interruptErr) {
       log.debug(
         { error: String(interruptErr) },
@@ -823,6 +1049,14 @@ export async function generateReply(
     state.lowPriorityResponseStartedAt = Date.now();
   }
 
+  // -------------------------------------------------------------------------
+  // BETTER THAN HUMAN: Use adaptive timeout based on session latency history
+  // -------------------------------------------------------------------------
+  const effectiveTimeoutMs = timeoutMs !== 4000 ? timeoutMs : getAdaptiveTimeout(state);
+
+  // Start quick acknowledgment timer (fires if LLM is slow)
+  const quickAckTimerId = priority === 'high' ? startQuickAckTimer(sessionId, state) : null;
+
   try {
     log.debug(
       {
@@ -830,6 +1064,8 @@ export async function generateReply(
         context,
         instructionChars: instructions.length,
         estimatedTokens: Math.round(instructions.length / 4),
+        effectiveTimeoutMs,
+        avgTTFB: state.avgTTFB,
       },
       '🚀 [GATEWAY] Calling generateReply'
     );
@@ -839,26 +1075,32 @@ export async function generateReply(
     // -------------------------------------------------------------------------
     // Track if speech has started - we shouldn't cut off mid-sentence
     let speechStarted = false;
+    let firstTokenReceivedAt: number | undefined;
     let timeoutId: ReturnType<typeof setTimeout>;
 
-    // Listen for agent speaking event
+    // Listen for agent speaking event - this is our ACTUAL TTFB indicator
     const speakingHandler = (event: { newState: string }) => {
       if (event.newState === 'speaking') {
         speechStarted = true;
+
+        // BETTER THAN HUMAN: Cancel quick ack since we're about to speak
+        if (quickAckTimerId) {
+          clearTimeout(quickAckTimerId);
+          state.quickAckSent = false;
+        }
       }
     };
     session.on(voice.AgentSessionEventTypes.AgentStateChanged, speakingHandler);
 
     // Create our own timeout (fires before SDK's 15s timeout)
     // CRITICAL: On timeout, only interrupt if agent hasn't started speaking
-    let timeoutTriggered = false;
     const timeoutPromise = new Promise<never>((_, reject) => {
       timeoutId = setTimeout(() => {
         // FIX: Don't interrupt if agent is actively speaking!
         // This prevents cutting off Ferni mid-sentence when audio playout takes longer than timeout
         if (speechStarted) {
           log.debug(
-            { sessionId, context, timeoutMs },
+            { sessionId, context, effectiveTimeoutMs },
             '⏸️ [GATEWAY] Timeout reached but agent is speaking - allowing playout to complete'
           );
           // Don't reject or interrupt - let the playout promise handle completion naturally
@@ -867,31 +1109,30 @@ export async function generateReply(
         }
 
         // No speech yet - safe to interrupt and fail fast
-        timeoutTriggered = true;
         try {
           session.interrupt();
           log.debug(
-            { sessionId, context, timeoutMs },
+            { sessionId, context, effectiveTimeoutMs },
             '🛑 [GATEWAY] Session interrupted on timeout (no speech started)'
           );
         } catch (interruptErr) {
           log.debug({ error: String(interruptErr) }, 'Session interrupt failed (non-critical)');
         }
-        reject(new Error(`Gateway timeout (${timeoutMs}ms)`));
-      }, timeoutMs);
+        reject(new Error(`Gateway timeout (${effectiveTimeoutMs}ms)`));
+      }, effectiveTimeoutMs);
     });
 
     // 📊 E2E LATENCY: Mark LLM request sent
     markLLMRequestSent(sessionId, context);
+    const requestSentAt = Date.now();
 
     // The actual generateReply call
     const replyPromise = (async () => {
       const handle = session.generateReply({ instructions, allowInterruptions });
 
-      // 📊 E2E LATENCY: Mark first token when we start getting a response
-      // The SDK fires generation_created event when OpenAI responds
-      // For now, we mark it here since we're about to wait for playout
-      markLLMFirstToken(sessionId);
+      // BETTER THAN HUMAN: Track actual TTFB by listening for first content
+      // We'll mark TTFB when speech starts (via the speakingHandler above)
+      // as that's when we actually have content ready to deliver
 
       // Only call waitForPlayout when requested
       // CRITICAL: Do NOT call waitForPlayout() at all when waitForPlayout is false
@@ -907,6 +1148,9 @@ export async function generateReply(
         });
         await handle.waitForPlayout();
       }
+
+      // Record when we got the response
+      firstTokenReceivedAt = Date.now();
     })();
 
     // Attach catch handler to replyPromise too
@@ -923,12 +1167,25 @@ export async function generateReply(
       // Clean up event listener and timeout
       session.off(voice.AgentSessionEventTypes.AgentStateChanged, speakingHandler);
       clearTimeout(timeoutId!);
+      if (quickAckTimerId) clearTimeout(quickAckTimerId);
     }
 
     // 📊 E2E LATENCY: Mark LLM complete and audio started
     markLLMComplete(sessionId);
     if (waitForPlayout) {
       markAudioStarted(sessionId); // Audio played out
+    }
+
+    // BETTER THAN HUMAN: Record TTFB for adaptive timeout calculation
+    if (firstTokenReceivedAt) {
+      const ttfb = firstTokenReceivedAt - requestSentAt;
+      recordTTFB(state, ttfb);
+      markLLMFirstToken(sessionId); // Update the latency tracker with actual time
+
+      log.debug(
+        { sessionId, ttfb, avgTTFB: state.avgTTFB, newAdaptiveTimeout: getAdaptiveTimeout(state) },
+        '📊 [GATEWAY] TTFB recorded for adaptive timeout'
+      );
     }
 
     // SUCCESS! Reset circuit breaker
@@ -939,6 +1196,10 @@ export async function generateReply(
     state.stats.successfulCalls++;
 
     const latencyMs = Date.now() - startTime;
+
+    // BETTER THAN HUMAN: Record successful request for health monitoring
+    recordSuccessfulRequest(sessionId, latencyMs);
+
     if (wasCircuitBreakerOpen) {
       log.info(
         { sessionId, context, latencyMs },
@@ -963,8 +1224,8 @@ export async function generateReply(
     const errorMessage = error instanceof Error ? error.message : String(error);
     const latencyMs = Date.now() - startTime;
 
-    // 🔍 ENHANCED ERROR LOGGING: Extract Gemini-specific error details
-    const errorDetails = extractGeminiErrorDetails(error);
+    // 🔍 ENHANCED ERROR LOGGING: Extract LLM-specific error details
+    const errorDetails = extractLLMErrorDetails(error);
 
     // FIX: Session draining errors are expected during handoffs - don't log as errors
     // These occur when the old agent's operations try to run after handoff completes
@@ -1007,9 +1268,21 @@ export async function generateReply(
       log.error(logData, logMessage);
     }
 
-    // 🔄 CRITICAL FIX: Proactive reconnection when Gemini dies
+    // BETTER THAN HUMAN: Record failed request for health monitoring
+    recordFailedRequest(sessionId, errorDetails.errorType);
+
+    // BETTER THAN HUMAN: Check if health monitor recommends reconnection
+    if (shouldAttemptReconnection(sessionId) && !errorDetails.isLLMDead) {
+      log.info(
+        { sessionId, context },
+        '🏥 [GATEWAY] Health monitor recommends reconnection - triggering proactively'
+      );
+      // Will trigger reconnection via the existing path below
+    }
+
+    // 🔄 CRITICAL FIX: Proactive reconnection when LLM dies
     // Don't wait for graceful exit threshold - try to reconnect immediately
-    if (errorDetails.isGeminiDead && state.consecutiveFailures >= 2 && priority !== 'low') {
+    if (errorDetails.isLLMDead && state.consecutiveFailures >= 2 && priority !== 'low') {
       log.warn(
         { sessionId, context, consecutiveFailures: state.consecutiveFailures },
         '💀 [GATEWAY] Gemini appears dead - attempting proactive reconnection'

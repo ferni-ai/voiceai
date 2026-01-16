@@ -25,4 +25,5 @@ export {
   detectsFunctionCallLeakage,
   getReplacementText,
   looksLikeJsonFunctionCall,
+  containsToolCallLeakage,
 } from './leakage-detector.js';

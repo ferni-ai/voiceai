@@ -24,3 +24,9 @@ export {
 } from './document-size-monitor.js';
 
 export { runDataHealthJob, handleDataHealthRequest } from './scheduled-jobs.js';
+
+export {
+  runTTLBackfill,
+  TTL_DAYS as BACKFILL_TTL_DAYS,
+  BACKFILL_CONFIGS,
+} from './ttl-backfill.js';

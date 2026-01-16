@@ -143,3 +143,10 @@ apps/ios-native/.build/
 
 # ML Training outputs
 apps/ml-training/router/outputs/
+
+# ONNX Router Model (large binary)
+models/
+
+# Python virtual environments
+apps/ml-training/**/.venv*/
+**/.venv*/
