@@ -155,7 +155,7 @@ describe('RequestCoalescer', () => {
   });
 
   describe('TTL Cleanup', () => {
-    it('should clean up pending requests after TTL', async () => {
+    it('should mark pending requests as expired after TTL but keep for waiters', async () => {
       // Create a request that never resolves
       const neverResolves = () => new Promise<string>(() => {});
 
@@ -168,8 +168,18 @@ describe('RequestCoalescer', () => {
       // Advance time past TTL
       await vi.advanceTimersByTimeAsync(61000);
 
-      // Key should be cleaned up
-      expect(coalescer.isPending('ttl-key')).toBe(false);
+      // Key should STILL be pending (marked expired but not deleted)
+      // This ensures existing waiters can still receive results
+      expect(coalescer.isPending('ttl-key')).toBe(true);
+
+      // But new requests should NOT coalesce with expired entries
+      let newExecutorCalled = false;
+      void coalescer.execute('ttl-key', async () => {
+        newExecutorCalled = true;
+        return 'new-result';
+      });
+
+      expect(newExecutorCalled).toBe(true);
     });
   });
 

@@ -23,8 +23,8 @@ describe('Request Coalescer Edge Cases', () => {
     resetAllCoalescers();
   });
 
-  describe('TTL Race Condition', () => {
-    it('BUG: TTL cleanup can orphan waiters if request is slow', async () => {
+  describe('TTL Expiration Handling', () => {
+    it('FIXED: TTL expiration marks entry as expired but keeps promise for waiters', async () => {
       const coalescer = new RequestCoalescer<string>('test', {
         pendingTtlMs: 100, // Very short TTL
         maxPending: 100,
@@ -48,35 +48,71 @@ describe('Request Coalescer Edge Cases', () => {
       // TTL expires before request completes
       await vi.advanceTimersByTimeAsync(150);
 
-      // Key should be cleaned up from pending map
-      expect(coalescer.isPending('key')).toBe(false);
+      // Key should STILL be in pending map (not deleted)
+      expect(coalescer.isPending('key')).toBe(true);
 
       // Now a NEW request comes in - this starts a fresh request
-      // instead of sharing the still-in-flight original
+      // because the existing one is marked as expired
       let secondExecutorCalled = false;
       const promise3 = coalescer.execute('key', async () => {
         secondExecutorCalled = true;
         return 'second-result';
       });
 
-      // BUG: A second executor was called even though first is still pending!
-      // This defeats the purpose of coalescing for slow requests.
+      // New executor was called (correct - expired entries don't coalesce)
       expect(secondExecutorCalled).toBe(true);
 
       // Resolve the original request
       resolveRequest!('first-result');
 
-      // Original waiters still get their result (promises work)
+      // Original waiters still get their result
       const [result1, result2] = await Promise.all([promise1, promise2]);
       expect(result1).toBe('first-result');
       expect(result2).toBe('first-result');
 
-      // But the third request got a different result
+      // Third request got its own result
       const result3 = await promise3;
       expect(result3).toBe('second-result');
 
-      // We made 2 actual executions instead of 1
+      // We made 2 actual executions (expected - TTL expired so new request started fresh)
       expect(coalescer.getStats().actualExecutions).toBe(2);
+
+      // But the original entry was cleaned up after promise resolved
+      // (wait for cleanup to happen)
+      await vi.advanceTimersByTimeAsync(10);
+    });
+
+    it('should coalesce requests that arrive before TTL expires', async () => {
+      const coalescer = new RequestCoalescer<string>('test', {
+        pendingTtlMs: 1000, // 1 second TTL
+        maxPending: 100,
+      });
+
+      let resolveRequest: (value: string) => void;
+      const slowExecutor = () =>
+        new Promise<string>((resolve) => {
+          resolveRequest = resolve;
+        });
+
+      // Start first request
+      const promise1 = coalescer.execute('key', slowExecutor);
+
+      // Advance time but stay within TTL
+      await vi.advanceTimersByTimeAsync(500);
+
+      // Second request should still coalesce
+      const promise2 = coalescer.execute('key', slowExecutor);
+      expect(coalescer.getStats().coalescedRequests).toBe(1);
+
+      // Resolve
+      resolveRequest!('result');
+
+      const [result1, result2] = await Promise.all([promise1, promise2]);
+      expect(result1).toBe('result');
+      expect(result2).toBe('result');
+
+      // Only 1 actual execution
+      expect(coalescer.getStats().actualExecutions).toBe(1);
     });
   });
 

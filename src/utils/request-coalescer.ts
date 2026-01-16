@@ -59,6 +59,8 @@ interface PendingRequest<T> {
   waiterCount: number;
   createdAt: number;
   timeoutId: ReturnType<typeof setTimeout>;
+  /** Marked true when TTL expires - new requests should not coalesce with expired entries */
+  expired: boolean;
 }
 
 // ============================================================================
@@ -96,7 +98,8 @@ export class RequestCoalescer<T> {
 
     // Check if there's already a pending request for this key
     const existing = this.pending.get(key);
-    if (existing) {
+    if (existing && !existing.expired) {
+      // Only coalesce with non-expired requests
       existing.waiterCount++;
       this.coalescedRequests++;
       log.debug({ name: this.name, key: key.slice(0, 8), waiters: existing.waiterCount }, 'Request coalesced');
@@ -130,11 +133,16 @@ export class RequestCoalescer<T> {
       }
     })();
 
-    // Set up TTL timeout for cleanup (in case promise never resolves)
+    // Set up TTL timeout - marks entry as expired so new requests don't coalesce,
+    // but keeps the entry so existing waiters can still receive their result
     const timeoutId = setTimeout(() => {
-      if (this.pending.has(key)) {
-        log.warn({ name: this.name, key: key.slice(0, 8) }, 'Request coalescer TTL expired, cleaning up');
-        this.pending.delete(key);
+      const pending = this.pending.get(key);
+      if (pending && !pending.expired) {
+        log.warn(
+          { name: this.name, key: key.slice(0, 8), waiters: pending.waiterCount },
+          'Request coalescer TTL expired - new requests will not coalesce'
+        );
+        pending.expired = true;
       }
     }, this.pendingTtlMs);
 
@@ -144,6 +152,7 @@ export class RequestCoalescer<T> {
       waiterCount: 1,
       createdAt: Date.now(),
       timeoutId,
+      expired: false,
     });
 
     return wrappedPromise;
