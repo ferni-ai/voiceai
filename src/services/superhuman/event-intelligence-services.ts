@@ -24,6 +24,14 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb } from './firestore-utils.js';
+import {
+  onEventPatternChange,
+  onGuestProfileChange,
+  onDetectedMilestoneChange,
+  onEventMeaningChange,
+  onCelebrationChange,
+  onTransitionSignalChange,
+} from '../data-layer/hooks/superhuman-hooks.js';
 
 const log = createLogger({ module: 'superhuman:event-intelligence' });
 
@@ -122,7 +130,8 @@ export async function recordEventPattern(userId: string, pattern: EventPattern):
   }
 
   try {
-    await db.collection('bogle_users').doc(userId).collection('event_patterns').add(pattern);
+    const docRef = await db.collection('bogle_users').doc(userId).collection('event_patterns').add(pattern);
+    void onEventPatternChange(userId, docRef.id, pattern, 'create');
     log.info({ userId, eventType: pattern.eventType }, 'Event pattern recorded');
   } catch (error) {
     log.debug({ error, userId }, 'Failed to record event pattern');
@@ -168,13 +177,15 @@ export async function recordGuestProfile(userId: string, guest: GuestProfile): P
 
   try {
     // Use guest name as document ID for easy lookup/update
+    const guestId = guest.name.toLowerCase().replace(/\s+/g, '-');
     const docRef = db
       .collection('bogle_users')
       .doc(userId)
       .collection('guest_profiles')
-      .doc(guest.name.toLowerCase().replace(/\s+/g, '-'));
+      .doc(guestId);
 
     await docRef.set(guest, { merge: true });
+    void onGuestProfileChange(userId, guestId, guest, 'create');
     log.info({ userId, guestName: guest.name }, 'Guest profile recorded');
   } catch (error) {
     log.debug({ error, userId }, 'Failed to record guest profile');
@@ -245,7 +256,8 @@ export async function recordMilestoneDetection(
   }
 
   try {
-    await db.collection('bogle_users').doc(userId).collection('detected_milestones').add(milestone);
+    const docRef = await db.collection('bogle_users').doc(userId).collection('detected_milestones').add(milestone);
+    void onDetectedMilestoneChange(userId, docRef.id, milestone, 'create');
     log.info({ userId, type: milestone.type }, 'Milestone detected and recorded');
   } catch (error) {
     log.debug({ error, userId }, 'Failed to record milestone');
@@ -284,7 +296,8 @@ export async function recordEventMeaning(userId: string, meaning: EventMeaning):
   }
 
   try {
-    await db.collection('bogle_users').doc(userId).collection('event_meanings').add(meaning);
+    const docRef = await db.collection('bogle_users').doc(userId).collection('event_meanings').add(meaning);
+    void onEventMeaningChange(userId, docRef.id, meaning, 'create');
     log.info({ userId, eventName: meaning.eventName }, 'Event meaning recorded');
   } catch (error) {
     log.debug({ error, userId }, 'Failed to record event meaning');
@@ -332,7 +345,8 @@ export async function recordCelebration(userId: string, celebration: Celebration
   }
 
   try {
-    await db.collection('bogle_users').doc(userId).collection('celebrations').add(celebration);
+    const docRef = await db.collection('bogle_users').doc(userId).collection('celebrations').add(celebration);
+    void onCelebrationChange(userId, docRef.id, celebration, 'create');
     log.info({ userId, what: celebration.what }, 'Celebration recorded');
   } catch (error) {
     log.debug({ error, userId }, 'Failed to record celebration');
@@ -401,7 +415,8 @@ export async function recordTransitionSignal(
   }
 
   try {
-    await db.collection('bogle_users').doc(userId).collection('transition_signals').add(signal);
+    const docRef = await db.collection('bogle_users').doc(userId).collection('transition_signals').add(signal);
+    void onTransitionSignalChange(userId, docRef.id, signal, 'create');
     log.info({ userId, type: signal.type }, 'Transition signal recorded');
   } catch (error) {
     log.debug({ error, userId }, 'Failed to record transition signal');

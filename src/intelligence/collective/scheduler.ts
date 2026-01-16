@@ -250,17 +250,23 @@ export async function forceRunAllJobs(): Promise<{
   try {
     await runPatternRecomputation();
     results.patternRecomputation = true;
-  } catch {}
+  } catch (error) {
+    log.error({ error: String(error) }, 'Pattern recomputation failed');
+  }
 
   try {
     await runStoryAnalysis();
     results.storyAnalysis = true;
-  } catch {}
+  } catch (error) {
+    log.error({ error: String(error) }, 'Story analysis failed');
+  }
 
   try {
     await runEvolutionUpdate();
     results.evolutionUpdate = true;
-  } catch {}
+  } catch (error) {
+    log.error({ error: String(error) }, 'Evolution update failed');
+  }
 
   await saveCommunityInsightsToFirestore();
 

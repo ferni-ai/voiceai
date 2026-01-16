@@ -308,8 +308,10 @@ import { referralUI } from './ui/referral.ui.js';
 import { growthJourneyService } from './services/growth-journey.service.js';
 // Voice Auth Service
 import { getVoiceAuthService } from './services/voice-auth.service.js';
-// Toast for notifications
+// Toast for notifications (legacy - use moments.whisper() for new code)
 import { toast } from './ui/whisper.ui.js';
+// Moments System - Unified feedback system (whisper, notice, celebration, milestone)
+import { initMomentsSystem, moments } from './ui/moments/index.js';
 // Subscription UI - human-centered monetization
 import {
   initSubscriptionUI,
@@ -1897,6 +1899,11 @@ class VoiceAIApp {
     // 🌱 Seeds UI - Display balance and toast notifications
     this.safeInit('SeedsDisplay', () => initSeedsDisplay());
     this.safeInit('SeedsToast', () => initSeedsToast());
+
+    // 🎯 Moments System - Unified feedback (whisper, notice, celebration, milestone)
+    this.deferredInit('MomentsSystem', 500, async () => {
+      await initMomentsSystem();
+    });
 
     // 🌱 Growth Journey - Celebrate milestones as relationship deepens
     this.safeInit('GrowthJourney', () => {

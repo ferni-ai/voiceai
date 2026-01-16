@@ -215,6 +215,46 @@ export type EntityType =
   | 'legacy_thought' // Thoughts about legacy
 
   // ═══════════════════════════════════════════════════════════════════════════
+  // SUPERHUMAN SERVICE ENTITIES (35+ types) - Phase 3 Unified Intelligence
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Maya coaching intelligence
+  | 'habit_dna' // DNA/deep structure of habits
+  | 'friction_point' // Friction points in habit formation
+  | 'tendency_profile' // Four Tendencies profile
+  | 'keystone_habit' // Keystone habit observations
+  | 'identity_statement' // Identity-based habit statements
+  | 'setback_pattern' // Setback patterns in habits
+  | 'habit_autopsy' // Post-mortem analysis of failed habits
+
+  // Nayan wisdom services
+  | 'paradox' // Paradoxes held without resolution
+  | 'enough_statement' // "Enough" declarations
+  | 'incubating_wisdom' // Wisdom that needs time to ripen
+  | 'wisdom_pattern' // Recurring wisdom themes
+  | 'legacy_statement' // Legacy/meaning goals
+  | 'cyclical_pattern' // Seasonal/cyclical patterns
+
+  // Jordan planning services
+  | 'event_pattern' // Event patterns
+  | 'guest_profile' // Guest intelligence profiles
+  | 'detected_milestone' // Proactively detected milestones
+  | 'event_meaning' // Meaning captured from events
+  | 'celebration' // Celebration records
+  | 'transition_signal' // Life transition signals
+
+  // Peter analytics services
+  | 'counterfactual' // Counterfactual analysis
+  | 'pattern_prediction' // Pattern predictions
+  | 'decision_score' // Decision scoring
+  | 'correlation' // Correlation insights
+  | 'anomaly' // Anomaly detection
+  | 'insight' // General insights
+
+  // Cross-persona services
+  | 'anticipated_transition' // Anticipated life transitions
+  | 'observation' // Superhuman observations
+
+  // ═══════════════════════════════════════════════════════════════════════════
   // MISCELLANEOUS (10 types) - Various domains
   // ═══════════════════════════════════════════════════════════════════════════
   | 'travel_preference' // Travel style
@@ -585,12 +625,18 @@ export interface DreamEntity {
 }
 
 export interface LifeChapterEntity {
-  title: string;
+  title?: string;
   summary?: string;
   period?: string | { start: string; end?: string }; // Can be object or formatted string
-  themes: string[];
+  themes?: string[]; // Array of themes
+  theme?: string; // Also support singular theme for compatibility
   keyMoments?: string[];
+  keyEvents?: string[]; // Alternative name for keyMoments
   lessonsLearned?: string[];
+  startDate?: string;
+  endDate?: string;
+  status?: 'current' | 'completed' | 'emerging';
+  nextChapterHints?: string[];
 }
 
 export interface ValuesAlignmentEntity {

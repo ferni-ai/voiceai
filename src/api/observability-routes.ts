@@ -18,6 +18,7 @@
  * - GET /api/observability/intelligence - Collective learning & intelligence metrics
  * - GET /api/observability/resilience - Resilience metrics (workers, cleanup, queues, circuits)
  * - GET /api/observability/redis - Redis cache stats, pub/sub status, circuit breakers
+ * - GET /api/observability/ftis - FTIS (Tool Intelligence) metrics (transitions, outcomes, patterns)
  * - POST /api/observability/clear - Clear all metrics
  */
 
@@ -587,6 +588,30 @@ export async function handleObservabilityRoutes(
     if (pathname === '/api/observability/redis' && req.method === 'GET') {
       const redisData = await getRedisMetrics();
       sendJSON(res, redisData);
+      return true;
+    }
+
+    // GET /api/observability/ftis - FTIS (Tool Intelligence) metrics
+    if (pathname === '/api/observability/ftis' && req.method === 'GET') {
+      try {
+        const { getFTISIntegration } = await import('../tools/intelligence/ftis-integration.js');
+        const ftis = getFTISIntegration();
+        const metrics = ftis.getMetrics();
+        const patterns = ftis.getToolPatterns();
+
+        sendJSON(res, {
+          transitionMatrix: metrics.transitionMatrix,
+          planner: metrics.planner,
+          learner: metrics.learner,
+          topPatterns: patterns.slice(0, 10),
+          collectedAt: new Date().toISOString(),
+        });
+      } catch (error) {
+        sendJSON(res, {
+          error: 'FTIS metrics not available',
+          message: String(error),
+        });
+      }
       return true;
     }
 

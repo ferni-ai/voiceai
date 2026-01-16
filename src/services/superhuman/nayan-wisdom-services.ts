@@ -25,6 +25,15 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb } from './firestore-utils.js';
+import {
+  onParadoxChange,
+  onEnoughStatementChange,
+  onIncubatingWisdomChange,
+  onWisdomPatternChange,
+  onLegacyStatementChange,
+  onCyclicalPatternChange,
+  onLifeChapterChange,
+} from '../data-layer/hooks/superhuman-hooks.js';
 
 const log = createLogger({ module: 'superhuman:nayan-wisdom' });
 
@@ -112,7 +121,7 @@ export async function recordParadox(userId: string, paradox: Paradox): Promise<v
   }
 
   try {
-    await db
+    const docRef = await db
       .collection('bogle_users')
       .doc(userId)
       .collection('paradoxes')
@@ -120,6 +129,7 @@ export async function recordParadox(userId: string, paradox: Paradox): Promise<v
         ...paradox,
         status: paradox.status || 'active',
       });
+    void onParadoxChange(userId, docRef.id, { ...paradox, status: paradox.status || 'active' }, 'create');
     log.info({ userId, desire1: paradox.desire1, desire2: paradox.desire2 }, 'Paradox recorded');
   } catch (error) {
     log.debug({ error, userId }, 'Failed to record paradox');
@@ -161,6 +171,7 @@ export async function updateParadoxStatus(
       status,
       resolutionNotes: notes,
     });
+    void onParadoxChange(userId, paradoxId, { status, resolutionNotes: notes }, 'update');
   } catch (error) {
     log.debug({ error, userId }, 'Failed to update paradox status');
   }
@@ -181,7 +192,8 @@ export async function recordEnoughStatement(
   }
 
   try {
-    await db.collection('bogle_users').doc(userId).collection('enough_statements').add(statement);
+    const docRef = await db.collection('bogle_users').doc(userId).collection('enough_statements').add(statement);
+    void onEnoughStatementChange(userId, docRef.id, statement, 'create');
     log.info({ userId, domain: statement.domain }, 'Enough statement recorded');
   } catch (error) {
     log.debug({ error, userId }, 'Failed to record enough statement');
@@ -216,16 +228,18 @@ export async function markEnoughReached(
   if (!db) return;
 
   try {
+    const updateData = {
+      reachedAt: new Date().toISOString(),
+      wasItEnough,
+      notes,
+    };
     await db
       .collection('bogle_users')
       .doc(userId)
       .collection('enough_statements')
       .doc(statementId)
-      .update({
-        reachedAt: new Date().toISOString(),
-        wasItEnough,
-        notes,
-      });
+      .update(updateData);
+    void onEnoughStatementChange(userId, statementId, updateData, 'update');
   } catch (error) {
     log.debug({ error, userId }, 'Failed to mark enough reached');
   }
@@ -246,7 +260,8 @@ export async function recordIncubatingWisdom(
   }
 
   try {
-    await db.collection('bogle_users').doc(userId).collection('wisdom_incubation').add(item);
+    const docRef = await db.collection('bogle_users').doc(userId).collection('wisdom_incubation').add(item);
+    void onIncubatingWisdomChange(userId, docRef.id, item, 'create');
     log.info({ userId, question: item.question.substring(0, 50) }, 'Wisdom incubation recorded');
   } catch (error) {
     log.debug({ error, userId }, 'Failed to record wisdom incubation');
@@ -283,15 +298,14 @@ export async function markIncubationReady(
   if (!db) return;
 
   try {
+    const updateData = { status: 'ready' as const, insight };
     await db
       .collection('bogle_users')
       .doc(userId)
       .collection('wisdom_incubation')
       .doc(itemId)
-      .update({
-        status: 'ready',
-        insight,
-      });
+      .update(updateData);
+    void onIncubatingWisdomChange(userId, itemId, updateData, 'update');
   } catch (error) {
     log.debug({ error, userId }, 'Failed to mark incubation ready');
   }
@@ -322,15 +336,18 @@ export async function recordWisdomPattern(userId: string, pattern: WisdomPattern
       // Update existing pattern
       const doc = existing.docs[0];
       const existingData = doc.data() as WisdomPattern;
-      await doc.ref.update({
+      const updateData = {
         occurrences: existingData.occurrences + 1,
         contexts: [...(existingData.contexts || []), ...pattern.contexts].slice(-10),
         lastSeen: pattern.lastSeen,
         insight: pattern.insight || existingData.insight,
-      });
+      };
+      await doc.ref.update(updateData);
+      void onWisdomPatternChange(userId, doc.id, updateData, 'update');
     } else {
       // Create new pattern
-      await db.collection('bogle_users').doc(userId).collection('wisdom_patterns').add(pattern);
+      const docRef = await db.collection('bogle_users').doc(userId).collection('wisdom_patterns').add(pattern);
+      void onWisdomPatternChange(userId, docRef.id, pattern, 'create');
     }
     log.info({ userId, theme: pattern.theme }, 'Wisdom pattern recorded');
   } catch (error) {
@@ -374,7 +391,8 @@ export async function recordLegacyStatement(
   }
 
   try {
-    await db.collection('bogle_users').doc(userId).collection('legacy_statements').add(statement);
+    const docRef = await db.collection('bogle_users').doc(userId).collection('legacy_statements').add(statement);
+    void onLegacyStatementChange(userId, docRef.id, statement, 'create');
     log.info({ userId, domain: statement.domain }, 'Legacy statement recorded');
   } catch (error) {
     log.debug({ error, userId }, 'Failed to record legacy statement');
@@ -431,23 +449,27 @@ export async function recordCyclicalPattern(
       // Update existing pattern
       const doc = existing.docs[0];
       const existingData = doc.data() as CyclicalPattern;
-      await doc.ref.update({
+      const updateData = {
         observations: [...(existingData.observations || []), observation].slice(-20),
         lastObserved: observation.date,
         insight: pattern.insight || existingData.insight,
-      });
+      };
+      await doc.ref.update(updateData);
+      void onCyclicalPatternChange(userId, doc.id, { ...existingData, ...updateData }, 'update');
     } else {
       // Create new pattern
-      await db
+      const newPatternData = {
+        ...pattern,
+        observations: [observation],
+        firstObserved: observation.date,
+        lastObserved: observation.date,
+      };
+      const docRef = await db
         .collection('bogle_users')
         .doc(userId)
         .collection('cyclical_patterns')
-        .add({
-          ...pattern,
-          observations: [observation],
-          firstObserved: observation.date,
-          lastObserved: observation.date,
-        });
+        .add(newPatternData);
+      void onCyclicalPatternChange(userId, docRef.id, newPatternData as CyclicalPattern, 'create');
     }
     log.info({ userId, pattern: pattern.pattern, cycle: pattern.cycle }, 'Cyclical pattern recorded');
   } catch (error) {
@@ -488,7 +510,8 @@ export async function recordLifeChapter(userId: string, chapter: LifeChapter): P
   }
 
   try {
-    await db.collection('bogle_users').doc(userId).collection('life_chapters').add(chapter);
+    const docRef = await db.collection('bogle_users').doc(userId).collection('life_chapters').add(chapter);
+    void onLifeChapterChange(userId, docRef.id, chapter, 'create');
     log.info({ userId, title: chapter.title, status: chapter.status }, 'Life chapter recorded');
   } catch (error) {
     log.debug({ error, userId }, 'Failed to record life chapter');
@@ -531,6 +554,7 @@ export async function updateLifeChapter(
       .collection('life_chapters')
       .doc(chapterId)
       .update(updates);
+    void onLifeChapterChange(userId, chapterId, updates as LifeChapter, 'update');
   } catch (error) {
     log.debug({ error, userId }, 'Failed to update life chapter');
   }

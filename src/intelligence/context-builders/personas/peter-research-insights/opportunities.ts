@@ -1,6 +1,9 @@
 /**
  * Proactive coaching trigger detection for Peter's research insights.
  *
+ * Cross-Domain Integration:
+ * - CEO Coaching: Surfaces pending decisions for Peter's analytical support
+ *
  * @module intelligence/context-builders/personas/peter-research-insights/opportunities
  */
 
@@ -9,9 +12,84 @@ import {
   detectProactiveTriggers,
   type ProactiveTrigger,
 } from '../../../../tools/domains/proactive/coaching/index.js';
+import type { CEODecision } from '../../../../tools/domains/ceo-coaching/types.js';
 import type { HabitInsights, ProactiveCoachingInsights } from './types.js';
 
 const log = createLogger({ module: 'context:peter-opportunities' });
+
+// ============================================================================
+// CEO COACHING INTEGRATION - Peter surfaces decisions needing analysis
+// ============================================================================
+
+// Decision keywords that suggest Peter's analytical help is needed
+const ANALYTICAL_DECISION_PATTERNS = [
+  /invest/i,
+  /budget/i,
+  /financial/i,
+  /cost/i,
+  /roi/i,
+  /revenue/i,
+  /pricing/i,
+  /salary/i,
+  /offer/i,
+  /contract/i,
+  /vendor/i,
+  /subscription/i,
+  /hire/i,
+  /expand/i,
+  /market/i,
+  /data/i,
+  /metrics/i,
+  /numbers/i,
+];
+
+function isAnalyticalDecision(decision: CEODecision): boolean {
+  return ANALYTICAL_DECISION_PATTERNS.some((pattern) =>
+    pattern.test(decision.description)
+  );
+}
+
+function getDaysOld(dateString: string): number {
+  const date = new Date(dateString);
+  const now = new Date();
+  return Math.floor((now.getTime() - date.getTime()) / (24 * 60 * 60 * 1000));
+}
+
+/**
+ * Surface CEO decisions that could benefit from Peter's analytical perspective.
+ */
+export function detectDecisionOpportunities(
+  pendingDecisions: CEODecision[] = []
+): string[] {
+  const opportunities: string[] = [];
+
+  // Filter for analytical decisions
+  const analyticalDecisions = pendingDecisions.filter(isAnalyticalDecision);
+
+  // Surface decisions that need data-driven analysis
+  for (const decision of analyticalDecisions.slice(0, 3)) {
+    const daysOld = getDaysOld(decision.createdAt);
+    const urgency = decision.deadline
+      ? ` (deadline approaching)`
+      : daysOld > 7
+        ? ` (${daysOld} days pending)`
+        : '';
+
+    opportunities.push(
+      `📊 ANALYTICAL DECISION${urgency}: "${decision.description}" - I can help analyze the data behind this`
+    );
+  }
+
+  // Flag old decisions without progress
+  const staleDecisions = pendingDecisions.filter((d) => getDaysOld(d.createdAt) > 14);
+  if (staleDecisions.length > 0) {
+    opportunities.push(
+      `⚠️ ${staleDecisions.length} decision(s) pending 14+ days - analysis paralysis risk`
+    );
+  }
+
+  return opportunities;
+}
 
 // ============================================================================
 // PROACTIVE COACHING TRIGGER DETECTION
@@ -19,9 +97,14 @@ const log = createLogger({ module: 'context:peter-opportunities' });
 
 export function detectProactiveCoachingInsights(
   userId: string,
-  mayaInsights: HabitInsights
+  mayaInsights: HabitInsights,
+  pendingDecisions: CEODecision[] = [] // Cross-Domain: CEO coaching decisions
 ): ProactiveCoachingInsights {
   const priorityInsights: string[] = [];
+
+  // Cross-Domain: Add CEO decision opportunities first (Peter's specialty)
+  const decisionOpportunities = detectDecisionOpportunities(pendingDecisions);
+  priorityInsights.push(...decisionOpportunities);
 
   try {
     // Build detection context from Maya's data

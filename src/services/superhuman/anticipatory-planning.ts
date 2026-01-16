@@ -814,30 +814,36 @@ function createDefaultProfile(userId: string): AnticipatoryPlanningProfile {
 }
 
 function computePredictions(profile: AnticipatoryPlanningProfile): TransitionPrediction[] {
-  const transitionWeights: Record<LifeTransition, { weight: number; signals: TransitionSignal[] }> = {} as any;
+  // Partial because we build this incrementally from signals
+  const transitionWeights: Partial<Record<LifeTransition, { weight: number; signals: TransitionSignal[] }>> = {};
 
   // Aggregate signals by transition
   for (const signal of profile.signals) {
-    if (!transitionWeights[signal.transition]) {
-      transitionWeights[signal.transition] = { weight: 0, signals: [] };
+    let entry = transitionWeights[signal.transition];
+    if (!entry) {
+      entry = { weight: 0, signals: [] };
+      transitionWeights[signal.transition] = entry;
     }
 
     // Decay weight over time (signals older than 30 days get reduced)
     const daysSinceSignal = (Date.now() - new Date(signal.detectedAt).getTime()) / (1000 * 60 * 60 * 24);
     const decayedWeight = signal.weight * Math.exp(-daysSinceSignal / 60); // 60-day half-life
 
-    transitionWeights[signal.transition].weight += decayedWeight;
-    transitionWeights[signal.transition].signals.push(signal);
+    entry.weight += decayedWeight;
+    entry.signals.push(signal);
   }
 
   // Check demographic hints
   if (profile.demographics) {
     for (const [transition, pattern] of Object.entries(TRANSITION_PATTERNS)) {
       if (pattern.demographicHints(profile.demographics)) {
-        if (!transitionWeights[transition as LifeTransition]) {
-          transitionWeights[transition as LifeTransition] = { weight: 0, signals: [] };
+        const t = transition as LifeTransition;
+        let entry = transitionWeights[t];
+        if (!entry) {
+          entry = { weight: 0, signals: [] };
+          transitionWeights[t] = entry;
         }
-        transitionWeights[transition as LifeTransition].weight += 0.2;
+        entry.weight += 0.2;
       }
     }
   }

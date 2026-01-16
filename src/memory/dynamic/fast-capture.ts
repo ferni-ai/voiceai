@@ -11,7 +11,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { AsyncEvents } from '../../services/async-events/index.js';
+import { safeEmitEvent } from './async-events-config.js';
 import { recordFastCapture } from './metrics.js';
 
 const log = createLogger({ module: 'FastCapture' });
@@ -473,16 +473,18 @@ async function queueDeepExtraction(job: DeepExtractionJob): Promise<string> {
   const jobId = `deep-${job.userId}-${job.sessionId}-${job.turnNumber}-${Date.now()}`;
   
   try {
-    // Emit event for background worker
-    AsyncEvents.emit('memory:deep-extraction' as never, {
+    // Emit event for background worker via DI wrapper (avoids layer violation)
+    const emitted = safeEmitEvent('memory:deep-extraction', {
       jobId,
       ...job,
-      priority: job.fastCaptureHints.emotionSignals.some(e => e.intensity === 'high') 
-        ? 'high' 
+      priority: job.fastCaptureHints.emotionSignals.some(e => e.intensity === 'high')
+        ? 'high'
         : 'normal',
     });
-    
-    log.debug({ jobId, userId: job.userId }, 'Queued deep extraction job');
+
+    if (emitted) {
+      log.debug({ jobId, userId: job.userId }, 'Queued deep extraction job');
+    }
   } catch (error) {
     log.warn({ error: String(error), jobId }, 'Failed to queue deep extraction (non-blocking)');
   }

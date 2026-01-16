@@ -371,3 +371,32 @@ export {
   captureMultiplePeople,
   isEntityStoreReady,
 } from '../entity-store/integration.js';
+
+// ============================================================================
+// ACTIVE LISTENING CAPTURE (Phase 17)
+// ============================================================================
+
+export {
+  // Session management
+  initActiveListening,
+  getActiveListeningState,
+  endActiveListening,
+  // Incremental capture
+  processIncrementalCapture,
+  // Confirmation loops
+  getNextConfirmation,
+  recordConfirmationResponse,
+  // Stats
+  getActiveListeningStats,
+  // Configuration
+  setActiveListeningConfig,
+  getActiveListeningConfig,
+  // Types
+  type IncrementalCaptureInput,
+  type CapturePriority,
+  type CapturedItem,
+  type CaptureType,
+  type ConfirmationItem,
+  type ActiveListeningState,
+  type ActiveListeningConfig,
+} from './active-listening-capture.js';

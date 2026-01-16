@@ -35,7 +35,11 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { hybridSearch, type HybridSearchResult, type HybridSearchMetrics } from './hybrid-search.js';
+import {
+  hybridSearch,
+  type HybridSearchResult,
+  type HybridSearchMetrics,
+} from './hybrid-search.js';
 import { rerankHybridResults } from './cross-encoder.js';
 
 const log = createLogger({ module: 'TurnMemoryRetrieval' });
@@ -307,9 +311,9 @@ export async function retrieveForTurn(input: TurnRetrievalInput): Promise<Memory
         vectorWeight: 0.6,
         includeEntities: true,
       }),
-      new Promise<{ results: HybridSearchResult[]; metrics: HybridSearchMetrics }>((_, reject) =>
-        setTimeout(() => reject(new Error('Hybrid search timeout')), config.totalTimeoutMs * 0.7)
-      ),
+      new Promise<{ results: HybridSearchResult[]; metrics: HybridSearchMetrics }>((_, reject) => {
+        setTimeout(() => reject(new Error('Hybrid search timeout')), config.totalTimeoutMs * 0.7);
+      }),
     ]);
 
     metrics.hybridSearchMs = Date.now() - hybridStart;
@@ -333,9 +337,9 @@ export async function retrieveForTurn(input: TurnRetrievalInput): Promise<Memory
             topK: config.maxMemories * 2,
             minScore: config.minRelevanceScore,
           }),
-          new Promise<HybridSearchResult[]>((_, reject) =>
-            setTimeout(() => reject(new Error('Rerank timeout')), config.rerankTimeoutMs)
-          ),
+          new Promise<HybridSearchResult[]>((_, reject) => {
+            setTimeout(() => reject(new Error('Rerank timeout')), config.rerankTimeoutMs);
+          }),
         ]);
         rankedResults = reranked;
         metrics.rerankingApplied = true;
@@ -509,4 +513,48 @@ export function getTurnRetrievalStats(): {
     activeSessions: recentlySurfacedBySession.size,
     totalSurfacedMemories: totalSurfaced,
   };
+}
+
+// ============================================================================
+// USER MEMORY SEARCH (for joy pool building, etc.)
+// ============================================================================
+
+export interface UserMemorySearchOptions {
+  query: string;
+  limit?: number;
+}
+
+export interface UserMemoryResult {
+  id: string;
+  content: string;
+  timestamp?: Date;
+  relevance: number;
+}
+
+/**
+ * Search user memories by query.
+ * Used for building joy pools, finding related memories, etc.
+ */
+export async function searchUserMemories(
+  userId: string,
+  options: UserMemorySearchOptions
+): Promise<UserMemoryResult[]> {
+  try {
+    const { results } = await hybridSearch(userId, options.query, {
+      topK: options.limit || 20,
+      bm25Weight: 0.3,
+      vectorWeight: 0.7,
+      includeEntities: false,
+    });
+
+    return results.map((r: HybridSearchResult) => ({
+      id: r.id,
+      content: r.text, // HybridSearchResult uses 'text' not 'content'
+      timestamp: undefined, // HybridSearchResult doesn't include timestamp
+      relevance: r.score,
+    }));
+  } catch (error) {
+    log.debug({ userId, error: String(error) }, 'User memory search failed');
+    return [];
+  }
 }

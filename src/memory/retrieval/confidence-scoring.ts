@@ -23,10 +23,10 @@ const log = createLogger({ module: 'ConfidenceScoring' });
  * Confidence level categories
  */
 export type ConfidenceLevel =
-  | 'high'        // 0.8-1.0: "You told me..."
-  | 'medium'      // 0.6-0.8: "I remember..."
-  | 'low'         // 0.4-0.6: "I think you mentioned..."
-  | 'uncertain';  // 0.0-0.4: "If I recall correctly..."
+  | 'high' // 0.8-1.0: "You told me..."
+  | 'medium' // 0.6-0.8: "I remember..."
+  | 'low' // 0.4-0.6: "I think you mentioned..."
+  | 'uncertain'; // 0.0-0.4: "If I recall correctly..."
 
 /**
  * Memory confidence score
@@ -163,12 +163,7 @@ export function getConfidenceConfig(): ConfidenceConfig {
 // ============================================================================
 
 const HEDGING_PHRASES: Record<ConfidenceLevel, string[]> = {
-  high: [
-    'You told me',
-    'You mentioned',
-    'You said',
-    'You shared that',
-  ],
+  high: ['You told me', 'You mentioned', 'You said', 'You shared that'],
   medium: [
     'I remember you saying',
     'I recall',
@@ -183,8 +178,8 @@ const HEDGING_PHRASES: Record<ConfidenceLevel, string[]> = {
   ],
   uncertain: [
     'I may be misremembering, but',
-    'I\'m not entirely sure, but',
-    'Correct me if I\'m wrong, but',
+    "I'm not entirely sure, but",
+    "Correct me if I'm wrong, but",
     'If I recall correctly',
   ],
 };
@@ -300,10 +295,7 @@ export function calculateConfidence(input: ConfidenceInput): MemoryConfidence {
 /**
  * Calculate source confidence
  */
-function calculateSourceConfidence(
-  input: ConfidenceInput,
-  factors: ConfidenceFactor[]
-): number {
+function calculateSourceConfidence(input: ConfidenceInput, factors: ConfidenceFactor[]): number {
   let confidence: number;
   let description: string;
 
@@ -338,15 +330,12 @@ function calculateSourceConfidence(
 /**
  * Calculate age confidence with exponential decay
  */
-function calculateAgeConfidence(
-  capturedAt: Date,
-  factors: ConfidenceFactor[]
-): number {
+function calculateAgeConfidence(capturedAt: Date, factors: ConfidenceFactor[]): number {
   const daysSince = (Date.now() - capturedAt.getTime()) / (1000 * 60 * 60 * 24);
 
   // Exponential decay
   const halfLife = config.ageDecayHalfLife;
-  const confidence = Math.exp(-0.693 * daysSince / halfLife);
+  const confidence = Math.exp((-0.693 * daysSince) / halfLife);
 
   let impact: 'positive' | 'negative' | 'neutral' = 'neutral';
   let description: string;
@@ -376,18 +365,13 @@ function calculateAgeConfidence(
 /**
  * Calculate repetition confidence
  */
-function calculateRepetitionConfidence(
-  mentionCount: number,
-  factors: ConfidenceFactor[]
-): number {
+function calculateRepetitionConfidence(mentionCount: number, factors: ConfidenceFactor[]): number {
   // More mentions = more confident
   // Diminishing returns after 3 mentions
   const confidence = Math.min(1.0, 0.5 + 0.15 * Math.min(mentionCount, 4));
 
   const impact: 'positive' | 'neutral' = mentionCount >= 2 ? 'positive' : 'neutral';
-  const description = mentionCount === 1
-    ? 'Mentioned once'
-    : `Mentioned ${mentionCount} times`;
+  const description = mentionCount === 1 ? 'Mentioned once' : `Mentioned ${mentionCount} times`;
 
   factors.push({
     name: 'repetition',
@@ -441,11 +425,12 @@ function calculateEmotionalConfidence(
   const confidence = 0.5 + weight * 0.5;
 
   const impact: 'positive' | 'neutral' = weight > 0.7 ? 'positive' : 'neutral';
-  const description = weight > 0.7
-    ? 'High emotional significance'
-    : weight < 0.3
-      ? 'Low emotional significance'
-      : 'Moderate emotional significance';
+  const description =
+    weight > 0.7
+      ? 'High emotional significance'
+      : weight < 0.3
+        ? 'Low emotional significance'
+        : 'Moderate emotional significance';
 
   factors.push({
     name: 'emotional_weight',
@@ -502,9 +487,7 @@ export function levelToMinScore(level: ConfidenceLevel): number {
 /**
  * Calculate confidence for multiple memories
  */
-export function calculateBatchConfidence(
-  inputs: ConfidenceInput[]
-): MemoryConfidence[] {
+export function calculateBatchConfidence(inputs: ConfidenceInput[]): MemoryConfidence[] {
   return inputs.map((input) => calculateConfidence(input));
 }
 

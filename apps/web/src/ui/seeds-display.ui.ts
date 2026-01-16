@@ -18,7 +18,7 @@ import {
 } from '../services/seeds-economy.service.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
-import { toast } from './whisper.ui.js';
+import { moments } from './moments/index.js';
 import { openGardenDashboard } from './garden-dashboard.ui.js';
 import { openGiftSeeds } from './gift-seeds.ui.js';
 import { openReferral } from './referral.ui.js';
@@ -479,7 +479,7 @@ function handleDailyBonusClick(e: Event): void {
 
   const result = claimDailyBonus();
   if (result.claimed) {
-    toast.success(t('toasts.resultamountSeeds'));
+    moments.whisper(t('toasts.resultamountSeeds'), { type: 'success' });
     updateSeedsDisplay();
 
     // Re-render the card to remove the bonus button
@@ -490,7 +490,7 @@ function handleDailyBonusClick(e: Event): void {
       bindDailyBonusHandler();
     }
   } else {
-    toast.info(result.reason || 'Already claimed today');
+    moments.whisper(result.reason || 'Already claimed today', { type: 'info' });
   }
 }
 

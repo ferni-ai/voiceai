@@ -17,7 +17,7 @@
 
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
-import { toast } from './toast.ui.js';
+import { moments } from './moments/index.js';
 
 const log = createLogger('StreakUI');
 
@@ -202,8 +202,8 @@ function checkMilestone(): void {
 function celebrateMilestone(days: number): void {
   const message = MILESTONE_MESSAGES[days] || `${days} days!`;
 
-  // Show toast
-  toast.success(message);
+  // Show celebration
+  moments.whisper(message, { type: 'success' });
 
   // Pulse the streak badge
   if (container) {
@@ -298,7 +298,7 @@ function showStreakDetails(): void {
       ? ` (best: ${streakData.longestStreak})`
       : '';
 
-  toast.info(`${streakData.count} ${daysText} in a row${longestText}`);
+  moments.whisper(`${streakData.count} ${daysText} in a row${longestText}`, { type: 'info' });
 }
 
 // ============================================================================

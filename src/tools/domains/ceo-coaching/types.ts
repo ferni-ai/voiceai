@@ -35,6 +35,7 @@ export interface CEODecision {
   status: 'pending' | 'made' | 'deferred';
   context?: string; // Why this decision matters
   outcome?: string; // Result after decision was made
+  deadline?: string; // Optional deadline for time-sensitive decisions (ISO date)
   createdAt: string;
   decidedAt?: string;
 }

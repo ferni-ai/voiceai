@@ -95,14 +95,14 @@ export interface CapturedItem {
  * Types of captured items
  */
 export type CaptureType =
-  | 'entity_name'      // Person, place, thing
-  | 'entity_relation'  // Relationship between entities
-  | 'fact'             // Factual statement
-  | 'preference'       // User preference
-  | 'commitment'       // Something they'll do
-  | 'emotion'          // Emotional state
-  | 'date'             // Important date
-  | 'correction';      // Correction to previous info
+  | 'entity_name' // Person, place, thing
+  | 'entity_relation' // Relationship between entities
+  | 'fact' // Factual statement
+  | 'preference' // User preference
+  | 'commitment' // Something they'll do
+  | 'emotion' // Emotional state
+  | 'date' // Important date
+  | 'correction'; // Correction to previous info
 
 /**
  * Confirmation loop item
@@ -208,10 +208,7 @@ const activeSessions = new Map<string, ActiveListeningState>();
 /**
  * Initialize active listening for a session
  */
-export function initActiveListening(
-  userId: string,
-  sessionId: string
-): ActiveListeningState {
+export function initActiveListening(userId: string, sessionId: string): ActiveListeningState {
   const state: ActiveListeningState = {
     sessionId,
     userId,
@@ -252,10 +249,7 @@ export function endActiveListening(sessionId: string): CapturedItem[] {
 
   activeSessions.delete(sessionId);
 
-  log.debug(
-    { sessionId, capturedCount: allItems.length },
-    '👂 Active listening ended'
-  );
+  log.debug({ sessionId, capturedCount: allItems.length }, '👂 Active listening ended');
 
   return allItems;
 }
@@ -269,9 +263,7 @@ export function endActiveListening(sessionId: string): CapturedItem[] {
  *
  * This is the main entry point called during speech.
  */
-export function processIncrementalCapture(
-  input: IncrementalCaptureInput
-): CapturedItem[] {
+export function processIncrementalCapture(input: IncrementalCaptureInput): CapturedItem[] {
   let state = activeSessions.get(input.sessionId);
   if (!state) {
     state = initActiveListening(input.userId, input.sessionId);
@@ -380,16 +372,25 @@ function extractFromPartial(
 /**
  * Extract entity names (people, places)
  */
-function extractEntities(
-  text: string,
-  state: ActiveListeningState
-): CapturedItem[] {
+function extractEntities(text: string, state: ActiveListeningState): CapturedItem[] {
   const items: CapturedItem[] = [];
 
   // Simple pattern for names (capitalized words)
   // In production, this would use NER
   const namePattern = /\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\b/g;
-  const commonWords = new Set(['I', 'The', 'This', 'That', 'We', 'They', 'What', 'When', 'Where', 'How', 'Why']);
+  const commonWords = new Set([
+    'I',
+    'The',
+    'This',
+    'That',
+    'We',
+    'They',
+    'What',
+    'When',
+    'Where',
+    'How',
+    'Why',
+  ]);
 
   let match;
   while ((match = namePattern.exec(text)) !== null) {
@@ -428,8 +429,15 @@ function extractDates(text: string): CapturedItem[] {
 
   // Date patterns
   const patterns = [
-    { regex: /\b(next\s+(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday))\b/gi, confidence: 0.85 },
-    { regex: /\b(january|february|march|april|may|june|july|august|september|october|november|december)\s+\d{1,2}(?:st|nd|rd|th)?\b/gi, confidence: 0.9 },
+    {
+      regex: /\b(next\s+(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday))\b/gi,
+      confidence: 0.85,
+    },
+    {
+      regex:
+        /\b(january|february|march|april|may|june|july|august|september|october|november|december)\s+\d{1,2}(?:st|nd|rd|th)?\b/gi,
+      confidence: 0.9,
+    },
     { regex: /\b(\d{1,2}\/\d{1,2}(?:\/\d{2,4})?)\b/g, confidence: 0.85 },
     { regex: /\b(tomorrow|yesterday|next\s+week|next\s+month)\b/gi, confidence: 0.8 },
   ];
@@ -494,7 +502,10 @@ function extractPreferences(text: string): CapturedItem[] {
   const items: CapturedItem[] = [];
 
   const preferencePatterns = [
-    { regex: /i (love|really like|prefer|enjoy|hate|can't stand)\s+(.+?)(?:\.|,|$)/gi, confidence: 0.8 },
+    {
+      regex: /i (love|really like|prefer|enjoy|hate|can't stand)\s+(.+?)(?:\.|,|$)/gi,
+      confidence: 0.8,
+    },
     { regex: /my favorite\s+(.+?)\s+is\s+(.+?)(?:\.|,|$)/gi, confidence: 0.85 },
   ];
 

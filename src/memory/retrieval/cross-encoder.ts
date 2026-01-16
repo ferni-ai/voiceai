@@ -32,6 +32,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { getExtractionModel } from '../../config/gemini-config.js';
 
 const log = createLogger({ module: 'CrossEncoder' });
 
@@ -153,7 +154,7 @@ export class GeminiCrossEncoder implements CrossEncoderProvider {
   private apiKey: string | null = null;
 
   getName(): string {
-    return 'gemini-1.5-flash';
+    return getExtractionModel();
   }
 
   async initialize(): Promise<void> {
@@ -176,7 +177,7 @@ export class GeminiCrossEncoder implements CrossEncoderProvider {
     try {
       const { GoogleGenerativeAI } = await import('@google/generative-ai');
       const genAI = new GoogleGenerativeAI(this.apiKey!);
-      const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+      const model = genAI.getGenerativeModel({ model: getExtractionModel() });
 
       const prompt = `Rate how relevant the following document is to the query on a scale from 0 to 100, where 0 means completely irrelevant and 100 means perfectly relevant. Only respond with a single number.
 

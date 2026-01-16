@@ -47,6 +47,108 @@ export type { BadgeOptions, BadgeVariant, BadgeSize } from './Badge.js';
 export { Tooltip, attachTooltip, showTooltipAt } from './Tooltip.js';
 export type { TooltipOptions, TooltipPosition } from './Tooltip.js';
 
+// Textarea - Multi-line text input
+export { Textarea, createTextarea } from './Textarea.js';
+export type { TextareaOptions, TextareaSize } from './Textarea.js';
+
+// Select - Dropdown select
+export { Select, createSelect } from './Select.js';
+export type { SelectOptions, SelectOption, SelectSize } from './Select.js';
+
+// Switch - Toggle switch
+export { Switch, createSwitch } from './Switch.js';
+export type { SwitchOptions, SwitchSize } from './Switch.js';
+
+// Voice Indicator - Voice state feedback
+export { VoiceIndicator, createVoiceIndicator } from './VoiceIndicator.js';
+export type { VoiceIndicatorOptions, VoiceState, TurnOwner } from './VoiceIndicator.js';
+
+// ============================================================================
+// Icons
+// ============================================================================
+
+export {
+  renderIcon,
+  createIconElement,
+  getIcon,
+  getIconsByCategory,
+  searchIcons,
+  allIcons,
+  voiceIcons,
+  aiIcons,
+  emotionIcons,
+  personaIcons,
+  actionIcons,
+  statusIcons,
+  navigationIcons,
+  ICON_SIZES,
+} from '../icons/index.js';
+export type { IconDefinition, IconSize, IconCategory } from '../icons/index.js';
+
+// ============================================================================
+// Therapeutic Animations
+// ============================================================================
+
+export {
+  playTherapeuticAnimation,
+  getTherapeuticAnimation,
+  getAnimationsByIntent,
+  createBreathAnimation,
+  getAnimationForEmotion,
+  BREATH_PATTERNS,
+  groundingAnimations,
+  calmingAnimations,
+  energizingAnimations,
+  centeringAnimations,
+  releasingAnimations,
+  allTherapeuticAnimations,
+} from '../animations/therapeutic.js';
+export type { TherapeuticAnimation, TherapeuticIntent, BreathCycle } from '../animations/therapeutic.js';
+
+// ============================================================================
+// Emotion Utilities
+// ============================================================================
+
+export {
+  getEmotionConfig,
+  getEmotionWithIntensity,
+  adjustColorForEmotion,
+  getEmotionDuration,
+  getEmotionEasing,
+  getBreathingRate,
+  getEmotionFontWeight,
+  getEmotionLetterSpacing,
+  getEmotionTransitionDuration,
+  interpolateEmotions,
+  generateEmotionCSSVariables,
+  applyEmotionToElement,
+} from '../utils/emotion-utils.js';
+export type { EmotionState, IntensityLevel, EmotionConfig, EmotionTransition } from '../utils/emotion-utils.js';
+
+// ============================================================================
+// Accessibility Utilities
+// ============================================================================
+
+export {
+  getLuminance,
+  getContrastRatio,
+  checkContrast,
+  suggestAccessibleColor,
+  getFocusableElements,
+  trapFocus,
+  createFocusRing,
+  getAccessibleName,
+  announce,
+  createScreenReaderText,
+  prefersReducedMotion,
+  onReducedMotionChange,
+  getAccessibleDuration,
+  prefersHighContrast,
+  handleArrowNavigation,
+  runA11yAudit,
+} from '../a11y/index.js';
+export type { ContrastResult, FocusableElement, A11yAuditResult, A11yIssue } from '../a11y/index.js';
+
 // ============================================================================
 // Re-exports from utilities
 // ============================================================================

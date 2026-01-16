@@ -126,6 +126,13 @@ import { updateAgentTools, supportsToolUpdates } from '../shared/tool-updater.js
 import { createLogger } from '../../utils/safe-logger.js';
 // PersonaIdString is just a string alias, defined locally to avoid import issues
 
+// Phase 17: Active Listening Memory Capture - "Better Than Human" real-time entity extraction
+import {
+  processIncrementalCapture,
+  getNextConfirmation,
+  type IncrementalCaptureInput,
+} from '../../memory/capture/active-listening-capture.js';
+
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -372,6 +379,50 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
       }
 
       sendPartialTranscript(room, event.transcript);
+
+      // ===============================================
+      // 👂 PHASE 17: ACTIVE LISTENING MEMORY CAPTURE
+      // Extract entities, dates, commitments in real-time as user speaks
+      // "Better Than Human" - capture what they're saying before they finish
+      // ===============================================
+      if (userId) {
+        try {
+          const turnStartTime = (userData as Record<string, unknown>).turnStartTime;
+        const captureInput: IncrementalCaptureInput = {
+            userId,
+            sessionId,
+            partialTranscript: event.transcript,
+            isFinal: false,
+            turnNumber: userData.turnCount || 0,
+            elapsedMs: Date.now() - (typeof turnStartTime === 'number' ? turnStartTime : Date.now()),
+            topicContext: userData.lastTopic,
+            emotionalContext: userData.lastEmotionAnalysis
+              ? {
+                  primary: userData.lastEmotionAnalysis.primary,
+                  intensity: userData.lastEmotionAnalysis.intensity,
+                }
+              : undefined,
+          };
+
+          const immediateCaptured = processIncrementalCapture(captureInput);
+
+          if (immediateCaptured.length > 0) {
+            diag.state('👂 Active listening: Captured items from partial', {
+              count: immediateCaptured.length,
+              types: immediateCaptured.map((i) => i.type),
+            });
+
+            // Check if we should ask a confirmation question
+            const nextConfirmation = getNextConfirmation(sessionId);
+            if (nextConfirmation && !conversationManager.isAgentSpeaking()) {
+              // Store for potential use in response (don't interrupt flow)
+              (userData as Record<string, unknown>).pendingConfirmation = nextConfirmation;
+            }
+          }
+        } catch {
+          // Active listening is non-critical - don't block transcript processing
+        }
+      }
 
       // ===============================================
       // SESAME-INSPIRED ANTICIPATORY PROSODY
@@ -1172,6 +1223,43 @@ async function processFinalTranscript(
   } catch (captureError) {
     // Non-fatal - memory capture is enhancement, not critical
     diag.warn('Memory capture error', { error: String(captureError) });
+  }
+
+  // ===============================================
+  // 👂 PHASE 17: ACTIVE LISTENING - FINAL CAPTURE
+  // Process final transcript to capture any remaining items
+  // Entities, dates, commitments extracted in real-time
+  // ===============================================
+  if (userId && event.transcript) {
+    try {
+      const finalTurnStartTime = (userData as Record<string, unknown>).turnStartTime;
+      const captureInput: IncrementalCaptureInput = {
+        userId,
+        sessionId,
+        partialTranscript: event.transcript,
+        isFinal: true,
+        turnNumber: userData.turnCount || 0,
+        elapsedMs: Date.now() - (typeof finalTurnStartTime === 'number' ? finalTurnStartTime : Date.now()),
+        topicContext: userData.lastTopic,
+        emotionalContext: userData.lastEmotionAnalysis
+          ? {
+              primary: userData.lastEmotionAnalysis.primary,
+              intensity: userData.lastEmotionAnalysis.intensity,
+            }
+          : undefined,
+      };
+
+      const finalCaptured = processIncrementalCapture(captureInput);
+
+      if (finalCaptured.length > 0) {
+        diag.state('👂 Active listening: Final capture complete', {
+          count: finalCaptured.length,
+          types: finalCaptured.map((i) => i.type),
+        });
+      }
+    } catch {
+      // Active listening is non-critical
+    }
   }
 
   // ===============================================

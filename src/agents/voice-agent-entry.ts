@@ -66,7 +66,7 @@ import {
 } from './group-conversation/voice-integration.js';
 // handoffEvents is imported dynamically at runtime from '../tools/handoff/index.js'
 // FIX: Import retry counter cleanup for WeakMap session GC
-import { clearRetryCounter } from './shared/tool-call-sanitizer.js';
+import { clearRetryCounter } from './shared/sanitizer/index.js';
 // Speech coordination for centralized speech management
 import {
   coordinatedSay,
@@ -122,6 +122,18 @@ if (MULTI_AGENT_MODE) {
 // Inject generateReply into semantic router at module load
 // This resolves the architecture violation: tools (Level 70) must not import from agents (Level 100)
 setGenerateReplyFunction(generateReply);
+
+// Inject model provider info into personas layer at module load
+// This resolves the architecture violation: personas (Level 70) must not import from agents (Level 100)
+import { configureModelProvider } from '../personas/bundles/model-provider-config.js';
+configureModelProvider(() => {
+  const provider = getModelProvider();
+  return {
+    id: provider.id,
+    logPrefix: provider.getLogPrefix(),
+    promptModules: provider.getPromptModules(),
+  };
+});
 
 /**
  * Dev telemetry helper - logs pipeline stages in development mode

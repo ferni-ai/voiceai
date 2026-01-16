@@ -25,6 +25,15 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb } from './firestore-utils.js';
+import {
+  onHabitDNAChange,
+  onFrictionPointChange,
+  onTendencyProfileChange,
+  onKeystoneObservationChange,
+  onIdentityStatementChange,
+  onSetbackPatternChange,
+  onHabitAutopsyChange,
+} from '../data-layer/hooks/superhuman-hooks.js';
 
 const log = createLogger({ module: 'superhuman:habit-intelligence' });
 
@@ -162,7 +171,7 @@ export async function recordHabitDNA(
         successEvents.map((e) => e.emotionalState).filter(Boolean) as string[]
       );
 
-      await docRef.update({
+      const updateData = {
         events,
         timesStarted,
         timesBroke,
@@ -177,9 +186,11 @@ export async function recordHabitDNA(
           bestTime,
           bestMood,
         },
-      });
+      };
+      await docRef.update(updateData);
+      void onHabitDNAChange(userId, habitName, updateData, 'update');
     } else {
-      await docRef.set({
+      const createData = {
         habitName,
         events: [event],
         timesStarted: event.event === 'started' ? 1 : 0,
@@ -195,7 +206,9 @@ export async function recordHabitDNA(
             ? [event.triggerOrBarrier]
             : [],
         optimalConditions: {},
-      });
+      };
+      await docRef.set(createData);
+      void onHabitDNAChange(userId, habitName, createData, 'create');
     }
 
     log.info({ userId, habitName, event: event.event }, 'Habit DNA recorded');
@@ -240,14 +253,13 @@ export async function recordFrictionPoint(
   }
 
   try {
-    await db
+    const frictionData = { habitName, ...friction };
+    const docRef = await db
       .collection('bogle_users')
       .doc(userId)
       .collection('friction_points')
-      .add({
-        habitName,
-        ...friction,
-      });
+      .add(frictionData);
+    void onFrictionPointChange(userId, docRef.id, frictionData, 'create');
     log.info({ userId, habitName, frictionType: friction.frictionType }, 'Friction point recorded');
   } catch (error) {
     log.debug({ error, userId }, 'Failed to record friction point');
@@ -287,7 +299,8 @@ export async function recordTendencySignal(userId: string, signal: TendencySigna
   }
 
   try {
-    await db.collection('bogle_users').doc(userId).collection('tendency_signals').add(signal);
+    const docRef = await db.collection('bogle_users').doc(userId).collection('tendency_signals').add(signal);
+    void onTendencyProfileChange(userId, docRef.id, signal, 'create');
     log.info({ userId, signal: signal.signal }, 'Tendency signal recorded');
   } catch (error) {
     log.debug({ error, userId }, 'Failed to record tendency signal');
@@ -383,11 +396,12 @@ export async function recordKeystoneObservation(
   }
 
   try {
-    await db
+    const docRef = await db
       .collection('bogle_users')
       .doc(userId)
       .collection('keystone_observations')
       .add(observation);
+    void onKeystoneObservationChange(userId, docRef.id, observation, 'create');
     log.info({ userId, primaryHabit: observation.primaryHabit }, 'Keystone observation recorded');
   } catch (error) {
     log.debug({ error, userId }, 'Failed to record keystone observation');
@@ -461,17 +475,20 @@ export async function recordIdentityStatement(
         confidenceOrder.indexOf(statement.confidence) >
         confidenceOrder.indexOf(existingData.confidence)
       ) {
-        await doc.ref.update({
+        const updateData = {
           confidence: statement.confidence,
           recordedAt: statement.recordedAt,
-        });
+        };
+        await doc.ref.update(updateData);
+        void onIdentityStatementChange(userId, doc.id, updateData, 'update');
       }
     } else {
-      await db
+      const docRef = await db
         .collection('bogle_users')
         .doc(userId)
         .collection('identity_statements')
         .add(statement);
+      void onIdentityStatementChange(userId, docRef.id, statement, 'create');
     }
 
     log.info(
@@ -515,7 +532,8 @@ export async function recordSetbackPattern(userId: string, pattern: SetbackPatte
   }
 
   try {
-    await db.collection('bogle_users').doc(userId).collection('setback_patterns').add(pattern);
+    const docRef = await db.collection('bogle_users').doc(userId).collection('setback_patterns').add(pattern);
+    void onSetbackPatternChange(userId, docRef.id, pattern, 'create');
     log.info({ userId, habitName: pattern.habitName }, 'Setback pattern recorded');
   } catch (error) {
     log.debug({ error, userId }, 'Failed to record setback pattern');
@@ -555,7 +573,8 @@ export async function recordHabitAutopsy(userId: string, autopsy: HabitAutopsy):
   }
 
   try {
-    await db.collection('bogle_users').doc(userId).collection('habit_autopsies').add(autopsy);
+    const docRef = await db.collection('bogle_users').doc(userId).collection('habit_autopsies').add(autopsy);
+    void onHabitAutopsyChange(userId, docRef.id, autopsy, 'create');
     log.info({ userId, habitName: autopsy.habitName }, 'Habit autopsy recorded');
   } catch (error) {
     log.debug({ error, userId }, 'Failed to record habit autopsy');

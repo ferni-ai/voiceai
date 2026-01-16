@@ -50,11 +50,11 @@ export interface PatternCallbackTrigger {
  * Types of pattern matches
  */
 export type PatternType =
-  | 'emotional'    // Same emotion/feeling
-  | 'situational'  // Similar situation
-  | 'behavioral'   // Similar behavior pattern
-  | 'topic'        // Same topic discussed
-  | 'relational';  // Same person/relationship involved
+  | 'emotional' // Same emotion/feeling
+  | 'situational' // Similar situation
+  | 'behavioral' // Similar behavior pattern
+  | 'topic' // Same topic discussed
+  | 'relational'; // Same person/relationship involved
 
 /**
  * Input for pattern detection
@@ -227,9 +227,7 @@ async function findEmotionalPatterns(
     // Find memories with similar emotional context
     for (const memory of memories.slice(0, 20)) {
       // Check if memory has emotional metadata
-      const memoryEmotion = memory.item.source?.documentId?.includes('emotion')
-        ? 'detected'
-        : null;
+      const memoryEmotion = memory.item.source?.documentId?.includes('emotion') ? 'detected' : null;
 
       if (!memoryEmotion && memory.score < 0.5) continue;
 

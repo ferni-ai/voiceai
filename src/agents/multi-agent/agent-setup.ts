@@ -38,7 +38,7 @@ const modelProvider = getModelProvider();
 // FIX: Import speech cleanup to prevent memory leaks on agent cleanup
 import { cleanupSpeechSession } from '../../speech/session-cleanup.js';
 // FIX: Import retry counter cleanup for WeakMap session GC
-import { clearRetryCounter } from '../shared/tool-call-sanitizer.js';
+import { clearRetryCounter } from '../shared/sanitizer/index.js';
 // Speech coordination for centralized speech management
 import { coordinatedSay, cleanupSpeechCoordination } from '../../speech/coordination/index.js';
 

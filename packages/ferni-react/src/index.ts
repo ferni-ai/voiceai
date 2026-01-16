@@ -52,6 +52,49 @@ export type { BadgeProps, BadgeVariant, BadgeSize } from './components/Badge';
 export { Tooltip } from './components/Tooltip';
 export type { TooltipProps, TooltipPosition } from './components/Tooltip';
 
+export { Textarea } from './components/Textarea';
+export type { TextareaProps, TextareaSize } from './components/Textarea';
+
+export { Select } from './components/Select';
+export type { SelectProps, SelectOption, SelectSize } from './components/Select';
+
+export { Switch } from './components/Switch';
+export type { SwitchProps, SwitchSize } from './components/Switch';
+
+// Icon
+export { Icon, iconNames } from './components/Icon';
+export type { IconProps, IconName, IconSize } from './components/Icon';
+
+// Voice Indicator
+export { VoiceIndicator } from './components/VoiceIndicator';
+export type { VoiceIndicatorProps, VoiceState, TurnOwner } from './components/VoiceIndicator';
+
+// AI Components
+export { Uncertainty, ThinkingProcess, MemoryRecall, EmotionalMirror } from './components/AIComponents';
+export type {
+  UncertaintyProps,
+  ThinkingProcessProps,
+  ThinkingStep,
+  MemoryRecallProps,
+  MemoryItem,
+  EmotionalMirrorProps,
+} from './components/AIComponents';
+
+// Emotion Hook
+export { useEmotion, emotionStates } from './hooks/useEmotion';
+export type { EmotionState, IntensityLevel, EmotionConfig, UseEmotionOptions, UseEmotionReturn } from './hooks/useEmotion';
+
+// Accessibility Hooks
+export {
+  useReducedMotion,
+  useHighContrast,
+  useFocusTrap,
+  useAnnounce,
+  useKeyboardNav,
+  useAccessibleDuration,
+  VisuallyHidden,
+} from './hooks/useA11y';
+
 // Expression controller
 export { 
   getExpressionState, 

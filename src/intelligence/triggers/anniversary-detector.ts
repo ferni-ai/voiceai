@@ -51,12 +51,12 @@ export interface AnniversaryTrigger {
  * Types of anniversaries
  */
 export type AnniversaryType =
-  | 'one_year'       // Exactly 1 year ago
-  | 'six_months'     // 6 months ago
-  | 'three_months'   // 3 months ago
-  | 'one_month'      // 1 month ago
-  | 'milestone'      // Custom milestone (100 days, etc.)
-  | 'recurring';     // Birthday, holiday, etc.
+  | 'one_year' // Exactly 1 year ago
+  | 'six_months' // 6 months ago
+  | 'three_months' // 3 months ago
+  | 'one_month' // 1 month ago
+  | 'milestone' // Custom milestone (100 days, etc.)
+  | 'recurring'; // Birthday, holiday, etc.
 
 /**
  * Input for anniversary detection
@@ -181,7 +181,8 @@ async function checkSignificantDates(
 
       if (isApproaching) {
         const daysUntil = daysUntilDate(date.date, now);
-        const daysLabel = daysUntil === 0 ? 'today' : daysUntil === 1 ? 'tomorrow' : `in ${daysUntil} days`;
+        const daysLabel =
+          daysUntil === 0 ? 'today' : daysUntil === 1 ? 'tomorrow' : `in ${daysUntil} days`;
 
         let suggestion: string;
         let priority: number;
@@ -254,7 +255,8 @@ async function checkMilestoneAnniversaries(
       conversationTurn: 0,
     });
 
-    for (const memory of memories.slice(0, 50)) { // Limit to 50 most relevant
+    for (const memory of memories.slice(0, 50)) {
+      // Limit to 50 most relevant
       const memoryDate = memory.item.timestamp;
       if (!memoryDate) continue;
 
@@ -369,11 +371,7 @@ function isDateApproaching(dateStr: string, now: Date, windowDays: number): bool
   if (!targetDate) return false;
 
   // Set target to current year
-  const thisYear = new Date(
-    now.getFullYear(),
-    targetDate.getMonth(),
-    targetDate.getDate()
-  );
+  const thisYear = new Date(now.getFullYear(), targetDate.getMonth(), targetDate.getDate());
 
   const daysUntil = daysBetween(now, thisYear);
 
@@ -388,11 +386,7 @@ function daysUntilDate(dateStr: string, now: Date): number {
   const targetDate = parseDate(dateStr);
   if (!targetDate) return 999;
 
-  const thisYear = new Date(
-    now.getFullYear(),
-    targetDate.getMonth(),
-    targetDate.getDate()
-  );
+  const thisYear = new Date(now.getFullYear(), targetDate.getMonth(), targetDate.getDate());
 
   return daysBetween(now, thisYear);
 }

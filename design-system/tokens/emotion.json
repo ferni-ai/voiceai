@@ -1,0 +1,238 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ferni-emotion-tokens",
+  "description": "Emotional design tokens for mood-aware UI adaptation",
+  
+  "emotions": {
+    "calm": {
+      "description": "Peaceful, centered state",
+      "color": {
+        "hueShift": 0,
+        "saturationMultiplier": 0.9,
+        "lightnessShift": 0
+      },
+      "motion": {
+        "speedMultiplier": 0.85,
+        "easingPreference": "gentle",
+        "breathingRate": 4000
+      },
+      "sound": {
+        "volumeMultiplier": 0.8,
+        "pitchShift": 0
+      },
+      "typography": {
+        "weightShift": 0,
+        "letterSpacingShift": 0.01
+      }
+    },
+    
+    "joyful": {
+      "description": "Happy, excited, delighted",
+      "color": {
+        "hueShift": 10,
+        "saturationMultiplier": 1.15,
+        "lightnessShift": 5
+      },
+      "motion": {
+        "speedMultiplier": 1.1,
+        "easingPreference": "spring",
+        "breathingRate": 3000
+      },
+      "sound": {
+        "volumeMultiplier": 1.0,
+        "pitchShift": 2
+      },
+      "typography": {
+        "weightShift": 0,
+        "letterSpacingShift": 0
+      }
+    },
+    
+    "anxious": {
+      "description": "Worried, stressed, overwhelmed",
+      "color": {
+        "hueShift": -15,
+        "saturationMultiplier": 0.7,
+        "lightnessShift": -5
+      },
+      "motion": {
+        "speedMultiplier": 0.7,
+        "easingPreference": "gentle",
+        "breathingRate": 5000
+      },
+      "sound": {
+        "volumeMultiplier": 0.7,
+        "pitchShift": -1
+      },
+      "typography": {
+        "weightShift": -50,
+        "letterSpacingShift": 0.02
+      }
+    },
+    
+    "tired": {
+      "description": "Low energy, fatigued",
+      "color": {
+        "hueShift": -5,
+        "saturationMultiplier": 0.6,
+        "lightnessShift": -10
+      },
+      "motion": {
+        "speedMultiplier": 0.6,
+        "easingPreference": "gentle",
+        "breathingRate": 6000
+      },
+      "sound": {
+        "volumeMultiplier": 0.6,
+        "pitchShift": -2
+      },
+      "typography": {
+        "weightShift": -100,
+        "letterSpacingShift": 0.01
+      }
+    },
+    
+    "focused": {
+      "description": "Concentrated, determined",
+      "color": {
+        "hueShift": 0,
+        "saturationMultiplier": 1.0,
+        "lightnessShift": 0
+      },
+      "motion": {
+        "speedMultiplier": 0.9,
+        "easingPreference": "standard",
+        "breathingRate": 4500
+      },
+      "sound": {
+        "volumeMultiplier": 0.85,
+        "pitchShift": 0
+      },
+      "typography": {
+        "weightShift": 50,
+        "letterSpacingShift": -0.01
+      }
+    },
+    
+    "reflective": {
+      "description": "Thoughtful, contemplative",
+      "color": {
+        "hueShift": -10,
+        "saturationMultiplier": 0.75,
+        "lightnessShift": -3
+      },
+      "motion": {
+        "speedMultiplier": 0.7,
+        "easingPreference": "gentle",
+        "breathingRate": 5500
+      },
+      "sound": {
+        "volumeMultiplier": 0.65,
+        "pitchShift": -1
+      },
+      "typography": {
+        "weightShift": -50,
+        "letterSpacingShift": 0.015
+      }
+    },
+    
+    "stressed": {
+      "description": "Under pressure, tense",
+      "color": {
+        "hueShift": -20,
+        "saturationMultiplier": 0.65,
+        "lightnessShift": -8
+      },
+      "motion": {
+        "speedMultiplier": 0.65,
+        "easingPreference": "gentle",
+        "breathingRate": 5500
+      },
+      "sound": {
+        "volumeMultiplier": 0.6,
+        "pitchShift": -2
+      },
+      "typography": {
+        "weightShift": -50,
+        "letterSpacingShift": 0.02
+      }
+    },
+    
+    "energized": {
+      "description": "High energy, motivated",
+      "color": {
+        "hueShift": 15,
+        "saturationMultiplier": 1.2,
+        "lightnessShift": 8
+      },
+      "motion": {
+        "speedMultiplier": 1.2,
+        "easingPreference": "spring",
+        "breathingRate": 2800
+      },
+      "sound": {
+        "volumeMultiplier": 1.1,
+        "pitchShift": 3
+      },
+      "typography": {
+        "weightShift": 50,
+        "letterSpacingShift": -0.01
+      }
+    },
+    
+    "peaceful": {
+      "description": "Serene, at ease",
+      "color": {
+        "hueShift": 5,
+        "saturationMultiplier": 0.85,
+        "lightnessShift": 3
+      },
+      "motion": {
+        "speedMultiplier": 0.75,
+        "easingPreference": "gentle",
+        "breathingRate": 4500
+      },
+      "sound": {
+        "volumeMultiplier": 0.7,
+        "pitchShift": 1
+      },
+      "typography": {
+        "weightShift": -50,
+        "letterSpacingShift": 0.015
+      }
+    }
+  },
+  
+  "transitions": {
+    "calm_to_joyful": {
+      "duration": 800,
+      "easing": "spring",
+      "colorBlend": "smooth"
+    },
+    "anxious_to_calm": {
+      "duration": 1500,
+      "easing": "gentle",
+      "colorBlend": "gradual"
+    },
+    "default": {
+      "duration": 600,
+      "easing": "standard",
+      "colorBlend": "smooth"
+    }
+  },
+  
+  "intensityLevels": {
+    "subtle": {
+      "multiplier": 0.5,
+      "description": "Barely perceptible changes"
+    },
+    "moderate": {
+      "multiplier": 1.0,
+      "description": "Standard emotional response"
+    },
+    "intense": {
+      "multiplier": 1.5,
+      "description": "Pronounced emotional response"
+    }
+  }
+}

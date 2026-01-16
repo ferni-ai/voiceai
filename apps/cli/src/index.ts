@@ -432,6 +432,19 @@ const COMMANDS: Record<string, CliCommand> = {
     subcommands: ['list', 'show', 'validate', 'stats', 'test'],
     examples: ['ferni tools list', 'ferni tools show habit-coaching', 'ferni tools stats'],
   },
+  ftis: {
+    name: 'FTIS',
+    description: 'Ferni Tool Intelligence System (ML-powered tool selection)',
+    icon: '🧠',
+    handler: handleFTIS,
+    subcommands: ['train', 'status', 'experiment'],
+    examples: [
+      'ferni ftis train',
+      'ferni ftis status',
+      'ferni ftis experiment create',
+      'ferni ftis experiment results',
+    ],
+  },
   jobs: {
     name: 'Jobs',
     description: 'Scheduled job management',
@@ -3088,6 +3101,129 @@ async function handleTools(args: string[]): Promise<void> {
       });
     }
   }
+}
+
+// ============================================================================
+// FTIS COMMAND
+// ============================================================================
+
+async function handleFTIS(args: string[]): Promise<void> {
+  const subcommand = args[0] || 'status';
+
+  log.header(`🧠 FTIS - Ferni Tool Intelligence System`);
+
+  if (subcommand === 'train') {
+    console.log(`${colors.bold}Training FTIS Router Model${colors.reset}\n`);
+    console.log('Step 1: Generating synthetic training data...\n');
+
+    // Run the training data generation script
+    const result = spawnSync(
+      'npx',
+      ['tsx', 'apps/cli/src/commands/ftis/generate-training-data.ts', '--output=./data/ftis-training', '--examples=400'],
+      {
+        cwd: PROJECT_ROOT,
+        stdio: 'inherit',
+      }
+    );
+
+    if (result.status !== 0) {
+      console.log(`\n${colors.red}Failed to generate training data${colors.reset}`);
+      return;
+    }
+
+    console.log(`\n${colors.green}Training data generated!${colors.reset}`);
+    console.log(`\n${colors.bold}Step 2: Train the model (requires GPU)${colors.reset}`);
+    console.log('\nRun these commands manually:');
+    console.log(`  ${colors.cyan}cd apps/ml-training/router${colors.reset}`);
+    console.log(`  ${colors.cyan}python train.py --data ${PROJECT_ROOT}/data/ftis-training --output ./models/router-v1${colors.reset}`);
+    console.log(`  ${colors.cyan}python export_onnx.py --model ./models/router-v1 --output ./models/router-v1/model.onnx${colors.reset}`);
+    console.log(`\n${colors.bold}Step 3: Upload to GCS${colors.reset}`);
+    console.log(`  ${colors.cyan}gsutil -m cp -r ./models/router-v1 gs://ferni-models/router/v1/${colors.reset}`);
+    return;
+  }
+
+  if (subcommand === 'status') {
+    console.log(`${colors.bold}FTIS System Status${colors.reset}\n`);
+
+    // Check training data
+    const dataDir = join(PROJECT_ROOT, 'data', 'ftis-training');
+    let dataStatus = `${colors.red}Not found${colors.reset}`;
+    let dataDetails = '';
+    try {
+      const metadataPath = join(dataDir, 'metadata.json');
+      if (existsSync(metadataPath)) {
+        const metadata = JSON.parse(readFileSync(metadataPath, 'utf-8'));
+        dataStatus = `${colors.green}Ready${colors.reset}`;
+        dataDetails = ` (${metadata.totalExamples} examples, ${metadata.uniqueTools} tools)`;
+      }
+    } catch {
+      // Data not found
+    }
+
+    // Check learning pipeline config
+    let learningStatus = `${colors.yellow}Disabled${colors.reset}`;
+    try {
+      const pipelinePath = join(PROJECT_ROOT, 'src', 'tools', 'intelligence', 'learning', 'learning-pipeline.ts');
+      const pipelineCode = readFileSync(pipelinePath, 'utf-8');
+      if (pipelineCode.includes('autoRetrain: true')) {
+        learningStatus = `${colors.green}Enabled${colors.reset}`;
+      }
+    } catch {
+      // File not found
+    }
+
+    // Check A/B experiment
+    let experimentStatus = `${colors.yellow}Not configured${colors.reset}`;
+    try {
+      const abPath = join(PROJECT_ROOT, 'src', 'tools', 'intelligence', 'learning', 'ab-testing.ts');
+      const abCode = readFileSync(abPath, 'utf-8');
+      if (abCode.includes('ftis-v1-rollout')) {
+        experimentStatus = `${colors.green}ftis-v1-rollout (50/50)${colors.reset}`;
+      }
+    } catch {
+      // File not found
+    }
+
+    console.log(`  Training Data:     ${dataStatus}${dataDetails}`);
+    console.log(`  Auto-Learning:     ${learningStatus}`);
+    console.log(`  A/B Experiment:    ${experimentStatus}`);
+    console.log('');
+    console.log(`${colors.dim}Run 'ferni ftis train' to generate data and train the model.${colors.reset}`);
+    return;
+  }
+
+  if (subcommand === 'experiment') {
+    const action = args[1] || 'status';
+    console.log(`${colors.bold}FTIS A/B Experiment Management${colors.reset}\n`);
+
+    if (action === 'create') {
+      console.log('The FTIS experiment is auto-created on app startup.');
+      console.log('Current configuration: 50% control (semantic-only), 50% FTIS');
+      console.log('');
+      console.log('To modify traffic allocation, edit:');
+      console.log(`  ${colors.cyan}src/tools/intelligence/learning/ab-testing.ts${colors.reset}`);
+      console.log(`  ${colors.dim}Look for 'ftis-v1-rollout' experiment definition${colors.reset}`);
+    } else if (action === 'results') {
+      console.log('View experiment results at:');
+      console.log(`  ${colors.cyan}https://app.ferni.ai/api/observability/ftis${colors.reset}`);
+      console.log('');
+      console.log('Metrics tracked:');
+      console.log('  • tool_accuracy - Primary metric');
+      console.log('  • latency_ms - Response time');
+      console.log('  • user_satisfaction - User ratings');
+    } else {
+      console.log('Available actions:');
+      console.log('  ferni ftis experiment create   - View experiment setup');
+      console.log('  ferni ftis experiment results  - View experiment results');
+    }
+    return;
+  }
+
+  // Unknown subcommand
+  console.log('Available subcommands:');
+  console.log('  ferni ftis train       - Generate training data and train model');
+  console.log('  ferni ftis status      - Show FTIS system status');
+  console.log('  ferni ftis experiment  - Manage A/B experiments');
 }
 
 // ============================================================================

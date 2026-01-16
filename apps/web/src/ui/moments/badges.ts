@@ -2,10 +2,10 @@
  * Badge Display System
  *
  * Persistent badges displayed near the avatar showing:
- * - Streak (🔥) - Daily conversation streak
- * - Seeds (🌱) - Currency balance
- * - Achievements (🏆) - Badge collection count
- * - Check-in (💚) - Proactive check-in indicator
+ * - Streak (flame icon) - Daily conversation streak
+ * - Seeds (seedling icon) - Currency balance
+ * - Achievements (trophy icon) - Badge collection count
+ * - Check-in (heart icon) - Proactive check-in indicator
  *
  * @module ui/moments/badges
  */

@@ -250,11 +250,65 @@ export async function loadCorrections(options?: {
 }
 
 // ============================================================================
-// USER PROFILE PERSISTENCE
+// USER PROFILE PERSISTENCE (Enhanced for FTIS Phase 1.3)
 // ============================================================================
 
+/**
+ * Domain affinity - how much a user uses tools from each domain
+ */
+export interface DomainAffinity {
+  domain: string;
+  usageCount: number;
+  successRate: number;
+  avgSatisfaction: number;
+  lastUsed: Date;
+}
+
+/**
+ * Persona-specific tool preferences
+ */
+export interface PersonaToolPreference {
+  personaId: string;
+  favoriteTools: string[];
+  avoidedTools: string[];
+  customBoosts: Record<string, number>;
+  lastInteraction: Date;
+}
+
+/**
+ * Aggregated tool outcome metrics
+ */
+export interface ToolOutcomeHistory {
+  toolId: string;
+  totalCalls: number;
+  successCount: number;
+  failureCount: number;
+  avgLatencyMs: number;
+  lastOutcome: 'success' | 'failure' | 'unknown';
+  lastUsed: Date;
+}
+
+/**
+ * User's learning/adaptation preferences
+ */
+export interface LearningPreferences {
+  /** How quickly user preferences should adapt (0.0 = slow, 1.0 = fast) */
+  adaptationRate: number;
+  /** Whether to use experimental tool suggestions */
+  experimentalToolsEnabled: boolean;
+  /** Preferred tool complexity level */
+  preferredComplexity: 'simple' | 'standard' | 'advanced';
+  /** Whether to allow multi-tool plans */
+  allowMultiToolPlans: boolean;
+}
+
+/**
+ * Enhanced user profile with FTIS preferences
+ */
 export interface PersistedUserProfile {
   userId: string;
+  
+  // === Original fields ===
   toolBoosts: Record<string, number>;
   vocabulary: Record<string, string>;
   timePatterns: Record<string, Record<string, number>>;
@@ -262,6 +316,22 @@ export interface PersistedUserProfile {
   totalInteractions: number;
   lastUpdated: Date;
   correctionRate: number;
+  
+  // === FTIS Enhanced fields (Phase 1.3) ===
+  /** Domain-level affinity scores */
+  domainAffinities?: Record<string, DomainAffinity>;
+  /** Tools the user explicitly never wants suggested */
+  excludedTools?: string[];
+  /** Per-persona tool preferences */
+  personaPreferences?: Record<string, PersonaToolPreference>;
+  /** Historical tool outcome aggregates */
+  toolOutcomes?: Record<string, ToolOutcomeHistory>;
+  /** User's learning/adaptation preferences */
+  learningPreferences?: LearningPreferences;
+  /** Profile version for migrations */
+  profileVersion?: number;
+  /** When the profile was created */
+  createdAt?: Date;
 }
 
 /**
@@ -307,15 +377,505 @@ export async function loadUserProfile(userId: string): Promise<PersistedUserProf
     }
 
     const data = doc.data()!;
-    return {
-      ...data,
-      userId: doc.id,
-      lastUpdated: (data.lastUpdated as { toDate?: () => Date })?.toDate?.() || new Date(),
-    } as PersistedUserProfile;
+    return deserializeUserProfile(data, doc.id);
   } catch (error) {
     log.error({ error: String(error), userId }, 'Failed to load user profile');
     return null;
   }
+}
+
+/**
+ * Deserialize Firestore data to PersistedUserProfile
+ */
+function deserializeUserProfile(
+  data: Record<string, unknown>,
+  userId: string
+): PersistedUserProfile {
+  // Deserialize domain affinities
+  const domainAffinities: Record<string, DomainAffinity> | undefined = data.domainAffinities
+    ? Object.fromEntries(
+        Object.entries(data.domainAffinities as Record<string, unknown>).map(([domain, aff]) => {
+          const affData = aff as Record<string, unknown>;
+          return [
+            domain,
+            {
+              domain,
+              usageCount: affData.usageCount as number,
+              successRate: affData.successRate as number,
+              avgSatisfaction: affData.avgSatisfaction as number,
+              lastUsed: (affData.lastUsed as { toDate?: () => Date })?.toDate?.() || new Date(),
+            },
+          ];
+        })
+      )
+    : undefined;
+
+  // Deserialize persona preferences
+  const personaPreferences: Record<string, PersonaToolPreference> | undefined =
+    data.personaPreferences
+      ? Object.fromEntries(
+          Object.entries(data.personaPreferences as Record<string, unknown>).map(
+            ([personaId, pref]) => {
+              const prefData = pref as Record<string, unknown>;
+              return [
+                personaId,
+                {
+                  personaId,
+                  favoriteTools: (prefData.favoriteTools as string[]) || [],
+                  avoidedTools: (prefData.avoidedTools as string[]) || [],
+                  customBoosts: (prefData.customBoosts as Record<string, number>) || {},
+                  lastInteraction:
+                    (prefData.lastInteraction as { toDate?: () => Date })?.toDate?.() || new Date(),
+                },
+              ];
+            }
+          )
+        )
+      : undefined;
+
+  // Deserialize tool outcomes
+  const toolOutcomes: Record<string, ToolOutcomeHistory> | undefined = data.toolOutcomes
+    ? Object.fromEntries(
+        Object.entries(data.toolOutcomes as Record<string, unknown>).map(([toolId, outcome]) => {
+          const outcomeData = outcome as Record<string, unknown>;
+          return [
+            toolId,
+            {
+              toolId,
+              totalCalls: outcomeData.totalCalls as number,
+              successCount: outcomeData.successCount as number,
+              failureCount: outcomeData.failureCount as number,
+              avgLatencyMs: outcomeData.avgLatencyMs as number,
+              lastOutcome: outcomeData.lastOutcome as 'success' | 'failure' | 'unknown',
+              lastUsed: (outcomeData.lastUsed as { toDate?: () => Date })?.toDate?.() || new Date(),
+            },
+          ];
+        })
+      )
+    : undefined;
+
+  return {
+    userId,
+    toolBoosts: (data.toolBoosts as Record<string, number>) || {},
+    vocabulary: (data.vocabulary as Record<string, string>) || {},
+    timePatterns: (data.timePatterns as Record<string, Record<string, number>>) || {},
+    contextPatterns: (data.contextPatterns as Record<string, Record<string, number>>) || {},
+    totalInteractions: (data.totalInteractions as number) || 0,
+    lastUpdated: (data.lastUpdated as { toDate?: () => Date })?.toDate?.() || new Date(),
+    correctionRate: (data.correctionRate as number) || 0,
+    domainAffinities,
+    excludedTools: (data.excludedTools as string[]) || undefined,
+    personaPreferences,
+    toolOutcomes,
+    learningPreferences: data.learningPreferences as LearningPreferences | undefined,
+    profileVersion: (data.profileVersion as number) || 1,
+    createdAt: (data.createdAt as { toDate?: () => Date })?.toDate?.() || undefined,
+  };
+}
+
+// ============================================================================
+// ENHANCED USER PROFILE OPERATIONS (FTIS Phase 1.3)
+// ============================================================================
+
+/**
+ * Record a tool outcome for a user (updates aggregates)
+ */
+export async function recordToolOutcome(
+  userId: string,
+  outcome: {
+    toolId: string;
+    success: boolean;
+    latencyMs: number;
+    domain?: string;
+  }
+): Promise<void> {
+  if (!firestoreInstance) {
+    return;
+  }
+
+  try {
+    const profile = await loadUserProfile(userId);
+    if (!profile) {
+      log.debug({ userId }, 'No profile found for tool outcome recording');
+      return;
+    }
+
+    // Update tool outcomes
+    const toolOutcomes = profile.toolOutcomes || {};
+    const existing = toolOutcomes[outcome.toolId] || {
+      toolId: outcome.toolId,
+      totalCalls: 0,
+      successCount: 0,
+      failureCount: 0,
+      avgLatencyMs: 0,
+      lastOutcome: 'unknown' as const,
+      lastUsed: new Date(),
+    };
+
+    const newTotal = existing.totalCalls + 1;
+    toolOutcomes[outcome.toolId] = {
+      ...existing,
+      totalCalls: newTotal,
+      successCount: existing.successCount + (outcome.success ? 1 : 0),
+      failureCount: existing.failureCount + (outcome.success ? 0 : 1),
+      avgLatencyMs: (existing.avgLatencyMs * existing.totalCalls + outcome.latencyMs) / newTotal,
+      lastOutcome: outcome.success ? 'success' : 'failure',
+      lastUsed: new Date(),
+    };
+
+    // Update domain affinity if domain provided
+    let domainAffinities = profile.domainAffinities;
+    if (outcome.domain) {
+      domainAffinities = domainAffinities || {};
+      const domainAff = domainAffinities[outcome.domain] || {
+        domain: outcome.domain,
+        usageCount: 0,
+        successRate: 0,
+        avgSatisfaction: 0.5,
+        lastUsed: new Date(),
+      };
+
+      const newDomainTotal = domainAff.usageCount + 1;
+      const newSuccessRate =
+        (domainAff.successRate * domainAff.usageCount + (outcome.success ? 1 : 0)) / newDomainTotal;
+
+      domainAffinities[outcome.domain] = {
+        ...domainAff,
+        usageCount: newDomainTotal,
+        successRate: newSuccessRate,
+        lastUsed: new Date(),
+      };
+    }
+
+    // Save updated profile
+    await saveUserProfile({
+      ...profile,
+      toolOutcomes,
+      domainAffinities,
+      totalInteractions: profile.totalInteractions + 1,
+      lastUpdated: new Date(),
+    });
+
+    log.debug(
+      { userId, toolId: outcome.toolId, success: outcome.success },
+      'Tool outcome recorded'
+    );
+  } catch (error) {
+    log.error({ error: String(error), userId }, 'Failed to record tool outcome');
+  }
+}
+
+/**
+ * Update domain affinity for a user
+ */
+export async function updateDomainAffinity(
+  userId: string,
+  domain: string,
+  update: Partial<Omit<DomainAffinity, 'domain'>>
+): Promise<void> {
+  if (!firestoreInstance) {
+    return;
+  }
+
+  try {
+    const profile = await loadUserProfile(userId);
+    if (!profile) {
+      return;
+    }
+
+    const domainAffinities = profile.domainAffinities || {};
+    const existing = domainAffinities[domain] || {
+      domain,
+      usageCount: 0,
+      successRate: 0,
+      avgSatisfaction: 0.5,
+      lastUsed: new Date(),
+    };
+
+    domainAffinities[domain] = {
+      ...existing,
+      ...update,
+      domain,
+      lastUsed: new Date(),
+    };
+
+    await saveUserProfile({
+      ...profile,
+      domainAffinities,
+      lastUpdated: new Date(),
+    });
+  } catch (error) {
+    log.error({ error: String(error), userId, domain }, 'Failed to update domain affinity');
+  }
+}
+
+/**
+ * Add a tool to user's exclusion list
+ */
+export async function excludeTool(userId: string, toolId: string): Promise<void> {
+  if (!firestoreInstance) {
+    return;
+  }
+
+  try {
+    const profile = await loadUserProfile(userId);
+    if (!profile) {
+      return;
+    }
+
+    const excludedTools = new Set(profile.excludedTools || []);
+    excludedTools.add(toolId);
+
+    await saveUserProfile({
+      ...profile,
+      excludedTools: Array.from(excludedTools),
+      lastUpdated: new Date(),
+    });
+
+    log.info({ userId, toolId }, 'Tool excluded for user');
+  } catch (error) {
+    log.error({ error: String(error), userId, toolId }, 'Failed to exclude tool');
+  }
+}
+
+/**
+ * Remove a tool from user's exclusion list
+ */
+export async function unexcludeTool(userId: string, toolId: string): Promise<void> {
+  if (!firestoreInstance) {
+    return;
+  }
+
+  try {
+    const profile = await loadUserProfile(userId);
+    if (!profile) {
+      return;
+    }
+
+    const excludedTools = new Set(profile.excludedTools || []);
+    excludedTools.delete(toolId);
+
+    await saveUserProfile({
+      ...profile,
+      excludedTools: Array.from(excludedTools),
+      lastUpdated: new Date(),
+    });
+  } catch (error) {
+    log.error({ error: String(error), userId, toolId }, 'Failed to unexclude tool');
+  }
+}
+
+/**
+ * Update persona-specific tool preferences
+ */
+export async function updatePersonaPreference(
+  userId: string,
+  personaId: string,
+  update: Partial<Omit<PersonaToolPreference, 'personaId'>>
+): Promise<void> {
+  if (!firestoreInstance) {
+    return;
+  }
+
+  try {
+    const profile = await loadUserProfile(userId);
+    if (!profile) {
+      return;
+    }
+
+    const personaPreferences = profile.personaPreferences || {};
+    const existing = personaPreferences[personaId] || {
+      personaId,
+      favoriteTools: [],
+      avoidedTools: [],
+      customBoosts: {},
+      lastInteraction: new Date(),
+    };
+
+    personaPreferences[personaId] = {
+      ...existing,
+      ...update,
+      personaId,
+      lastInteraction: new Date(),
+    };
+
+    await saveUserProfile({
+      ...profile,
+      personaPreferences,
+      lastUpdated: new Date(),
+    });
+  } catch (error) {
+    log.error({ error: String(error), userId, personaId }, 'Failed to update persona preference');
+  }
+}
+
+/**
+ * Update user's learning preferences
+ */
+export async function updateLearningPreferences(
+  userId: string,
+  preferences: Partial<LearningPreferences>
+): Promise<void> {
+  if (!firestoreInstance) {
+    return;
+  }
+
+  try {
+    const profile = await loadUserProfile(userId);
+    if (!profile) {
+      return;
+    }
+
+    const existing = profile.learningPreferences || {
+      adaptationRate: 0.5,
+      experimentalToolsEnabled: false,
+      preferredComplexity: 'standard' as const,
+      allowMultiToolPlans: true,
+    };
+
+    await saveUserProfile({
+      ...profile,
+      learningPreferences: {
+        ...existing,
+        ...preferences,
+      },
+      lastUpdated: new Date(),
+    });
+  } catch (error) {
+    log.error({ error: String(error), userId }, 'Failed to update learning preferences');
+  }
+}
+
+/**
+ * Get effective tool boosts for a user (combines all preference sources)
+ */
+export async function getEffectiveToolBoosts(
+  userId: string,
+  context?: { personaId?: string; domain?: string }
+): Promise<Record<string, number>> {
+  const profile = await loadUserProfile(userId);
+  if (!profile) {
+    return {};
+  }
+
+  const boosts = { ...profile.toolBoosts };
+
+  // Apply domain affinity boosts
+  if (context?.domain && profile.domainAffinities?.[context.domain]) {
+    const affinity = profile.domainAffinities[context.domain];
+    // Higher usage + success = higher boost
+    const domainBoost = (affinity.usageCount / 100) * affinity.successRate * 0.2;
+    // This would need tool-to-domain mapping to apply
+  }
+
+  // Apply persona-specific boosts
+  if (context?.personaId && profile.personaPreferences?.[context.personaId]) {
+    const prefs = profile.personaPreferences[context.personaId];
+    
+    // Boost favorite tools
+    for (const toolId of prefs.favoriteTools) {
+      boosts[toolId] = (boosts[toolId] || 0) + 0.15;
+    }
+    
+    // Penalize avoided tools
+    for (const toolId of prefs.avoidedTools) {
+      boosts[toolId] = (boosts[toolId] || 0) - 0.3;
+    }
+    
+    // Apply custom boosts
+    for (const [toolId, boost] of Object.entries(prefs.customBoosts)) {
+      boosts[toolId] = (boosts[toolId] || 0) + boost;
+    }
+  }
+
+  // Heavily penalize excluded tools
+  if (profile.excludedTools) {
+    for (const toolId of profile.excludedTools) {
+      boosts[toolId] = -1; // Effectively disables
+    }
+  }
+
+  // Apply outcome-based adjustments
+  if (profile.toolOutcomes) {
+    for (const [toolId, outcome] of Object.entries(profile.toolOutcomes)) {
+      if (outcome.totalCalls >= 3) {
+        // After 3+ uses, adjust based on success rate
+        const successRate = outcome.successCount / outcome.totalCalls;
+        const adjustment = (successRate - 0.5) * 0.1; // -0.05 to +0.05
+        boosts[toolId] = (boosts[toolId] || 0) + adjustment;
+      }
+    }
+  }
+
+  return boosts;
+}
+
+/**
+ * Create a new user profile with default FTIS settings
+ */
+export async function createUserProfile(userId: string): Promise<PersistedUserProfile> {
+  const profile: PersistedUserProfile = {
+    userId,
+    toolBoosts: {},
+    vocabulary: {},
+    timePatterns: {},
+    contextPatterns: {},
+    totalInteractions: 0,
+    lastUpdated: new Date(),
+    correctionRate: 0,
+    domainAffinities: {},
+    excludedTools: [],
+    personaPreferences: {},
+    toolOutcomes: {},
+    learningPreferences: {
+      adaptationRate: 0.5,
+      experimentalToolsEnabled: false,
+      preferredComplexity: 'standard',
+      allowMultiToolPlans: true,
+    },
+    profileVersion: 2, // FTIS enhanced version
+    createdAt: new Date(),
+  };
+
+  await saveUserProfile(profile);
+  return profile;
+}
+
+/**
+ * Migrate an old profile to FTIS enhanced format
+ */
+export async function migrateUserProfile(userId: string): Promise<PersistedUserProfile | null> {
+  const profile = await loadUserProfile(userId);
+  if (!profile) {
+    return null;
+  }
+
+  // Check if already migrated
+  if (profile.profileVersion && profile.profileVersion >= 2) {
+    return profile;
+  }
+
+  // Add new fields with defaults
+  const migrated: PersistedUserProfile = {
+    ...profile,
+    domainAffinities: profile.domainAffinities || {},
+    excludedTools: profile.excludedTools || [],
+    personaPreferences: profile.personaPreferences || {},
+    toolOutcomes: profile.toolOutcomes || {},
+    learningPreferences: profile.learningPreferences || {
+      adaptationRate: 0.5,
+      experimentalToolsEnabled: false,
+      preferredComplexity: 'standard',
+      allowMultiToolPlans: true,
+    },
+    profileVersion: 2,
+    createdAt: profile.createdAt || new Date(),
+    lastUpdated: new Date(),
+  };
+
+  await saveUserProfile(migrated);
+  log.info({ userId }, 'User profile migrated to FTIS v2');
+  return migrated;
 }
 
 // ============================================================================
@@ -790,6 +1350,60 @@ export class FirestorePersistence {
 
   async loadUserProfile(userId: string): Promise<PersistedUserProfile | null> {
     return loadUserProfile(userId);
+  }
+
+  async createUserProfile(userId: string): Promise<PersistedUserProfile> {
+    return createUserProfile(userId);
+  }
+
+  async migrateUserProfile(userId: string): Promise<PersistedUserProfile | null> {
+    return migrateUserProfile(userId);
+  }
+
+  // Enhanced Profile Operations (FTIS)
+  async recordToolOutcome(
+    userId: string,
+    outcome: { toolId: string; success: boolean; latencyMs: number; domain?: string }
+  ): Promise<void> {
+    return recordToolOutcome(userId, outcome);
+  }
+
+  async updateDomainAffinity(
+    userId: string,
+    domain: string,
+    update: Partial<Omit<DomainAffinity, 'domain'>>
+  ): Promise<void> {
+    return updateDomainAffinity(userId, domain, update);
+  }
+
+  async excludeTool(userId: string, toolId: string): Promise<void> {
+    return excludeTool(userId, toolId);
+  }
+
+  async unexcludeTool(userId: string, toolId: string): Promise<void> {
+    return unexcludeTool(userId, toolId);
+  }
+
+  async updatePersonaPreference(
+    userId: string,
+    personaId: string,
+    update: Partial<Omit<PersonaToolPreference, 'personaId'>>
+  ): Promise<void> {
+    return updatePersonaPreference(userId, personaId, update);
+  }
+
+  async updateLearningPreferences(
+    userId: string,
+    preferences: Partial<LearningPreferences>
+  ): Promise<void> {
+    return updateLearningPreferences(userId, preferences);
+  }
+
+  async getEffectiveToolBoosts(
+    userId: string,
+    context?: { personaId?: string; domain?: string }
+  ): Promise<Record<string, number>> {
+    return getEffectiveToolBoosts(userId, context);
   }
 
   // Routing Events

@@ -22,6 +22,7 @@ import {
   saveJournalEntry,
   getEnergyTrend,
 } from './storage.js';
+import { checkImmediateTrigger } from '../../../services/ceo-coaching/proactive-triggers.js';
 
 const log = getLogger();
 
@@ -63,6 +64,17 @@ export const trackWinDef: ToolDefinition = {
             date: today,
             category,
           });
+
+          // Check for win streak proactive trigger (celebration!)
+          checkImmediateTrigger(userId, 'win_logged', { text, category })
+            .then((trigger) => {
+              if (trigger) {
+                log.info({ userId, triggerType: trigger.type }, 'Win streak trigger detected!');
+              }
+            })
+            .catch((err) => {
+              log.debug({ error: String(err) }, 'Non-blocking: win trigger check failed');
+            });
 
           let response = `**Win Logged!** 🎉\n\n`;
           response += `"${text}"\n\n`;
@@ -127,6 +139,19 @@ export const trackEnergyDef: ToolDefinition = {
         try {
           await logEnergy(userId, level, note);
           const trend = await getEnergyTrend(userId, 7);
+
+          // Check for immediate proactive trigger (low energy support)
+          if (level <= 3) {
+            checkImmediateTrigger(userId, 'energy_logged', { level, note })
+              .then((trigger) => {
+                if (trigger) {
+                  log.info({ userId, triggerType: trigger.type }, 'Immediate trigger detected for low energy');
+                }
+              })
+              .catch((err) => {
+                log.debug({ error: String(err) }, 'Non-blocking: immediate trigger check failed');
+              });
+          }
 
           let response = `**Energy Logged:** ${level}/10\n`;
 

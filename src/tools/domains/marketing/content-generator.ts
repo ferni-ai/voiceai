@@ -7,6 +7,7 @@
 
 import OpenAI from 'openai';
 import { getLogger } from '../../../utils/safe-logger.js';
+import { getOpenAIQualityModel } from '../../../config/gemini-config.js';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -128,7 +129,7 @@ export async function generateSocialContentFromBlog(
     .join('\n\n');
 
   const response = await openai.chat.completions.create({
-    model: 'gpt-4o',
+    model: getOpenAIQualityModel(),
     max_tokens: 4000,
     messages: [
       {

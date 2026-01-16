@@ -33,6 +33,8 @@ import {
 
 import { getSession, clearAlexCommunicationSession } from './session.js';
 import { getUserStateSnapshot, getUpcomingPriorities, getMemoryContext } from './data-fetchers.js';
+// Cross-Domain: CEO Coaching for blocker communication needs
+import { getActiveBlockers } from '../../../../tools/domains/ceo-coaching/storage.js';
 import { computeCommunicationMetrics } from './metrics.js';
 import { buildCommunicationContext } from './communication-context.js';
 import { detectProactiveTriggers } from './triggers.js';
@@ -117,7 +119,7 @@ async function buildCommunicationBriefing(
   };
 
   // 🐛 FIX: Each promise has its own catch to prevent one failure from crashing all
-  const [userState, memoryContext] = await Promise.all([
+  const [userState, memoryContext, ceoActiveBlockers] = await Promise.all([
     getUserStateSnapshot(userId).catch((e) => {
       log.warn({ error: String(e) }, 'Failed to get user state snapshot');
       return defaultUserState;
@@ -126,6 +128,8 @@ async function buildCommunicationBriefing(
       log.warn({ error: String(e) }, 'Failed to get memory context');
       return defaultMemoryContext;
     }),
+    // Cross-Domain: CEO Coaching - Alex helps resolve blockers via communication
+    getActiveBlockers(userId).catch(() => []),
   ]);
 
   const upcomingPriorities = getUpcomingPriorities(userId);
@@ -135,11 +139,13 @@ async function buildCommunicationBriefing(
     upcomingPriorities,
     communicationContext
   );
+  // Cross-Domain: Include CEO blockers that need communication to resolve
   const proactiveTriggers = detectProactiveTriggers(
     userState,
     communicationMetrics,
     upcomingPriorities,
-    communicationContext
+    communicationContext,
+    ceoActiveBlockers // CEO Coaching: Blockers Alex can help resolve via communication
   );
   const coachingOpportunities = identifyCoachingOpportunities(
     userState,

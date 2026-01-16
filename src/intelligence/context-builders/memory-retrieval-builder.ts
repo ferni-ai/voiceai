@@ -224,7 +224,11 @@ export async function buildMemoryRetrievalContext(
     }
 
     // Add proactive suggestion if available and enabled
-    if (config.enableProactive && memoryContext.hasProactiveSuggestion && memoryContext.proactiveMemory) {
+    if (
+      config.enableProactive &&
+      memoryContext.hasProactiveSuggestion &&
+      memoryContext.proactiveMemory
+    ) {
       const proactivePrompt = formatProactiveMemory(memoryContext.proactiveMemory);
       injections.push(
         createHintInjection('memory_proactive', proactivePrompt, {

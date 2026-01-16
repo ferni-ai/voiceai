@@ -472,6 +472,123 @@
     </div>
   </section>
 
+  <!-- Chromatic Aberration Section -->
+  <section class="section" id="chromatic">
+    <h2>Chromatic Aberration</h2>
+    <p>Subtle RGB splitting creates depth and a cinematic 3D feel. Used sparingly on key UI elements.</p>
+
+    <div class="chromatic-intro">
+      <div class="chromatic-theory">
+        <h4>How It Works</h4>
+        <p>Chromatic aberration simulates the optical phenomenon where different wavelengths of light refract differently through a lens. By offsetting red and cyan color channels, we create a subtle 3D depth effect.</p>
+      </div>
+    </div>
+
+    <h3>Intensity Scale</h3>
+    <div class="chromatic-scale">
+      <div class="chromatic-sample subtle">
+        <div class="chromatic-box">
+          <span>Subtle</span>
+        </div>
+        <div class="chromatic-specs">
+          <code>--effect-chromatic-offset-subtle: 1px</code>
+          <span>Use: Ambient depth, backgrounds</span>
+        </div>
+      </div>
+      <div class="chromatic-sample normal">
+        <div class="chromatic-box">
+          <span>Normal</span>
+        </div>
+        <div class="chromatic-specs">
+          <code>--effect-chromatic-offset-normal: 2px</code>
+          <span>Use: Cards, buttons on hover</span>
+        </div>
+      </div>
+      <div class="chromatic-sample strong">
+        <div class="chromatic-box">
+          <span>Strong</span>
+        </div>
+        <div class="chromatic-specs">
+          <code>--effect-chromatic-offset-strong: 4px</code>
+          <span>Use: Hero elements, focus states</span>
+        </div>
+      </div>
+    </div>
+
+    <h3>Live Demo</h3>
+    <div class="chromatic-demo-grid">
+      <div class="chromatic-demo-card">
+        <div class="chromatic-avatar-demo">
+          <div class="avatar-with-chromatic"></div>
+        </div>
+        <h4>Avatar Depth</h4>
+        <p>Adds presence to the AI avatar</p>
+      </div>
+
+      <div class="chromatic-demo-card">
+        <div class="chromatic-text-demo">
+          <span class="chromatic-heading">Ferni</span>
+        </div>
+        <h4>Text Treatment</h4>
+        <p>Hero headings with depth</p>
+      </div>
+
+      <div class="chromatic-demo-card">
+        <div class="chromatic-button-demo">
+          <button class="chromatic-btn">Start Talking</button>
+        </div>
+        <h4>Button Hover</h4>
+        <p>Hover to see effect</p>
+      </div>
+    </div>
+
+    <h3>CSS Implementation</h3>
+    <pre><code>/* Token Variables */
+--effect-chromatic-red: #ff0000;
+--effect-chromatic-red-tint: rgba(255, 0, 0, 0.2);
+--effect-chromatic-cyan: #00ffff;
+--effect-chromatic-cyan-tint: rgba(0, 255, 255, 0.2);
+--effect-chromatic-offset-subtle: 1px;
+--effect-chromatic-offset-normal: 2px;
+--effect-chromatic-offset-strong: 4px;
+
+/* Usage with box-shadow (most common) */
+.chromatic-element {
+  box-shadow:
+    calc(var(--effect-chromatic-offset-normal) * -1) 0 0 var(--effect-chromatic-red-tint),
+    var(--effect-chromatic-offset-normal) 0 0 var(--effect-chromatic-cyan-tint);
+}
+
+/* Usage with text-shadow */
+.chromatic-text {
+  text-shadow:
+    calc(var(--effect-chromatic-offset-subtle) * -1) 0 0 var(--effect-chromatic-red-tint),
+    var(--effect-chromatic-offset-subtle) 0 0 var(--effect-chromatic-cyan-tint);
+}</code></pre>
+
+    <h3>Guidelines</h3>
+    <div class="chromatic-guidelines">
+      <div class="guideline-card do">
+        <h4>✓ Do</h4>
+        <ul>
+          <li>Use on hero elements and focal points</li>
+          <li>Apply on hover states for interactivity</li>
+          <li>Combine with subtle (1px) for ambient depth</li>
+          <li>Use tinted (20% opacity) colors</li>
+        </ul>
+      </div>
+      <div class="guideline-card dont">
+        <h4>✗ Don't</h4>
+        <ul>
+          <li>Apply to body text—readability suffers</li>
+          <li>Overuse—should feel special, not everywhere</li>
+          <li>Use strong (4px) on small elements</li>
+          <li>Combine with other heavy effects</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
   <!-- Blur Scale -->
   <section class="section" id="blur">
     <h2>Blur Scale</h2>
@@ -1282,6 +1399,220 @@
   font-size: var(--text-xs);
 }
 
+/* Chromatic Aberration */
+.chromatic-intro {
+  margin: var(--space-6) 0;
+}
+
+.chromatic-theory {
+  background: var(--bg-elevated);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  border: 1px solid var(--border-subtle);
+}
+
+.chromatic-theory h4 {
+  margin-bottom: var(--space-2);
+}
+
+.chromatic-theory p {
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  margin: 0;
+}
+
+.chromatic-scale {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-4);
+  margin: var(--space-6) 0;
+}
+
+.chromatic-sample {
+  text-align: center;
+}
+
+.chromatic-box {
+  height: 100px;
+  background: var(--bg-elevated);
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  margin-bottom: var(--space-3);
+  transition: box-shadow var(--duration-normal) var(--ease-ease-out);
+}
+
+.chromatic-sample.subtle .chromatic-box {
+  box-shadow:
+    -1px 0 0 var(--effect-chromatic-red-tint),
+    1px 0 0 var(--effect-chromatic-cyan-tint);
+}
+
+.chromatic-sample.normal .chromatic-box {
+  box-shadow:
+    -2px 0 0 var(--effect-chromatic-red-tint),
+    2px 0 0 var(--effect-chromatic-cyan-tint);
+}
+
+.chromatic-sample.strong .chromatic-box {
+  box-shadow:
+    -4px 0 0 var(--effect-chromatic-red-tint),
+    4px 0 0 var(--effect-chromatic-cyan-tint);
+}
+
+.chromatic-specs {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.chromatic-specs code {
+  font-size: var(--text-xs);
+}
+
+.chromatic-specs span {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+}
+
+.chromatic-demo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--space-4);
+  margin: var(--space-6) 0;
+}
+
+.chromatic-demo-card {
+  background: var(--bg-elevated);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  border: 1px solid var(--border-subtle);
+  text-align: center;
+}
+
+.chromatic-demo-card h4 {
+  margin: var(--space-4) 0 var(--space-2);
+}
+
+.chromatic-demo-card p {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.chromatic-avatar-demo {
+  display: flex;
+  justify-content: center;
+}
+
+.avatar-with-chromatic {
+  width: 80px;
+  height: 80px;
+  background: var(--persona-ferni);
+  border-radius: var(--radius-full);
+  box-shadow:
+    -2px 0 0 var(--effect-chromatic-red-tint),
+    2px 0 0 var(--effect-chromatic-cyan-tint),
+    0 4px 12px rgba(0, 0, 0, 0.2);
+  animation: chromatic-pulse 3s ease-in-out infinite;
+}
+
+@keyframes chromatic-pulse {
+  0%, 100% {
+    box-shadow:
+      -2px 0 0 var(--effect-chromatic-red-tint),
+      2px 0 0 var(--effect-chromatic-cyan-tint),
+      0 4px 12px rgba(0, 0, 0, 0.2);
+  }
+  50% {
+    box-shadow:
+      -4px 0 0 var(--effect-chromatic-red-tint),
+      4px 0 0 var(--effect-chromatic-cyan-tint),
+      0 8px 20px rgba(0, 0, 0, 0.25);
+  }
+}
+
+.chromatic-text-demo {
+  padding: var(--space-4) 0;
+}
+
+.chromatic-heading {
+  font-family: var(--font-display);
+  font-size: var(--text-3xl);
+  font-weight: 700;
+  text-shadow:
+    -1px 0 0 var(--effect-chromatic-red-tint),
+    1px 0 0 var(--effect-chromatic-cyan-tint);
+}
+
+.chromatic-button-demo {
+  padding: var(--space-4) 0;
+}
+
+.chromatic-btn {
+  background: var(--accent-primary);
+  color: var(--text-inverse);
+  border: none;
+  padding: var(--space-3) var(--space-5);
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--duration-normal) var(--ease-ease-out);
+}
+
+.chromatic-btn:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    -2px 0 0 var(--effect-chromatic-red-tint),
+    2px 0 0 var(--effect-chromatic-cyan-tint),
+    0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.chromatic-guidelines {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-4);
+  margin-top: var(--space-6);
+}
+
+.guideline-card {
+  background: var(--bg-elevated);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  border: 1px solid var(--border-subtle);
+}
+
+.guideline-card.do {
+  border-color: var(--success);
+}
+
+.guideline-card.dont {
+  border-color: var(--error);
+}
+
+.guideline-card h4 {
+  margin-bottom: var(--space-3);
+}
+
+.guideline-card ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.guideline-card li {
+  padding: var(--space-2) 0;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.guideline-card li:last-child {
+  border-bottom: none;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .thickness-cards {
@@ -1298,6 +1629,14 @@
 
   .blur-sample {
     flex: 0 0 calc(33% - var(--space-2));
+  }
+
+  .chromatic-scale {
+    grid-template-columns: 1fr;
+  }
+
+  .chromatic-guidelines {
+    grid-template-columns: 1fr;
   }
 }
 </style>

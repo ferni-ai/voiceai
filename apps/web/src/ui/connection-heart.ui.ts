@@ -64,6 +64,11 @@ const HEART_HEALING = `<svg width="20" height="20" viewBox="0 0 24 24" fill="non
   <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
 </svg>`;
 
+// Streak flame icon (Lucide-style: 2px stroke, outlined, rounded corners)
+const FLAME_ICON = `<svg class="connection-heart__flame" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>
+</svg>`;
+
 // ============================================================================
 // INITIALIZATION
 // ============================================================================
@@ -124,7 +129,7 @@ function create(): void {
     <span class="connection-heart__icon connection-heart__icon--broken" style="opacity: 1; transform: scale(1); color: #9a8a82;">${HEART_BROKEN}</span>
     <span class="connection-heart__icon connection-heart__icon--healing">${HEART_HEALING}</span>
     <span class="connection-heart__icon connection-heart__icon--filled">${HEART_FILLED}</span>
-    <span class="connection-heart__streak" aria-label="${streak} day streak">${streak > 0 ? streak : ''}</span>
+    <span class="connection-heart__streak" aria-label="${streak} day streak">${streak > 0 ? `${FLAME_ICON}${streak}` : ''}</span>
     <span class="connection-heart__count" aria-label="${celebrated} of ${total} milestones">${celebrated}</span>
     <span class="connection-heart__glow"></span>
   `;
@@ -556,14 +561,16 @@ function injectStyles(): void {
       top: -8px;
       left: -8px;
       
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      
       min-width: 20px;
       height: 20px;
-      padding: 0 5px;
+      padding: 0 6px;
       
       font-size: 11px;
       font-weight: 700;
-      line-height: 20px;
-      text-align: center;
       
       color: white;
       background: linear-gradient(135deg, #f59e0b, #d97706);
@@ -578,6 +585,10 @@ function injectStyles(): void {
     
     .connection-heart__streak:empty {
       display: none;
+    }
+    
+    .connection-heart__flame {
+      flex-shrink: 0;
     }
     
     .connection-heart__streak--visible,

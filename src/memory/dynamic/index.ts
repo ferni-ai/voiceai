@@ -121,3 +121,13 @@ export {
   type VoiceCaptureResult,
   type VoiceCaptureConfig,
 } from './voice-context-capture.js';
+
+// Dependency Injection configuration (services layer injects AsyncEvents)
+export {
+  configureAsyncEvents,
+  isAsyncEventsConfigured,
+  resetAsyncEventsConfig,
+  type AsyncEventsConfig,
+  type AsyncEventEmitter,
+  type AsyncEventListener,
+} from './async-events-config.js';

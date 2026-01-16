@@ -65,6 +65,13 @@ const INSTRUCTION_LEAKAGE_PATTERNS_START: RegExp[] = [
   /^<\/?instructions>/i,
   /^<\/?context>/i,
   /^<\/?role>/i,
+  // Claude Code edit format - NEVER speak code edits
+  /^<\/?edit>/i,
+  /^<path>/i,
+  /^<start_line>/i,
+  /^<end_line>/i,
+  /^\{"edits/i,
+  /^\[?\{"path":/i,
   /^tool_code:/i,
   /^FUNCTION:/i,
   /^TOOL:/i,
@@ -108,6 +115,16 @@ const INSTRUCTION_LEAKAGE_PATTERNS_ANYWHERE: RegExp[] = [
   /\[DO:\s/i,
   /\[SITUATION:\s/i,
   /\[TOPIC SHIFT:/i,
+
+  // Claude Code edit format - NEVER speak code edit instructions
+  /<edit>/i,
+  /<\/edit>/i,
+  /<path>[^<]+<\/path>/i,
+  /<start_line>\d+<\/start_line>/i,
+  /<end_line>\d+<\/end_line>/i,
+  /"start_line":\s*\d+/i,
+  /"end_line":\s*\d+/i,
+  /\{"edits":\s*\[/i,
 
   // Instruction meta-language that Gemini sometimes echoes back
   /don't say ".*" type phrases/i, // "Don't say 'I'm here if you need me' type phrases"

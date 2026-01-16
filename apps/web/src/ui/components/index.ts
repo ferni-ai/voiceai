@@ -96,6 +96,25 @@ export {
   getContentTemplate,
   isColorApproved,
 
+  // Textarea
+  Textarea,
+  createTextarea,
+  type TextareaOptions,
+  type TextareaSize,
+
+  // Select
+  Select,
+  createSelect,
+  type SelectOptions,
+  type SelectOption,
+  type SelectSize,
+
+  // Switch
+  Switch,
+  createSwitch,
+  type SwitchOptions,
+  type SwitchSize,
+
   // Initialization
   initFerniComponents,
 } from '@design-system/components';

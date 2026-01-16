@@ -25,14 +25,8 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import {
-  detectAnniversaries,
-  type AnniversaryTrigger,
-} from './anniversary-detector.js';
-import {
-  detectPatternCallbacks,
-  type PatternCallbackTrigger,
-} from './pattern-callback.js';
+import { detectAnniversaries, type AnniversaryTrigger } from './anniversary-detector.js';
+import { detectPatternCallbacks, type PatternCallbackTrigger } from './pattern-callback.js';
 import {
   detectCommitmentReminders,
   type CommitmentReminderTrigger,
@@ -48,9 +42,9 @@ const log = createLogger({ module: 'RecallTriggerEngine' });
  * Types of recall triggers
  */
 export type RecallTriggerType =
-  | 'anniversary'      // Date-based: "One year ago today..."
-  | 'pattern_match'    // Emotional similarity: "Last time you felt this way..."
-  | 'commitment'       // Unfulfilled promise: "You mentioned wanting to..."
+  | 'anniversary' // Date-based: "One year ago today..."
+  | 'pattern_match' // Emotional similarity: "Last time you felt this way..."
+  | 'commitment' // Unfulfilled promise: "You mentioned wanting to..."
   | 'relationship_gap' // Missing person: "You haven't mentioned X in a while"
   | 'celebration_due'; // Achievement acknowledgment: "You hit your streak!"
 
@@ -231,10 +225,19 @@ export async function detectRecallTriggers(
     relationshipGapsChecked: 0,
   };
 
-  const { userId, sessionId, transcript, emotion, emotionIntensity, mentionedEntities, personaId, turnNumber } = input;
+  const {
+    userId,
+    sessionId,
+    transcript,
+    emotion,
+    emotionIntensity,
+    mentionedEntities,
+    personaId,
+    turnNumber,
+  } = input;
 
   // Run all detectors in parallel for performance
-  const detectionPromises: Promise<void>[] = [];
+  const detectionPromises: Array<Promise<void>> = [];
 
   // 1. ANNIVERSARY DETECTION
   if (config.enableAnniversaries) {
@@ -459,9 +462,7 @@ async function detectRelationshipGaps(
       if (mentioned) continue;
 
       // Check last mention time
-      const lastMention = contact.lastMentionedAt
-        ? new Date(contact.lastMentionedAt).getTime()
-        : 0;
+      const lastMention = contact.lastMentionedAt ? new Date(contact.lastMentionedAt).getTime() : 0;
       const daysSinceLastMention = Math.floor((now - lastMention) / (24 * 60 * 60 * 1000));
 
       // Only trigger for contacts not mentioned in 2+ weeks

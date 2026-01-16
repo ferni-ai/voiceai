@@ -1,6 +1,18 @@
 /**
  * Tool Call Text Sanitizer
  *
+ * @deprecated This monolithic file (3,993 lines) has been refactored into
+ * the modular `sanitizer/` directory. New code should import from:
+ *
+ *   import { ... } from './sanitizer/index.js';
+ *
+ * This file is maintained for backward compatibility with test files.
+ * See `sanitizer/CLAUDE.md` for the new modular architecture.
+ *
+ * @module agents/shared/tool-call-sanitizer
+ *
+ * ---
+ *
  * Detects and filters out malformed function-call-like text that Gemini
  * sometimes outputs instead of making actual function calls.
  *

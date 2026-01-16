@@ -100,40 +100,80 @@ export interface EmotionalTagInput {
  */
 const EMOTION_TO_PRIMARY: Record<string, PrimaryEmotion> = {
   // Joy family
-  happy: 'joy', excited: 'joy', grateful: 'joy', proud: 'joy',
-  content: 'joy', relieved: 'joy', hopeful: 'joy', optimistic: 'joy',
-  elated: 'joy', thrilled: 'joy', blissful: 'joy',
+  happy: 'joy',
+  excited: 'joy',
+  grateful: 'joy',
+  proud: 'joy',
+  content: 'joy',
+  relieved: 'joy',
+  hopeful: 'joy',
+  optimistic: 'joy',
+  elated: 'joy',
+  thrilled: 'joy',
+  blissful: 'joy',
 
   // Sadness family
-  sad: 'sadness', depressed: 'sadness', lonely: 'sadness', grief: 'sadness',
-  disappointed: 'sadness', melancholy: 'sadness', heartbroken: 'sadness',
-  lost: 'sadness', empty: 'sadness', hopeless: 'sadness',
+  sad: 'sadness',
+  depressed: 'sadness',
+  lonely: 'sadness',
+  grief: 'sadness',
+  disappointed: 'sadness',
+  melancholy: 'sadness',
+  heartbroken: 'sadness',
+  lost: 'sadness',
+  empty: 'sadness',
+  hopeless: 'sadness',
 
   // Anger family
-  angry: 'anger', frustrated: 'anger', irritated: 'anger', annoyed: 'anger',
-  resentful: 'anger', furious: 'anger', bitter: 'anger', enraged: 'anger',
+  angry: 'anger',
+  frustrated: 'anger',
+  irritated: 'anger',
+  annoyed: 'anger',
+  resentful: 'anger',
+  furious: 'anger',
+  bitter: 'anger',
+  enraged: 'anger',
 
   // Fear family
-  scared: 'fear', anxious: 'fear', worried: 'fear', nervous: 'fear',
-  terrified: 'fear', panicked: 'fear', insecure: 'fear', stressed: 'fear',
+  scared: 'fear',
+  anxious: 'fear',
+  worried: 'fear',
+  nervous: 'fear',
+  terrified: 'fear',
+  panicked: 'fear',
+  insecure: 'fear',
+  stressed: 'fear',
 
   // Surprise family
-  surprised: 'surprise', shocked: 'surprise', amazed: 'surprise',
-  astonished: 'surprise', stunned: 'surprise',
+  surprised: 'surprise',
+  shocked: 'surprise',
+  amazed: 'surprise',
+  astonished: 'surprise',
+  stunned: 'surprise',
 
   // Disgust family
-  disgusted: 'disgust', repulsed: 'disgust', contempt: 'disgust',
+  disgusted: 'disgust',
+  repulsed: 'disgust',
+  contempt: 'disgust',
 
   // Anticipation family
-  curious: 'anticipation', eager: 'anticipation', expectant: 'anticipation',
+  curious: 'anticipation',
+  eager: 'anticipation',
+  expectant: 'anticipation',
   awaiting: 'anticipation',
 
   // Trust family
-  trusting: 'trust', comfortable: 'trust', safe: 'trust', secure: 'trust',
-  accepted: 'trust', loved: 'trust',
+  trusting: 'trust',
+  comfortable: 'trust',
+  safe: 'trust',
+  secure: 'trust',
+  accepted: 'trust',
+  loved: 'trust',
 
   // Neutral
-  calm: 'neutral', neutral: 'neutral', indifferent: 'neutral',
+  calm: 'neutral',
+  neutral: 'neutral',
+  indifferent: 'neutral',
 };
 
 /**
@@ -171,21 +211,57 @@ const EMOTION_AROUSAL: Record<PrimaryEmotion, ArousalLevel> = {
 // ============================================================================
 
 const POSITIVE_KEYWORDS = [
-  'love', 'happy', 'grateful', 'proud', 'wonderful', 'amazing',
-  'beautiful', 'blessed', 'excited', 'thrilled', 'achieved',
-  'succeeded', 'accomplished', 'breakthrough', 'finally',
+  'love',
+  'happy',
+  'grateful',
+  'proud',
+  'wonderful',
+  'amazing',
+  'beautiful',
+  'blessed',
+  'excited',
+  'thrilled',
+  'achieved',
+  'succeeded',
+  'accomplished',
+  'breakthrough',
+  'finally',
 ];
 
 const NEGATIVE_KEYWORDS = [
-  'hate', 'sad', 'angry', 'worried', 'scared', 'terrible',
-  'awful', 'devastating', 'heartbroken', 'failed', 'lost',
-  'hurt', 'painful', 'frustrated', 'stressed', 'overwhelmed',
+  'hate',
+  'sad',
+  'angry',
+  'worried',
+  'scared',
+  'terrible',
+  'awful',
+  'devastating',
+  'heartbroken',
+  'failed',
+  'lost',
+  'hurt',
+  'painful',
+  'frustrated',
+  'stressed',
+  'overwhelmed',
 ];
 
 const HIGH_AROUSAL_KEYWORDS = [
-  'amazing', 'incredible', 'unbelievable', 'shocked', 'stunned',
-  'terrified', 'furious', 'thrilled', 'ecstatic', 'devastated',
-  'extremely', 'absolutely', 'completely', 'totally',
+  'amazing',
+  'incredible',
+  'unbelievable',
+  'shocked',
+  'stunned',
+  'terrified',
+  'furious',
+  'thrilled',
+  'ecstatic',
+  'devastated',
+  'extremely',
+  'absolutely',
+  'completely',
+  'totally',
 ];
 
 // ============================================================================
@@ -267,9 +343,7 @@ export function tagEmotionally(input: EmotionalTagInput): EmotionalTag {
 
   // Detect emotional peak
   const isEmotionalPeak =
-    arousalScore > 0.7 ||
-    Math.abs(valenceScore) > 0.8 ||
-    keywordAnalysis.highArousal;
+    arousalScore > 0.7 || Math.abs(valenceScore) > 0.8 || keywordAnalysis.highArousal;
 
   const result: EmotionalTag = {
     primaryEmotion,

@@ -16,7 +16,7 @@ import { readFile } from 'fs/promises';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import { createLogger } from '../../utils/safe-logger.js';
-import { getModelProvider } from '../../agents/model-provider/index.js';
+import { getModelProviderInfo } from './model-provider-config.js';
 import type { BundlePromptAssembly } from './types.js';
 
 const log = createLogger({ module: 'PromptAssembler' });
@@ -184,14 +184,13 @@ async function loadFunctionCallingWithBase(
     return '';
   }
 
-  // Check if provider needs JSON function calling prompts
-  const provider = getModelProvider();
-  const promptConfig = provider.getPromptModules();
+  // Check if provider needs JSON function calling prompts (via DI to avoid layer violation)
+  const providerInfo = getModelProviderInfo();
 
-  if (!promptConfig.includeFunctionCallingBase) {
+  if (!providerInfo.promptModules.includeFunctionCallingBase) {
     log.info(
-      { personaId, providerId: provider.id },
-      `${provider.getLogPrefix()} Skipping JSON function-calling prompts (provider has native function calling)`
+      { personaId, providerId: providerInfo.id },
+      `${providerInfo.logPrefix} Skipping JSON function-calling prompts (provider has native function calling)`
     );
     return '';
   }

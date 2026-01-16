@@ -57,6 +57,9 @@ Thumbs.db
 # TypeScript
 *.tsbuildinfo
 
+# ESLint cache
+.eslintcache
+
 # TypeScript build artifacts in source directories
 # (proper builds go to dist/ via tsconfig.json outDir)
 src/**/*.js
@@ -81,6 +84,7 @@ frontend-typescript/src/config/persona-colors.generated.ts
 frontend-typescript/src/config/animation-constants.generated.ts
 frontend-typescript/public/design-system/manifest.json
 design-system/dist/
+design-system/storybook-static/
 
 # Brand docs - source of truth is design-system/brand/
 # apps/web/public/design-system/brand/ is a symlink -> ../../../../design-system/brand

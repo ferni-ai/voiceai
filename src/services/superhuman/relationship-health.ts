@@ -17,7 +17,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 
-const log = createLogger({ module: 'RelationshipHealth' });
+const _log = createLogger({ module: 'RelationshipHealth' });
 
 // ============================================================================
 // TYPES
@@ -56,13 +56,7 @@ export interface RelationshipHealth {
 /**
  * Relationship types
  */
-export type RelationshipType =
-  | 'family'
-  | 'friend'
-  | 'romantic'
-  | 'colleague'
-  | 'mentor'
-  | 'other';
+export type RelationshipType = 'family' | 'friend' | 'romantic' | 'colleague' | 'mentor' | 'other';
 
 /**
  * Health trend direction
@@ -254,9 +248,10 @@ export function calculateRelationshipHealth(
   const sentimentTrend = calculateSentimentTrend(interactions);
 
   // Calculate days since last mention
-  const lastInteraction = interactions.length > 0
-    ? new Date(Math.max(...interactions.map((i) => i.timestamp.getTime())))
-    : undefined;
+  const lastInteraction =
+    interactions.length > 0
+      ? new Date(Math.max(...interactions.map((i) => i.timestamp.getTime())))
+      : undefined;
   const daysSinceLastMention = lastInteraction
     ? Math.floor((Date.now() - lastInteraction.getTime()) / (1000 * 60 * 60 * 24))
     : 999;
@@ -265,11 +260,7 @@ export function calculateRelationshipHealth(
   const interactionFrequency = calculateFrequency(interactions);
 
   // Determine drift risk
-  const driftRisk = calculateDriftRisk(
-    daysSinceLastMention,
-    relationshipType,
-    trend
-  );
+  const driftRisk = calculateDriftRisk(daysSinceLastMention, relationshipType, trend);
 
   // Generate suggested actions
   const suggestedActions = generateSuggestedActions(
@@ -331,7 +322,8 @@ function calculateHealthFactors(
   const sentiment = (avgSentiment + 1) / 2; // Normalize to 0-1
 
   // Depth (average emotional intensity)
-  const depth = interactions.reduce((sum, i) => sum + i.emotionalIntensity, 0) / interactions.length;
+  const depth =
+    interactions.reduce((sum, i) => sum + i.emotionalIntensity, 0) / interactions.length;
 
   // Balance (user-initiated vs passive mentions)
   const userInitiated = interactions.filter((i) => i.userInitiated).length;
@@ -346,9 +338,7 @@ function calculateHealthFactors(
 function calculateTrend(interactions: RelationshipInteraction[]): HealthTrend {
   if (interactions.length < 4) return 'stable';
 
-  const sorted = [...interactions].sort(
-    (a, b) => a.timestamp.getTime() - b.timestamp.getTime()
-  );
+  const sorted = [...interactions].sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
 
   const midpoint = Math.floor(sorted.length / 2);
   const firstHalf = sorted.slice(0, midpoint);
@@ -429,9 +419,7 @@ function calculateDriftRisk(
 /**
  * Get drift alerts for a user's relationships
  */
-export function getDriftAlerts(
-  relationships: RelationshipHealth[]
-): DriftAlert[] {
+export function getDriftAlerts(relationships: RelationshipHealth[]): DriftAlert[] {
   const alerts: DriftAlert[] = [];
 
   for (const rel of relationships) {
@@ -465,17 +453,17 @@ export function getDriftAlerts(
  */
 function generateDriftMessage(rel: RelationshipHealth): string {
   if (rel.driftRisk === 'critical') {
-    return `It's been ${rel.daysSinceLastMention} days since you mentioned ${rel.name}. ` +
-      `Would you like to reconnect?`;
+    return (
+      `It's been ${rel.daysSinceLastMention} days since you mentioned ${rel.name}. ` +
+      `Would you like to reconnect?`
+    );
   }
 
   if (rel.trend === 'declining') {
-    return `You've been mentioning ${rel.name} less frequently lately. ` +
-      `Everything okay there?`;
+    return `You've been mentioning ${rel.name} less frequently lately. Everything okay there?`;
   }
 
-  return `It's been a while since you talked about ${rel.name}. ` +
-    `Might be nice to check in.`;
+  return `It's been a while since you talked about ${rel.name}. Might be nice to check in.`;
 }
 
 // ============================================================================
@@ -598,9 +586,7 @@ export function getRelationshipsByHealthPriority(
 /**
  * Get relationship health stats for observability
  */
-export function getRelationshipHealthStats(
-  relationships: RelationshipHealth[]
-): {
+export function getRelationshipHealthStats(relationships: RelationshipHealth[]): {
   total: number;
   byDriftRisk: Record<DriftRisk, number>;
   byTrend: Record<HealthTrend, number>;

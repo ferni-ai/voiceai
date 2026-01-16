@@ -52,22 +52,17 @@ export interface CommitmentReminderTrigger {
  * Types of commitments
  */
 export type CommitmentType =
-  | 'intention'  // "I want to..."
-  | 'promise'    // "I promise to..."
-  | 'decision'   // "I decided to..."
-  | 'goal'       // "My goal is..."
-  | 'habit'      // "I'm going to start..."
-  | 'person';    // "I need to talk to..."
+  | 'intention' // "I want to..."
+  | 'promise' // "I promise to..."
+  | 'decision' // "I decided to..."
+  | 'goal' // "My goal is..."
+  | 'habit' // "I'm going to start..."
+  | 'person'; // "I need to talk to..."
 
 /**
  * Commitment status
  */
-export type CommitmentStatus =
-  | 'pending'
-  | 'in_progress'
-  | 'stalled'
-  | 'completed'
-  | 'abandoned';
+export type CommitmentStatus = 'pending' | 'in_progress' | 'stalled' | 'completed' | 'abandoned';
 
 /**
  * Input for commitment detection
@@ -96,7 +91,10 @@ export const COMMITMENT_PATTERNS = [
   { pattern: /I (decided|decide)\s+(.+)/i, type: 'decision' as const },
   { pattern: /My goal is\s+(.+)/i, type: 'goal' as const },
   { pattern: /I('m going to|will) start(ing)?\s+(.+)/i, type: 'habit' as const },
-  { pattern: /I (should|need to) (call|talk to|reach out to|contact)\s+(.+)/i, type: 'person' as const },
+  {
+    pattern: /I (should|need to) (call|talk to|reach out to|contact)\s+(.+)/i,
+    type: 'person' as const,
+  },
 ];
 
 // ============================================================================
@@ -187,7 +185,7 @@ async function getActiveCommitments(
     const minAgeMs = minAgeDays * 24 * 60 * 60 * 1000;
 
     for (const commitment of commitments) {
-      const createdAt = commitment.createdAt;
+      const { createdAt } = commitment;
       const ageMs = now - createdAt;
 
       // Only include commitments older than minAgeDays
@@ -195,7 +193,11 @@ async function getActiveCommitments(
 
       const daysSince = Math.floor(ageMs / (24 * 60 * 60 * 1000));
       const commitmentText = commitment.summary || commitment.statement || commitment.text;
-      const suggestion = buildCommitmentSuggestionFromText(commitmentText, daysSince, commitment.type);
+      const suggestion = buildCommitmentSuggestionFromText(
+        commitmentText,
+        daysSince,
+        commitment.type
+      );
 
       // Calculate priority based on age and type
       let priority = 60;
@@ -213,7 +215,8 @@ async function getActiveCommitments(
         sourceId: commitment.id,
         sourceDate: new Date(commitment.createdAt),
         commitmentType: (commitment.type as CommitmentType) || 'intention',
-        status: commitment.status === 'deferred' ? 'pending' : commitment.status as CommitmentStatus,
+        status:
+          commitment.status === 'deferred' ? 'pending' : (commitment.status as CommitmentStatus),
         context: {
           daysSince,
           targetDate: commitment.targetDate,
@@ -255,9 +258,7 @@ async function getPersonCommitments(
       });
 
       for (const commitment of related) {
-        const daysSince = Math.floor(
-          (Date.now() - commitment.createdAt) / (24 * 60 * 60 * 1000)
-        );
+        const daysSince = Math.floor((Date.now() - commitment.createdAt) / (24 * 60 * 60 * 1000));
 
         const commitmentText = commitment.summary || commitment.statement || commitment.text;
         const suggestion = `Speaking of ${entity}, you mentioned wanting to: ${commitmentText}`;
@@ -272,7 +273,8 @@ async function getPersonCommitments(
           sourceId: commitment.id,
           sourceDate: new Date(commitment.createdAt),
           commitmentType: 'person',
-          status: commitment.status === 'deferred' ? 'pending' : commitment.status as CommitmentStatus,
+          status:
+            commitment.status === 'deferred' ? 'pending' : (commitment.status as CommitmentStatus),
           context: {
             triggeredBy: entity,
             daysSince,
@@ -402,20 +404,26 @@ async function getHabitCommitments(userId: string): Promise<CommitmentReminderTr
 /**
  * Build a natural suggestion for a commitment
  */
-function buildCommitmentSuggestionFromText(commitmentText: string, daysSince: number, type?: string): string {
-  const timePhrase = daysSince < 7
-    ? 'a few days ago'
-    : daysSince < 14
-      ? 'about a week ago'
-      : daysSince < 30
-        ? 'a couple weeks ago'
-        : `${Math.round(daysSince / 7)} weeks ago`;
+function buildCommitmentSuggestionFromText(
+  commitmentText: string,
+  daysSince: number,
+  type?: string
+): string {
+  const timePhrase =
+    daysSince < 7
+      ? 'a few days ago'
+      : daysSince < 14
+        ? 'about a week ago'
+        : daysSince < 30
+          ? 'a couple weeks ago'
+          : `${Math.round(daysSince / 7)} weeks ago`;
 
-  const typePhrase = type === 'promise'
-    ? 'You promised'
-    : type === 'goal'
-      ? 'Your goal was'
-      : 'You mentioned wanting';
+  const typePhrase =
+    type === 'promise'
+      ? 'You promised'
+      : type === 'goal'
+        ? 'Your goal was'
+        : 'You mentioned wanting';
 
   return `${timePhrase}, ${typePhrase.toLowerCase()} to: "${commitmentText}". How's that going?`;
 }

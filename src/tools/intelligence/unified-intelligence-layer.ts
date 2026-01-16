@@ -79,7 +79,7 @@ export interface UserIntelligenceProfile {
   timePatterns: {
     preferredToolsByHour: Map<number, string[]>;
     activeHours: number[];
-    peakEngagementTimes: { hour: number; dayOfWeek: number }[];
+    peakEngagementTimes: Array<{ hour: number; dayOfWeek: number }>;
   };
 
   // Vocabulary mapping (user's words → tools)
@@ -338,7 +338,7 @@ export class UnifiedIntelligenceLayer {
                 profile as Parameters<typeof persistenceModule.saveUserProfile>[0]
               );
             },
-            loadUserProfile: (userId: string): Promise<unknown | null> =>
+            loadUserProfile: async (userId: string): Promise<unknown | null> =>
               persistenceModule.loadUserProfile(userId) as Promise<unknown | null>,
           };
           log.info('📦 Firestore persistence enabled for intelligence profiles');
@@ -787,7 +787,7 @@ export class UnifiedIntelligenceLayer {
       predict: (
         intent: string,
         primaryTool: { toolId: string; confidence: number },
-        availableTools: { id: string }[],
+        availableTools: Array<{ id: string }>,
         userId: string
       ) => Promise<{
         steps: Array<{ toolId: string; dependsOn: number[] }>;
@@ -1218,7 +1218,7 @@ export class UnifiedIntelligenceLayer {
         ),
         activeHours: (timePatterns?.activeHours as number[]) || [],
         peakEngagementTimes:
-          (timePatterns?.peakEngagementTimes as { hour: number; dayOfWeek: number }[]) || [],
+          (timePatterns?.peakEngagementTimes as Array<{ hour: number; dayOfWeek: number }>) || [],
       },
       vocabulary: new Map(Object.entries((data.vocabulary as Record<string, string>) || {})),
       toolAffinities: new Map(

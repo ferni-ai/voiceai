@@ -89,6 +89,21 @@ export async function initializeServices(indexPersona = true): Promise<GlobalSer
       getLogger().info('Persona content indexed (first time)');
     }
 
+    // Configure memory/dynamic module's AsyncEvents dependency injection
+    // This allows memory layer to emit/listen to events without importing from services
+    try {
+      const { configureAsyncEvents } = await import('../memory/dynamic/index.js');
+      const { AsyncEvents } = await import('./async-events/index.js');
+
+      configureAsyncEvents({
+        emit: (event, data) => AsyncEvents.emit(event as never, data as Record<string, unknown>),
+        on: (event, handler) => AsyncEvents.on(event as never, handler),
+      });
+      getLogger().info('🔌 AsyncEvents DI configured for memory/dynamic module');
+    } catch (diError) {
+      getLogger().warn({ error: String(diError) }, 'AsyncEvents DI skipped (non-critical)');
+    }
+
     // CRITICAL: Configure user identification to use the proper store
     // This ensures user profiles are persisted to Firestore in production
     setGlobalStore(store);

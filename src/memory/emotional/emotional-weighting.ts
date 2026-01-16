@@ -147,25 +147,80 @@ export function getEmotionalWeightConfig(): EmotionalWeightConfig {
 
 const HIGH_EMOTION_KEYWORDS = {
   positive: [
-    'love', 'amazing', 'wonderful', 'incredible', 'best', 'perfect',
-    'grateful', 'blessed', 'proud', 'excited', 'thrilled', 'overjoyed',
-    'breakthrough', 'milestone', 'achieved', 'accomplished', 'succeeded',
+    'love',
+    'amazing',
+    'wonderful',
+    'incredible',
+    'best',
+    'perfect',
+    'grateful',
+    'blessed',
+    'proud',
+    'excited',
+    'thrilled',
+    'overjoyed',
+    'breakthrough',
+    'milestone',
+    'achieved',
+    'accomplished',
+    'succeeded',
   ],
   negative: [
-    'hate', 'terrible', 'awful', 'devastated', 'heartbroken', 'destroyed',
-    'terrified', 'hopeless', 'helpless', 'worthless', 'ashamed', 'guilty',
-    'panic', 'crisis', 'emergency', 'worst', 'failure', 'lost',
+    'hate',
+    'terrible',
+    'awful',
+    'devastated',
+    'heartbroken',
+    'destroyed',
+    'terrified',
+    'hopeless',
+    'helpless',
+    'worthless',
+    'ashamed',
+    'guilty',
+    'panic',
+    'crisis',
+    'emergency',
+    'worst',
+    'failure',
+    'lost',
   ],
   intense: [
-    'really', 'so', 'very', 'extremely', 'incredibly', 'absolutely',
-    'completely', 'totally', 'deeply', 'profoundly', 'utterly',
+    'really',
+    'so',
+    'very',
+    'extremely',
+    'incredibly',
+    'absolutely',
+    'completely',
+    'totally',
+    'deeply',
+    'profoundly',
+    'utterly',
   ],
 };
 
 const IMPORTANT_TOPICS = [
-  'health', 'family', 'career', 'money', 'relationship', 'loss', 'death',
-  'marriage', 'divorce', 'pregnancy', 'child', 'parent', 'diagnosis',
-  'job', 'fired', 'hired', 'promotion', 'moving', 'home', 'trauma',
+  'health',
+  'family',
+  'career',
+  'money',
+  'relationship',
+  'loss',
+  'death',
+  'marriage',
+  'divorce',
+  'pregnancy',
+  'child',
+  'parent',
+  'diagnosis',
+  'job',
+  'fired',
+  'hired',
+  'promotion',
+  'moving',
+  'home',
+  'trauma',
 ];
 
 // ============================================================================
@@ -249,7 +304,7 @@ export function calculateEmotionalWeight(input: EmotionalWeightInput): Emotional
 
   // Apply previous weight if updating (smoothing)
   if (input.previousWeight !== undefined) {
-    weight = (weight * 0.7) + (input.previousWeight * 0.3);
+    weight = weight * 0.7 + input.previousWeight * 0.3;
   }
 
   // Cap at 1.0
@@ -418,9 +473,7 @@ export function getAverageEmotionalWeight(results: EmotionalWeightResult[]): num
  */
 export function findHighestEmotionalWeight(
   results: Array<{ result: EmotionalWeightResult; id: string }>,
-  limit: number = 5
+  limit = 5
 ): Array<{ result: EmotionalWeightResult; id: string }> {
-  return [...results]
-    .sort((a, b) => b.result.weight - a.result.weight)
-    .slice(0, limit);
+  return [...results].sort((a, b) => b.result.weight - a.result.weight).slice(0, limit);
 }

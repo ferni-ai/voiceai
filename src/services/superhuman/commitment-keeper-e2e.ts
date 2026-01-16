@@ -36,7 +36,6 @@ import {
   findMatchingCommitment,
   onActionCompleted,
   type Commitment,
-  type CommitmentDetectionResult,
   type CommitmentFollowUp,
   type CommitmentStatus,
   type CommitmentType,
@@ -194,9 +193,7 @@ export function getCommitmentE2EConfig(): CommitmentE2EConfig {
  * - Automatic memory linking
  * - Acknowledgment generation
  */
-export async function detectCommitmentE2E(
-  input: CommitmentE2EInput
-): Promise<CommitmentE2EResult> {
+export async function detectCommitmentE2E(input: CommitmentE2EInput): Promise<CommitmentE2EResult> {
   const startTime = Date.now();
 
   try {
@@ -285,38 +282,26 @@ export async function detectCommitmentE2E(
 /**
  * Generate a natural acknowledgment for a detected commitment
  */
-function generateAcknowledgment(commitment: Commitment, confidence: number): string {
+function generateAcknowledgment(commitment: Commitment, _confidence: number): string {
   const typeAcks: Record<CommitmentType, string[]> = {
-    intention: [
-      "I'll remember that.",
-      "Noted. I'll check in on that.",
-      "Got it.",
-    ],
+    intention: ["I'll remember that.", "Noted. I'll check in on that.", 'Got it.'],
     promise: [
       "I'll hold space for that promise.",
       "I won't let you forget.",
-      "That sounds important to you.",
+      'That sounds important to you.',
     ],
-    goal: [
-      "I love that goal.",
-      "I'll be cheering you on.",
-      "Let's make that happen.",
-    ],
+    goal: ['I love that goal.', "I'll be cheering you on.", "Let's make that happen."],
     boundary: [
-      "Good for you for setting that boundary.",
+      'Good for you for setting that boundary.',
       "I'll support you in that.",
-      "That takes courage.",
+      'That takes courage.',
     ],
     conversation: [
-      "That conversation sounds important.",
+      'That conversation sounds important.',
       "I'll remind you about that.",
-      "Let me know how it goes.",
+      'Let me know how it goes.',
     ],
-    decision: [
-      "That sounds like a clear decision.",
-      "I hear you on that.",
-      "Noted.",
-    ],
+    decision: ['That sounds like a clear decision.', 'I hear you on that.', 'Noted.'],
     experiment: [
       "I love that you're experimenting.",
       "Let's see how that goes.",
@@ -337,15 +322,11 @@ function generateAcknowledgment(commitment: Commitment, confidence: number): str
  *
  * Detects when users mention working on or completing commitments.
  */
-export async function checkProgressE2E(
-  input: ProgressUpdateInput
-): Promise<ProgressUpdateResult> {
+export async function checkProgressE2E(input: ProgressUpdateInput): Promise<ProgressUpdateResult> {
   try {
     // 1. Load user's active commitments
     const commitments = await loadUserCommitments(input.userId);
-    const active = commitments.filter(
-      (c) => c.status === 'active' || c.status === 'unclear'
-    );
+    const active = commitments.filter((c) => c.status === 'active' || c.status === 'unclear');
 
     if (active.length === 0) {
       return {
@@ -391,7 +372,7 @@ export async function checkProgressE2E(
  */
 async function checkForCompletion(
   input: ProgressUpdateInput,
-  active: Commitment[]
+  _active: Commitment[]
 ): Promise<{ matched: boolean; result?: ProgressUpdateResult }> {
   const completionPatterns = [
     /i (did|finished|completed|accomplished|achieved|finally did)/i,
@@ -449,7 +430,7 @@ async function checkForCompletion(
  */
 async function checkForProgress(
   input: ProgressUpdateInput,
-  active: Commitment[]
+  _active: Commitment[]
 ): Promise<{ matched: boolean; result?: ProgressUpdateResult }> {
   const progressPatterns = [
     /i('m| am) (working on|making progress on|getting better at)/i,
@@ -499,7 +480,7 @@ async function checkForProgress(
  */
 async function checkForAbandonment(
   input: ProgressUpdateInput,
-  active: Commitment[]
+  _active: Commitment[]
 ): Promise<{ matched: boolean; result?: ProgressUpdateResult }> {
   const abandonmentPatterns = [
     /i (gave up|abandoned|dropped|quit|stopped)/i,
@@ -562,27 +543,25 @@ function generateCelebration(
   }
 
   // Boost intensity if user seems excited
-  if (emotionalContext?.primary.toLowerCase().includes('excited') ||
-      emotionalContext?.primary.toLowerCase().includes('happy')) {
+  if (
+    emotionalContext?.primary.toLowerCase().includes('excited') ||
+    emotionalContext?.primary.toLowerCase().includes('happy')
+  ) {
     if (intensity === 'small') intensity = 'medium';
     else if (intensity === 'medium') intensity = 'big';
   }
 
   // Generate appropriate message
   const messages: Record<typeof intensity, string[]> = {
-    small: [
-      "Nice! You did it.",
-      "Good for you!",
-      "That's progress!",
-    ],
+    small: ['Nice! You did it.', 'Good for you!', "That's progress!"],
     medium: [
       "That's wonderful! You should be proud.",
       "Look at you following through! That's not easy.",
-      "I knew you could do it!",
+      'I knew you could do it!',
     ],
     big: [
-      "This is HUGE! I am so proud of you!",
-      "You did it! This is exactly what I love about you - when you commit, you follow through.",
+      'This is HUGE! I am so proud of you!',
+      'You did it! This is exactly what I love about you - when you commit, you follow through.',
       "This deserves a celebration! You've been working toward this and you made it happen.",
     ],
   };
@@ -591,9 +570,11 @@ function generateCelebration(
 
   // Build memory content for milestone
   const memoryContent = `Completed commitment: ${commitment.summary}. ${
-    intensity === 'big' ? 'This was a major achievement.' :
-    intensity === 'medium' ? 'This was meaningful progress.' :
-    'Good follow-through.'
+    intensity === 'big'
+      ? 'This was a major achievement.'
+      : intensity === 'medium'
+        ? 'This was meaningful progress.'
+        : 'Good follow-through.'
   }`;
 
   return {
@@ -630,10 +611,7 @@ async function createCelebrationMemory(
         : undefined,
     });
 
-    log.debug(
-      { userId, intensity: celebration.intensity },
-      '🎉 Celebration memory created'
-    );
+    log.debug({ userId, intensity: celebration.intensity }, '🎉 Celebration memory created');
   } catch (error) {
     log.debug({ error: String(error) }, 'Failed to create celebration memory');
   }
@@ -681,7 +659,7 @@ async function linkCommitmentToMemory(
  */
 export async function getCommitmentsDueForFollowUp(
   userId: string,
-  limit: number = 5
+  limit = 5
 ): Promise<CommitmentFollowUp[]> {
   try {
     const commitments = await loadUserCommitments(userId);
@@ -730,15 +708,16 @@ export async function getCommitmentStats(userId: string): Promise<{
   try {
     const commitments = await loadUserCommitments(userId);
 
-    const active = commitments.filter((c) => c.status === 'active' || c.status === 'unclear').length;
+    const active = commitments.filter(
+      (c) => c.status === 'active' || c.status === 'unclear'
+    ).length;
     const completed = commitments.filter((c) => c.status === 'completed').length;
     const abandoned = commitments.filter((c) => c.status === 'abandoned').length;
     const total = commitments.length;
 
     const completionRate = total > 0 ? completed / total : 0;
-    const avgEmotionalWeight = total > 0
-      ? commitments.reduce((sum, c) => sum + c.emotionalWeight, 0) / total
-      : 0;
+    const avgEmotionalWeight =
+      total > 0 ? commitments.reduce((sum, c) => sum + c.emotionalWeight, 0) / total : 0;
 
     return {
       total,

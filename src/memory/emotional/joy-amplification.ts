@@ -111,10 +111,22 @@ const DEFAULT_CONFIG: JoyAmplificationConfig = {
   cooldownMinutes: 30,
   maxMemorySurfaceCount: 2,
   triggerEmotions: [
-    'sad', 'sadness', 'depressed', 'down', 'low',
-    'anxious', 'worried', 'stressed', 'overwhelmed',
-    'hopeless', 'helpless', 'lost', 'struggling',
-    'frustrated', 'disappointed', 'discouraged',
+    'sad',
+    'sadness',
+    'depressed',
+    'down',
+    'low',
+    'anxious',
+    'worried',
+    'stressed',
+    'overwhelmed',
+    'hopeless',
+    'helpless',
+    'lost',
+    'struggling',
+    'frustrated',
+    'disappointed',
+    'discouraged',
   ],
 };
 
@@ -147,11 +159,7 @@ const memorySurfaceCounts = new Map<string, Map<string, number>>();
 /**
  * Record that a joy memory was surfaced
  */
-export function recordJoyMemorySurfaced(
-  userId: string,
-  sessionId: string,
-  memoryId: string
-): void {
+export function recordJoyMemorySurfaced(userId: string, sessionId: string, memoryId: string): void {
   // Update last amplification time
   lastAmplificationByUser.set(userId, Date.now());
 
@@ -214,12 +222,7 @@ export function shouldAmplifyJoy(
   }
 
   // 3. Find suitable joy memory
-  const selectedMemory = selectBestJoyMemory(
-    userId,
-    sessionId,
-    joyPool.memories,
-    currentState
-  );
+  const selectedMemory = selectBestJoyMemory(userId, sessionId, joyPool.memories, currentState);
 
   if (!selectedMemory) {
     return {
@@ -260,9 +263,7 @@ function checkTriggerConditions(state: CurrentStateInput): {
   const emotionLower = state.emotion.toLowerCase();
 
   // Check if emotion is in trigger list
-  const isTriggerEmotion = config.triggerEmotions.some((e) =>
-    emotionLower.includes(e)
-  );
+  const isTriggerEmotion = config.triggerEmotions.some((e) => emotionLower.includes(e));
 
   if (!isTriggerEmotion) {
     return {
@@ -346,7 +347,10 @@ function calculateJoyMemoryScore(
   score += memory.emotionalTag.valenceScore * 0.2;
 
   // Boost for topic match
-  if (currentState.topic && memory.content.toLowerCase().includes(currentState.topic.toLowerCase())) {
+  if (
+    currentState.topic &&
+    memory.content.toLowerCase().includes(currentState.topic.toLowerCase())
+  ) {
     score += 0.3;
   }
 
@@ -379,10 +383,7 @@ function calculateJoyMemoryScore(
 /**
  * Generate a natural delivery phrase for the joy memory
  */
-function generateDeliveryPhrase(
-  memory: JoyMemory,
-  currentState: CurrentStateInput
-): string {
+function generateDeliveryPhrase(memory: JoyMemory, currentState: CurrentStateInput): string {
   const emotionLower = currentState.emotion.toLowerCase();
 
   // Different openers for different states
@@ -391,32 +392,32 @@ function generateDeliveryPhrase(
   if (emotionLower.includes('sad') || emotionLower.includes('depressed')) {
     const sadOpeners = [
       "You know what I've been thinking about?",
-      "Can I remind you of something?",
-      "I want you to remember something...",
-      "I know things feel hard right now, but remember when",
+      'Can I remind you of something?',
+      'I want you to remember something...',
+      'I know things feel hard right now, but remember when',
     ];
     opener = sadOpeners[Math.floor(Math.random() * sadOpeners.length)];
   } else if (emotionLower.includes('anxious') || emotionLower.includes('worried')) {
     const anxiousOpeners = [
       "You've handled hard things before.",
-      "Remember when you were worried about something similar?",
-      "Let me remind you of something...",
+      'Remember when you were worried about something similar?',
+      'Let me remind you of something...',
       "You're stronger than you think. Remember when",
     ];
     opener = anxiousOpeners[Math.floor(Math.random() * anxiousOpeners.length)];
   } else if (emotionLower.includes('frustrated') || emotionLower.includes('overwhelmed')) {
     const frustrationOpeners = [
       "You've pushed through before.",
-      "Remember when you accomplished something you thought was impossible?",
-      "I want to remind you of a time when",
+      'Remember when you accomplished something you thought was impossible?',
+      'I want to remind you of a time when',
       "You've got this. Remember when",
     ];
     opener = frustrationOpeners[Math.floor(Math.random() * frustrationOpeners.length)];
   } else {
     const defaultOpeners = [
-      "I was just thinking about",
-      "Remember when",
-      "I want to remind you of",
+      'I was just thinking about',
+      'Remember when',
+      'I want to remind you of',
     ];
     opener = defaultOpeners[Math.floor(Math.random() * defaultOpeners.length)];
   }
@@ -479,8 +480,10 @@ export function addToJoyPoolIfQualifies(
   }
 ): boolean {
   // Check if memory qualifies
-  if (memory.emotionalTag.valence !== 'positive' ||
-      memory.emotionalTag.valenceScore < config.joyMemoryValenceThreshold) {
+  if (
+    memory.emotionalTag.valence !== 'positive' ||
+    memory.emotionalTag.valenceScore < config.joyMemoryValenceThreshold
+  ) {
     return false;
   }
 
@@ -496,12 +499,90 @@ export function addToJoyPoolIfQualifies(
 
   pool.lastUpdated = new Date();
 
-  log.debug(
-    { userId: pool.userId, memoryId: memory.id },
-    '💛 Memory added to joy pool'
-  );
+  log.debug({ userId: pool.userId, memoryId: memory.id }, '💛 Memory added to joy pool');
 
   return true;
+}
+
+// ============================================================================
+// JOY POOL BUILDING
+// ============================================================================
+
+/**
+ * Build a joy pool from user's positive memories.
+ *
+ * This queries the memory store for positive emotional memories
+ * that can be surfaced during difficult moments.
+ */
+export async function buildJoyPool(userId: string): Promise<JoyMemoryPool | null> {
+  try {
+    // Lazy load memory retrieval to avoid circular dependencies
+    const { searchUserMemories } = await import('../retrieval/turn-memory-retrieval.js');
+    const { tagEmotionally } = await import('./emotional-tagging.js');
+
+    // Search for positive memories
+    const memories = await searchUserMemories(userId, {
+      query: 'positive achievement success happy proud grateful celebration breakthrough',
+      limit: 20,
+    });
+
+    if (!memories || memories.length === 0) {
+      return null;
+    }
+
+    // Filter and transform to joy memories
+    const joyMemories: JoyMemory[] = [];
+
+    for (const memory of memories) {
+      // Tag emotionally if not already tagged
+      const emotionalTag = tagEmotionally({
+        content: memory.content,
+        textEmotion: { primary: 'joy', intensity: 0.7 },
+      });
+
+      // Only include positive memories
+      if (emotionalTag.valence === 'positive' && emotionalTag.valenceScore >= config.joyMemoryValenceThreshold) {
+        joyMemories.push({
+          id: memory.id,
+          content: memory.content,
+          emotionalTag,
+          capturedAt: memory.timestamp || new Date(),
+          relevanceScore: emotionalTag.valenceScore,
+          attribution: `You shared this ${formatTimeAgo(memory.timestamp || new Date())}`,
+        });
+      }
+    }
+
+    if (joyMemories.length === 0) {
+      return null;
+    }
+
+    return {
+      userId,
+      memories: joyMemories,
+      lastUpdated: new Date(),
+    };
+  } catch (error) {
+    log.debug({ userId, error: String(error) }, 'Failed to build joy pool');
+    return null;
+  }
+}
+
+/**
+ * Format time ago for attribution phrases
+ */
+function formatTimeAgo(date: Date): string {
+  const now = Date.now();
+  const diffMs = now - date.getTime();
+  const diffDays = Math.floor(diffMs / (24 * 60 * 60 * 1000));
+
+  if (diffDays < 1) return 'earlier today';
+  if (diffDays === 1) return 'yesterday';
+  if (diffDays < 7) return 'a few days ago';
+  if (diffDays < 14) return 'about a week ago';
+  if (diffDays < 30) return 'a few weeks ago';
+  if (diffDays < 60) return 'about a month ago';
+  return 'a while back';
 }
 
 // ============================================================================

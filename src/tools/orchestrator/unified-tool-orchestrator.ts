@@ -57,6 +57,13 @@ import {
 } from '../registry/types.js';
 // Migrated to new semantic router module
 import { semanticRouter, type SemanticMatch } from '../semantic-router/compat.js';
+// FTIS - Ferni Tool Intelligence System (complexity-based routing)
+import { getFTISIntegration, type FTISRoutingResult } from '../intelligence/ftis-integration.js';
+// FTIS A/B Testing - determines whether to use FTIS for a given user
+import {
+  initializeFTISExperiment,
+  shouldUseFTIS,
+} from '../intelligence/learning/ab-testing.js';
 
 const log = getLogger();
 
@@ -155,6 +162,14 @@ export interface ToolSelectionResult {
       prioritizedTools: string[];
       proactiveSuggestions: number;
       isReturningUser: boolean;
+    };
+    /** FTIS routing info (complexity-based intelligence) */
+    ftisRouting?: {
+      complexity: 'simple' | 'medium' | 'complex';
+      confidence: number;
+      approach: 'direct' | 'sequence' | 'mcts';
+      predictions?: Array<{ toolId: string; probability: number }>;
+      routingTimeMs: number;
     };
   };
 }
@@ -404,7 +419,23 @@ export class UnifiedToolOrchestrator {
         );
       }
 
-      // 5. Pre-cache essential tools
+      // 5. Initialize FTIS (Ferni Tool Intelligence System)
+      try {
+        const ftis = getFTISIntegration();
+        await ftis.initialize();
+        
+        // Initialize FTIS A/B experiment (50/50 split between semantic-only and FTIS)
+        initializeFTISExperiment();
+        
+        log.info('🎯 FTIS (Tool Intelligence) initialized with A/B experiment');
+      } catch (ftisError) {
+        log.warn(
+          { error: String(ftisError) },
+          '⚠️ FTIS partially initialized'
+        );
+      }
+
+      // 6. Pre-cache essential tools
       await this.preloadEssentialTools();
       log.info('⚡ Essential tools pre-cached');
 
@@ -518,6 +549,10 @@ export class UnifiedToolOrchestrator {
       log.debug({ error: String(intelligenceError) }, 'Intelligence enhancement unavailable');
     }
 
+    // 0b. FTIS routing moved to after tool fetching (see step 6b below)
+    let ftisRouting: FTISRoutingResult | null = null;
+    const useFTIS = shouldUseFTIS(request.userId);
+
     // ==========================================================================
     // ⚡ PARALLELIZED TOOL FETCHING - Run independent operations concurrently
     // These operations don't depend on each other, so run them in parallel
@@ -628,6 +663,42 @@ export class UnifiedToolOrchestrator {
       }
     }
 
+    // 6b. FTIS ROUTING (Complexity-based tool intelligence)
+    // Now that we have actual available tools, run FTIS for accurate routing
+    if (useFTIS) {
+      try {
+        const ftis = getFTISIntegration();
+        const availableToolIds = Object.keys(allTools);
+
+        ftisRouting = await ftis.route({
+          query: request.transcript,
+          userId: request.userId,
+          personaId: request.agentId,
+          sessionId: request.context?.sessionId || '',
+          availableTools: availableToolIds, // Now populated with actual tools!
+          emotion: request.context?.emotion,
+          recentTools: this.getRecentToolsFromSession(request.context?.sessionId || ''),
+        });
+
+        if (ftisRouting.complexity.complexity !== 'simple') {
+          log.debug(
+            {
+              complexity: ftisRouting.complexity.complexity,
+              approach: ftisRouting.complexity.suggestedApproach,
+              predictions: ftisRouting.predictions?.slice(0, 3),
+              availableToolCount: availableToolIds.length,
+              abVariant: 'ftis',
+            },
+            '🎯 FTIS routing: non-simple query detected'
+          );
+        }
+      } catch (ftisError) {
+        log.debug({ error: String(ftisError) }, 'FTIS routing unavailable');
+      }
+    } else {
+      log.debug({ userId: request.userId }, '📊 FTIS A/B: User in control group (semantic-only)');
+    }
+
     // 7. MEMORY-AWARE ROUTING (Better Than Human personalization)
     // Uses user's tool history to boost tools they've had success with
     let memoryBoosts: EnhancedToolScore[] = [];
@@ -700,16 +771,50 @@ export class UnifiedToolOrchestrator {
               isReturningUser: intelligenceEnhancement.contextHints.isReturningUser,
             }
           : undefined,
+        // Include FTIS routing info (complexity-based intelligence)
+        ftisRouting: ftisRouting
+          ? {
+              complexity: ftisRouting.complexity.complexity,
+              confidence: ftisRouting.complexity.confidence,
+              approach: ftisRouting.complexity.suggestedApproach,
+              predictions: ftisRouting.predictions,
+              routingTimeMs: ftisRouting.routingTimeMs,
+            }
+          : undefined,
       },
     };
 
     // Cache result
     this.selectionCache.set(cacheKey, { result, timestamp: Date.now() });
 
+    // Calculate estimated token usage from tool schemas
+    const toolSchemaTokens = Object.values(finalTools).reduce((total, tool) => {
+      // Estimate: tool name (~10 tokens) + description (~30 tokens) + params (~50 tokens)
+      const descLen = tool.description?.length || 0;
+      return total + 10 + Math.round(descLen / 4) + 50;
+    }, 0);
+    
+    const MAX_TOOL_TOKENS = 8000; // Safe limit for tool schemas
+    const toolUsagePercent = Math.round((toolSchemaTokens / MAX_TOOL_TOKENS) * 100);
+    
+    if (toolUsagePercent > 80) {
+      log.warn(
+        {
+          toolCount: result.meta.selected,
+          estimatedTokens: toolSchemaTokens,
+          usagePercent: toolUsagePercent,
+          maxTools: this.config.maxTools,
+        },
+        `⚠️ Tool schema size at ${toolUsagePercent}% of safe limit - consider reducing maxTools`
+      );
+    }
+    
     log.info(
       {
         transcript: request.transcript.slice(0, 50),
         selected: result.meta.selected,
+        toolTokens: toolSchemaTokens,
+        toolUsagePercent,
         sources,
         elapsedMs: result.meta.selectionTimeMs,
       },

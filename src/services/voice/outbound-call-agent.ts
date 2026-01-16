@@ -22,6 +22,7 @@
 
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { createLogger } from '../../utils/safe-logger.js';
+import { getRealtimeModel } from '../../config/gemini-config.js';
 import { getVoiceId } from '../../personas/voice-registry.js';
 import { CARTESIA_MODEL } from '../../config/voice-ids.js';
 import type { TwilioStreamBridge } from './twilio-stream-bridge.js';
@@ -93,7 +94,7 @@ export async function startOutboundAgent(
   // Set up Gemini
   const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
   const gemini = genAI.getGenerativeModel({
-    model: 'gemini-2.0-flash-exp',
+    model: getRealtimeModel(),
     systemInstruction: buildSystemPrompt(context),
   });
 

@@ -22,7 +22,7 @@
  *
  * // Level 3: Celebration
  * await moments.celebrate('streak', { count: 7 });
- * await moments.celebrate('badge', { badge: '🌅', title: 'Early Bird' });
+ * await moments.celebrate('badge', { badge: 'sunrise', title: 'Early Bird' });
  *
  * // Level 4: Milestone
  * await moments.milestone('team_unlock', {
@@ -107,7 +107,7 @@ export const moments = {
    *
    * @example
    * await moments.celebrate('streak', { count: 7 });
-   * await moments.celebrate('badge', { badge: '🌅', title: 'Early Bird' });
+   * await moments.celebrate('badge', { badge: 'sunrise', title: 'Early Bird' });
    */
   celebrate: (
     type: 'small_win' | 'big_win' | 'streak' | 'badge' | 'secret' | 'team_unlock' | 'first_meeting',

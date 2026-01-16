@@ -964,3 +964,48 @@ export {
   type AppliedWisdom,
   type PostEventLearningProfile,
 } from './post-event-learning.js';
+
+// ============================================================================
+// PHASE 15: RELATIONSHIP HEALTH DASHBOARD
+// ============================================================================
+
+// Relationship Health - Track relationship health and drift
+export {
+  calculateRelationshipHealth,
+  calculateAllRelationshipHealth,
+  getDriftAlerts,
+  getRelationshipsByHealthPriority,
+  getRelationshipHealthStats,
+  setRelationshipHealthConfig,
+  getRelationshipHealthConfig,
+  type RelationshipHealth,
+  type RelationshipType as RelationshipHealthType, // Renamed to avoid duplicate
+  type HealthTrend,
+  type SentimentTrend,
+  type DriftRisk,
+  type SuggestedAction as RelationshipSuggestedAction, // Renamed to avoid potential conflicts
+  type HealthFactors,
+  type RelationshipInteraction,
+  type DriftAlert,
+  type RelationshipHealthConfig,
+} from './relationship-health.js';
+
+// ============================================================================
+// PHASE 13: COMMITMENT KEEPER E2E
+// ============================================================================
+
+// Commitment Keeper E2E - End-to-end commitment tracking
+export {
+  detectCommitmentE2E,
+  checkProgressE2E,
+  getCommitmentsDueForFollowUp,
+  getCommitmentStats,
+  setCommitmentE2EConfig,
+  getCommitmentE2EConfig,
+  type CommitmentE2EInput,
+  type CommitmentE2EResult,
+  type ProgressUpdateInput,
+  type ProgressUpdateResult,
+  type CelebrationContext,
+  type CommitmentE2EConfig,
+} from './commitment-keeper-e2e.js';

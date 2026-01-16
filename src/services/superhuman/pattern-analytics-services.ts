@@ -25,6 +25,15 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb } from './firestore-utils.js';
+import {
+  onBlindSpotChange,
+  onCounterfactualChange,
+  onPatternPredictionChange,
+  onDecisionScoreChange,
+  onCorrelationChange,
+  onAnomalyChange,
+  onInsightChange,
+} from '../data-layer/hooks/superhuman-hooks.js';
 
 const log = createLogger({ module: 'superhuman:pattern-analytics' });
 
@@ -103,7 +112,8 @@ export async function recordBlindSpot(userId: string, blindSpot: BlindSpot): Pro
   }
 
   try {
-    await db.collection('bogle_users').doc(userId).collection('blind_spots').add(blindSpot);
+    const docRef = await db.collection('bogle_users').doc(userId).collection('blind_spots').add(blindSpot);
+    void onBlindSpotChange(userId, docRef.id, blindSpot, 'create');
     log.info({ userId, domain: blindSpot.domain }, 'Blind spot recorded');
   } catch (error) {
     log.debug({ error, userId }, 'Failed to record blind spot');
@@ -144,11 +154,12 @@ export async function recordCounterfactual(
   }
 
   try {
-    await db
+    const docRef = await db
       .collection('bogle_users')
       .doc(userId)
       .collection('counterfactuals')
       .add(counterfactual);
+    void onCounterfactualChange(userId, docRef.id, counterfactual, 'create');
     log.info({ userId }, 'Counterfactual recorded');
   } catch (error) {
     log.debug({ error, userId }, 'Failed to record counterfactual');
@@ -190,11 +201,12 @@ export async function recordPatternPrediction(
   }
 
   try {
-    await db
+    const docRef = await db
       .collection('bogle_users')
       .doc(userId)
       .collection('pattern_predictions')
       .add(prediction);
+    void onPatternPredictionChange(userId, docRef.id, prediction, 'create');
     log.info({ userId, domain: prediction.domain }, 'Pattern prediction recorded');
   } catch (error) {
     log.debug({ error, userId }, 'Failed to record pattern prediction');
@@ -235,7 +247,8 @@ export async function recordDecisionScore(userId: string, score: DecisionScore):
   }
 
   try {
-    await db.collection('bogle_users').doc(userId).collection('decision_scores').add(score);
+    const docRef = await db.collection('bogle_users').doc(userId).collection('decision_scores').add(score);
+    void onDecisionScoreChange(userId, docRef.id, score, 'create');
     log.info({ userId, domain: score.domain }, 'Decision score recorded');
   } catch (error) {
     log.debug({ error, userId }, 'Failed to record decision score');
@@ -273,7 +286,8 @@ export async function recordCorrelation(userId: string, correlation: Correlation
   }
 
   try {
-    await db.collection('bogle_users').doc(userId).collection('correlations').add(correlation);
+    const docRef = await db.collection('bogle_users').doc(userId).collection('correlations').add(correlation);
+    void onCorrelationChange(userId, docRef.id, correlation, 'create');
     log.info(
       { userId, factor1: correlation.factor1, factor2: correlation.factor2 },
       'Correlation recorded'
@@ -315,7 +329,8 @@ export async function recordAnomaly(userId: string, anomaly: Anomaly): Promise<v
   }
 
   try {
-    await db.collection('bogle_users').doc(userId).collection('anomalies').add(anomaly);
+    const docRef = await db.collection('bogle_users').doc(userId).collection('anomalies').add(anomaly);
+    void onAnomalyChange(userId, docRef.id, anomaly, 'create');
     log.info({ userId, domain: anomaly.domain, severity: anomaly.severity }, 'Anomaly recorded');
   } catch (error) {
     log.debug({ error, userId }, 'Failed to record anomaly');
@@ -354,7 +369,8 @@ export async function recordInsight(userId: string, insight: Insight): Promise<v
   }
 
   try {
-    await db.collection('bogle_users').doc(userId).collection('insights').add(insight);
+    const docRef = await db.collection('bogle_users').doc(userId).collection('insights').add(insight);
+    void onInsightChange(userId, docRef.id, insight, 'create');
     log.info({ userId, domain: insight.domain }, 'Insight recorded');
   } catch (error) {
     log.debug({ error, userId }, 'Failed to record insight');

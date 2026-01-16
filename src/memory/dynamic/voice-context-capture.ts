@@ -26,9 +26,46 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import type { ProsodyFeatures } from '../../speech/audio-prosody/types.js';
 
 const log = createLogger({ module: 'VoiceContextCapture' });
+
+// ============================================================================
+// LOCAL TYPE DEFINITIONS
+// ============================================================================
+
+/**
+ * Prosodic features - local definition to avoid layer violation
+ * (memory L30 cannot import from speech L70)
+ *
+ * This mirrors the relevant subset of src/speech/audio-prosody/types.ts
+ */
+interface ProsodyFeatures {
+  // Pitch features
+  pitchMean: number;
+  pitchVariance: number;
+  pitchRange: number;
+  pitchContour: 'rising' | 'falling' | 'flat' | 'dynamic';
+
+  // Energy/Volume features
+  energyMean: number;
+  energyVariance: number;
+  energyPeaks: number;
+
+  // Rhythm/Rate features
+  speechRate: number;
+  pauseDuration: number;
+  pauseFrequency: number;
+
+  // Voice quality
+  jitter: number;
+  shimmer: number;
+  breathiness: number;
+  voiceQuality?: 'clear' | 'breathy' | 'strained' | 'trembling';
+
+  // Timing
+  utteranceDuration: number;
+  speakingRatio: number;
+}
 
 // ============================================================================
 // TYPES

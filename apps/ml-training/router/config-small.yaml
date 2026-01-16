@@ -1,0 +1,67 @@
+# Ferni Router Model Training Configuration (Small - for Mac MPS)
+
+# Model settings - Using smaller Qwen 0.5B for Mac compatibility
+model:
+  base_model: "Qwen/Qwen2.5-0.5B"
+  task: "multi_label_classification"
+  num_labels: 150  # Max number of tools (will be set dynamically)
+  
+# LoRA configuration
+lora:
+  r: 8
+  lora_alpha: 16
+  target_modules:
+    - "q_proj"
+    - "k_proj"
+    - "v_proj"
+    - "o_proj"
+  lora_dropout: 0.1
+  bias: "none"
+  task_type: "SEQ_CLS"
+
+# Training hyperparameters - Reduced for Mac MPS
+training:
+  learning_rate: 2.0e-5
+  num_train_epochs: 3
+  per_device_train_batch_size: 2
+  per_device_eval_batch_size: 4
+  gradient_accumulation_steps: 8
+  warmup_ratio: 0.1
+  weight_decay: 0.01
+  max_grad_norm: 1.0
+  lr_scheduler_type: "cosine"
+  
+  # Evaluation
+  eval_strategy: "steps"
+  eval_steps: 200
+  save_strategy: "steps"
+  save_steps: 400
+  save_total_limit: 2
+  load_best_model_at_end: true
+  metric_for_best_model: "f1"
+  greater_is_better: true
+  
+  # Performance - Disabled fp16 for MPS
+  fp16: false
+  dataloader_num_workers: 0
+  
+# Data settings - Reduced max length
+data:
+  max_length: 256
+  pad_to_max_length: false
+  train_file: "data/train.jsonl"
+  validation_file: "data/validation.jsonl"
+  test_file: "data/test.jsonl"
+
+# Output settings
+output:
+  output_dir: "outputs/ferni-router-small"
+  logging_dir: "logs"
+  report_to: "tensorboard"
+
+# ONNX export settings
+onnx:
+  export: true
+  opset_version: 14
+  optimize: true
+  quantize: false

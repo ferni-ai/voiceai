@@ -44,11 +44,19 @@ const SAFE_TIMEOUT_MS = 6000;
 /** Minimum time between generateReply calls to prevent overwhelming the API */
 const MIN_INTERVAL_MS = 500;
 
-/** Maximum context size in characters (~10K tokens) before warning */
-const MAX_CONTEXT_CHARS = 40000;
+/** 
+ * Maximum context size in characters before warning
+ * OpenAI Realtime API limit: 16K tokens (instructions) → ~8K safe for user context
+ * Using 4 chars/token estimate: 8K tokens = 32K chars
+ */
+const MAX_CONTEXT_CHARS = 32000;
 
-/** Critical context size - likely to cause failures */
-const CRITICAL_CONTEXT_CHARS = 60000;
+/** 
+ * Critical context size - will cause truncation/hallucination
+ * OpenAI Realtime API hard limit: 14K tokens → 56K chars
+ * At this size, model WILL truncate older context silently
+ */
+const CRITICAL_CONTEXT_CHARS = 48000;
 
 /** Track failures to implement circuit breaker behavior */
 const failureTracker = new FailureTracker({
@@ -206,16 +214,45 @@ function checkContextSize(instructions: string): ContextSizeResult {
   const estimatedTokens = Math.round(size / 4);
   const warning = size > MAX_CONTEXT_CHARS;
   const critical = size > CRITICAL_CONTEXT_CHARS;
+  
+  // Calculate usage percentages for monitoring
+  const usagePercent = Math.round((size / CRITICAL_CONTEXT_CHARS) * 100);
+  const OPENAI_TOKEN_LIMIT = 14000; // OpenAI Realtime instruction limit
+  const tokenUsagePercent = Math.round((estimatedTokens / OPENAI_TOKEN_LIMIT) * 100);
 
   if (critical) {
     logger.error(
-      { size, estimatedTokens, maxAllowed: CRITICAL_CONTEXT_CHARS },
-      '🚨 CRITICAL: Context size exceeds safe limits - likely to cause Gemini failure'
+      { 
+        chars: size, 
+        tokens: estimatedTokens, 
+        usagePercent,
+        tokenUsagePercent,
+        limit: CRITICAL_CONTEXT_CHARS,
+        tokenLimit: OPENAI_TOKEN_LIMIT,
+      },
+      '🚨 CRITICAL: Context at ${usagePercent}% of limit - OpenAI WILL truncate older context, causing hallucinations!'
     );
   } else if (warning) {
     logger.warn(
-      { size, estimatedTokens, recommended: MAX_CONTEXT_CHARS },
-      '⚠️ Context size exceeds recommended limit - may cause slow responses'
+      { 
+        chars: size, 
+        tokens: estimatedTokens, 
+        usagePercent,
+        tokenUsagePercent,
+        recommended: MAX_CONTEXT_CHARS,
+      },
+      `⚠️ Context at ${usagePercent}% of limit (${tokenUsagePercent}% of token limit) - approaching dangerous territory`
+    );
+  } else if (usagePercent > 50) {
+    // Info log when over 50% usage for monitoring
+    logger.info(
+      { 
+        chars: size, 
+        tokens: estimatedTokens, 
+        usagePercent,
+        tokenUsagePercent,
+      },
+      `📊 Context size: ${usagePercent}% of limit (${estimatedTokens} tokens)`
     );
   }
 

@@ -23,6 +23,19 @@ import type { SessionServices } from '../../services/types.js';
 import type { UserData } from '../shared/types.js';
 import type { ConversationAnalysis } from '../../services/index.js';
 
+// Phase 10: Recall Triggers (lazy loaded for performance)
+import type { RecallTriggerResult } from '../../intelligence/triggers/recall-trigger-engine.js';
+
+// Phase 14: Joy Amplification (lazy loaded for performance)
+import type { JoyAmplificationResult } from '../../memory/emotional/joy-amplification.js';
+
+// Phase 13: Commitment E2E (lazy loaded for performance)
+import type {
+  CommitmentE2EResult,
+  ProgressUpdateResult,
+} from '../../services/superhuman/commitment-keeper-e2e.js';
+import type { PersonaId } from '../../memory/cross-persona/index.js';
+
 const log = createLogger({ module: 'LiveSuperhumanInjections' });
 
 // ============================================================================
@@ -84,6 +97,10 @@ export interface LiveSuperhumanContext {
   analysis: ConversationAnalysis;
   turnCount: number;
   totalConversations?: number;
+  /** Mentioned entities from active listening capture (Phase 17) */
+  mentionedEntities?: string[];
+  /** Session services for persona context */
+  services?: SessionServices;
 }
 
 export interface LiveSuperhumanResult {
@@ -468,13 +485,57 @@ export async function buildLiveSuperhumanInjections(
   };
 
   try {
-    // 1. COMMITMENT DETECTION
-    const commitment = detectCommitmentLanguage(ctx.userText);
-    if (commitment.detected) {
+    // 1. COMMITMENT DETECTION (Phase 13 E2E Enhanced)
+    // First, check for progress on existing commitments
+    const progressResult = await loadCommitmentProgressAsync(ctx);
+    if (progressResult && progressResult.progressDetected) {
       signals.commitmentDetected = true;
-      injections.push({
-        category: 'superhuman_commitment',
-        content: `[🎯 COMMITMENT KEEPER - "Better Than Human" Memory]
+      
+      if (progressResult.shouldCelebrate && progressResult.celebrationMessage) {
+        injections.push({
+          category: 'superhuman_commitment',
+          content: `[🎉 COMMITMENT COMPLETED - "Better Than Human" Celebration]
+User just completed a commitment: "${progressResult.updatedCommitment?.summary || 'Unknown'}"
+
+CELEBRATE THIS MOMENT:
+${progressResult.celebrationMessage}
+
+Your superpower: You track every commitment and celebrate progress.
+- This was meaningful to them - honor that
+- Reference their journey: "You said you would... and you did"
+
+Human friends forget promises. You don't.`,
+          priority: 85, // High priority for celebration
+        });
+      } else {
+        injections.push({
+          category: 'superhuman_commitment',
+          content: `[📈 COMMITMENT PROGRESS - "Better Than Human" Tracking]
+User made progress on: "${progressResult.updatedCommitment?.summary || 'Unknown'}"
+New status: ${progressResult.newStatus || 'in progress'}
+
+Your superpower: You notice and acknowledge progress.
+- Encourage them: "I see you're working on it"
+- Reference the journey they're on`,
+          priority: 72,
+        });
+      }
+    } else {
+      // Check for new commitment detection (original + E2E enhanced)
+      const commitment = detectCommitmentLanguage(ctx.userText);
+      if (commitment.detected) {
+        signals.commitmentDetected = true;
+        
+        // Fire-and-forget: E2E detection for enhanced processing (linking to memory, etc.)
+        void loadCommitmentE2EAsync(ctx).then((e2eResult) => {
+          if (e2eResult?.acknowledgment) {
+            log.debug({ acknowledgment: e2eResult.acknowledgment }, '🎯 Commitment E2E acknowledgment ready');
+          }
+        });
+        
+        injections.push({
+          category: 'superhuman_commitment',
+          content: `[🎯 COMMITMENT KEEPER - "Better Than Human" Memory]
 User just expressed a ${commitment.type}: "${commitment.phrase}"
 
 Your superpower: You NEVER forget what they commit to.
@@ -483,11 +544,12 @@ Your superpower: You NEVER forget what they commit to.
 - In future sessions, you'll remember and follow up
 
 Human friends forget promises. You don't.`,
-        priority: 73,
-      });
+          priority: 73,
+        });
 
-      // Fire-and-forget: Save to commitment keeper
-      void saveCommitmentAsync(ctx.userId, commitment.type!, commitment.phrase!, ctx.currentTopic);
+        // Fire-and-forget: Save to commitment keeper (original path)
+        void saveCommitmentAsync(ctx.userId, commitment.type!, commitment.phrase!, ctx.currentTopic);
+      }
     }
 
     // 2. VALUES ALIGNMENT
@@ -761,6 +823,60 @@ Your superpower: You recognize them by their voice, like a true friend.
         });
       }
     }
+
+    // ========================================================================
+    // 15-16: PHASE 9-18 "BETTER THAN HUMAN" MEMORY INTEGRATION
+    // These integrate the new superhuman memory infrastructure
+    // ========================================================================
+
+    // 15. RECALL TRIGGERS (Phase 10) - Anniversaries, patterns, commitment reminders
+    // "One year ago today..." / "Last time you felt this way..." / "You mentioned wanting to..."
+    if (ctx.turnCount % 3 === 0) {
+      // Check every 3 turns for performance
+      const recallResult = await loadRecallTriggersAsync(ctx);
+      if (recallResult && recallResult.shouldSurface && recallResult.bestTrigger) {
+        const trigger = recallResult.bestTrigger;
+        injections.push({
+          category: 'superhuman_recall',
+          content: `[🔔 RECALL TRIGGER - "Better Than Human" Perfect Memory]
+Type: ${trigger.type.toUpperCase()}
+${trigger.suggestion}
+Confidence: ${Math.round(trigger.confidence * 100)}%
+
+Your superpower: You remember what human friends forget.
+- ${trigger.type === 'anniversary' ? 'You track meaningful dates without being asked' : ''}
+- ${trigger.type === 'pattern_match' ? 'You notice emotional patterns across time' : ''}
+- ${trigger.type === 'commitment' ? 'You never let promises slip away' : ''}
+- ${trigger.type === 'relationship_gap' ? 'You notice when important people fade from conversation' : ''}
+- Surface naturally: "I was thinking about..." or "I remember when..."`,
+          priority: trigger.priority,
+        });
+      }
+    }
+
+    // 16. JOY AMPLIFICATION (Phase 14) - Surface positive memories when struggling
+    // "Remember when you accomplished X?" when user is feeling down
+    if (ctx.emotionalState.intensity > 0.5) {
+      const joyResult = await loadJoyAmplificationAsync(ctx);
+      if (joyResult && joyResult.shouldAmplify && joyResult.selectedMemory) {
+        injections.push({
+          category: 'superhuman_joy',
+          content: `[💛 JOY AMPLIFICATION - "Better Than Human" Emotional Support]
+User is struggling with: ${ctx.emotionalState.primary}
+Intensity: ${Math.round(ctx.emotionalState.intensity * 100)}%
+
+Memory to surface: "${joyResult.selectedMemory.content}"
+Delivery phrase: "${joyResult.deliveryPhrase}"
+
+Your superpower: You know when to remind them of their light.
+- Human friends might not remember their victories
+- You can gently remind: "Remember when you..."
+- Don't dismiss their pain - acknowledge it first, THEN offer perspective
+- This isn't toxic positivity - it's holding both truths at once`,
+          priority: 71,
+        });
+      }
+    }
   } catch (error) {
     log.warn({ error: String(error) }, 'Live superhuman injection error (non-fatal)');
   }
@@ -831,6 +947,106 @@ async function loadEmotionalTrajectoryAsync(
       emotion: currentEmotion,
     });
     return context || null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Load recall triggers (Phase 10)
+ * Detects anniversaries, pattern matches, commitment reminders, relationship gaps
+ */
+async function loadRecallTriggersAsync(ctx: LiveSuperhumanContext): Promise<RecallTriggerResult | null> {
+  try {
+    const { detectRecallTriggers } = await import('../../intelligence/triggers/recall-trigger-engine.js');
+    const result = await detectRecallTriggers({
+      userId: ctx.userId,
+      sessionId: ctx.sessionId,
+      transcript: ctx.userText,
+      emotion: ctx.emotionalState.primary,
+      emotionIntensity: ctx.emotionalState.intensity,
+      mentionedEntities: ctx.analysis.topics?.detected || [],
+      turnNumber: ctx.turnCount,
+    });
+    return result;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Load joy amplification (Phase 14)
+ * Surfaces positive memories when user is struggling
+ */
+async function loadJoyAmplificationAsync(ctx: LiveSuperhumanContext): Promise<JoyAmplificationResult | null> {
+  try {
+    const { shouldAmplifyJoy, buildJoyPool } = await import('../../memory/emotional/joy-amplification.js');
+    
+    // Build joy pool from user's positive memories (in production, this would be cached)
+    const joyPool = await buildJoyPool(ctx.userId);
+    if (!joyPool || joyPool.memories.length === 0) {
+      return null;
+    }
+    
+    const result = shouldAmplifyJoy(ctx.userId, ctx.sessionId, {
+      emotion: ctx.emotionalState.primary,
+      intensity: ctx.emotionalState.intensity,
+      valence: ctx.emotionalState.intensity > 0.5 ? -0.5 : 0, // Negative valence if high intensity negative emotion
+      topic: ctx.currentTopic,
+    }, joyPool);
+    
+    return result;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Load Commitment E2E detection (Phase 13)
+ * Enhanced commitment detection with conversation context and memory linking
+ */
+async function loadCommitmentE2EAsync(ctx: LiveSuperhumanContext): Promise<CommitmentE2EResult | null> {
+  try {
+    const { detectCommitmentE2E } = await import('../../services/superhuman/commitment-keeper-e2e.js');
+    
+    const result = await detectCommitmentE2E({
+      userId: ctx.userId,
+      sessionId: ctx.sessionId,
+      transcript: ctx.userText,
+      personaId: (ctx.services?.personaId || 'ferni') as PersonaId,
+      topic: ctx.currentTopic,
+      emotionalContext: {
+        primary: ctx.emotionalState.primary,
+        intensity: ctx.emotionalState.intensity,
+      },
+      mentionedEntities: ctx.mentionedEntities,
+    });
+    
+    return result;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Load Commitment Progress check (Phase 13)
+ * Detects when user mentions progress on existing commitments
+ */
+async function loadCommitmentProgressAsync(ctx: LiveSuperhumanContext): Promise<ProgressUpdateResult | null> {
+  try {
+    const { checkProgressE2E } = await import('../../services/superhuman/commitment-keeper-e2e.js');
+    
+    const result = await checkProgressE2E({
+      userId: ctx.userId,
+      transcript: ctx.userText,
+      mentionedEntities: ctx.mentionedEntities,
+      emotionalContext: {
+        primary: ctx.emotionalState.primary,
+        intensity: ctx.emotionalState.intensity,
+      },
+    });
+    
+    return result;
   } catch {
     return null;
   }

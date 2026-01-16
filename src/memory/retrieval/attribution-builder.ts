@@ -61,12 +61,7 @@ export interface AttributionInput {
 // ============================================================================
 
 const CONFIDENCE_PREFIXES: Record<ConfidenceLevel, string[]> = {
-  high: [
-    'You told me',
-    'You mentioned',
-    'You said',
-    'You shared',
-  ],
+  high: ['You told me', 'You mentioned', 'You said', 'You shared'],
   medium: [
     'I remember you saying',
     'I recall you mentioning',
@@ -82,7 +77,7 @@ const CONFIDENCE_PREFIXES: Record<ConfidenceLevel, string[]> = {
   uncertain: [
     'I may be misremembering, but',
     "I'm not entirely sure, but",
-    'Correct me if I\'m wrong, but',
+    "Correct me if I'm wrong, but",
     'I have a vague memory of',
   ],
 };
@@ -302,8 +297,8 @@ export function buildCorrectionAcknowledgment(
 ): string {
   const acknowledgments = [
     "Thank you for the correction. I've updated my notes.",
-    "Got it - thanks for setting me straight!",
-    "Ah, my mistake. Thanks for correcting me.",
+    'Got it - thanks for setting me straight!',
+    'Ah, my mistake. Thanks for correcting me.',
     "I appreciate the correction - I'll remember that.",
   ];
 
@@ -323,8 +318,8 @@ export function buildDisputeResponse(): string {
   const responses = [
     "I'm sorry, I must have gotten that wrong. Thanks for letting me know.",
     "Oh, my apologies! I'll make sure not to bring that up again.",
-    "Thanks for the correction - I must have misremembered.",
-    "I appreciate you setting me straight on that.",
+    'Thanks for the correction - I must have misremembered.',
+    'I appreciate you setting me straight on that.',
   ];
 
   return responses[Math.floor(Math.random() * responses.length)];
@@ -337,8 +332,6 @@ export function buildDisputeResponse(): string {
 /**
  * Build attributions for multiple memories
  */
-export function buildBatchAttributions(
-  inputs: AttributionInput[]
-): MemoryAttribution[] {
+export function buildBatchAttributions(inputs: AttributionInput[]): MemoryAttribution[] {
   return inputs.map((input) => buildAttribution(input));
 }

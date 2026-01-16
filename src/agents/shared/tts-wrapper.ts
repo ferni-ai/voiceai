@@ -22,7 +22,7 @@ import {
 } from 'node:stream/web';
 
 import { createLogger, truncateForLog } from '../../utils/safe-logger.js';
-import { createSanitizerWithMusicFallback } from './tool-call-sanitizer.js';
+import { createSanitizerWithMusicFallback } from './sanitizer/index.js';
 import { finops } from '../../services/observability/finops.js';
 import { GEMINI_MODEL } from '../../config/gemini-config.js';
 import { createInterruptAwareTransform } from '../../speech/graceful-interrupt/speech-wrapper.js';
@@ -570,11 +570,11 @@ export async function wrappedTtsNode(
       userLocation,
     };
 
-    const sanitizerWithFallback = createSanitizerWithMusicFallback(
+    const sanitizerWithFallback = createSanitizerWithMusicFallback({
       toolContext,
-      options.session,
-      sessionId
-    );
+      session: options.session,
+      sessionId,
+    });
 
     // Pipe: Raw LLM → Logger → Sanitizer
     filteredText = text.pipeThrough(rawLLMLogger).pipeThrough(sanitizerWithFallback);

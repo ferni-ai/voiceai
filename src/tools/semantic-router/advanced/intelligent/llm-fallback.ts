@@ -18,6 +18,8 @@ import {
   GEMINI_TEMPERATURE_LOW,
   GEMINI_MAX_OUTPUT_TOKENS_SHORT,
   LLM_TIMEOUT_MS,
+  getEvaluationModel,
+  getOpenAIFallbackModel,
 } from '../../../../config/gemini-config.js';
 import type { ToolMatch, SemanticRouterResult } from '../../types.js';
 
@@ -77,7 +79,7 @@ const DEFAULT_CONFIG: LLMFallbackConfig = {
   uncertaintyThreshold: 0.35, // If uncertainty > 35%, use LLM
   confidenceGapThreshold: 0.12, // If top 2 tools within 12%, use LLM
   maxCandidates: 8,
-  model: 'gemini-2.0-flash',
+  model: getEvaluationModel() as 'gemini-2.0-flash' | 'gpt-4o-mini' | 'claude-3-haiku',
   includeReasoning: true,
   timeoutMs: 3000,
 };
@@ -470,8 +472,9 @@ export function createGeminiProvider(apiKey: string): LLMProvider {
  * Config values from centralized gemini-config.ts (for consistency)
  */
 export function createOpenAIProvider(apiKey: string): LLMProvider {
+  const openAIModel = getOpenAIFallbackModel();
   return {
-    model: 'gpt-4o-mini',
+    model: openAIModel,
     async generate(prompt: string): Promise<string> {
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
@@ -480,7 +483,7 @@ export function createOpenAIProvider(apiKey: string): LLMProvider {
           Authorization: `Bearer ${apiKey}`,
         },
         body: JSON.stringify({
-          model: 'gpt-4o-mini',
+          model: openAIModel,
           messages: [{ role: 'user', content: prompt }],
           temperature: GEMINI_TEMPERATURE_LOW,
           max_tokens: GEMINI_MAX_OUTPUT_TOKENS_SHORT,

@@ -31,6 +31,8 @@ import {
   analyzeGoalTrajectory,
   buildCalendarResearchContext,
 } from './data-fetchers.js';
+// Cross-Domain: CEO Coaching for pending decisions
+import { getPendingDecisions } from '../../../../tools/domains/ceo-coaching/storage.js';
 import {
   computeBehavioralMetrics,
   analyzePersonalLifePatterns,
@@ -80,7 +82,7 @@ async function buildInsightBriefing(
     memoryHealth: null,
   };
 
-  // Parallel fetch from all data sources + calendar context
+  // Parallel fetch from all data sources + calendar context + CEO coaching
   // 🐛 FIX: Each promise has its own catch to prevent one failure from crashing all
   const [
     spendingInsights,
@@ -89,6 +91,7 @@ async function buildInsightBriefing(
     moodPatterns,
     memoryInsights,
     calendarContext,
+    ceoPendingDecisions, // Cross-Domain: CEO Coaching
   ] = await Promise.all([
     analyzeSpendingPatterns(userId).catch((e) => {
       log.warn({ error: String(e) }, 'Failed to analyze spending patterns');
@@ -111,6 +114,8 @@ async function buildInsightBriefing(
       return defaultMemoryInsights;
     }),
     buildCalendarResearchContext(userId).catch(() => null),
+    // Cross-Domain: CEO Coaching - Peter helps analyze pending decisions
+    getPendingDecisions(userId).catch(() => []),
   ]);
 
   const crossDomainPatterns = generateCrossDomainPatterns();
@@ -119,7 +124,12 @@ async function buildInsightBriefing(
   const financialDeepInsights = generateDeepFinancialInsights();
 
   // Detect proactive coaching triggers (sync, based on already-fetched data)
-  const proactiveCoachingInsights = detectProactiveCoachingInsights(userId, mayaInsights);
+  // Cross-Domain: Include CEO decisions for Peter's analytical support
+  const proactiveCoachingInsights = detectProactiveCoachingInsights(
+    userId,
+    mayaInsights,
+    ceoPendingDecisions // CEO Coaching: Pending decisions Peter can help analyze
+  );
 
   // Compute behavioral metrics from cross-team data
   const behavioralMetrics = computeBehavioralMetrics(mayaInsights, moodPatterns, spendingInsights);

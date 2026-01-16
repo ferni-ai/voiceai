@@ -105,6 +105,13 @@ import {
 // Redis cache for real-time state (emotional state, voice biomarkers)
 import { getRedisCache } from '../../memory/redis-cache.js';
 
+// Phase 11: Voice-Memory Integration - record prosody signals with memories
+import {
+  recordVoiceContext,
+  calculateEmotionalWeight as calculateVoiceEmotionalWeight,
+  type VoiceContext,
+} from '../integrations/voice-memory-integration.js';
+
 // Note: Live superhuman injections are handled by the turn-processor pipeline
 // via src/agents/processors/live-superhuman-injections.ts
 // No need to duplicate here - the processor runs those injections
@@ -443,6 +450,48 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
 
     // Get adaptive timeouts based on session performance
     const adaptiveTimeouts = getAdaptiveTimeouts(services.sessionId);
+
+    // ================================================================
+    // 🎤 PHASE 11: VOICE-MEMORY INTEGRATION
+    // Record voice context with prosody signals for emotional memory weighting
+    // "Better Than Human" - memories tied to how they sounded, not just what they said
+    // ================================================================
+    if (services.userId && ctx.voiceEmotion) {
+      try {
+        const voiceContext: VoiceContext = {
+          sessionId: services.sessionId,
+          userId: services.userId,
+          turnNumber,
+          prosody: undefined, // Prosody features would come from audio analysis
+          voiceEmotion: {
+            primary: ctx.voiceEmotion.primary,
+            confidence: ctx.voiceEmotion.confidence,
+            arousal: ctx.voiceEmotion.arousal,
+            valence: ctx.voiceEmotion.valence,
+          },
+          textEmotion: userData.lastEmotionAnalysis
+            ? {
+                primary: userData.lastEmotionAnalysis.primary,
+                intensity: userData.lastEmotionAnalysis.intensity,
+              }
+            : undefined,
+          timestamp: new Date(),
+        };
+
+        recordVoiceContext(voiceContext);
+
+        // Calculate emotional weight for this turn's memories
+        const emotionalWeight = calculateVoiceEmotionalWeight(voiceContext);
+        if (emotionalWeight.voiceModifier !== 1.0) {
+          diag.state('🎤 Voice-memory: Emotional weighting applied', {
+            factors: emotionalWeight.factors,
+            modifier: emotionalWeight.voiceModifier.toFixed(2),
+          });
+        }
+      } catch {
+        // Voice-memory integration is non-critical
+      }
+    }
 
     // ================================================================
     // ⚡ PREDICTIVE TOOL PRELOAD: Start preloading likely tools immediately
