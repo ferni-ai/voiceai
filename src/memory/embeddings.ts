@@ -593,8 +593,18 @@ export async function embedBatch(texts: string[]): Promise<number[][]> {
   // Generate embeddings for unique texts
   const uniqueEmbeddings = await getEmbeddingProvider().embedBatch(uniqueTexts);
 
-  // Map back to original order
-  return originalToUnique.map((uniqueIndex) => uniqueEmbeddings[uniqueIndex]);
+  // Map back to original order, cloning arrays for duplicates to prevent
+  // mutation bugs (if caller modifies their array, it shouldn't affect others)
+  const usedIndices = new Set<number>();
+  return originalToUnique.map((uniqueIndex) => {
+    const embedding = uniqueEmbeddings[uniqueIndex];
+    if (usedIndices.has(uniqueIndex)) {
+      // Clone for duplicates to prevent shared mutation
+      return [...embedding];
+    }
+    usedIndices.add(uniqueIndex);
+    return embedding;
+  });
 }
 
 /**

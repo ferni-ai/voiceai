@@ -120,28 +120,41 @@ describe('Request Coalescer Edge Cases', () => {
   });
 });
 
-describe('embedBatch Mutation Bug', () => {
-  it('BUG: Duplicate entries share same array reference - mutation affects all', async () => {
+describe('embedBatch Mutation Safety', () => {
+  it('FIXED: Duplicate entries are cloned - mutation does not affect others', async () => {
     // This tests the embedBatch deduplication in embeddings.ts
-    // When duplicates are found, they all point to the same embedding array
+    // When duplicates are found, they should be cloned to prevent mutation bugs
 
-    // Simulate what embedBatch does internally
+    // Simulate what embedBatch NOW does internally (with fix)
     const uniqueEmbeddings = [[1, 2, 3]]; // One unique embedding
     const originalToUnique = [0, 0, 0]; // Three references to same embedding
 
-    // Map back (this is what embedBatch does)
-    const results = originalToUnique.map((idx) => uniqueEmbeddings[idx]);
+    // Map back WITH cloning for duplicates (the fix)
+    const usedIndices = new Set<number>();
+    const results = originalToUnique.map((uniqueIndex) => {
+      const embedding = uniqueEmbeddings[uniqueIndex];
+      if (usedIndices.has(uniqueIndex)) {
+        return [...embedding]; // Clone for duplicates
+      }
+      usedIndices.add(uniqueIndex);
+      return embedding;
+    });
 
-    // All three results point to the SAME array
-    expect(results[0]).toBe(results[1]);
-    expect(results[1]).toBe(results[2]);
+    // First result is the original, others are clones
+    expect(results[0]).toBe(uniqueEmbeddings[0]); // Original
+    expect(results[1]).not.toBe(results[0]); // Clone
+    expect(results[2]).not.toBe(results[0]); // Clone
+
+    // But they have the same values
+    expect(results[0]).toEqual(results[1]);
+    expect(results[1]).toEqual(results[2]);
 
     // If any caller mutates their result...
     results[0][0] = 999;
 
-    // ...ALL callers see the mutation!
-    expect(results[1][0]).toBe(999); // BUG: Unexpected mutation
-    expect(results[2][0]).toBe(999); // BUG: Unexpected mutation
+    // ...other callers are NOT affected!
+    expect(results[1][0]).toBe(1); // FIXED: Not mutated
+    expect(results[2][0]).toBe(1); // FIXED: Not mutated
   });
 });
 

@@ -180,6 +180,25 @@ describe('Embedding Coalescing Integration', () => {
       expect(results).toHaveLength(1);
       expect(batchApiCallCount).toBe(1);
     });
+
+    it('should clone duplicate embeddings to prevent mutation bugs', async () => {
+      const texts = ['same text', 'same text', 'same text'];
+      const results = await embedBatch(texts);
+
+      // All results should have equal values
+      expect(results[0]).toEqual(results[1]);
+      expect(results[1]).toEqual(results[2]);
+
+      // But duplicates should be different array instances
+      expect(results[0]).not.toBe(results[1]);
+      expect(results[1]).not.toBe(results[2]);
+
+      // Mutating one should not affect others
+      const originalValue = results[1][0];
+      results[0][0] = 999999;
+      expect(results[1][0]).toBe(originalValue);
+      expect(results[2][0]).toBe(originalValue);
+    });
   });
 
   describe('Error handling', () => {
