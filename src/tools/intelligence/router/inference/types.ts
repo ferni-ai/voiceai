@@ -113,9 +113,9 @@ export interface RouterModelHealth {
 // ============================================================================
 
 export const DEFAULT_ROUTER_CONFIG: RouterModelConfig = {
-  modelPath: 'models/ferni-router.onnx',
-  tokenizerPath: 'models/ferni-router-tokenizer',
-  labelMapPath: 'models/label_map.json',
+  modelPath: 'models/ferni-router-758/model.onnx',
+  tokenizerPath: 'models/ferni-router-758',
+  labelMapPath: 'models/ferni-router-758/label_map.json',
   maxLength: 256, // Trained with 256 token context
   confidenceThreshold: 0.7,
   topK: 10,
