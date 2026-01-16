@@ -289,3 +289,14 @@ apps/rust-perf/target/
 
 # ML Training (large model files)
 apps/ml-training/
+
+# Models directory (ONNX models, 3.7GB)
+models/
+
+# Python virtual environments
+.venv/
+.venv*/
+**/.venv/
+**/.venv*/
+*.pyc
+__pycache__/
