@@ -156,7 +156,10 @@ export const CACHE_TTL_LONG_MS = parseInt(process.env.CACHE_TTL_LONG_MS || '3600
  * Use for: Near-static data, embeddings
  * Default: 86400000ms (24 hours)
  */
-export const CACHE_TTL_VERY_LONG_MS = parseInt(process.env.CACHE_TTL_VERY_LONG_MS || '86400000', 10);
+export const CACHE_TTL_VERY_LONG_MS = parseInt(
+  process.env.CACHE_TTL_VERY_LONG_MS || '86400000',
+  10
+);
 
 // ============================================================================
 // RATE LIMIT CONFIGURATION
@@ -189,10 +192,7 @@ export const RATE_LIMIT_STRICT_MAX = parseInt(process.env.RATE_LIMIT_STRICT_MAX 
  * Number of failures before opening circuit
  * Default: 5
  */
-export const CIRCUIT_FAILURE_THRESHOLD = parseInt(
-  process.env.CIRCUIT_FAILURE_THRESHOLD || '5',
-  10
-);
+export const CIRCUIT_FAILURE_THRESHOLD = parseInt(process.env.CIRCUIT_FAILURE_THRESHOLD || '5', 10);
 
 /**
  * Circuit breaker reset timeout (ms)
@@ -209,10 +209,7 @@ export const CIRCUIT_RESET_TIMEOUT_MS = parseInt(
  * Successes needed to close circuit
  * Default: 2
  */
-export const CIRCUIT_SUCCESS_THRESHOLD = parseInt(
-  process.env.CIRCUIT_SUCCESS_THRESHOLD || '2',
-  10
-);
+export const CIRCUIT_SUCCESS_THRESHOLD = parseInt(process.env.CIRCUIT_SUCCESS_THRESHOLD || '2', 10);
 
 // ============================================================================
 // GETTER FUNCTIONS

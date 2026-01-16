@@ -23,7 +23,11 @@ import {
   MAX_TOKENS_MEDIUM,
   LLM_TIMEOUT_MS,
 } from '../config/gemini-config.js';
-import { CIRCUIT_FAILURE_THRESHOLD, CIRCUIT_RESET_TIMEOUT_MS, CIRCUIT_SUCCESS_THRESHOLD } from '../config/resilience-config.js';
+import {
+  CIRCUIT_FAILURE_THRESHOLD,
+  CIRCUIT_RESET_TIMEOUT_MS,
+  CIRCUIT_SUCCESS_THRESHOLD,
+} from '../config/resilience-config.js';
 import { CircuitOpenError, getCircuitBreaker } from '../utils/circuit-breaker.js';
 import { getLogger } from '../utils/safe-logger.js';
 
@@ -137,7 +141,11 @@ async function callVertexAI(prompt: string, options: LLMCallOptions = {}): Promi
       return null;
     }
 
-    const { maxTokens = MAX_TOKENS_MEDIUM, temperature = TEMP_EXTRACTION, timeout = LLM_TIMEOUT_MS } = options;
+    const {
+      maxTokens = MAX_TOKENS_MEDIUM,
+      temperature = TEMP_EXTRACTION,
+      timeout = LLM_TIMEOUT_MS,
+    } = options;
 
     // Use AbortController for timeout
     // eslint-disable-next-line no-undef
@@ -210,7 +218,11 @@ async function callGeminiAPI(prompt: string, options: LLMCallOptions = {}): Prom
       return null;
     }
 
-    const { maxTokens = MAX_TOKENS_MEDIUM, temperature = TEMP_EXTRACTION, timeout = LLM_TIMEOUT_MS } = options;
+    const {
+      maxTokens = MAX_TOKENS_MEDIUM,
+      temperature = TEMP_EXTRACTION,
+      timeout = LLM_TIMEOUT_MS,
+    } = options;
 
     // Use AbortController for timeout
     // eslint-disable-next-line no-undef

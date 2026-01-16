@@ -108,7 +108,7 @@ export class TrainingDataAugmenter {
 
     // Start with existing example queries if available
     const seedQueries = tool.exampleQueries || [];
-    
+
     // Generate from description if no seed queries
     if (seedQueries.length === 0) {
       const generatedQueries = await this.generateQueriesFromDescription(tool);
@@ -153,8 +153,11 @@ Output as a JSON array of strings:
       const response = await this.callLLM(prompt);
       return this.parseQueryArray(response);
     } catch (error) {
-      log.debug({ tool: tool.id, error: String(error) }, 'Failed to generate queries from description');
-      
+      log.debug(
+        { tool: tool.id, error: String(error) },
+        'Failed to generate queries from description'
+      );
+
       // Fallback: generate basic queries from name/description
       return [
         `${tool.name.toLowerCase()}`,
@@ -192,7 +195,7 @@ Output as a JSON array of strings:
    */
   private async generateMultiToolExamples(tools: ToolDefinition[]): Promise<TrainingExample[]> {
     const examples: TrainingExample[] = [];
-    
+
     // Find commonly co-occurring tool pairs
     const toolPairs = this.findCommonToolPairs(tools);
 
@@ -203,7 +206,10 @@ Output as a JSON array of strings:
           examples.push(this.createExample(query, [pair[0].id, pair[1].id]));
         }
       } catch (error) {
-        log.debug({ pair: pair.map((t) => t.id), error: String(error) }, 'Failed to generate multi-tool query');
+        log.debug(
+          { pair: pair.map((t) => t.id), error: String(error) },
+          'Failed to generate multi-tool query'
+        );
       }
     }
 
@@ -271,7 +277,7 @@ Output only the query string, no quotes.`;
 
     const wordIndex = Math.floor(Math.random() * words.length);
     const word = words[wordIndex];
-    
+
     if (word.length < 3) return query;
 
     // Choose a typo type
@@ -301,9 +307,29 @@ Output only the query string, no quotes.`;
         {
           const i = Math.floor(Math.random() * word.length);
           const adjacentKeys: Record<string, string> = {
-            a: 's', s: 'd', d: 'f', f: 'g', g: 'h', h: 'j', j: 'k', k: 'l',
-            q: 'w', w: 'e', e: 'r', r: 't', t: 'y', y: 'u', u: 'i', i: 'o', o: 'p',
-            z: 'x', x: 'c', c: 'v', v: 'b', b: 'n', n: 'm',
+            a: 's',
+            s: 'd',
+            d: 'f',
+            f: 'g',
+            g: 'h',
+            h: 'j',
+            j: 'k',
+            k: 'l',
+            q: 'w',
+            w: 'e',
+            e: 'r',
+            r: 't',
+            t: 'y',
+            y: 'u',
+            u: 'i',
+            i: 'o',
+            o: 'p',
+            z: 'x',
+            x: 'c',
+            c: 'v',
+            v: 'b',
+            b: 'n',
+            n: 'm',
           };
           const char = word[i].toLowerCase();
           const replacement = adjacentKeys[char] || char;
@@ -392,8 +418,8 @@ Output only the query string, no quotes.`;
   /**
    * Find commonly co-occurring tool pairs
    */
-  private findCommonToolPairs(tools: ToolDefinition[]): [ToolDefinition, ToolDefinition][] {
-    const pairs: [ToolDefinition, ToolDefinition][] = [];
+  private findCommonToolPairs(tools: ToolDefinition[]): Array<[ToolDefinition, ToolDefinition]> {
+    const pairs: Array<[ToolDefinition, ToolDefinition]> = [];
 
     // Group tools by domain for more likely co-occurrence
     const domainGroups = new Map<string, ToolDefinition[]>();

@@ -11,7 +11,7 @@
  * @see docs/architecture/DYNAMIC-MEMORY-ARCHITECTURE.md
  */
 
-import { AsyncEvents } from '../../services/async-events/index.js';
+import { safeOnEvent } from './async-events-config.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import type { 
   EntityMention, 
@@ -204,13 +204,16 @@ export class DeepExtractionWorker {
   }
 
   private setupEventListener(): void {
-    // Listen for deep extraction events
-    // Using 'as never' to bypass strict event type checking
-    AsyncEvents.on('memory:deep-extraction' as never, (job: unknown) => {
+    // Listen for deep extraction events via DI wrapper (avoids layer violation)
+    const registered = safeOnEvent('memory:deep-extraction', (job: unknown) => {
       if (this.running) {
         this.enqueue(job as DeepExtractionJob);
       }
     });
+
+    if (!registered) {
+      this.log.warn('AsyncEvents not configured - deep extraction will not receive jobs');
+    }
   }
 
   private enqueue(job: DeepExtractionJob): void {
@@ -579,8 +582,9 @@ Return refined extraction as JSON with: entities, facts, relationships arrays:`;
       const apiKey = process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY;
       if (!apiKey) return null;
       
+      const { getExtractionModel } = await import('../../config/gemini-config.js');
       const genAI = new GoogleGenerativeAI(apiKey);
-      return genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+      return genAI.getGenerativeModel({ model: getExtractionModel() });
     } catch {
       return null;
     }
