@@ -141,6 +141,9 @@ COPY scripts/build-tool-embeddings.ts ./scripts/
 # - CLI bundle: Packaged for in-container ops
 # IMPORTANT: Clean dist folder to avoid stale build artifacts from Kaniko cache
 RUN rm -rf dist && pnpm run build:fast && \
+    echo "=== Copying JSON config files ===" && \
+    mkdir -p dist/agents/shared/sanitizer/config && \
+    cp src/agents/shared/sanitizer/config/tool-patterns.json dist/agents/shared/sanitizer/config/ && \
     echo "=== Building tool manifest + embeddings (100x faster startup!) ===" && \
     pnpm exec tsx scripts/build-tool-manifest.ts && \
     pnpm exec tsx scripts/build-tool-embeddings.ts && \
