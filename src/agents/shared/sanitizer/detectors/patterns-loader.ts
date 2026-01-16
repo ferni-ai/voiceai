@@ -7,11 +7,13 @@
  * @module agents/shared/sanitizer/detectors/patterns-loader
  */
 
+import { createRequire } from 'module';
 import { createLogger } from '../../../../utils/safe-logger.js';
 import type { ToolPatternsConfig } from '../types.js';
 
-// Import JSON config
-import toolPatternsJson from '../config/tool-patterns.json' with { type: 'json' };
+// Use createRequire for JSON imports (works in both Node.js and esbuild bundles)
+const require = createRequire(import.meta.url);
+const toolPatternsJson = require('../config/tool-patterns.json');
 
 const log = createLogger({ module: 'patterns-loader' });
 
