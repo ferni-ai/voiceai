@@ -149,6 +149,9 @@
     "audit:a11y": "npx tsx apps/cli/src/commands/quality/audit.ts a11y",
     "audit:all": "npx tsx apps/cli/src/commands/quality/audit.ts all",
     "audit:health": "npx tsx apps/cli/src/commands/quality/audit-health-check.ts",
+    "audit:todos": "npx tsx scripts/audit-todos.ts",
+    "audit:todos:stale": "npx tsx scripts/audit-todos.ts --stale",
+    "audit:todos:critical": "npx tsx scripts/audit-todos.ts --critical",
     "agents": "npx tsx src/cli/agent-manager.ts",
     "agents:list": "npx tsx src/cli/agent-manager.ts list",
     "agents:create": "npx tsx src/cli/agent-manager.ts create",
@@ -436,6 +439,7 @@
     "@google-cloud/vertexai": "1.10.0",
     "@google/genai": "^1.30.0",
     "@google/generative-ai": "0.24.1",
+    "@huggingface/transformers": "3.8.1",
     "@livekit/agents": "file:../agents-js/agents",
     "@livekit/agents-plugin-cartesia": "file:../agents-js/plugins/cartesia",
     "@livekit/agents-plugin-deepgram": "file:../agents-js/plugins/deepgram",
@@ -463,6 +467,7 @@
     "livekit-client": "^2.16.0",
     "livekit-server-sdk": "^2.14.2",
     "lru-cache": "^10.4.3",
+    "onnxruntime-node": "1.23.2",
     "openai": "6.10.0",
     "pg": "^8.16.3",
     "pino": "10.1.0",
@@ -520,7 +525,8 @@
     "overrides": {
       "@livekit/agents": "file:../agents-js/agents",
       "@livekit/agents-plugin-google": "file:../agents-js/plugins/google",
-      "sharp": "^0.34.5"
+      "sharp": "^0.34.5",
+      "@google-cloud/firestore": "8.0.0"
     }
   }
 }
