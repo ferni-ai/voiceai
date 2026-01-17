@@ -19,6 +19,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
+import { cosineSimilarity } from '../rust-accelerator.js';
 import type {
   IVectorStore,
   VectorDocument,
@@ -106,25 +107,7 @@ class VectorCache {
 // HELPERS
 // ============================================================================
 
-/**
- * Calculate cosine distance (1 - similarity)
- */
-function cosineSimilarity(a: number[], b: number[]): number {
-  if (a.length !== b.length) return 0;
-
-  let dotProduct = 0;
-  let normA = 0;
-  let normB = 0;
-
-  for (let i = 0; i < a.length; i++) {
-    dotProduct += a[i] * b[i];
-    normA += a[i] * a[i];
-    normB += b[i] * b[i];
-  }
-
-  const denominator = Math.sqrt(normA) * Math.sqrt(normB);
-  return denominator === 0 ? 0 : dotProduct / denominator;
-}
+// cosineSimilarity imported from rust-accelerator (SIMD-optimized)
 
 // ============================================================================
 // IMPLEMENTATION
