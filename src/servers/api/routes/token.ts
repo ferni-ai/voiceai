@@ -603,6 +603,19 @@ export async function handleTokenRoutes(
           '🔑 Using firebase_uid from query param (header auth unavailable)'
         );
       }
+      
+      // 🧠 MEMORY AUDIT: Log identity chain for debugging memory issues
+      log.info(
+        {
+          room,
+          hasFirebaseUid: !!firebaseUid,
+          firebaseUidSource: firebaseUid ? (firebase_uid_param ? 'query_param' : 'auth_header') : 'none',
+          firebaseUidPrefix: firebaseUid ? firebaseUid.substring(0, 8) : 'none',
+          hasDeviceId: !!device_id,
+          deviceIdPrefix: device_id ? device_id.substring(0, 16) : 'none',
+        },
+        '🧠 [MEMORY-AUDIT] Token endpoint identity chain'
+      );
 
       // Generate token
       const token = await createToken(room, username);

@@ -191,6 +191,12 @@ export async function fastCapture(input: FastCaptureInput): Promise<FastCaptureR
   const startTime = Date.now();
   const { transcript, userId, sessionId, turnNumber, voiceEmotion, personaId } = input;
   
+  // 🧠 MEMORY AUDIT: Log every capture attempt for debugging
+  log.info(
+    { userId, sessionId, turnNumber, transcriptLen: transcript.length, personaId },
+    '🧠 [MEMORY-AUDIT] fastCapture START'
+  );
+  
   // Run all fast extractions in parallel
   const [
     mentionedEntities,
@@ -238,12 +244,26 @@ export async function fastCapture(input: FastCaptureInput): Promise<FastCaptureR
     });
   }
   
-  // Log performance
+  // Log performance - upgraded to INFO for memory audit
   if (captureTimeMs > 50) {
     log.warn({ captureTimeMs, transcriptLength: transcript.length }, 'Fast capture exceeded target latency');
-  } else {
-    log.debug({ captureTimeMs, entityCount: mentionedEntities.length, asyncJobId }, 'Fast capture complete');
   }
+  
+  // 🧠 MEMORY AUDIT: Log capture results (always, not just debug)
+  log.info(
+    { 
+      userId,
+      sessionId,
+      captureTimeMs, 
+      entityCount: mentionedEntities.length, 
+      emotionCount: emotionSignals.length,
+      topicCount: topicHints.length,
+      hasSignals,
+      asyncJobId,
+      entities: mentionedEntities.map(e => e.name).slice(0, 5),
+    }, 
+    '🧠 [MEMORY-AUDIT] fastCapture COMPLETE'
+  );
   
   // Record metrics
   recordFastCapture(

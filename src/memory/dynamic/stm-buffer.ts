@@ -137,6 +137,18 @@ export function recordTurn(
   turnNumber: number,
   personaId?: string
 ): void {
+  // 🧠 MEMORY AUDIT: Log every turn recording
+  log.info(
+    { 
+      sessionId, 
+      userId, 
+      turnNumber, 
+      entityCount: captureResult.mentionedEntities.length,
+      transcriptLen: transcript.length,
+    },
+    '🧠 [MEMORY-AUDIT] recordTurn START'
+  );
+  
   const buffer = getSTMBuffer(sessionId, userId);
 
   // Create turn memory
@@ -201,14 +213,18 @@ export function recordTurn(
     }
   }
 
-  log.debug(
+  // 🧠 MEMORY AUDIT: Confirm turn recorded (upgraded to INFO)
+  log.info(
     {
       sessionId,
+      userId,
       turnNumber,
+      totalTurns: buffer.turns.length,
+      totalEntities: buffer.entityFrequency.size,
       entityCount: captureResult.mentionedEntities.length,
       topicCount: captureResult.topicHints.length,
     },
-    'Recorded turn in STM'
+    '🧠 [MEMORY-AUDIT] recordTurn COMPLETE - STM updated'
   );
 
   // Record metrics
@@ -348,8 +364,19 @@ export function buildSTMContext(sessionId: string): string | null {
 
 /**
  * Cleanup a specific session
+ * Note: Timer cleanup must happen BEFORE buffer deletion to avoid race condition
+ * where the timer callback tries to access a deleted buffer
  */
 export function cleanupSession(sessionId: string): void {
+  // IMPORTANT: Clear timer FIRST to prevent race condition
+  // If we delete the buffer first, the timer callback might fire
+  // and try to access the deleted buffer
+  const timer = cleanupTimers.get(sessionId);
+  if (timer) {
+    clearTimeout(timer);
+    cleanupTimers.delete(sessionId);
+  }
+
   const buffer = sessionBuffers.get(sessionId);
   if (buffer) {
     log.debug(
@@ -362,12 +389,6 @@ export function cleanupSession(sessionId: string): void {
       'Cleaning up STM buffer'
     );
     sessionBuffers.delete(sessionId);
-  }
-
-  const timer = cleanupTimers.get(sessionId);
-  if (timer) {
-    clearTimeout(timer);
-    cleanupTimers.delete(sessionId);
   }
 }
 

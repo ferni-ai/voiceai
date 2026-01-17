@@ -50,6 +50,15 @@ function parseMetadata(ctx: JobContext): { personaId: string; userId: string | n
     (metadata.userId as string) ||
     null;
 
+  // 🧠 MEMORY AUDIT: Log identity extraction for debugging memory issues
+  const identitySource = metadata.firebase_uid ? 'firebase_uid' :
+                         metadata.firebaseUid ? 'firebaseUid' :
+                         metadata.user_id ? 'user_id' :
+                         metadata.userId ? 'userId' : 'none';
+  process.stderr.write(
+    `[load-persona] 🧠 [MEMORY-AUDIT] Identity extracted - userId: ${userId ? userId.substring(0, 8) + '...' : 'null'}, source: ${identitySource}, personaId: ${personaId}\n`
+  );
+
   return { personaId, userId };
 }
 

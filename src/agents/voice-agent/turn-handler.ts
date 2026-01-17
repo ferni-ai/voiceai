@@ -1647,6 +1647,14 @@ IMPORTANT:
       // ================================================================
       if (services.userId) {
         const captureUserId = services.userId; // Capture for closure
+        // 🧠 MEMORY AUDIT: Log that we're starting memory capture
+        diag.info('🧠 [MEMORY-AUDIT] turn-handler triggering memory capture', {
+          userId: captureUserId,
+          sessionId: services.sessionId,
+          turnNumber,
+          transcriptLen: userText.length,
+        });
+        
         fireAndForget(
           async () => {
             const captureResult = await fastCapture({
@@ -1663,18 +1671,22 @@ IMPORTANT:
             const { recordTurn } = await import('../../memory/dynamic/index.js');
             recordTurn(services.sessionId, captureUserId, captureResult, userText, turnNumber);
 
-            if (captureResult.mentionedEntities.length > 0 || captureResult.asyncJobId) {
-              diag.debug('Dynamic memory capture completed', {
-                entityCount: captureResult.mentionedEntities.length,
-                topicCount: captureResult.topicHints.length,
-                emotionCount: captureResult.emotionSignals.length,
-                asyncJobId: captureResult.asyncJobId,
-                captureTimeMs: captureResult.captureTimeMs,
-              });
-            }
+            // 🧠 MEMORY AUDIT: Log capture results (upgraded to info level)
+            diag.info('🧠 [MEMORY-AUDIT] turn-handler memory capture DONE', {
+              userId: captureUserId,
+              sessionId: services.sessionId,
+              turnNumber,
+              entityCount: captureResult.mentionedEntities.length,
+              topicCount: captureResult.topicHints.length,
+              emotionCount: captureResult.emotionSignals.length,
+              asyncJobId: captureResult.asyncJobId,
+              captureTimeMs: captureResult.captureTimeMs,
+            });
           },
           'dynamic-memory-capture'
         );
+      } else {
+        diag.warn('🧠 [MEMORY-AUDIT] turn-handler SKIPPING memory capture - no userId');
       }
     }
 

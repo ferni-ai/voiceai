@@ -200,6 +200,12 @@ export async function promoteSessionToFirestore(
   userId: string,
   options?: Partial<PromotionConfig>
 ): Promise<PromotionResult> {
+  // 🧠 MEMORY AUDIT: Log promotion attempt
+  log.info(
+    { sessionId, userId },
+    '🧠 [MEMORY-AUDIT] promoteSessionToFirestore START'
+  );
+  
   const activeConfig = { ...config, ...options };
   const result: PromotionResult = {
     entitiesPromoted: 0,
@@ -210,15 +216,27 @@ export async function promoteSessionToFirestore(
 
   const db = getFirestoreDb();
   if (!db) {
-    log.warn('Firestore not available, skipping promotion');
+    log.warn({ sessionId, userId }, '🧠 [MEMORY-AUDIT] Firestore not available, skipping promotion');
     return result;
   }
 
   const buffer = getSTMBuffer(sessionId, userId);
   if (!buffer || buffer.turns.length === 0) {
-    log.debug({ sessionId }, 'No STM data to promote');
+    log.info({ sessionId, userId, bufferExists: !!buffer }, '🧠 [MEMORY-AUDIT] No STM data to promote (empty buffer)');
     return result;
   }
+  
+  // 🧠 MEMORY AUDIT: Log buffer state before promotion
+  log.info(
+    { 
+      sessionId, 
+      userId, 
+      turnCount: buffer.turns.length,
+      entityCount: buffer.entityFrequency.size,
+      topicCount: buffer.topicHistory.length,
+    },
+    '🧠 [MEMORY-AUDIT] STM buffer state before promotion'
+  );
 
   const timestamp = new Date().toISOString();
   const batch = db.batch();
@@ -354,7 +372,19 @@ export async function promoteSessionToFirestore(
  * This should be called from session cleanup handlers
  */
 export async function onSessionEnd(sessionId: string, userId: string): Promise<void> {
-  await promoteSessionToFirestore(sessionId, userId);
+  log.info({ sessionId, userId }, '🧠 [MEMORY-AUDIT] onSessionEnd called');
+  const result = await promoteSessionToFirestore(sessionId, userId);
+  log.info(
+    { 
+      sessionId, 
+      userId, 
+      entitiesPromoted: result.entitiesPromoted,
+      emotionalArcPromoted: result.emotionalArcPromoted,
+      topicPatternPromoted: result.topicPatternPromoted,
+      sessionCleaned: result.sessionCleaned,
+    },
+    '🧠 [MEMORY-AUDIT] onSessionEnd COMPLETE'
+  );
 }
 
 // ============================================================================

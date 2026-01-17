@@ -150,13 +150,16 @@ export async function handleEndSession(options: EndSessionOptions): Promise<void
   // 🧠 DYNAMIC MEMORY: Promote STM to Firestore at session end
   // This ensures important entities and emotional arcs persist to L2
   if (validatedUserId) {
+    log.info({ sessionId, userId: validatedUserId }, '🧠 [MEMORY-AUDIT] Calling STM promotion from end-session');
     try {
       const { onSessionEnd } = await import('../../memory/dynamic/stm-promotion.js');
       await onSessionEnd(sessionId, validatedUserId);
-      log.debug({ sessionId, userId: validatedUserId }, '📤 STM promoted to Firestore');
+      log.info({ sessionId, userId: validatedUserId }, '🧠 [MEMORY-AUDIT] STM promotion completed from end-session');
     } catch (stmError) {
-      log.warn({ error: String(stmError), sessionId }, 'STM promotion failed (non-fatal)');
+      log.warn({ error: String(stmError), sessionId, userId: validatedUserId }, '🧠 [MEMORY-AUDIT] STM promotion FAILED');
     }
+  } else {
+    log.warn({ sessionId, userId }, '🧠 [MEMORY-AUDIT] SKIPPING STM promotion - no validatedUserId');
   }
 
   // Remove from active sessions
