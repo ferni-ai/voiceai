@@ -1236,6 +1236,23 @@ const COMMANDS: Record<string, CliCommand> = {
       'ferni site deploy --ferni',
     ],
   },
+  launch: {
+    name: 'Launch',
+    description: 'Product launch automation (checklist, social, analytics)',
+    icon: '🚀',
+    script: 'apps/cli/src/commands/launch/launch.ts',
+    subcommands: ['checklist', 'day', 'schedule', 'analytics', 'content', 'gifs', 'post'],
+    examples: [
+      'ferni launch',
+      'ferni launch checklist',
+      'ferni launch day',
+      'ferni launch analytics',
+      'ferni launch content',
+      'ferni launch gifs',
+      'ferni launch post twitter',
+      'ferni launch post all',
+    ],
+  },
   // ============================================================================
   // EXECUTIVE SUITE - Autonomous Company Operations
   // ============================================================================
@@ -1322,13 +1339,15 @@ const COMMANDS: Record<string, CliCommand> = {
     description: 'Unified executive dashboard across all C-suite functions',
     icon: '📊',
     handler: handleExec,
-    subcommands: ['--quick', '--alerts', '--role'],
+    subcommands: ['--quick', '--alerts', '--role', 'schedule'],
     examples: [
       'ferni exec',
       'ferni exec --quick',
       'ferni exec --alerts',
       'ferni exec --role cto',
-      'ferni exec --json',
+      'ferni exec schedule',
+      'ferni exec schedule --enable',
+      'ferni exec schedule --run-now daily-briefing',
     ],
   },
 };
@@ -10562,6 +10581,29 @@ async function handleCSCO(args: string[]): Promise<void> {
 }
 
 async function handleExec(args: string[]): Promise<void> {
+  // Check for schedule subcommand
+  if (args[0] === 'schedule') {
+    log.header('📅 Executive Scheduler');
+    const scheduleArgs: string[] = [];
+    if (args.includes('--enable')) scheduleArgs.push('--enable');
+    if (args.includes('--disable')) scheduleArgs.push('--disable');
+    if (args.includes('--alerts')) scheduleArgs.push('--alerts');
+    if (args.includes('--json')) scheduleArgs.push('--json');
+
+    const runNowIdx = args.findIndex((a) => a === '--run-now');
+    if (runNowIdx >= 0 && args[runNowIdx + 1]) {
+      scheduleArgs.push('--run-now', args[runNowIdx + 1]);
+    }
+
+    const cmd = `npx tsx apps/cli/src/commands/exec/scheduler.ts ${scheduleArgs.join(' ')}`;
+    try {
+      execSync(cmd, { stdio: 'inherit', cwd: process.cwd() });
+    } catch {
+      log.error('Scheduler command failed');
+    }
+    return;
+  }
+
   log.header('📊 Executive Dashboard');
 
   const scriptArgs: string[] = [];
