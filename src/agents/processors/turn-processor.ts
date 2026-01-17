@@ -95,6 +95,8 @@ import {
   buildHumanTransferInjections,
   buildCrisisHistoryInjection,
   buildSemanticIntelligenceInjection,
+  // 🎯 Persona-specific context builders (NEW - January 2026)
+  buildPersonaSpecificContextInjections,
   type AdvancedHumanizationInjectionResult,
   type ConversationDynamicsResult as InjectionDynamicsResult,
   type SemanticIntelligenceInjectionResult,
@@ -710,6 +712,22 @@ async function buildContextInjections(
         semanticIntelligenceFallback,
         'semantic-intelligence'
       ),
+      // 🎯 PERSONA-SPECIFIC CONTEXT - Deep "Better Than Human" insights per-persona (NEW Jan 2026)
+      // Runs on: first turn, handoff, and every 10 turns for refresh
+      withTimeout(
+        buildPersonaSpecificContextInjections({
+          services,
+          userData,
+          persona,
+          userText,
+          analysis,
+          turnCount: userData.turnCount || 0,
+          isHandoff: Boolean(userData.isHandoff),
+        }),
+        IMPORTANT_TIMEOUT_MS,
+        [] as ContextInjection[],
+        'persona-context'
+      ),
     ]),
     // TIER 3: OPTIONAL BUILDERS (run in parallel with TIER 2)
     Promise.all([
@@ -772,6 +790,7 @@ async function buildContextInjections(
     boundaryInjections,
     liveSuperhumanResult,
     semanticIntelligenceResult,
+    personaSpecificInjections,
   ] = tier2Results;
 
   // Destructure TIER 3 results
@@ -836,6 +855,7 @@ async function buildContextInjections(
   injections.push(...trustInjections);
   injections.push(...boundaryInjections);
   injections.push(...healthInjections);
+  injections.push(...personaSpecificInjections); // 🎯 Persona "Better Than Human" deep insights (NEW Jan 2026)
 
   // ========================================================================
   // 🌟 LIVE SUPERHUMAN INJECTIONS - Real-time "Better Than Human" per turn

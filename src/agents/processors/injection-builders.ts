@@ -66,6 +66,100 @@ import {
 import { recordTrustSystemTiming } from '../../services/performance-metrics.js';
 
 // ============================================================================
+// PERSONA-SPECIFIC CONTEXT BUILDERS (NEW - January 2026)
+// Deep insights for each persona - runs on first turn and handoffs
+// These provide "Better Than Human" capabilities per-persona
+// ============================================================================
+
+// Lazy-loaded persona builders (dynamic import for code splitting)
+// Each builder returns ContextInjection[] based on ContextBuilderInput
+// Note: Context builders return their own ContextInjection type (with optional category)
+// We map these to the turn-processor ContextInjection type (with required category)
+type ContextBuilderInjection = import('../../intelligence/context-builders/core/types.js').ContextInjection;
+type PersonaContextBuilder = (
+  input: import('../../intelligence/context-builders/index.js').ContextBuilderInput
+) => Promise<ContextBuilderInjection[]>;
+
+const personaBuilderCache: Map<string, PersonaContextBuilder> = new Map();
+
+async function getPersonaBuilder(personaId: string): Promise<PersonaContextBuilder | null> {
+  // Check cache first
+  const cached = personaBuilderCache.get(personaId);
+  if (cached) return cached;
+
+  // Lazy load the appropriate builder
+  try {
+    let builder: PersonaContextBuilder | null = null;
+
+    switch (personaId.toLowerCase()) {
+      case 'peter':
+      case 'peter-john':
+      case 'the-quant': {
+        const mod = await import(
+          '../../intelligence/context-builders/personas/peter-research-insights/index.js'
+        );
+        builder = mod.buildPeterResearchInsightsContext;
+        break;
+      }
+      case 'maya': {
+        const mod = await import(
+          '../../intelligence/context-builders/personas/maya-coaching-insights/index.js'
+        );
+        builder = mod.buildMayaCoachingInsightsContext;
+        break;
+      }
+      case 'jordan': {
+        const mod = await import(
+          '../../intelligence/context-builders/personas/jordan-milestone-insights/index.js'
+        );
+        builder = mod.buildJordanMilestoneInsightsContext;
+        break;
+      }
+      case 'alex': {
+        const mod = await import(
+          '../../intelligence/context-builders/personas/alex-communication-insights/index.js'
+        );
+        builder = mod.buildAlexCommunicationInsightsContext;
+        break;
+      }
+      case 'nayan': {
+        const mod = await import(
+          '../../intelligence/context-builders/personas/nayan-wisdom-insights.js'
+        );
+        builder = mod.buildNayanWisdomInsightsContext;
+        break;
+      }
+      case 'ferni': {
+        const mod = await import(
+          '../../intelligence/context-builders/personas/ferni-coordinator-insights.js'
+        );
+        builder = mod.buildFerniCoordinatorIntelligenceContext;
+        break;
+      }
+      case 'joel':
+      case 'joel-dickson': {
+        const mod = await import(
+          '../../intelligence/context-builders/personas/joel-dickson-insights/index.js'
+        );
+        builder = mod.buildJoelDicksonInsightsContext;
+        break;
+      }
+      default:
+        // Unknown persona - no specific builder
+        return null;
+    }
+
+    if (builder) {
+      personaBuilderCache.set(personaId.toLowerCase(), builder);
+    }
+    return builder;
+  } catch (error) {
+    diag.debug(`Failed to load persona builder for ${personaId}`, { error: String(error) });
+    return null;
+  }
+}
+
+// ============================================================================
 // NON-VOLATILE INJECTION CACHE
 // Caches slow-changing data like health, visual memory, ambient context
 // TTL: 60 seconds - these don't change turn-to-turn
@@ -2161,4 +2255,133 @@ OUTPUT ONLY THE JSON. NO WORDS. NO PREAMBLE. JUST THE JSON OBJECT.
     content,
     priority: 90, // Very high - just below safety
   };
+}
+
+// ============================================================================
+// PERSONA-SPECIFIC CONTEXT INJECTION BUILDER (NEW - January 2026)
+// Wires the persona context builders to the turn processor
+// These builders provide deep "Better Than Human" insights per-persona
+// ============================================================================
+
+export interface PersonaSpecificContextInput {
+  services: SessionServices;
+  userData: UserData;
+  persona: PersonaConfig;
+  userText: string;
+  analysis: ConversationAnalysis;
+  turnCount: number;
+  /** Whether this is a handoff turn (just transferred to this persona) */
+  isHandoff?: boolean;
+}
+
+/**
+ * Build persona-specific context injections.
+ *
+ * Each persona has deep insight builders that provide "Better Than Human" capabilities:
+ * - Peter: Financial patterns, cross-domain correlations, research insights
+ * - Maya: Habit health, Four Tendencies, mood-habit correlations
+ * - Jordan: Milestone tracking, life stages, celebration readiness
+ * - Alex: Communication patterns, calendar density, response velocity
+ * - Nayan: Life synthesis, values alignment, existential context
+ * - Ferni: Smart handoff suggestions, team coordination insights
+ *
+ * This function runs:
+ * - On first turn (turn 0) to establish persona context
+ * - On handoff to provide transition context
+ * - Every 10 turns for context refresh
+ *
+ * @returns Array of context injections from the persona builder
+ */
+export async function buildPersonaSpecificContextInjections(
+  ctx: PersonaSpecificContextInput
+): Promise<ContextInjection[]> {
+  const { services, userData, persona, userText, analysis, turnCount, isHandoff } = ctx;
+
+  // Only inject on first turn, handoff, or every 10 turns for refresh
+  const shouldInject = turnCount === 0 || isHandoff || (turnCount > 0 && turnCount % 10 === 0);
+
+  if (!shouldInject) {
+    return [];
+  }
+
+  const userId = services.userId || 'anonymous';
+  if (userId === 'anonymous') {
+    return [];
+  }
+
+  // Get the persona builder
+  const builder = await getPersonaBuilder(persona.id);
+  if (!builder) {
+    diag.debug('No persona-specific builder found', { personaId: persona.id });
+    return [];
+  }
+
+  try {
+    // Build the input for the context builder
+    // Note: The persona builders check services.personaId internally
+    // Map keyMoments from string[] to { summary: string; timestamp: Date }[] if needed
+    const keyMoments = userData.keyMoments?.map((moment) =>
+      typeof moment === 'string' ? { summary: moment, timestamp: new Date() } : moment
+    );
+
+    const builderInput = {
+      userText,
+      analysis,
+      services: {
+        ...services,
+        personaId: persona.id, // Ensure personaId is set for builder activation check
+      } as SessionServices & { personaId: string },
+      userData: {
+        ...userData,
+        turnCount,
+        keyMoments,
+      },
+      userProfile: services.userProfile,
+      persona,
+    };
+
+    const startTime = performance.now();
+    const rawInjections = await builder(builderInput);
+    const duration = performance.now() - startTime;
+
+    // Map context builder injections to turn-processor injections
+    // Context builder ContextInjection has:
+    //   - priority: 'critical' | 'high' | 'standard' | 'hint' (string enum)
+    //   - category: optional string
+    // Turn processor ContextInjection has:
+    //   - priority: number
+    //   - category: required string
+    const priorityMap: Record<string, number> = {
+      critical: 100,
+      high: 75,
+      standard: 50,
+      hint: 25,
+    };
+
+    const injections: ContextInjection[] = rawInjections
+      .filter((inj) => inj.content) // Filter out empty injections
+      .map((inj) => ({
+        category: inj.category || `persona_${persona.id}`,
+        content: inj.content,
+        priority: priorityMap[inj.priority] ?? 50,
+      }));
+
+    if (injections.length > 0) {
+      diag.info('🎯 Persona-specific context injected', {
+        personaId: persona.id,
+        injectionsCount: injections.length,
+        durationMs: Math.round(duration),
+        turnCount,
+        isHandoff: !!isHandoff,
+      });
+    }
+
+    return injections;
+  } catch (error) {
+    diag.warn('Persona-specific context builder failed', {
+      personaId: persona.id,
+      error: String(error),
+    });
+    return [];
+  }
 }

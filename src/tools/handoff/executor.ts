@@ -39,6 +39,7 @@ import {
   buildInsightBriefingForHandoff,
   formatInsightBriefingForPrompt,
 } from '../../services/cross-persona-insights.js';
+import { getHandoffGreeting as getInsightBriefingGreeting } from '../../services/persona-content-loader.js';
 import { createHandoffEvent } from './types.js';
 import { HANDOFF_TIMING } from '../../config/handoff-timing.js';
 // Persona Affinity Tracking - "Better Than Human" smart routing
@@ -723,6 +724,20 @@ async function generateHandoffGreeting(
   } catch (err) {
     // FIX BUG #11: Proper error type narrowing
     getLogger().warn({ error: String(err) }, 'Could not get ALIVE entrance');
+  }
+
+  // Try insight briefing greeting (from persona bundles)
+  try {
+    const insightGreeting = await getInsightBriefingGreeting(targetAgentId, previousAgent);
+    if (insightGreeting) {
+      getLogger().debug(
+        { targetId: targetAgentId, from: previousAgent },
+        '📨 Using insight briefing handoff greeting'
+      );
+      return insightGreeting;
+    }
+  } catch (err) {
+    getLogger().debug({ error: String(err) }, 'Could not get insight briefing greeting');
   }
 
   // Fall back to a generic greeting with cognitive enhancement

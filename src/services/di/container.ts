@@ -241,6 +241,13 @@ export const Tokens = {
   BackgroundTasks: Symbol('BackgroundTasks'),
   CollectiveLearning: Symbol('CollectiveLearning'),
 
+  // Memory Services (Better than Human memory capabilities)
+  CognitiveMemory: Symbol('CognitiveMemory'),
+  VoiceMemory: Symbol('VoiceMemory'),
+  UnifiedMemory: Symbol('UnifiedMemory'),
+  LearnedMemories: Symbol('LearnedMemories'),
+  ProactiveMemorySurfacing: Symbol('ProactiveMemorySurfacing'),
+
   // Schedulers
   ReminderScheduler: Symbol('ReminderScheduler'),
   ProactiveScheduler: Symbol('ProactiveScheduler'),

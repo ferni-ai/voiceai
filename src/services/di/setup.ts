@@ -139,6 +139,45 @@ async function registerSchedulerServices(): Promise<void> {
   getLogger().info('Registered scheduler services');
 }
 
+/**
+ * Register memory services (Better than Human memory capabilities)
+ */
+async function registerMemoryServices(): Promise<void> {
+  const container = getContainer();
+
+  // Cognitive Memory - learns user's thinking style
+  container.registerSingleton(Tokens.CognitiveMemory, async () => {
+    const { getCognitiveMemoryService } = await import('../memory/cognitive-memory.js');
+    return getCognitiveMemoryService();
+  });
+
+  // Voice Memory - recognizes returning users by voice
+  container.registerSingleton(Tokens.VoiceMemory, async () => {
+    const { getVoiceMemory } = await import('../memory/voice-memory.js');
+    return getVoiceMemory();
+  });
+
+  // Unified Memory - consolidated memory access
+  container.registerSingleton(Tokens.UnifiedMemory, async () => {
+    const { getUnifiedMemoryService } = await import('../memory/unified-service.js');
+    return getUnifiedMemoryService();
+  });
+
+  // Learned Memories - tracks what user has been told
+  container.registerSingleton(Tokens.LearnedMemories, async () => {
+    const { getLearnedMemoriesService } = await import('../memory/learned-memories.js');
+    return getLearnedMemoriesService();
+  });
+
+  // Proactive Memory Surfacing - surfaces relevant memories
+  container.registerSingleton(Tokens.ProactiveMemorySurfacing, async () => {
+    const { getProactiveMemorySurfacing } = await import('../memory/proactive-memory-surfacing.js');
+    return getProactiveMemorySurfacing();
+  });
+
+  getLogger().info('Registered memory services');
+}
+
 // ============================================================================
 // BOOTSTRAP FUNCTION
 // ============================================================================
@@ -158,6 +197,7 @@ export async function bootstrapServices(options: BootstrapOptions = {}): Promise
   await registerStorageServices(useMocks);
   await registerApplicationServices();
   await registerSchedulerServices();
+  await registerMemoryServices();
 
   // Initialize team handlers unless skipped
   if (!skipTeamHandlers && !useMocks) {
@@ -216,6 +256,46 @@ export async function resolveProductivityStore() {
 export async function resolveAgentBus() {
   const container = getContainer();
   return container.resolve(Tokens.AgentBus);
+}
+
+/**
+ * Resolve CognitiveMemory from container
+ */
+export async function resolveCognitiveMemory() {
+  const container = getContainer();
+  return container.resolve(Tokens.CognitiveMemory);
+}
+
+/**
+ * Resolve VoiceMemory from container
+ */
+export async function resolveVoiceMemory() {
+  const container = getContainer();
+  return container.resolve(Tokens.VoiceMemory);
+}
+
+/**
+ * Resolve UnifiedMemory from container
+ */
+export async function resolveUnifiedMemory() {
+  const container = getContainer();
+  return container.resolve(Tokens.UnifiedMemory);
+}
+
+/**
+ * Resolve LearnedMemories from container
+ */
+export async function resolveLearnedMemories() {
+  const container = getContainer();
+  return container.resolve(Tokens.LearnedMemories);
+}
+
+/**
+ * Resolve ProactiveMemorySurfacing from container
+ */
+export async function resolveProactiveMemorySurfacing() {
+  const container = getContainer();
+  return container.resolve(Tokens.ProactiveMemorySurfacing);
 }
 
 /**

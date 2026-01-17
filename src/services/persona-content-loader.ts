@@ -327,6 +327,44 @@ export interface QuietGrowthVoice {
   };
 }
 
+/**
+ * Insight briefing content for persona handoffs.
+ * Contains cross-team insights and domain-specific observations
+ * that personas use when receiving a handoff from another team member.
+ */
+export interface InsightBriefing {
+  schema_version?: number;
+  description?: string;
+  /** Handoff greeting templates when receiving from another persona */
+  handoff_greetings?: {
+    from_ferni?: string[];
+    from_maya?: string[];
+    from_peter?: string[];
+    from_alex?: string[];
+    from_jordan?: string[];
+    from_nayan?: string[];
+    generic?: string[];
+  };
+  /** Domain-specific observations this persona can make */
+  domain_observations?: {
+    patterns?: string[];
+    connections?: string[];
+    insights?: string[];
+  };
+  /** Cross-team insight acknowledgments */
+  cross_team_insights?: {
+    acknowledging_other_work?: string[];
+    building_on_insights?: string[];
+    team_coordination?: string[];
+  };
+  /** Briefing summary templates */
+  briefing_templates?: {
+    quick_context?: string[];
+    detailed_handoff?: string[];
+    returning_user?: string[];
+  };
+}
+
 // ============================================================================
 // CACHE WITH LRU EVICTION
 // ============================================================================
@@ -770,6 +808,44 @@ export async function loadQuietGrowthVoice(personaId = 'ferni'): Promise<QuietGr
 }
 
 // ============================================================================
+// HANDOFF & CROSS-PERSONA LOADERS
+// ============================================================================
+
+/**
+ * Load insight briefing content for a specific persona.
+ * Used during handoffs to provide rich cross-team context and
+ * domain-specific greeting templates.
+ */
+export async function loadInsightBriefing(personaId = 'ferni'): Promise<InsightBriefing | null> {
+  const content = await loadPersonaContent<InsightBriefing>(personaId, 'insight_briefing');
+  if (content) return content;
+
+  // Fall back to Ferni
+  if (personaId !== 'ferni') {
+    return loadPersonaContent<InsightBriefing>('ferni', 'insight_briefing');
+  }
+  return null;
+}
+
+/**
+ * Get a handoff greeting for a persona receiving from another persona.
+ * Returns a random greeting template or null if none available.
+ */
+export async function getHandoffGreeting(
+  receivingPersonaId: string,
+  fromPersonaId: string
+): Promise<string | null> {
+  const briefing = await loadInsightBriefing(receivingPersonaId);
+  if (!briefing?.handoff_greetings) return null;
+
+  // Map persona ID to greeting key
+  const greetingKey = `from_${fromPersonaId.replace(/-/g, '_')}` as keyof typeof briefing.handoff_greetings;
+  const greetings = briefing.handoff_greetings[greetingKey] ?? briefing.handoff_greetings.generic;
+
+  return getRandomPhrase(greetings);
+}
+
+// ============================================================================
 // HELPER: GET RANDOM PHRASE
 // ============================================================================
 
@@ -835,6 +911,10 @@ export default {
   loadDifficultConversationsVoice,
   loadLifeTransitionsVoice,
   loadQuietGrowthVoice,
+  // Handoff & cross-persona loaders
+  loadInsightBriefing,
+  getHandoffGreeting,
+  // Helpers
   getRandomPhrase,
   getRandomPhraseClean,
   stripSsml,

@@ -658,6 +658,9 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
     // Get memory retrieval result (should be ready by now)
     const memoryRetrievalResult = await memoryRetrievalPromise;
 
+    // Mark memory retrieval complete for profiling
+    markTurnCheckpoint(services.sessionId, turnNumber, 'memoryRetrievalComplete');
+
     // ================================================================
     // 🧠 BETTER THAN HUMAN: Inject retrieved memories into context
     // Memory injections are added with high priority so LLM can use them
@@ -1091,6 +1094,12 @@ You are their lifeline right now. Be fully present.`,
       // Non-critical - continue without naturalness adjustments
       diag.debug('Naturalness engine error (non-critical)', { error: String(naturalnessError) });
     }
+
+    // ================================================================
+    // PERFORMANCE: Mark context building start
+    // Context building includes: feedback, trust, personality, extensibility
+    // ================================================================
+    markTurnCheckpoint(services.sessionId, turnNumber, 'contextBuildStart');
 
     // ================================================================
     // 📊 CONTEXTUAL FEEDBACK INJECTION

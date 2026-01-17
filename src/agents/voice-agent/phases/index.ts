@@ -40,3 +40,10 @@ export {
   type ConnectionMonitorConfig,
   type DisconnectInfo,
 } from './connection-state.js';
+
+// User awareness building (Better Than Human context)
+export {
+  buildUserAwareness,
+  type UserAwarenessConfig,
+  type UserAwarenessResult,
+} from './user-awareness.js';
