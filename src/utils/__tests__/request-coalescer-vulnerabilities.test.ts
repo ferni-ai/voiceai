@@ -421,7 +421,8 @@ describe('Request Coalescer Vulnerabilities', () => {
       const coalescer = new RequestCoalescer<number>('non-promise-test');
 
       // TypeScript prevents this, but JavaScript doesn't
-      const executor = (() => 42) as () => Promise<number>;
+      // Cast through unknown to intentionally bypass TypeScript for runtime test
+      const executor = (() => 42) as unknown as () => Promise<number>;
 
       // Should still work because await handles non-promises
       const result = await coalescer.execute('key', executor);
@@ -552,6 +553,105 @@ describe('Request Coalescer Vulnerabilities', () => {
   // ===========================================================================
   // GLOBAL STATE ISSUES
   // ===========================================================================
+
+  // ===========================================================================
+  // FEATURE FLAG TESTING
+  // ===========================================================================
+
+  describe('Feature Flag Behavior', () => {
+    it('coalescer still works when feature flags are checked externally', async () => {
+      // Feature flags (ENABLE_*_COALESCING) are checked OUTSIDE the coalescer
+      // The coalescer itself doesn't know about feature flags - it just coalesces.
+      // This test documents that behavior.
+
+      const coalescer = new RequestCoalescer<number>('flag-test');
+      let callCount = 0;
+      const executor = async () => {
+        callCount++;
+        await new Promise((resolve) => setTimeout(resolve, 50));
+        return 42;
+      };
+
+      // Simulate feature flag check (what router/vector-store do)
+      const ENABLE_COALESCING = true;
+
+      const results: number[] = [];
+      if (ENABLE_COALESCING) {
+        const promise1 = coalescer.execute('key', executor);
+        const promise2 = coalescer.execute('key', executor);
+
+        vi.advanceTimersByTime(100);
+
+        results.push(await promise1, await promise2);
+      }
+
+      expect(callCount).toBe(1);
+      expect(results).toEqual([42, 42]);
+    });
+
+    it('bypassing coalescer when flag is disabled still works', async () => {
+      // When feature flag is disabled, callers bypass the coalescer entirely
+      const coalescer = new RequestCoalescer<number>('bypass-test');
+      let callCount = 0;
+      const executor = async () => {
+        callCount++;
+        return 42;
+      };
+
+      // Simulate feature flag disabled
+      const ENABLE_COALESCING = false;
+
+      const results: number[] = [];
+      if (ENABLE_COALESCING) {
+        results.push(await coalescer.execute('key', executor));
+        results.push(await coalescer.execute('key', executor));
+      } else {
+        // Bypass - call executor directly
+        results.push(await executor());
+        results.push(await executor());
+      }
+
+      // Two separate executions when flag is disabled
+      expect(callCount).toBe(2);
+      expect(results).toEqual([42, 42]);
+
+      // Coalescer stats should be empty
+      const stats = coalescer.getStats();
+      expect(stats.totalRequests).toBe(0);
+    });
+
+    it('stats reflect actual coalescing behavior', async () => {
+      const coalescer = new RequestCoalescer<number>('stats-flag-test');
+
+      const executor = async () => {
+        await new Promise((resolve) => setTimeout(resolve, 50));
+        return 42;
+      };
+
+      // Make coalesced requests
+      const promise1 = coalescer.execute('key1', executor);
+      const promise2 = coalescer.execute('key1', executor); // Coalesces with first
+      const promise3 = coalescer.execute('key2', executor); // Different key
+
+      vi.advanceTimersByTime(100);
+
+      await Promise.all([promise1, promise2, promise3]);
+
+      const stats = coalescer.getStats();
+
+      // 3 total requests
+      expect(stats.totalRequests).toBe(3);
+
+      // 1 coalesced (promise2 coalesced with promise1)
+      expect(stats.coalescedRequests).toBe(1);
+
+      // 2 actual executions (key1 and key2)
+      expect(stats.actualExecutions).toBe(2);
+
+      // Coalesce rate = 1/3 = ~33%
+      expect(stats.coalesceRate).toBeCloseTo(0.333, 2);
+    });
+  });
 
   describe('Global State Issues', () => {
     it('metricsCallbacks is global mutable state', () => {

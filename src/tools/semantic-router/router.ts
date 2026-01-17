@@ -772,3 +772,11 @@ export function getRouterCoalescerStats(): {
 } {
   return routerCoalescer.getStats();
 }
+
+/**
+ * Check if router coalescing is enabled.
+ * Useful for debugging and observability dashboards.
+ */
+export function isRouterCoalescingEnabled(): boolean {
+  return ENABLE_ROUTER_COALESCING;
+}

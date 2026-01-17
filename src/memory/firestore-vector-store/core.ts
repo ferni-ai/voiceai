@@ -107,6 +107,14 @@ export function getVectorSearchCoalescerStats(): {
   return vectorSearchCoalescer.getStats();
 }
 
+/**
+ * Check if vector search coalescing is enabled.
+ * Useful for debugging and observability dashboards.
+ */
+export function isVectorCoalescingEnabled(): boolean {
+  return ENABLE_VECTOR_COALESCING;
+}
+
 // ============================================================================
 // FIRESTORE VECTOR STORE CLASS
 // ============================================================================

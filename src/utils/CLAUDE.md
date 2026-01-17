@@ -134,6 +134,25 @@ const allStats = getAllCoalescerStats();
 - Stats track coalesce rate for monitoring
 - Optional `cloneResult` prevents mutation bugs when callers share results
 
+**⚠️ Capacity Limits & Backpressure:**
+When `maxPending` is reached, new requests fail immediately with an error. There is no queueing or backpressure mechanism. Callers should:
+1. Implement retry with exponential backoff (not immediate retry)
+2. Handle the "Too many pending requests" error gracefully
+3. Consider if the operation can be skipped or deferred
+
+```typescript
+try {
+  return await coalescer.execute(key, executor);
+} catch (error) {
+  if (error.message?.includes('Too many pending requests')) {
+    // Don't retry immediately - would cause retry storm
+    await sleep(100 + Math.random() * 200); // Random jitter
+    return await fallbackStrategy();
+  }
+  throw error;
+}
+```
+
 **Observability Callbacks:**
 
 ```typescript
