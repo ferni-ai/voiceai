@@ -11,7 +11,8 @@
     
     <ul class="nav-links">
       <li><a href="/getting-started/" {% if page.url == '/getting-started/' %}class="active"{% endif %}>Getting Started</a></li>
-      <li><a href="/api/" {% if '/api/' in page.url %}class="active"{% endif %}>API Reference</a></li>
+      <li><a href="/api/" {% if '/api/' in page.url and '/api/explorer' not in page.url %}class="active"{% endif %}>API Reference</a></li>
+      <li><a href="/pages/api/explorer" {% if '/api/explorer' in page.url %}class="active"{% endif %}>API Explorer</a></li>
       <li><a href="/sdk/" {% if page.url == '/sdk/' %}class="active"{% endif %}>SDK</a></li>
       <li><a href="/examples/" {% if page.url == '/examples/' %}class="active"{% endif %}>Examples</a></li>
     </ul>

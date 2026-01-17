@@ -43,6 +43,17 @@
         }
       },
       {
+        "source": "/api/v2/**",
+        "run": {
+          "serviceId": "john-bogle-ui",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/openapi.yaml",
+        "destination": "/api/openapi.yaml"
+      },
+      {
         "source": "/api{,/**}",
         "destination": "/pages/api/index.html"
       },

@@ -1,0 +1,472 @@
+---
+layout: layouts/base.njk
+title: API Explorer
+description: Interactive API documentation powered by Swagger UI
+---
+
+<style>
+  /* Swagger UI Theme Overrides for Ferni Cedar Night */
+  .swagger-ui {
+    font-family: var(--font-body);
+  }
+
+  .swagger-ui .topbar {
+    display: none;
+  }
+
+  .swagger-ui .info {
+    margin: 24px 0;
+  }
+
+  .swagger-ui .info .title {
+    font-family: var(--font-display);
+    color: var(--text-primary);
+  }
+
+  .swagger-ui .info .description {
+    color: var(--text-secondary);
+  }
+
+  .swagger-ui .opblock-tag {
+    font-family: var(--font-display);
+    color: var(--text-primary);
+    border-bottom: 1px solid var(--border-primary);
+  }
+
+  .swagger-ui .opblock {
+    background: var(--surface-secondary);
+    border-radius: 8px;
+    border: 1px solid var(--border-primary);
+    margin-bottom: 8px;
+  }
+
+  .swagger-ui .opblock .opblock-summary {
+    border-radius: 8px;
+  }
+
+  .swagger-ui .opblock .opblock-summary-method {
+    border-radius: 4px;
+    font-family: var(--font-mono);
+    font-weight: 600;
+  }
+
+  .swagger-ui .opblock.opblock-get .opblock-summary-method {
+    background: var(--color-cedar-dark);
+    color: var(--color-gold);
+  }
+
+  .swagger-ui .opblock.opblock-post .opblock-summary-method {
+    background: #3D5A45;
+    color: white;
+  }
+
+  .swagger-ui .opblock.opblock-put .opblock-summary-method {
+    background: #B8860B;
+    color: white;
+  }
+
+  .swagger-ui .opblock.opblock-delete .opblock-summary-method {
+    background: #8B0000;
+    color: white;
+  }
+
+  .swagger-ui .opblock-summary-path {
+    font-family: var(--font-mono);
+    color: var(--text-primary);
+  }
+
+  .swagger-ui .opblock-description-wrapper {
+    color: var(--text-secondary);
+  }
+
+  .swagger-ui .btn {
+    font-family: var(--font-body);
+    border-radius: 6px;
+  }
+
+  .swagger-ui .btn.execute {
+    background: var(--color-accent);
+    border-color: var(--color-accent);
+    color: white;
+  }
+
+  .swagger-ui .btn.authorize {
+    background: transparent;
+    border-color: var(--color-gold);
+    color: var(--color-gold);
+  }
+
+  .swagger-ui .btn.authorize svg {
+    fill: var(--color-gold);
+  }
+
+  .swagger-ui .model-box {
+    background: var(--surface-secondary);
+    border-radius: 8px;
+  }
+
+  .swagger-ui .model {
+    color: var(--text-primary);
+  }
+
+  .swagger-ui .model-title {
+    color: var(--color-gold);
+  }
+
+  .swagger-ui .prop-type {
+    color: var(--color-accent);
+  }
+
+  .swagger-ui table tbody tr td {
+    color: var(--text-secondary);
+    border-bottom: 1px solid var(--border-primary);
+  }
+
+  .swagger-ui .parameter__name {
+    color: var(--text-primary);
+    font-family: var(--font-mono);
+  }
+
+  .swagger-ui .parameter__type {
+    color: var(--color-gold);
+    font-family: var(--font-mono);
+  }
+
+  .swagger-ui .response-col_status {
+    font-family: var(--font-mono);
+    color: var(--text-primary);
+  }
+
+  .swagger-ui .response-col_description {
+    color: var(--text-secondary);
+  }
+
+  .swagger-ui code,
+  .swagger-ui pre {
+    font-family: var(--font-mono);
+    background: var(--surface-tertiary);
+    border-radius: 4px;
+  }
+
+  .swagger-ui .highlight-code {
+    background: var(--surface-tertiary);
+    border-radius: 8px;
+  }
+
+  .swagger-ui .scheme-container {
+    background: var(--surface-secondary);
+    padding: 16px;
+    border-radius: 8px;
+    margin-bottom: 24px;
+  }
+
+  .swagger-ui select {
+    background: var(--surface-secondary);
+    border: 1px solid var(--border-primary);
+    border-radius: 4px;
+    color: var(--text-primary);
+    padding: 8px 12px;
+  }
+
+  .swagger-ui input[type="text"],
+  .swagger-ui input[type="password"] {
+    background: var(--surface-secondary);
+    border: 1px solid var(--border-primary);
+    border-radius: 4px;
+    color: var(--text-primary);
+    padding: 8px 12px;
+  }
+
+  .swagger-ui .auth-wrapper {
+    background: var(--surface-secondary);
+    border-radius: 8px;
+    padding: 16px;
+  }
+
+  .swagger-ui .dialog-ux .modal-ux {
+    background: var(--surface-primary);
+    border-radius: 12px;
+    border: 1px solid var(--border-primary);
+  }
+
+  .swagger-ui .dialog-ux .modal-ux-header {
+    border-bottom: 1px solid var(--border-primary);
+  }
+
+  .swagger-ui .dialog-ux .modal-ux-header h3 {
+    color: var(--text-primary);
+    font-family: var(--font-display);
+  }
+
+  /* Hero section */
+  .api-explorer-hero {
+    text-align: center;
+    padding: 48px 24px;
+    border-bottom: 1px solid var(--border-primary);
+    margin-bottom: 24px;
+  }
+
+  .api-explorer-hero h1 {
+    font-family: var(--font-display);
+    font-size: 2.5rem;
+    color: var(--text-primary);
+    margin-bottom: 16px;
+  }
+
+  .api-explorer-hero p {
+    color: var(--text-secondary);
+    font-size: 1.125rem;
+    max-width: 600px;
+    margin: 0 auto 24px;
+  }
+
+  .api-explorer-actions {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .api-explorer-actions a {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 24px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 500;
+    transition: all 0.2s ease;
+  }
+
+  .api-explorer-actions .btn-primary {
+    background: var(--color-accent);
+    color: white;
+  }
+
+  .api-explorer-actions .btn-primary:hover {
+    background: var(--color-accent-dark);
+    transform: translateY(-2px);
+  }
+
+  .api-explorer-actions .btn-secondary {
+    background: transparent;
+    border: 1px solid var(--border-primary);
+    color: var(--text-primary);
+  }
+
+  .api-explorer-actions .btn-secondary:hover {
+    border-color: var(--color-gold);
+    color: var(--color-gold);
+  }
+
+  /* Environment selector */
+  .environment-selector {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 24px;
+    padding: 16px;
+    background: var(--surface-secondary);
+    border-radius: 8px;
+  }
+
+  .environment-selector label {
+    color: var(--text-secondary);
+    font-weight: 500;
+  }
+
+  .environment-selector select {
+    background: var(--surface-tertiary);
+    border: 1px solid var(--border-primary);
+    border-radius: 6px;
+    color: var(--text-primary);
+    padding: 8px 16px;
+    font-family: var(--font-mono);
+    cursor: pointer;
+  }
+
+  .environment-selector .env-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: 4px;
+    font-size: 0.875rem;
+    font-weight: 500;
+  }
+
+  .environment-selector .env-indicator.production {
+    background: rgba(139, 0, 0, 0.2);
+    color: #ff6b6b;
+  }
+
+  .environment-selector .env-indicator.sandbox {
+    background: rgba(61, 90, 69, 0.2);
+    color: #6bff8b;
+  }
+
+  .production-warning {
+    background: rgba(139, 0, 0, 0.2);
+    border: 1px solid #8B0000;
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin: 16px 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: #ff6b6b;
+  }
+
+  .production-warning svg {
+    flex-shrink: 0;
+  }
+
+  /* Swagger container */
+  #swagger-ui-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 24px 48px;
+  }
+</style>
+
+<section class="api-explorer-hero">
+  <h1>API Explorer</h1>
+  <p>
+    Interactive documentation for the Ferni Developer Platform API.
+    Try endpoints directly in your browser with your API key.
+  </p>
+  <div class="api-explorer-actions">
+    <a href="/pages/getting-started" class="btn-primary">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M12 5v14M5 12h14"/>
+      </svg>
+      Get API Key
+    </a>
+    <a href="/api/openapi.yaml" download class="btn-secondary">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+        <polyline points="7 10 12 15 17 10"/>
+        <line x1="12" y1="15" x2="12" y2="3"/>
+      </svg>
+      Download OpenAPI Spec
+    </a>
+    <a href="https://github.com/ferni-ai/ferni-sdk" target="_blank" class="btn-secondary">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/>
+      </svg>
+      View SDK
+    </a>
+  </div>
+</section>
+
+<div class="environment-selector">
+  <label for="env-select">Environment:</label>
+  <select id="env-select" onchange="switchEnvironment(this.value)">
+    <option value="sandbox">Sandbox (Test)</option>
+    <option value="production">Production (Live)</option>
+  </select>
+  <span class="env-indicator sandbox" id="env-indicator">
+    <svg class="env-dot" width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+      <circle cx="12" cy="12" r="6"/>
+    </svg>
+    <span class="env-label">Test Mode</span>
+  </span>
+</div>
+
+<div id="production-warning-container" style="display: none;">
+  <div class="production-warning">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+      <line x1="12" y1="9" x2="12" y2="13"/>
+      <line x1="12" y1="17" x2="12.01" y2="17"/>
+    </svg>
+    <span><strong>Production Mode:</strong> Requests will use your live API key and count toward billing.</span>
+  </div>
+</div>
+
+<div id="swagger-ui-container"></div>
+
+<!-- Swagger UI CDN -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui.css">
+<script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-standalone-preset.js"></script>
+
+<script>
+  // Environment configuration
+  const environments = {
+    sandbox: {
+      url: 'https://api.ferni.ai',
+      keyPrefix: 'ferni_test_',
+      label: 'Test Mode',
+      className: 'sandbox'
+    },
+    production: {
+      url: 'https://api.ferni.ai',
+      keyPrefix: 'ferni_live_',
+      label: 'Production',
+      className: 'production'
+    }
+  };
+
+  let currentEnv = 'sandbox';
+
+  // Initialize Swagger UI
+  const ui = SwaggerUIBundle({
+    url: '/api/openapi.yaml',
+    dom_id: '#swagger-ui-container',
+    deepLinking: true,
+    presets: [
+      SwaggerUIBundle.presets.apis,
+      SwaggerUIStandalonePreset
+    ],
+    plugins: [
+      SwaggerUIBundle.plugins.DownloadUrl
+    ],
+    layout: 'StandaloneLayout',
+    persistAuthorization: true,
+    displayRequestDuration: true,
+    filter: true,
+    showExtensions: true,
+    showCommonExtensions: true,
+    requestInterceptor: function(request) {
+      // Add environment-specific headers if needed
+      return request;
+    },
+    onComplete: function() {
+      // Apply theme after load
+      const wrapper = document.querySelector('.swagger-ui');
+      if (wrapper) {
+        wrapper.style.background = 'transparent';
+      }
+    }
+  });
+
+  // Switch environment (safe DOM manipulation)
+  function switchEnvironment(env) {
+    currentEnv = env;
+    const config = environments[env];
+
+    // Update indicator using safe DOM methods
+    const indicator = document.getElementById('env-indicator');
+    indicator.className = 'env-indicator ' + config.className;
+
+    const labelEl = indicator.querySelector('.env-label');
+    if (labelEl) {
+      labelEl.textContent = config.label;
+    }
+
+    // Toggle production warning visibility
+    const warningContainer = document.getElementById('production-warning-container');
+    if (env === 'production') {
+      warningContainer.style.display = 'block';
+    } else {
+      warningContainer.style.display = 'none';
+    }
+  }
+
+  // Initialize
+  document.addEventListener('DOMContentLoaded', function() {
+    switchEnvironment('sandbox');
+  });
+</script>

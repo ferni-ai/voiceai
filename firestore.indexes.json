@@ -7,6 +7,14 @@
         { "fieldPath": "dimension", "order": "ASCENDING" },
         { "fieldPath": "confidence", "order": "DESCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "workflows",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "trigger.type", "order": "ASCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

@@ -102,6 +102,9 @@ export async function checkDataIntegrity(userId?: string): Promise<DataIntegrity
 
   // Check dynamic memory metrics
   const memMetrics = getDynamicMemoryMetrics();
+  const totalJobs = memMetrics.deepExtraction.totalJobsProcessed;
+  const failedJobs = memMetrics.deepExtraction.totalJobsFailed;
+  const successRate = totalJobs > 0 ? (totalJobs - failedJobs) / totalJobs : 1;
   report.dynamicMemory = {
     fastCaptureMetrics: {
       totalCalls: memMetrics.fastCapture.totalCalls,
@@ -109,11 +112,11 @@ export async function checkDataIntegrity(userId?: string): Promise<DataIntegrity
       entitiesExtracted: memMetrics.fastCapture.entitiesExtracted,
     },
     deepExtractionMetrics: {
-      totalJobs: memMetrics.deepExtraction.totalJobs,
-      successRate: memMetrics.deepExtraction.successRate,
+      totalJobs: totalJobs,
+      successRate: successRate,
       factsExtracted: memMetrics.deepExtraction.factsExtracted,
     },
-    stmBufferCount: memMetrics.stmBufferCount,
+    stmBufferCount: memMetrics.stm.activeSessions,
   };
 
   // If userId provided, check their specific data
