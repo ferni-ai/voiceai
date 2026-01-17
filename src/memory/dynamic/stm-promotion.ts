@@ -23,6 +23,7 @@ import {
   type TurnMemory,
   type EntityFrequency,
 } from './stm-buffer.js';
+import { recordFallback, recordSuccess } from '../../services/observability/firestore-monitor.js';
 
 const log = createLogger({ module: 'STMPromotion' });
 
@@ -44,9 +45,11 @@ interface PromotionConfig {
 }
 
 const DEFAULT_CONFIG: PromotionConfig = {
-  minMentionCount: 2,
-  minImportanceScore: 0.5,
-  maxEntitiesPerSession: 10,
+  // 🧠 MEMORY FIX: Lowered thresholds to capture more entities
+  // Previously minMentionCount: 2 was too strict for short conversations
+  minMentionCount: 1, // Changed from 2 - capture single mentions
+  minImportanceScore: 0.3, // Changed from 0.5 - be more inclusive
+  maxEntitiesPerSession: 15, // Changed from 10 - capture more per session
   promoteEmotionalTrajectory: true,
   promoteTopicPatterns: true,
 };
@@ -217,6 +220,7 @@ export async function promoteSessionToFirestore(
   const db = getFirestoreDb();
   if (!db) {
     log.warn({ sessionId, userId }, '🧠 [MEMORY-AUDIT] Firestore not available, skipping promotion');
+    recordFallback('stm-promotion', 'Firestore unavailable for STM promotion');
     return result;
   }
 
@@ -244,12 +248,31 @@ export async function promoteSessionToFirestore(
   try {
     // 1. Promote frequent entities
     const frequentEntities = getFrequentEntities(sessionId);
+    
+    // 🧠 MEMORY AUDIT: Log all entities found in STM
+    log.info(
+      { 
+        sessionId,
+        userId,
+        frequentEntitiesCount: frequentEntities.length,
+        entities: frequentEntities.map(e => ({ name: e.name, count: e.mentionCount })),
+        config: { minMentionCount: activeConfig.minMentionCount, minImportanceScore: activeConfig.minImportanceScore },
+      },
+      '🧠 [MEMORY-AUDIT] Checking entities for promotion'
+    );
+    
     const entitiesToPromote: PromotedEntity[] = [];
 
     for (const entity of frequentEntities) {
       if (entitiesToPromote.length >= activeConfig.maxEntitiesPerSession) break;
 
       const importance = calculateEntityImportance(entity, buffer.turns);
+      
+      // 🧠 MEMORY AUDIT: Log each entity evaluation
+      log.debug(
+        { entity: entity.name, mentionCount: entity.mentionCount, importance, minCount: activeConfig.minMentionCount, minImportance: activeConfig.minImportanceScore },
+        '🧠 [MEMORY-AUDIT] Evaluating entity for promotion'
+      );
 
       if (entity.mentionCount >= activeConfig.minMentionCount || importance >= activeConfig.minImportanceScore) {
         // Find last context for this entity

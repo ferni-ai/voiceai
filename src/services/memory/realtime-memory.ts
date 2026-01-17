@@ -20,6 +20,7 @@
 import { getFirestoreDatabase, getGCPProjectId } from '../../config/environment.js';
 import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
 import { getLogger } from '../../utils/safe-logger.js';
+import { recordFallback, recordSuccess } from '../observability/firestore-monitor.js';
 
 const log = getLogger().child({ module: 'realtime-memory' });
 
@@ -165,10 +166,17 @@ export async function persistTurn(
   conversationId: string,
   turn: ConversationTurn
 ): Promise<void> {
+  // 🧠 MEMORY AUDIT: Log every persist attempt
+  log.info(
+    { userId: userId?.substring(0, 8), conversationId, role: turn.role, contentLen: turn.content?.length },
+    '🧠 [MEMORY-AUDIT] persistTurn called'
+  );
+  
   const firestore = await getFirestore();
 
   if (!firestore) {
-    log.debug('Firestore unavailable, turn not persisted');
+    log.warn({ userId, conversationId }, '🧠 [MEMORY-AUDIT] Firestore unavailable, turn NOT persisted');
+    recordFallback('realtime-memory', 'Firestore unavailable for persistTurn');
     return;
   }
 
@@ -180,14 +188,23 @@ export async function persistTurn(
       .doc(conversationId);
 
     // Add turn document
-    await conversationRef.collection('turns').add(
-      removeUndefined({
-        role: turn.role,
-        content: turn.content,
-        timestamp: turn.timestamp || new Date(),
-        ...(turn.metadata && { metadata: turn.metadata }),
-      })
+    const turnData = removeUndefined({
+      role: turn.role,
+      content: turn.content,
+      timestamp: turn.timestamp || new Date(),
+      ...(turn.metadata && { metadata: turn.metadata }),
+    });
+    
+    const turnDoc = await conversationRef.collection('turns').add(turnData);
+    
+    // 🧠 MEMORY AUDIT: Confirm write succeeded
+    log.info(
+      { userId: userId?.substring(0, 8), conversationId, turnId: turnDoc.id, role: turn.role },
+      '🧠 [MEMORY-AUDIT] Turn document WRITTEN to Firestore'
     );
+    
+    // Record successful Firestore operation
+    recordSuccess('realtime-memory');
 
     // Increment turn count (fire and forget - don't await)
     if (FieldValue) {
@@ -209,7 +226,7 @@ export async function persistTurn(
     );
   } catch (error) {
     // Log but don't throw - we don't want to break the conversation
-    log.error({ error: String(error), userId, conversationId }, 'Failed to persist turn');
+    log.error({ error: String(error), userId, conversationId }, '🧠 [MEMORY-AUDIT] FAILED to persist turn');
   }
 }
 

@@ -675,7 +675,19 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
             // Collect insights from cross-persona insights service
             // SurfaceInsightItem has { insight: { id, category, summary, sourcePersona }, relevanceScore }
             const rawInsights = getInsightsForPersona(userId, sessionPersona?.id || 'ferni');
-            const insightsGenerated: SessionInsight[] = rawInsights.slice(0, 10).map((item) => ({
+            
+            // 🐛 FIX: Deduplicate insights by content to prevent same insight appearing multiple times
+            const seenContents = new Set<string>();
+            const dedupedInsights = rawInsights.filter((item) => {
+              const contentKey = item.insight.summary.toLowerCase().trim();
+              if (seenContents.has(contentKey)) {
+                return false;
+              }
+              seenContents.add(contentKey);
+              return true;
+            });
+            
+            const insightsGenerated: SessionInsight[] = dedupedInsights.slice(0, 10).map((item) => ({
               type:
                 item.relevanceScore >= 0.8
                   ? 'breakthrough'

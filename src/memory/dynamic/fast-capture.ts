@@ -292,9 +292,8 @@ export async function fastCapture(input: FastCaptureInput): Promise<FastCaptureR
 
 function detectEntityMentions(transcript: string): EntityMention[] {
   const mentions: EntityMention[] = [];
-  const words = transcript.toLowerCase().split(/\s+/);
   
-  // Detect relationship words (person mentions)
+  // Detect relationship words (person mentions) - "my mom", "dad", etc.
   for (const word of RELATIONSHIP_WORDS) {
     const regex = new RegExp(`\\b(?:my\\s+)?${word}\\b`, 'gi');
     const matches = transcript.match(regex);
@@ -308,29 +307,102 @@ function detectEntityMentions(transcript: string): EntityMention[] {
     }
   }
   
-  // Detect capitalized names (potential person names)
-  const namePattern = /\b([A-Z][a-z]+)\b(?:\s+(?:said|told|asked|called|texted|is|was|has|had))/g;
+  // 🧠 IMPROVED: Detect named entities more comprehensively
+  // Pattern: "my [relationship] [Name]" or "[relationship] [Name]"
+  // e.g., "my sister Sarah", "friend Mike", "boss Jennifer"
+  const namedRelationPattern = /\b(?:my\s+)?(?:sister|brother|friend|boss|coworker|partner|wife|husband|girlfriend|boyfriend|mom|dad)\s+([A-Z][a-z]+)\b/gi;
   let match;
-  while ((match = namePattern.exec(transcript)) !== null) {
+  while ((match = namedRelationPattern.exec(transcript)) !== null) {
+    const name = match[1];
+    if (name.length > 2) {
+      mentions.push({
+        name,
+        type: 'person',
+        context: extractContext(transcript, name),
+        confidence: 0.85, // High confidence - explicit relation + name
+      });
+    }
+  }
+  
+  // Pattern: "[Name]'s [thing]" - possessive names
+  // e.g., "Sarah's wedding", "Mike's birthday"
+  const possessivePattern = /\b([A-Z][a-z]+)'s\s+\w+/g;
+  while ((match = possessivePattern.exec(transcript)) !== null) {
     const name = match[1];
     if (!RELATIONSHIP_WORDS.includes(name.toLowerCase()) && name.length > 2) {
       mentions.push({
         name,
         type: 'person',
         context: extractContext(transcript, name),
+        confidence: 0.8, // High confidence - possessive form
+      });
+    }
+  }
+  
+  // Pattern: Names followed by common verbs
+  const verbFollowingPattern = /\b([A-Z][a-z]+)\b\s+(?:said|told|asked|called|texted|is|was|has|had|wants|needs|likes|loves|thinks)\b/gi;
+  while ((match = verbFollowingPattern.exec(transcript)) !== null) {
+    const name = match[1];
+    if (!RELATIONSHIP_WORDS.includes(name.toLowerCase()) && name.length > 2) {
+      mentions.push({
+        name,
+        type: 'person',
+        context: extractContext(transcript, name),
+        confidence: 0.7,
+      });
+    }
+  }
+  
+  // Pattern: Common name introductions
+  // "talked to [Name]", "called [Name]", "met [Name]", "with [Name]"
+  const interactionPattern = /\b(?:talked?\s+to|called|texted|met|met\s+with|with|saw|visited|emailed)\s+([A-Z][a-z]+)\b/gi;
+  while ((match = interactionPattern.exec(transcript)) !== null) {
+    const name = match[1];
+    if (!RELATIONSHIP_WORDS.includes(name.toLowerCase()) && name.length > 2) {
+      mentions.push({
+        name,
+        type: 'person',
+        context: extractContext(transcript, name),
+        confidence: 0.75,
+      });
+    }
+  }
+  
+  // Pattern: "named [Name]" or "called [Name]"
+  const namedPattern = /\b(?:named|called|name\s+is)\s+([A-Z][a-z]+)\b/gi;
+  while ((match = namedPattern.exec(transcript)) !== null) {
+    mentions.push({
+      name: match[1],
+      type: 'person',
+      context: extractContext(transcript, match[1]),
+      confidence: 0.9, // Very high - explicit naming
+    });
+  }
+  
+  // Detect place mentions
+  const placePattern = /\b(?:in|at|to|from|visiting|live\s+in|moved\s+to)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\b/g;
+  while ((match = placePattern.exec(transcript)) !== null) {
+    const placeName = match[1];
+    // Exclude common false positives
+    const falsePositives = ['The', 'This', 'That', 'It', 'They', 'I', 'We', 'He', 'She', 'My'];
+    if (!falsePositives.includes(placeName)) {
+      mentions.push({
+        name: placeName,
+        type: 'place',
+        context: extractContext(transcript, placeName),
         confidence: 0.6,
       });
     }
   }
   
-  // Detect place mentions
-  const placePattern = /\b(?:in|at|to|from)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\b/g;
-  while ((match = placePattern.exec(transcript)) !== null) {
+  // Detect organization/company mentions
+  const orgPattern = /\b(?:work\s+(?:at|for)|company|employer|job\s+at)\s+([A-Z][a-zA-Z\s]+?)(?:\s+(?:and|but|where|which)|\.|,|$)/gi;
+  while ((match = orgPattern.exec(transcript)) !== null) {
     mentions.push({
-      name: match[1],
-      type: 'place',
+      name: match[1].trim(),
+      type: 'organization',
       context: extractContext(transcript, match[1]),
-      confidence: 0.5,
+      confidence: 0.65,
     });
   }
   
