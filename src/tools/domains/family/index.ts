@@ -996,6 +996,14 @@ import {
   requestCheckInToolDef,
 } from './family-sharing-tool.js';
 
+// Import family check-in scheduling tools
+import {
+  scheduleFamilyCheckinToolDef,
+  listFamilyCheckinsToolDef,
+  getCheckinStatusToolDef,
+  toggleCheckinToolDef,
+} from './schedule-family-checkin.js';
+
 const familyTools: ToolDefinition[] = [
   // Parenting
   coachParentingChallengeDef,
@@ -1020,6 +1028,11 @@ const familyTools: ToolDefinition[] = [
   // Family Sharing (sponsor to family)
   shareWithFamilyToolDef,
   requestCheckInToolDef,
+  // Proactive Family Check-ins (Ferni calls family members)
+  scheduleFamilyCheckinToolDef,
+  listFamilyCheckinsToolDef,
+  getCheckinStatusToolDef,
+  toggleCheckinToolDef,
 ];
 
 // ============================================================================
