@@ -155,3 +155,20 @@ apps/ml-training/**/.venv*/
 apps/ml-training/router/logs/
 data/ftis-training-*/
 
+# Claude temp files
+.claude/wave-outputs/
+.claude/wave-state.local.md
+apps/macos-menubar/.claude/
+apps/shared/.build/
+# Claude temp files
+.claude/wave-outputs/
+.claude/wave-state.local.md
+apps/macos-menubar/.claude/
+apps/shared/.build/
+brand/.claude/
+
+# Build artifacts
+*.d
+*.dia
+*.swiftdeps
+*.swift.o
