@@ -327,6 +327,11 @@ export async function getEventPatternInsights(
       `You've regretted skimping on ${bp.regretCategories.join(', ')} before - worth investing more here.`
     );
   }
+  if (bp.disciplinedCategories.length > 0) {
+    insights.budgetWarnings.push(
+      `You're consistently disciplined with ${bp.disciplinedCategories.join(', ')} - nice work staying on budget there.`
+    );
+  }
 
   // Guest recommendations
   const gd = profile.guestDynamics;
@@ -468,6 +473,8 @@ function computeBudgetPatterns(events: EventOutcome[]): BudgetPattern {
   const overruns: number[] = [];
   const categorySplurges: Record<string, number> = {};
   const categoryRegrets: Record<string, number> = {};
+  // Track overage rates per category: { category: { totalEvents: number, onBudgetCount: number } }
+  const categoryDiscipline: Record<string, { totalEvents: number; onBudgetCount: number }> = {};
 
   for (const event of events) {
     // Calculate overrun percentage
@@ -478,12 +485,21 @@ function computeBudgetPatterns(events: EventOutcome[]): BudgetPattern {
 
     // Track category patterns
     for (const [category, spending] of Object.entries(event.categorySpending || {})) {
-      const overPercent = spending.budgeted > 0 
-        ? ((spending.actual - spending.budgeted) / spending.budgeted) * 100 
+      const overPercent = spending.budgeted > 0
+        ? ((spending.actual - spending.budgeted) / spending.budgeted) * 100
         : 0;
-      
+
       if (overPercent > 20) {
         categorySplurges[category] = (categorySplurges[category] || 0) + 1;
+      }
+
+      // Track discipline: on or under budget means overPercent <= 10%
+      if (!categoryDiscipline[category]) {
+        categoryDiscipline[category] = { totalEvents: 0, onBudgetCount: 0 };
+      }
+      categoryDiscipline[category].totalEvents++;
+      if (overPercent <= 10) {
+        categoryDiscipline[category].onBudgetCount++;
       }
     }
 
@@ -498,8 +514,8 @@ function computeBudgetPatterns(events: EventOutcome[]): BudgetPattern {
     }
   }
 
-  const avgOverrun = overruns.length > 0 
-    ? overruns.reduce((a, b) => a + b, 0) / overruns.length 
+  const avgOverrun = overruns.length > 0
+    ? overruns.reduce((a, b) => a + b, 0) / overruns.length
     : 0;
 
   // Categories that appear in >30% of events
@@ -511,11 +527,20 @@ function computeBudgetPatterns(events: EventOutcome[]): BudgetPattern {
     .filter(([, count]) => count >= Math.max(1, threshold))
     .map(([cat]) => cat);
 
+  // Disciplined categories: user stays on or under budget (<=10% overage) in >= 80% of events
+  // Only consider categories that appear in at least 2 events for meaningful patterns
+  const disciplinedCategories = Object.entries(categoryDiscipline)
+    .filter(([, stats]) => {
+      const onBudgetRate = stats.onBudgetCount / stats.totalEvents;
+      return stats.totalEvents >= 2 && onBudgetRate >= 0.8;
+    })
+    .map(([cat]) => cat);
+
   return {
     averageOverrunPercent: avgOverrun,
     splurgeCategories,
     regretCategories,
-    disciplinedCategories: [], // TODO: compute from on-budget categories
+    disciplinedCategories,
     eventsAnalyzed: events.length,
   };
 }

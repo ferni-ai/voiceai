@@ -49,8 +49,10 @@ export interface OutreachStats {
   averageResponseTime: number | null; // seconds
   mostEffectiveChannel: string | null;
   mostEffectiveType: string | null;
-  bestTimeOfDay: string | null; // e.g., "09:00-12:00"
-  bestDayOfWeek: string | null;
+  bestTimeOfDay: string | null; // e.g., "06:00-12:00"
+  bestDayOfWeek: string | null; // e.g., "Tuesday"
+  /** Human-readable timing insight, e.g., "User responds best on Tuesday afternoons" */
+  timingInsight: string | null;
 }
 
 // ============================================================================
@@ -257,6 +259,233 @@ export async function updateOutreachPreferences(
 }
 
 // ============================================================================
+// TIME ANALYSIS HELPERS
+// ============================================================================
+
+/**
+ * Time of day buckets for analysis
+ */
+const TIME_BUCKETS = {
+  morning: { start: 6, end: 12, label: '06:00-12:00' },
+  afternoon: { start: 12, end: 17, label: '12:00-17:00' },
+  evening: { start: 17, end: 21, label: '17:00-21:00' },
+  night: { start: 21, end: 6, label: '21:00-06:00' },
+} as const;
+
+type TimeBucket = keyof typeof TIME_BUCKETS;
+
+/**
+ * Get the time bucket for a given hour
+ */
+function getTimeBucket(hour: number): TimeBucket {
+  if (hour >= 6 && hour < 12) return 'morning';
+  if (hour >= 12 && hour < 17) return 'afternoon';
+  if (hour >= 17 && hour < 21) return 'evening';
+  return 'night';
+}
+
+/**
+ * Day of week labels
+ */
+const DAY_LABELS: Record<number, string> = {
+  0: 'Sunday',
+  1: 'Monday',
+  2: 'Tuesday',
+  3: 'Wednesday',
+  4: 'Thursday',
+  5: 'Friday',
+  6: 'Saturday',
+};
+
+interface TimeAnalysisResult {
+  bestTimeOfDay: string | null;
+  bestDayOfWeek: string | null;
+  timingInsight: string | null;
+}
+
+/**
+ * Analyze time-of-day and day-of-week patterns from outreach data
+ *
+ * Looks at when positive responses occur to determine optimal outreach timing.
+ * Returns human-readable insights like "Tuesday afternoons" or "weekday mornings".
+ */
+function analyzeOutreachTiming(
+  attempts: OutreachAttempt[],
+  responses: OutreachResponse[]
+): TimeAnalysisResult {
+  // Track positive responses by time bucket and day
+  const positiveByTimeBucket: Record<TimeBucket, number> = {
+    morning: 0,
+    afternoon: 0,
+    evening: 0,
+    night: 0,
+  };
+  const totalByTimeBucket: Record<TimeBucket, number> = {
+    morning: 0,
+    afternoon: 0,
+    evening: 0,
+    night: 0,
+  };
+
+  const positiveByDay: Record<number, number> = {};
+  const totalByDay: Record<number, number> = {};
+  for (let i = 0; i < 7; i++) {
+    positiveByDay[i] = 0;
+    totalByDay[i] = 0;
+  }
+
+  // Track combined time+day for deeper insights
+  const positiveByDayAndTime: Record<string, number> = {};
+  const totalByDayAndTime: Record<string, number> = {};
+
+  // Build a map of outreachId -> attempt for quick lookup
+  const attemptMap = new Map<string, OutreachAttempt>();
+  for (const attempt of attempts) {
+    attemptMap.set(attempt.id, attempt);
+  }
+
+  // Analyze each attempt
+  for (const attempt of attempts) {
+    const sentDate = new Date(attempt.sentAt);
+    const hour = sentDate.getHours();
+    const day = sentDate.getDay();
+    const bucket = getTimeBucket(hour);
+    const dayTimeKey = `${day}-${bucket}`;
+
+    // Count totals
+    totalByTimeBucket[bucket]++;
+    totalByDay[day]++;
+    totalByDayAndTime[dayTimeKey] = (totalByDayAndTime[dayTimeKey] || 0) + 1;
+  }
+
+  // Analyze responses to find positive patterns
+  for (const response of responses) {
+    const attempt = attemptMap.get(response.outreachId);
+    if (!attempt) continue;
+
+    const isPositive = response.responseType === 'engaged' || response.sentiment === 'positive';
+    if (!isPositive) continue;
+
+    const sentDate = new Date(attempt.sentAt);
+    const hour = sentDate.getHours();
+    const day = sentDate.getDay();
+    const bucket = getTimeBucket(hour);
+    const dayTimeKey = `${day}-${bucket}`;
+
+    positiveByTimeBucket[bucket]++;
+    positiveByDay[day]++;
+    positiveByDayAndTime[dayTimeKey] = (positiveByDayAndTime[dayTimeKey] || 0) + 1;
+  }
+
+  // Find best time of day (highest positive rate with minimum sample size)
+  let bestTimeOfDay: string | null = null;
+  let highestTimeRate = 0;
+  const MIN_SAMPLE_SIZE = 3; // Require at least 3 attempts for statistical relevance
+
+  for (const [bucket, total] of Object.entries(totalByTimeBucket)) {
+    if (total < MIN_SAMPLE_SIZE) continue;
+    const positive = positiveByTimeBucket[bucket as TimeBucket];
+    const rate = positive / total;
+    if (rate > highestTimeRate) {
+      highestTimeRate = rate;
+      bestTimeOfDay = TIME_BUCKETS[bucket as TimeBucket].label;
+    }
+  }
+
+  // Find best day of week (highest positive rate with minimum sample size)
+  let bestDayOfWeek: string | null = null;
+  let highestDayRate = 0;
+
+  for (let day = 0; day < 7; day++) {
+    const total = totalByDay[day];
+    if (total < MIN_SAMPLE_SIZE) continue;
+    const positive = positiveByDay[day];
+    const rate = positive / total;
+    if (rate > highestDayRate) {
+      highestDayRate = rate;
+      bestDayOfWeek = DAY_LABELS[day];
+    }
+  }
+
+  // Generate a combined timing insight if we have enough data
+  let timingInsight: string | null = null;
+
+  // Find best combined day+time
+  let bestDayTimeKey: string | null = null;
+  let highestCombinedRate = 0;
+
+  for (const [key, total] of Object.entries(totalByDayAndTime)) {
+    if (total < MIN_SAMPLE_SIZE) continue;
+    const positive = positiveByDayAndTime[key] || 0;
+    const rate = positive / total;
+    if (rate > highestCombinedRate) {
+      highestCombinedRate = rate;
+      bestDayTimeKey = key;
+    }
+  }
+
+  if (bestDayTimeKey && highestCombinedRate > 0.5) {
+    const [dayStr, bucket] = bestDayTimeKey.split('-');
+    const day = parseInt(dayStr, 10);
+    const dayLabel = DAY_LABELS[day];
+    const timeLabel = bucket.charAt(0).toUpperCase() + bucket.slice(1);
+    timingInsight = `User responds best on ${dayLabel} ${timeLabel.toLowerCase()}s`;
+  } else if (bestDayOfWeek && bestTimeOfDay) {
+    // Check if it's weekday vs weekend pattern
+    const weekdayTotal =
+      totalByDay[1] + totalByDay[2] + totalByDay[3] + totalByDay[4] + totalByDay[5];
+    const weekdayPositive =
+      positiveByDay[1] + positiveByDay[2] + positiveByDay[3] + positiveByDay[4] + positiveByDay[5];
+    const weekendTotal = totalByDay[0] + totalByDay[6];
+    const weekendPositive = positiveByDay[0] + positiveByDay[6];
+
+    if (weekdayTotal >= MIN_SAMPLE_SIZE && weekendTotal >= MIN_SAMPLE_SIZE) {
+      const weekdayRate = weekdayPositive / weekdayTotal;
+      const weekendRate = weekendPositive / weekendTotal;
+
+      if (weekdayRate > weekendRate * 1.5) {
+        // Extract time label (e.g., "06:00-12:00" -> "mornings")
+        const timeOfDayLabel =
+          bestTimeOfDay === TIME_BUCKETS.morning.label
+            ? 'mornings'
+            : bestTimeOfDay === TIME_BUCKETS.afternoon.label
+              ? 'afternoons'
+              : bestTimeOfDay === TIME_BUCKETS.evening.label
+                ? 'evenings'
+                : 'nights';
+        timingInsight = `User prefers weekday ${timeOfDayLabel}`;
+      } else if (weekendRate > weekdayRate * 1.5) {
+        const timeOfDayLabel =
+          bestTimeOfDay === TIME_BUCKETS.morning.label
+            ? 'mornings'
+            : bestTimeOfDay === TIME_BUCKETS.afternoon.label
+              ? 'afternoons'
+              : bestTimeOfDay === TIME_BUCKETS.evening.label
+                ? 'evenings'
+                : 'nights';
+        timingInsight = `User prefers weekend ${timeOfDayLabel}`;
+      } else {
+        timingInsight = `User responds best on ${bestDayOfWeek}s in the ${
+          bestTimeOfDay === TIME_BUCKETS.morning.label
+            ? 'morning'
+            : bestTimeOfDay === TIME_BUCKETS.afternoon.label
+              ? 'afternoon'
+              : bestTimeOfDay === TIME_BUCKETS.evening.label
+                ? 'evening'
+                : 'night'
+        }`;
+      }
+    }
+  }
+
+  return {
+    bestTimeOfDay,
+    bestDayOfWeek,
+    timingInsight,
+  };
+}
+
+// ============================================================================
 // ANALYTICS & INSIGHTS
 // ============================================================================
 
@@ -369,6 +598,9 @@ export async function getOutreachStats(userId: string, daysBack = 90): Promise<O
       }
     }
 
+    // Analyze time-of-day and day-of-week patterns
+    const timingAnalysis = analyzeOutreachTiming(attempts, responses);
+
     return {
       totalAttempts: attempts.length,
       byType,
@@ -378,8 +610,9 @@ export async function getOutreachStats(userId: string, daysBack = 90): Promise<O
       averageResponseTime: responsesWithTime > 0 ? totalResponseTime / responsesWithTime : null,
       mostEffectiveChannel,
       mostEffectiveType,
-      bestTimeOfDay: null, // TODO: Implement time-of-day analysis
-      bestDayOfWeek: null, // TODO: Implement day-of-week analysis
+      bestTimeOfDay: timingAnalysis.bestTimeOfDay,
+      bestDayOfWeek: timingAnalysis.bestDayOfWeek,
+      timingInsight: timingAnalysis.timingInsight,
     };
   } catch (error) {
     log.error({ error: String(error), userId }, 'Failed to get outreach stats');
@@ -394,6 +627,7 @@ export async function getOutreachStats(userId: string, daysBack = 90): Promise<O
       mostEffectiveType: null,
       bestTimeOfDay: null,
       bestDayOfWeek: null,
+      timingInsight: null,
     };
   }
 }

@@ -74,7 +74,12 @@ export interface RecoveryProfile {
   /** Actions that help recovery */
   helpfulActions: string[];
   /** Times when they recover faster */
-  optimalRecoveryTimes: { dayOfWeek: number; hourRange: string }[];
+  optimalRecoveryTimes: {
+    dayOfWeek: number;
+    hourRange: string;
+    avgRecoveryHours?: number;
+    sampleSize?: number;
+  }[];
   /** Last updated */
   lastUpdated: number;
 }
@@ -258,6 +263,131 @@ export async function getActiveRecoveryEvents(userId: string): Promise<RecoveryE
 }
 
 // ============================================================================
+// OPTIMAL RECOVERY ANALYSIS
+// ============================================================================
+
+interface OptimalRecoveryTime {
+  dayOfWeek: number; // 0=Sunday, 1=Monday, ..., 6=Saturday
+  hourRange: string; // e.g., '10-14'
+  avgRecoveryHours: number;
+  sampleSize: number;
+}
+
+/**
+ * Analyze when the user tends to recover faster.
+ * Looks at both day-of-week and time-of-day patterns.
+ */
+function analyzeOptimalRecoveryTimes(completedEvents: RecoveryEvent[]): OptimalRecoveryTime[] {
+  if (completedEvents.length < 3) {
+    return []; // Need enough data for meaningful patterns
+  }
+
+  // Group events by day of week when recovery STARTED
+  const byDayOfWeek = new Map<number, number[]>();
+  // Group events by hour range when recovery STARTED
+  const byHourRange = new Map<string, number[]>();
+
+  for (const event of completedEvents) {
+    if (!event.recoveryHours || !event.eventTimestamp) continue;
+
+    const eventDate = new Date(event.eventTimestamp);
+    const dayOfWeek = eventDate.getDay();
+    const hour = eventDate.getHours();
+
+    // Track by day of week
+    if (!byDayOfWeek.has(dayOfWeek)) {
+      byDayOfWeek.set(dayOfWeek, []);
+    }
+    byDayOfWeek.get(dayOfWeek)!.push(event.recoveryHours);
+
+    // Track by 4-hour ranges: 0-4, 4-8, 8-12, 12-16, 16-20, 20-24
+    const hourRangeStart = Math.floor(hour / 4) * 4;
+    const hourRange = `${hourRangeStart}-${hourRangeStart + 4}`;
+    if (!byHourRange.has(hourRange)) {
+      byHourRange.set(hourRange, []);
+    }
+    byHourRange.get(hourRange)!.push(event.recoveryHours);
+  }
+
+  // Calculate average recovery time for each day of week
+  const dayAverages: { dayOfWeek: number; avg: number; count: number }[] = [];
+  for (const [day, hours] of byDayOfWeek) {
+    if (hours.length >= 2) {
+      // Need at least 2 samples
+      const avg = hours.reduce((a, b) => a + b, 0) / hours.length;
+      dayAverages.push({ dayOfWeek: day, avg, count: hours.length });
+    }
+  }
+
+  // Calculate average recovery time for each hour range
+  const hourAverages: { hourRange: string; avg: number; count: number }[] = [];
+  for (const [range, hours] of byHourRange) {
+    if (hours.length >= 2) {
+      // Need at least 2 samples
+      const avg = hours.reduce((a, b) => a + b, 0) / hours.length;
+      hourAverages.push({ hourRange: range, avg, count: hours.length });
+    }
+  }
+
+  // Find the optimal combinations (fastest recovery)
+  const results: OptimalRecoveryTime[] = [];
+
+  // Sort by fastest average recovery
+  dayAverages.sort((a, b) => a.avg - b.avg);
+  hourAverages.sort((a, b) => a.avg - b.avg);
+
+  // Overall average for comparison
+  const allRecoveryHours = completedEvents
+    .filter((e) => e.recoveryHours)
+    .map((e) => e.recoveryHours!);
+  const overallAvg =
+    allRecoveryHours.length > 0
+      ? allRecoveryHours.reduce((a, b) => a + b, 0) / allRecoveryHours.length
+      : 24;
+
+  // Add top day-of-week patterns that are significantly faster than average
+  for (const dayData of dayAverages.slice(0, 2)) {
+    // Only include if at least 15% faster than overall average
+    if (dayData.avg < overallAvg * 0.85) {
+      // Find the best hour range for this day (if we have cross-data)
+      const bestHourRange = hourAverages.length > 0 ? hourAverages[0].hourRange : '8-12';
+
+      results.push({
+        dayOfWeek: dayData.dayOfWeek,
+        hourRange: bestHourRange,
+        avgRecoveryHours: Math.round(dayData.avg * 10) / 10,
+        sampleSize: dayData.count,
+      });
+    }
+  }
+
+  // If no day-specific patterns, check hour-range patterns
+  if (results.length === 0 && hourAverages.length > 0) {
+    const bestHour = hourAverages[0];
+    if (bestHour.avg < overallAvg * 0.85) {
+      // Find which day has most samples at this hour range
+      let bestDay = 0;
+      let maxSamples = 0;
+      for (const [day, hours] of byDayOfWeek) {
+        if (hours.length > maxSamples) {
+          maxSamples = hours.length;
+          bestDay = day;
+        }
+      }
+
+      results.push({
+        dayOfWeek: bestDay,
+        hourRange: bestHour.hourRange,
+        avgRecoveryHours: Math.round(bestHour.avg * 10) / 10,
+        sampleSize: bestHour.count,
+      });
+    }
+  }
+
+  return results;
+}
+
+// ============================================================================
 // PROFILE ANALYSIS
 // ============================================================================
 
@@ -328,7 +458,7 @@ export async function buildRecoveryProfile(userId: string): Promise<RecoveryProf
     userId,
     recoveryTimes,
     helpfulActions,
-    optimalRecoveryTimes: [], // TODO: Analyze when they recover faster
+    optimalRecoveryTimes: analyzeOptimalRecoveryTimes(completedEvents),
     lastUpdated: Date.now(),
   };
 }

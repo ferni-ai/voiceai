@@ -271,6 +271,59 @@ async function loadHabits(userId: string): Promise<PracticeHabit[]> {
 }
 
 /**
+ * Load reminders for a user for a given date range
+ */
+async function loadReminders(
+  userId: string,
+  startDate: Date,
+  endDate: Date
+): Promise<Map<string, PracticeReminder[]>> {
+  const remindersByDate = new Map<string, PracticeReminder[]>();
+
+  try {
+    const { Firestore } = await import('@google-cloud/firestore');
+    const db = new Firestore({
+      projectId: process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT,
+      databaseId: process.env.FIRESTORE_DATABASE || '(default)',
+    });
+
+    const snapshot = await db
+      .collection('bogle_users')
+      .doc(userId)
+      .collection('reminders')
+      .where('time', '>=', startDate.toISOString())
+      .where('time', '<=', endDate.toISOString())
+      .orderBy('time', 'asc')
+      .get();
+
+    for (const doc of snapshot.docs) {
+      const data = doc.data();
+      const reminderTime = data.time?.toDate?.()?.toISOString?.() || data.time;
+      const dateStr = reminderTime ? new Date(reminderTime).toISOString().split('T')[0] : '';
+
+      if (dateStr) {
+        const reminder: PracticeReminder = {
+          id: doc.id,
+          text: data.text || data.message || data.title || 'Reminder',
+          time: reminderTime,
+          type: data.type || 'custom',
+        };
+
+        const existing = remindersByDate.get(dateStr) || [];
+        existing.push(reminder);
+        remindersByDate.set(dateStr, existing);
+      }
+    }
+
+    log.debug({ userId, count: snapshot.docs.length }, 'Loaded reminders');
+  } catch (error) {
+    log.warn({ error: String(error), userId }, 'Could not load reminders');
+  }
+
+  return remindersByDate;
+}
+
+/**
  * Generate insight for a habit based on streak/completion patterns
  */
 function generateHabitInsight(habitData: Record<string, unknown>): string | undefined {
@@ -687,7 +740,8 @@ function getDayInsight(date: Date, isToday: boolean): { insight: string; persona
 async function buildWeekData(
   userId: string,
   events: PracticeEvent[],
-  habits: PracticeHabit[]
+  habits: PracticeHabit[],
+  remindersByDate: Map<string, PracticeReminder[]>
 ): Promise<PracticeViewDay[]> {
   const days: PracticeViewDay[] = [];
   const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -724,7 +778,7 @@ async function buildWeekData(
       isWeekend: dayOfWeek === 0 || dayOfWeek === 6,
       events: dayEvents,
       tasks: [], // Tasks are shown in intentions section, not per-day
-      reminders: [], // TODO: Load from reminders collection
+      reminders: remindersByDate.get(dateStr) || [],
       habits: isToday ? habits : [], // Only show habits for today
       insight,
       insightPersona: persona,
@@ -765,14 +819,15 @@ export async function handleGetPracticeView(
     endOfWeek.setDate(startOfWeek.getDate() + 7);
 
     // Load all data in parallel for optimal performance
-    const [events, habits, intentions] = await Promise.all([
+    const [events, habits, intentions, remindersByDate] = await Promise.all([
       loadCalendarEvents(userId, startOfWeek, endOfWeek),
       loadHabits(userId),
       loadIntentions(userId),
+      loadReminders(userId, startOfWeek, endOfWeek),
     ]);
 
     // Build week data
-    const weekData = await buildWeekData(userId, events, habits);
+    const weekData = await buildWeekData(userId, events, habits, remindersByDate);
 
     // Get today's events
     const todayStr = today.toISOString().split('T')[0];
@@ -894,8 +949,11 @@ export async function handleGetPatterns(
     const endOfWeek = new Date(startOfWeek);
     endOfWeek.setDate(startOfWeek.getDate() + 7);
 
-    const events = await loadCalendarEvents(userId, startOfWeek, endOfWeek);
-    const weekData = await buildWeekData(userId, events, []);
+    const [events, remindersByDate] = await Promise.all([
+      loadCalendarEvents(userId, startOfWeek, endOfWeek),
+      loadReminders(userId, startOfWeek, endOfWeek),
+    ]);
+    const weekData = await buildWeekData(userId, events, [], remindersByDate);
 
     const mayaNotices = await generateMayaPatternNotice(userId, weekData);
 
