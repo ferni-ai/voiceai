@@ -30,7 +30,7 @@
   },
   "toolDefaults": {
     "debugMode": true,
-    "maxTools": 20,
+    "maxTools": 30,
     "enabledDomains": [],
     "excludedTools": [],
     "includedTools": [
@@ -42,6 +42,8 @@
       "handoffToNayan",
       "playMusic",
       "getWeather",
+      "getNews",
+      "getSports",
       "recallFromMemory",
       "rememberAboutUser",
       "setReminder",

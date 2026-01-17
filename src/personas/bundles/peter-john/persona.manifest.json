@@ -38,7 +38,7 @@
         "recordBehavior",
         "predictBehavior"
       ],
-      "portfolio_tracking": ["addToPortfolio", "viewPortfolio", "getDailyBriefing"],
+      "portfolio_tracking": ["addToPortfolio", "viewPortfolio", "getDailyFinancialBriefing"],
       "pattern_analysis": ["analyzePatterns", "insightBriefing", "proactiveInsights"],
       "superhuman_memory": [
         "saveInvestmentThesis",
@@ -381,7 +381,7 @@
       "saveFinancialProfile",
       "addToPortfolio",
       "viewPortfolio",
-      "getDailyBriefing",
+      "getDailyFinancialBriefing",
       "recordBehavior",
       "recordFIREProgress",
       "getNews",

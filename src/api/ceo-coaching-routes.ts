@@ -154,13 +154,34 @@ async function getDashboardData(req: Request, res: Response): Promise<void> {
       recentGratitude,
       priorities,
     ] = await Promise.all([
-      getRecentWins(userId, 30).catch(() => []),
-      getEnergyTrend(userId).catch(() => null),
-      getRecentEnergyEntries(userId, 14).catch(() => []),
-      getActiveBlockers(userId).catch(() => []),
-      getPendingDecisions(userId).catch(() => []),
-      getRecentGratitude(userId, 14).catch(() => []),
-      getPriorities(userId).catch(() => []),
+      getRecentWins(userId, 30).catch((e) => {
+        log.warn({ error: String(e), userId }, 'Failed to get recent wins');
+        return [];
+      }),
+      getEnergyTrend(userId).catch((e) => {
+        log.warn({ error: String(e), userId }, 'Failed to get energy trend');
+        return null;
+      }),
+      getRecentEnergyEntries(userId, 14).catch((e) => {
+        log.warn({ error: String(e), userId }, 'Failed to get energy entries');
+        return [];
+      }),
+      getActiveBlockers(userId).catch((e) => {
+        log.warn({ error: String(e), userId }, 'Failed to get active blockers');
+        return [];
+      }),
+      getPendingDecisions(userId).catch((e) => {
+        log.warn({ error: String(e), userId }, 'Failed to get pending decisions');
+        return [];
+      }),
+      getRecentGratitude(userId, 14).catch((e) => {
+        log.warn({ error: String(e), userId }, 'Failed to get gratitude entries');
+        return [];
+      }),
+      getPriorities(userId).catch((e) => {
+        log.warn({ error: String(e), userId }, 'Failed to get priorities');
+        return [];
+      }),
     ]);
 
     // Calculate derived metrics
