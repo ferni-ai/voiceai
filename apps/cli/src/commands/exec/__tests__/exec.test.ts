@@ -9,14 +9,19 @@
  * - scheduler.ts - Cron job management
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeAll } from 'vitest';
 import { getExecutiveMetrics, ExecutiveMetrics } from '../exec.js';
 
 describe('Executive Dashboard', () => {
   describe('getExecutiveMetrics', () => {
-    it('returns metrics for all C-suite roles', () => {
-      const metrics = getExecutiveMetrics();
+    // Cache metrics once since getExecutiveMetrics() runs slow execSync commands
+    let metrics: ExecutiveMetrics;
 
+    beforeAll(() => {
+      metrics = getExecutiveMetrics();
+    }, 60000); // 60 second timeout for initial data fetch
+
+    it('returns metrics for all C-suite roles', () => {
       expect(metrics).toHaveProperty('ceo');
       expect(metrics).toHaveProperty('cto');
       expect(metrics).toHaveProperty('cio');
@@ -26,8 +31,6 @@ describe('Executive Dashboard', () => {
     });
 
     it('CEO metrics have required fields', () => {
-      const metrics = getExecutiveMetrics();
-
       expect(metrics.ceo).toHaveProperty('companyHealth');
       expect(metrics.ceo).toHaveProperty('okrProgress');
       expect(metrics.ceo).toHaveProperty('pendingDecisions');
@@ -36,8 +39,6 @@ describe('Executive Dashboard', () => {
     });
 
     it('CTO metrics have required fields', () => {
-      const metrics = getExecutiveMetrics();
-
       expect(metrics.cto).toHaveProperty('systemHealth');
       expect(metrics.cto).toHaveProperty('techDebtScore');
       expect(metrics.cto).toHaveProperty('openIncidents');
@@ -47,8 +48,6 @@ describe('Executive Dashboard', () => {
     });
 
     it('CTO metrics pulls real data from codebase', () => {
-      const metrics = getExecutiveMetrics();
-
       // CTO metrics should have reasonable ranges based on real data
       expect(metrics.cto.systemHealth).toBeGreaterThanOrEqual(50);
       expect(metrics.cto.systemHealth).toBeLessThanOrEqual(100);
@@ -59,8 +58,6 @@ describe('Executive Dashboard', () => {
     });
 
     it('CIO metrics have required fields', () => {
-      const metrics = getExecutiveMetrics();
-
       expect(metrics.cio).toHaveProperty('complianceScore');
       expect(metrics.cio).toHaveProperty('dataRiskScore');
       expect(metrics.cio).toHaveProperty('accessReviewsPending');
@@ -69,8 +66,6 @@ describe('Executive Dashboard', () => {
     });
 
     it('CPO metrics have required fields', () => {
-      const metrics = getExecutiveMetrics();
-
       expect(metrics.cpo).toHaveProperty('featureVelocity');
       expect(metrics.cpo).toHaveProperty('userSatisfaction');
       expect(metrics.cpo).toHaveProperty('activeExperiments');
@@ -79,8 +74,6 @@ describe('Executive Dashboard', () => {
     });
 
     it('CMO metrics have required fields', () => {
-      const metrics = getExecutiveMetrics();
-
       expect(metrics.cmo).toHaveProperty('campaignROAS');
       expect(metrics.cmo).toHaveProperty('socialEngagement');
       expect(metrics.cmo).toHaveProperty('seoHealth');
@@ -89,8 +82,6 @@ describe('Executive Dashboard', () => {
     });
 
     it('CSCO metrics have required fields', () => {
-      const metrics = getExecutiveMetrics();
-
       expect(metrics.csco).toHaveProperty('operationalEfficiency');
       expect(metrics.csco).toHaveProperty('costOptimization');
       expect(metrics.csco).toHaveProperty('vendorHealth');
