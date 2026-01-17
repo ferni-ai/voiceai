@@ -1339,15 +1339,55 @@ const COMMANDS: Record<string, CliCommand> = {
     description: 'Unified executive dashboard across all C-suite functions',
     icon: '📊',
     handler: handleExec,
-    subcommands: ['--quick', '--alerts', '--role', 'schedule'],
+    subcommands: ['--quick', '--alerts', '--role', 'schedule', 'bth', 'outreach', 'knowledge'],
     examples: [
       'ferni exec',
       'ferni exec --quick',
       'ferni exec --alerts',
       'ferni exec --role cto',
       'ferni exec schedule',
-      'ferni exec schedule --enable',
-      'ferni exec schedule --run-now daily-briefing',
+      'ferni exec bth',
+      'ferni exec outreach --trigger morning',
+      'ferni exec knowledge --patterns',
+    ],
+  },
+  bth: {
+    name: 'Better Than Human',
+    description: 'Superhuman executive intelligence - cross-functional insights, proactive coaching',
+    icon: '🧠',
+    handler: (args: string[]) => handleExec(['bth', ...args]),
+    subcommands: ['--insights', '--coaching', '--decisions', '--energy'],
+    examples: [
+      'ferni bth',
+      'ferni bth --insights',
+      'ferni bth --coaching',
+      'ferni bth --energy 8',
+    ],
+  },
+  outreach: {
+    name: 'Proactive Outreach',
+    description: 'Anticipatory system that reaches out before you know you need it',
+    icon: '📬',
+    handler: (args: string[]) => handleExec(['outreach', ...args]),
+    subcommands: ['--trigger', '--check', '--queue', '--configure'],
+    examples: [
+      'ferni outreach',
+      'ferni outreach --trigger morning',
+      'ferni outreach --trigger evening',
+      'ferni outreach --check',
+    ],
+  },
+  knowledge: {
+    name: 'Unified Knowledge',
+    description: 'Total recall across all executive functions - decisions, commitments, patterns',
+    icon: '📚',
+    handler: (args: string[]) => handleExec(['knowledge', ...args]),
+    subcommands: ['--add', '--search', '--patterns', '--commitments', '--timeline'],
+    examples: [
+      'ferni knowledge',
+      'ferni knowledge --patterns',
+      'ferni knowledge --commitments',
+      'ferni knowledge --add "Decision here" --type decision',
     ],
   },
 };
@@ -10600,6 +10640,95 @@ async function handleExec(args: string[]): Promise<void> {
       execSync(cmd, { stdio: 'inherit', cwd: process.cwd() });
     } catch {
       log.error('Scheduler command failed');
+    }
+    return;
+  }
+
+  // Better Than Human - Superhuman Executive Intelligence
+  if (args[0] === 'bth' || args[0] === 'better-than-human') {
+    log.header('🧠 Better Than Human Intelligence');
+    const bthArgs: string[] = [];
+    if (args.includes('--insights')) bthArgs.push('--insights');
+    if (args.includes('--coaching')) bthArgs.push('--coaching');
+    if (args.includes('--decisions')) bthArgs.push('--decisions');
+    if (args.includes('--json')) bthArgs.push('--json');
+
+    const energyIdx = args.findIndex((a) => a === '--energy');
+    if (energyIdx >= 0 && args[energyIdx + 1]) {
+      bthArgs.push('--energy', args[energyIdx + 1]);
+    }
+
+    const cmd = `npx tsx apps/cli/src/commands/exec/better-than-human.ts ${bthArgs.join(' ')}`;
+    try {
+      execSync(cmd, { stdio: 'inherit', cwd: process.cwd() });
+    } catch {
+      log.error('Better Than Human command failed');
+    }
+    return;
+  }
+
+  // Proactive Outreach System
+  if (args[0] === 'outreach') {
+    log.header('📬 Proactive Outreach');
+    const outreachArgs: string[] = [];
+    if (args.includes('--configure')) outreachArgs.push('--configure');
+    if (args.includes('--check')) outreachArgs.push('--check');
+    if (args.includes('--queue')) outreachArgs.push('--queue');
+    if (args.includes('--json')) outreachArgs.push('--json');
+
+    const triggerIdx = args.findIndex((a) => a === '--trigger');
+    if (triggerIdx >= 0 && args[triggerIdx + 1]) {
+      outreachArgs.push('--trigger', args[triggerIdx + 1]);
+    }
+
+    const cmd = `npx tsx apps/cli/src/commands/exec/proactive-outreach.ts ${outreachArgs.join(' ')}`;
+    try {
+      execSync(cmd, { stdio: 'inherit', cwd: process.cwd() });
+    } catch {
+      log.error('Proactive outreach command failed');
+    }
+    return;
+  }
+
+  // Unified Knowledge Context
+  if (args[0] === 'knowledge' || args[0] === 'kb') {
+    log.header('📚 Unified Knowledge Context');
+    const kbArgs: string[] = [];
+    if (args.includes('--commitments')) kbArgs.push('--commitments');
+    if (args.includes('--patterns')) kbArgs.push('--patterns');
+    if (args.includes('--timeline')) kbArgs.push('--timeline');
+    if (args.includes('--json')) kbArgs.push('--json');
+
+    const addIdx = args.findIndex((a) => a === '--add');
+    if (addIdx >= 0 && args[addIdx + 1]) {
+      kbArgs.push('--add', `"${args[addIdx + 1]}"`);
+    }
+
+    const searchIdx = args.findIndex((a) => a === '--search');
+    if (searchIdx >= 0 && args[searchIdx + 1]) {
+      kbArgs.push('--search', `"${args[searchIdx + 1]}"`);
+    }
+
+    const typeIdx = args.findIndex((a) => a === '--type');
+    if (typeIdx >= 0 && args[typeIdx + 1]) {
+      kbArgs.push('--type', args[typeIdx + 1]);
+    }
+
+    const tagsIdx = args.findIndex((a) => a === '--tags');
+    if (tagsIdx >= 0 && args[tagsIdx + 1]) {
+      kbArgs.push('--tags', args[tagsIdx + 1]);
+    }
+
+    const stakeholderIdx = args.findIndex((a) => a === '--stakeholder');
+    if (stakeholderIdx >= 0 && args[stakeholderIdx + 1]) {
+      kbArgs.push('--stakeholder', `"${args[stakeholderIdx + 1]}"`);
+    }
+
+    const cmd = `npx tsx apps/cli/src/commands/exec/unified-knowledge-context.ts ${kbArgs.join(' ')}`;
+    try {
+      execSync(cmd, { stdio: 'inherit', cwd: process.cwd() });
+    } catch {
+      log.error('Knowledge command failed');
     }
     return;
   }
