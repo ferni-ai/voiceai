@@ -12,6 +12,16 @@
  *   ferni exec --role <role>      # Filter by role (ceo, cto, cio, cpo, cmo, csco)
  */
 
+import { execSync } from 'child_process';
+import {
+  getUserId,
+  getPendingDecisions,
+  getPriorities,
+  getActiveBlockers,
+  getRecentWins,
+  getEnergyTrend,
+} from '../ceo/storage-client.js';
+
 const colors = {
   reset: '\x1b[0m',
   bold: '\x1b[1m',
@@ -81,50 +91,191 @@ export interface CSCOMetrics {
   alerts: string[];
 }
 
-// Mock data generator - will be replaced with real data integration
+// ============================================================================
+// REAL DATA COLLECTION FUNCTIONS
+// ============================================================================
+
+/**
+ * Get CTO metrics from actual codebase data
+ * Note: Using execSync with hardcoded commands (no user input) - safe from injection
+ */
+function getCTOMetricsFromCodebase(): CTOMetrics {
+  const alerts: string[] = [];
+  let systemHealth = 95;
+  let techDebtScore = 10;
+  let openIncidents = 0;
+  let securityScore = 95;
+
+  try {
+    // Check for npm audit vulnerabilities (hardcoded command - safe)
+    const auditResult = execSync('npm audit --json 2>/dev/null || echo "{}"', { encoding: 'utf-8' });
+    const audit = JSON.parse(auditResult);
+    if (audit.metadata?.vulnerabilities) {
+      const vulns = audit.metadata.vulnerabilities;
+      const total = (vulns.high || 0) + (vulns.critical || 0);
+      if (total > 0) {
+        alerts.push(`${total} high/critical npm vulnerabilities`);
+        securityScore -= total * 5;
+      }
+    }
+  } catch {
+    // npm audit not available or failed
+  }
+
+  try {
+    // Check for remote branches (hardcoded command - safe)
+    const prCount = execSync('git branch -r 2>/dev/null | grep -v HEAD | wc -l', { encoding: 'utf-8' }).trim();
+    const branches = parseInt(prCount, 10) || 0;
+    if (branches > 10) {
+      alerts.push(`${branches} remote branches (consider cleanup)`);
+      techDebtScore += 5;
+    }
+  } catch {
+    // Git not available
+  }
+
+  try {
+    // Check for uncommitted changes (hardcoded command - safe)
+    const status = execSync('git status --porcelain 2>/dev/null | wc -l', { encoding: 'utf-8' }).trim();
+    const changes = parseInt(status, 10) || 0;
+    if (changes > 50) {
+      alerts.push(`${changes} uncommitted changes in working directory`);
+      openIncidents = 1;
+    }
+  } catch {
+    // Git not available
+  }
+
+  return {
+    systemHealth: Math.max(systemHealth, 50),
+    techDebtScore: Math.min(techDebtScore, 50),
+    openIncidents,
+    securityScore: Math.max(securityScore, 50),
+    alerts: alerts.length > 0 ? alerts : ['No critical issues detected'],
+  };
+}
+
+/**
+ * Get CEO metrics from coaching data
+ */
+async function getCEOMetricsFromStorage(): Promise<CEOMetrics> {
+  const alerts: string[] = [];
+
+  try {
+    const userId = await getUserId();
+    if (!userId) {
+      return getDefaultCEOMetrics();
+    }
+
+    const [decisions, blockers, wins, priorities, energyTrend] = await Promise.all([
+      getPendingDecisions().catch(() => []),
+      getActiveBlockers().catch(() => []),
+      getRecentWins(7).catch(() => []),
+      getPriorities().catch(() => []),
+      getEnergyTrend().catch(() => null),
+    ]);
+
+    // Calculate health score based on real data
+    let companyHealth = 80;
+    if (blockers.length > 3) {
+      companyHealth -= 10;
+      alerts.push(`${blockers.length} active blockers`);
+    }
+    if (decisions.length > 5) {
+      companyHealth -= 5;
+      alerts.push(`${decisions.length} pending decisions`);
+    }
+    if (wins.length > 0) {
+      companyHealth += 5;
+    }
+    if (energyTrend?.average && energyTrend.average < 5) {
+      companyHealth -= 5;
+      alerts.push('Energy trend is low - consider rest');
+    }
+
+    // Calculate OKR progress from priorities
+    const completedPriorities = priorities.filter((p: { status?: string }) => p.status === 'completed').length;
+    const totalPriorities = priorities.length || 1;
+    const okrProgress = Math.round((completedPriorities / totalPriorities) * 100);
+
+    return {
+      companyHealth: Math.max(companyHealth, 50),
+      okrProgress,
+      pendingDecisions: decisions.length,
+      alerts: alerts.length > 0 ? alerts : ['On track'],
+    };
+  } catch {
+    return getDefaultCEOMetrics();
+  }
+}
+
+function getDefaultCEOMetrics(): CEOMetrics {
+  return {
+    companyHealth: 85,
+    okrProgress: 70,
+    pendingDecisions: 0,
+    alerts: ['CEO coaching data not configured'],
+  };
+}
+
+// Real data integration - connects to actual systems where possible
 export function getExecutiveMetrics(): ExecutiveMetrics {
+  // Get CTO metrics from real codebase data
+  const ctoMetrics = getCTOMetricsFromCodebase();
+
   return {
     ceo: {
-      companyHealth: 87,
-      okrProgress: 72,
-      pendingDecisions: 3,
-      alerts: ['Q1 board meeting in 5 days', 'Series B timeline update needed'],
+      // Will be populated by async call if needed
+      companyHealth: 85,
+      okrProgress: 70,
+      pendingDecisions: 0,
+      alerts: ['Use getExecutiveMetricsAsync() for real CEO data'],
     },
-    cto: {
-      systemHealth: 94,
-      techDebtScore: 23,
-      openIncidents: 1,
-      securityScore: 91,
-      alerts: ['Dependency update overdue: lodash@4.x'],
-    },
+    cto: ctoMetrics,
     cio: {
+      // CIO metrics - would connect to compliance tracking
       complianceScore: 96,
       dataRiskScore: 12,
       accessReviewsPending: 7,
       vendorsExpiringSoon: 2,
-      alerts: ['SOC2 audit scheduled for Feb 15'],
+      alerts: ['Connect to compliance system for real data'],
     },
     cpo: {
+      // CPO metrics - would connect to analytics
       featureVelocity: 8.2,
       userSatisfaction: 4.6,
       activeExperiments: 5,
       churnRisk: 3.2,
-      alerts: ['Voice quality feedback spike detected'],
+      alerts: ['Connect to analytics for real data'],
     },
     cmo: {
+      // CMO metrics - would connect to marketing APIs
       campaignROAS: 4.2,
       socialEngagement: 12500,
       seoHealth: 88,
       brandSentiment: 0.82,
-      alerts: ['Competitor launched similar feature'],
+      alerts: ['Connect to marketing tools for real data'],
     },
     csco: {
+      // CSCO metrics - would connect to cloud billing
       operationalEfficiency: 91,
       costOptimization: 18,
       vendorHealth: 94,
       slaCompliance: 99.2,
-      alerts: ['Cloud costs up 12% this month'],
+      alerts: ['Connect to billing APIs for real data'],
     },
+  };
+}
+
+/**
+ * Get executive metrics with async CEO data
+ */
+export async function getExecutiveMetricsAsync(): Promise<ExecutiveMetrics> {
+  const baseMetrics = getExecutiveMetrics();
+  const ceoMetrics = await getCEOMetricsFromStorage();
+  return {
+    ...baseMetrics,
+    ceo: ceoMetrics,
   };
 }
 
